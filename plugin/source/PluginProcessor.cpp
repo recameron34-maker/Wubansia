@@ -32,6 +32,8 @@ namespace wubansia
     void PluginProcessor::prepareToPlay (double sampleRate, int)
     {
         voices.prepare (sampleRate);
+        masterGain.reset (sampleRate, 0.02); // 20 ms ramps, so gain changes never click
+        masterGain.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (masterGainDb->load(), silenceDb));
     }
 
     void PluginProcessor::releaseResources()
@@ -46,9 +48,27 @@ namespace wubansia
                && (out == juce::AudioChannelSet::mono() || out == juce::AudioChannelSet::stereo());
     }
 
-    void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+    void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
     {
+        juce::ScopedNoDenormals noDenormals;
         buffer.clear();
+
+        // Sample-accurate: render up to each event, then apply it.
+        const auto numSamples = buffer.getNumSamples();
+        int rendered = 0;
+
+        for (const auto metadata : midi)
+        {
+            const auto position = juce::jlimit (rendered, numSamples, metadata.samplePosition);
+            voices.render (buffer, rendered, position - rendered);
+            voices.handleMidi (metadata.data, metadata.numBytes);
+            rendered = position;
+        }
+
+        voices.render (buffer, rendered, numSamples - rendered);
+
+        masterGain.setTargetValue (juce::Decibels::decibelsToGain (masterGainDb->load (std::memory_order_relaxed), silenceDb));
+        masterGain.applyGain (buffer, numSamples);
     }
 
     juce::AudioProcessorEditor* PluginProcessor::createEditor()
@@ -56,9 +76,23 @@ namespace wubansia
         return new PluginEditor (*this);
     }
 
-    void PluginProcessor::getStateInformation (juce::MemoryBlock&) {}
+    void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)
+    {
+        auto state = apvts.copyState();
+        state.setProperty ("stateVersion", stateVersion, nullptr);
 
-    void PluginProcessor::setStateInformation (const void*, int) {}
+        if (const auto xml = state.createXml())
+            copyXmlToBinary (*xml, destData);
+    }
+
+    void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
+    {
+        // Anything that isn't our state is ignored. Later versions migrate older
+        // states here, keyed on the stateVersion attribute.
+        if (const auto xml = getXmlFromBinary (data, sizeInBytes))
+            if (xml->hasTagName (stateType))
+                apvts.replaceState (juce::ValueTree::fromXml (*xml));
+    }
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
