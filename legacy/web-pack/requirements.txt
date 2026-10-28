@@ -1,0 +1,12 @@
+# Python pipeline for the legacy web pack (sound design, vocals, packing, instrument library).
+# Versions are the ones the published v21 sounds were rendered with.
+numpy==2.5.3
+scipy==1.18.1
+soundfile==0.14.0
+pedalboard==0.9.26      # GPLv3: build-time tool only, never linked into the plugin
+pyworld==0.3.5
+onnxruntime==1.29.0
+sherpa-onnx==1.13.8     # Kokoro TTS + Whisper ASR (models: see README)
+matplotlib==3.11.2
+pillow==12.3.0
+playwright==1.56.0      # tests/browser only

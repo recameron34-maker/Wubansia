@@ -1,0 +1,5038 @@
+{
+ "hoover_24": {
+  "path": "Samples/Bass/Hoover/Hoover_C1.wav",
+  "root": 24,
+  "frames": 89000,
+  "ch": 2,
+  "loop": [
+   0,
+   88999
+  ],
+  "peak": 0.856,
+  "seam": 2.52
+ },
+ "hoover_27": {
+  "path": "Samples/Bass/Hoover/Hoover_Eb1.wav",
+  "root": 27,
+  "frames": 88447,
+  "ch": 2,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.775,
+  "seam": 2.62
+ },
+ "hoover_30": {
+  "path": "Samples/Bass/Hoover/Hoover_Fs1.wav",
+  "root": 30,
+  "frames": 87725,
+  "ch": 2,
+  "loop": [
+   0,
+   87724
+  ],
+  "peak": 0.849,
+  "seam": 3.49
+ },
+ "hoover_33": {
+  "path": "Samples/Bass/Hoover/Hoover_A1.wav",
+  "root": 33,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.85,
+  "seam": 2.63
+ },
+ "hoover_36": {
+  "path": "Samples/Bass/Hoover/Hoover_C2.wav",
+  "root": 36,
+  "frames": 89000,
+  "ch": 2,
+  "loop": [
+   0,
+   88999
+  ],
+  "peak": 0.775,
+  "seam": 2.88
+ },
+ "hoover_39": {
+  "path": "Samples/Bass/Hoover/Hoover_Eb2.wav",
+  "root": 39,
+  "frames": 88447,
+  "ch": 2,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.815,
+  "seam": 2.16
+ },
+ "hoover_42": {
+  "path": "Samples/Bass/Hoover/Hoover_Fs2.wav",
+  "root": 42,
+  "frames": 88678,
+  "ch": 2,
+  "loop": [
+   0,
+   88677
+  ],
+  "peak": 0.887,
+  "seam": 2.76
+ },
+ "hoover_45": {
+  "path": "Samples/Bass/Hoover/Hoover_A2.wav",
+  "root": 45,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.89,
+  "seam": 2.41
+ },
+ "hoover_48": {
+  "path": "Samples/Bass/Hoover/Hoover_C3.wav",
+  "root": 48,
+  "frames": 88326,
+  "ch": 2,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.79,
+  "seam": 2.45
+ },
+ "hoover_51": {
+  "path": "Samples/Bass/Hoover/Hoover_Eb3.wav",
+  "root": 51,
+  "frames": 88447,
+  "ch": 2,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.837,
+  "seam": 2.16
+ },
+ "hoover_54": {
+  "path": "Samples/Bass/Hoover/Hoover_Fs3.wav",
+  "root": 54,
+  "frames": 88201,
+  "ch": 2,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.842,
+  "seam": 3.44
+ },
+ "hoover_57": {
+  "path": "Samples/Bass/Hoover/Hoover_A3.wav",
+  "root": 57,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.823,
+  "seam": 3.1
+ },
+ "hoover_60": {
+  "path": "Samples/Bass/Hoover/Hoover_C4.wav",
+  "root": 60,
+  "frames": 88326,
+  "ch": 2,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.799,
+  "seam": 2.35
+ },
+ "hoover_63": {
+  "path": "Samples/Bass/Hoover/Hoover_Eb4.wav",
+  "root": 63,
+  "frames": 88164,
+  "ch": 2,
+  "loop": [
+   0,
+   88163
+  ],
+  "peak": 0.839,
+  "seam": 3.77
+ },
+ "hoover_66": {
+  "path": "Samples/Bass/Hoover/Hoover_Fs4.wav",
+  "root": 66,
+  "frames": 88201,
+  "ch": 2,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.873,
+  "seam": 3.05
+ },
+ "hoover_69": {
+  "path": "Samples/Bass/Hoover/Hoover_A4.wav",
+  "root": 69,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.839,
+  "seam": 3.65
+ },
+ "hoover_72": {
+  "path": "Samples/Bass/Hoover/Hoover_C5.wav",
+  "root": 72,
+  "frames": 88326,
+  "ch": 2,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.822,
+  "seam": 3.86
+ },
+ "donk_24": {
+  "path": "Samples/Bass/Donk/Donk_C1.wav",
+  "root": 24,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.884
+ },
+ "donk_27": {
+  "path": "Samples/Bass/Donk/Donk_Eb1.wav",
+  "root": 27,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.885
+ },
+ "donk_30": {
+  "path": "Samples/Bass/Donk/Donk_Fs1.wav",
+  "root": 30,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.886
+ },
+ "donk_33": {
+  "path": "Samples/Bass/Donk/Donk_A1.wav",
+  "root": 33,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.887
+ },
+ "donk_36": {
+  "path": "Samples/Bass/Donk/Donk_C2.wav",
+  "root": 36,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.887
+ },
+ "donk_39": {
+  "path": "Samples/Bass/Donk/Donk_Eb2.wav",
+  "root": 39,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.887
+ },
+ "donk_42": {
+  "path": "Samples/Bass/Donk/Donk_Fs2.wav",
+  "root": 42,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.887
+ },
+ "donk_45": {
+  "path": "Samples/Bass/Donk/Donk_A2.wav",
+  "root": 45,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.889
+ },
+ "donk_48": {
+  "path": "Samples/Bass/Donk/Donk_C3.wav",
+  "root": 48,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.887
+ },
+ "donk_51": {
+  "path": "Samples/Bass/Donk/Donk_Eb3.wav",
+  "root": 51,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89
+ },
+ "donk_54": {
+  "path": "Samples/Bass/Donk/Donk_Fs3.wav",
+  "root": 54,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.886
+ },
+ "donk_57": {
+  "path": "Samples/Bass/Donk/Donk_A3.wav",
+  "root": 57,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.881
+ },
+ "donk_60": {
+  "path": "Samples/Bass/Donk/Donk_C4.wav",
+  "root": 60,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.884
+ },
+ "mosaic_h19_01": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_01_Orange-1_E4.wav",
+  "root": 64,
+  "frames": 10741,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.692,
+  "word": "Orange-1"
+ },
+ "mosaic_h19_02": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_02_Orange-2_G4.wav",
+  "root": 67,
+  "frames": 10220,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.554,
+  "word": "Orange-2"
+ },
+ "mosaic_h19_03": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_03_light_A4.wav",
+  "root": 69,
+  "frames": 10730,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.653,
+  "word": "light"
+ },
+ "mosaic_h19_04": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_04_on_G4.wav",
+  "root": 67,
+  "frames": 9724,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.616,
+  "word": "on"
+ },
+ "mosaic_h19_05": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_05_your_A4.wav",
+  "root": 69,
+  "frames": 10382,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.723,
+  "word": "your"
+ },
+ "mosaic_h19_06": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_06_skin_C5.wav",
+  "root": 72,
+  "frames": 28367,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.472,
+  "word": "skin"
+ },
+ "mosaic_h19_07": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_07_let_C5.wav",
+  "root": 72,
+  "frames": 10868,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.575,
+  "word": "let"
+ },
+ "mosaic_h19_08": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_08_the_A4.wav",
+  "root": 69,
+  "frames": 12016,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.403,
+  "word": "the"
+ },
+ "mosaic_h19_09": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_09_night_G4.wav",
+  "root": 67,
+  "frames": 20263,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.679,
+  "word": "night"
+ },
+ "mosaic_h19_10": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_10_pull_F4.wav",
+  "root": 65,
+  "frames": 10618,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.433,
+  "word": "pull"
+ },
+ "mosaic_h19_11": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_11_us_E4.wav",
+  "root": 64,
+  "frames": 10796,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.597,
+  "word": "us"
+ },
+ "mosaic_h19_12": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_12_in_D4.wav",
+  "root": 62,
+  "frames": 19677,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.625,
+  "word": "in"
+ },
+ "mosaic_h19_13": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_13_Orange-1_E4.wav",
+  "root": 64,
+  "frames": 10614,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.521,
+  "word": "Orange-1"
+ },
+ "mosaic_h19_14": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_14_Orange-2_G4.wav",
+  "root": 67,
+  "frames": 9514,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.427,
+  "word": "Orange-2"
+ },
+ "mosaic_h19_15": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_15_light_B4.wav",
+  "root": 71,
+  "frames": 10932,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.575,
+  "word": "light"
+ },
+ "mosaic_h19_16": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_16_on_A4.wav",
+  "root": 69,
+  "frames": 10266,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.579,
+  "word": "on"
+ },
+ "mosaic_h19_17": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_17_your_B4.wav",
+  "root": 71,
+  "frames": 10304,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.888,
+  "word": "your"
+ },
+ "mosaic_h19_18": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_18_skin_D5.wav",
+  "root": 74,
+  "frames": 28241,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "skin"
+ },
+ "mosaic_h19_19": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_19_let_D5.wav",
+  "root": 74,
+  "frames": 10473,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.544,
+  "word": "let"
+ },
+ "mosaic_h19_20": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_20_the_C5.wav",
+  "root": 72,
+  "frames": 12666,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.273,
+  "word": "the"
+ },
+ "mosaic_h19_21": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_21_night_B4.wav",
+  "root": 71,
+  "frames": 13542,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.561,
+  "word": "night"
+ },
+ "mosaic_h19_22": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_22_pull_A4.wav",
+  "root": 69,
+  "frames": 12861,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.5,
+  "word": "pull"
+ },
+ "mosaic_h19_23": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_23_us_G4.wav",
+  "root": 67,
+  "frames": 10274,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.55,
+  "word": "us"
+ },
+ "mosaic_h19_24": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_24_in_A4.wav",
+  "root": 69,
+  "frames": 15371,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.301,
+  "word": "in"
+ },
+ "mosaic_h19_loop": {
+  "path": "Samples/Vocals/Mosaic/H19/H19_WholeHook_128bpm.wav",
+  "root": 72,
+  "frames": 330750,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 128,
+  "bars": 4
+ },
+ "mosaic_h20_01": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_01_Missed_A4.wav",
+  "root": 69,
+  "frames": 15304,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.758,
+  "word": "Missed"
+ },
+ "mosaic_h20_02": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_02_the_A4.wav",
+  "root": 69,
+  "frames": 13894,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.614,
+  "word": "the"
+ },
+ "mosaic_h20_03": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_03_last_C5.wav",
+  "root": 72,
+  "frames": 17333,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.605,
+  "word": "last"
+ },
+ "mosaic_h20_04": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_04_train_A4.wav",
+  "root": 69,
+  "frames": 11795,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "train"
+ },
+ "mosaic_h20_05": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_05_home_F4.wav",
+  "root": 65,
+  "frames": 27989,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.716,
+  "word": "home"
+ },
+ "mosaic_h20_06": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_06_so_D4.wav",
+  "root": 62,
+  "frames": 9998,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.015,
+  "word": "so"
+ },
+ "mosaic_h20_07": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_07_we_F4.wav",
+  "root": 65,
+  "frames": 12649,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.695,
+  "word": "we"
+ },
+ "mosaic_h20_08": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_08_walk_G4.wav",
+  "root": 67,
+  "frames": 15926,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.494,
+  "word": "walk"
+ },
+ "mosaic_h20_09": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_09_it_Bb4.wav",
+  "root": 70,
+  "frames": 9375,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.691,
+  "word": "it"
+ },
+ "mosaic_h20_10": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_10_slow_A4.wav",
+  "root": 69,
+  "frames": 24564,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.568,
+  "word": "slow"
+ },
+ "mosaic_h20_11": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_11_Missed_A4.wav",
+  "root": 69,
+  "frames": 15879,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.837,
+  "word": "Missed"
+ },
+ "mosaic_h20_12": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_12_the_A4.wav",
+  "root": 69,
+  "frames": 13916,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.596,
+  "word": "the"
+ },
+ "mosaic_h20_13": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_13_last_D5.wav",
+  "root": 74,
+  "frames": 17224,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.539,
+  "word": "last"
+ },
+ "mosaic_h20_14": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_14_train_C5.wav",
+  "root": 72,
+  "frames": 11965,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.759,
+  "word": "train"
+ },
+ "mosaic_h20_15": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_15_home_A4.wav",
+  "root": 69,
+  "frames": 27940,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.686,
+  "word": "home"
+ },
+ "mosaic_h20_16": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_16_and_E4.wav",
+  "root": 64,
+  "frames": 12243,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.61,
+  "word": "and"
+ },
+ "mosaic_h20_17": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_17_I_G4.wav",
+  "root": 67,
+  "frames": 10456,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.888,
+  "word": "I"
+ },
+ "mosaic_h20_18": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_18_want_A4.wav",
+  "root": 69,
+  "frames": 15680,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.47,
+  "word": "want"
+ },
+ "mosaic_h20_19": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_19_you_Cs5.wav",
+  "root": 73,
+  "frames": 8659,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.716,
+  "word": "you"
+ },
+ "mosaic_h20_20": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_20_close_A4.wav",
+  "root": 69,
+  "frames": 18727,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.558,
+  "word": "close"
+ },
+ "mosaic_h20_loop": {
+  "path": "Samples/Vocals/Mosaic/H20/H20_WholeHook_132bpm.wav",
+  "root": 72,
+  "frames": 320727,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 132,
+  "bars": 4
+ },
+ "mosaic_h21_01": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_01_Swimming-1_F4.wav",
+  "root": 65,
+  "frames": 10287,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.759,
+  "word": "Swimming-1"
+ },
+ "mosaic_h21_02": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_02_Swimming-2_Ab4.wav",
+  "root": 68,
+  "frames": 10244,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.628,
+  "word": "Swimming-2"
+ },
+ "mosaic_h21_03": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_03_in_Bb4.wav",
+  "root": 70,
+  "frames": 10228,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.551,
+  "word": "in"
+ },
+ "mosaic_h21_04": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_04_the_Ab4.wav",
+  "root": 68,
+  "frames": 10201,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.509,
+  "word": "the"
+ },
+ "mosaic_h21_05": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_05_neon-1_F4.wav",
+  "root": 65,
+  "frames": 10185,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.539,
+  "word": "neon-1"
+ },
+ "mosaic_h21_06": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_06_neon-2_Ab4.wav",
+  "root": 68,
+  "frames": 8285,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.376,
+  "word": "neon-2"
+ },
+ "mosaic_h21_07": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_07_light_Cs5.wav",
+  "root": 73,
+  "frames": 32323,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.603,
+  "word": "light"
+ },
+ "mosaic_h21_08": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_08_pull_Bb4.wav",
+  "root": 70,
+  "frames": 10820,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.562,
+  "word": "pull"
+ },
+ "mosaic_h21_09": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_09_me_Ab4.wav",
+  "root": 68,
+  "frames": 10302,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.612,
+  "word": "me"
+ },
+ "mosaic_h21_10": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_10_under-1_F4.wav",
+  "root": 65,
+  "frames": 10835,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "under-1"
+ },
+ "mosaic_h21_11": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_11_under-2_Ab4.wav",
+  "root": 68,
+  "frames": 9045,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.639,
+  "word": "under-2"
+ },
+ "mosaic_h21_12": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_12_tonight-1_Ab4.wav",
+  "root": 68,
+  "frames": 6202,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.608,
+  "word": "tonight-1"
+ },
+ "mosaic_h21_13": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_13_tonight-2_Bb4.wav",
+  "root": 70,
+  "frames": 25259,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.72,
+  "word": "tonight-2"
+ },
+ "mosaic_h21_14": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_14_Swimming-1_F4.wav",
+  "root": 65,
+  "frames": 10260,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.567,
+  "word": "Swimming-1"
+ },
+ "mosaic_h21_15": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_15_Swimming-2_Fs4.wav",
+  "root": 66,
+  "frames": 10224,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.528,
+  "word": "Swimming-2"
+ },
+ "mosaic_h21_16": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_16_in_Bb4.wav",
+  "root": 70,
+  "frames": 10285,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.443,
+  "word": "in"
+ },
+ "mosaic_h21_17": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_17_the_Cs5.wav",
+  "root": 73,
+  "frames": 8579,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.341,
+  "word": "the"
+ },
+ "mosaic_h21_18": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_18_neon-1_Bb4.wav",
+  "root": 70,
+  "frames": 11871,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.511,
+  "word": "neon-1"
+ },
+ "mosaic_h21_19": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_19_neon-2_Cs5.wav",
+  "root": 73,
+  "frames": 9067,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.42,
+  "word": "neon-2"
+ },
+ "mosaic_h21_20": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_20_light_F5.wav",
+  "root": 77,
+  "frames": 29473,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.431,
+  "word": "light"
+ },
+ "mosaic_h21_21": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_21_pull_Eb5.wav",
+  "root": 75,
+  "frames": 12846,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.523,
+  "word": "pull"
+ },
+ "mosaic_h21_22": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_22_me_C5.wav",
+  "root": 72,
+  "frames": 10304,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.508,
+  "word": "me"
+ },
+ "mosaic_h21_23": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_23_under-1_Ab4.wav",
+  "root": 68,
+  "frames": 9770,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.707,
+  "word": "under-1"
+ },
+ "mosaic_h21_24": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_24_under-2_C5.wav",
+  "root": 72,
+  "frames": 10516,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.391,
+  "word": "under-2"
+ },
+ "mosaic_h21_25": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_25_tonight-1_Bb4.wav",
+  "root": 70,
+  "frames": 5776,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.792,
+  "word": "tonight-1"
+ },
+ "mosaic_h21_26": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_26_tonight-2_Ab4.wav",
+  "root": 68,
+  "frames": 15536,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.213,
+  "word": "tonight-2"
+ },
+ "mosaic_h21_loop": {
+  "path": "Samples/Vocals/Mosaic/H21/H21_WholeHook_128bpm.wav",
+  "root": 72,
+  "frames": 330750,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 128,
+  "bars": 4
+ },
+ "mosaic_h22_01": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_01_Meet_Bb2.wav",
+  "root": 46,
+  "frames": 8386,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.623,
+  "word": "Meet"
+ },
+ "mosaic_h22_02": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_02_me_Eb3.wav",
+  "root": 51,
+  "frames": 10751,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.494,
+  "word": "me"
+ },
+ "mosaic_h22_03": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_03_on_F3.wav",
+  "root": 53,
+  "frames": 9802,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.482,
+  "word": "on"
+ },
+ "mosaic_h22_04": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_04_the_G3.wav",
+  "root": 55,
+  "frames": 7581,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.231,
+  "word": "the"
+ },
+ "mosaic_h22_05": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_05_chapel-1_Bb3.wav",
+  "root": 58,
+  "frames": 11330,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.697,
+  "word": "chapel-1"
+ },
+ "mosaic_h22_06": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_06_chapel-2_G3.wav",
+  "root": 55,
+  "frames": 10899,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.649,
+  "word": "chapel-2"
+ },
+ "mosaic_h22_07": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_07_steps_F3.wav",
+  "root": 53,
+  "frames": 26976,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.506,
+  "word": "steps"
+ },
+ "mosaic_h22_08": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_08_sing_G3.wav",
+  "root": 55,
+  "frames": 12300,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "sing"
+ },
+ "mosaic_h22_09": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_09_it_F3.wav",
+  "root": 53,
+  "frames": 7490,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.467,
+  "word": "it"
+ },
+ "mosaic_h22_10": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_10_out_Eb3.wav",
+  "root": 51,
+  "frames": 10323,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.717,
+  "word": "out"
+ },
+ "mosaic_h22_11": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_11_with_G3.wav",
+  "root": 55,
+  "frames": 11879,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.377,
+  "word": "with"
+ },
+ "mosaic_h22_12": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_12_every-1_F3.wav",
+  "root": 53,
+  "frames": 9866,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "every-1"
+ },
+ "mosaic_h22_13": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_13_every-2_Eb3.wav",
+  "root": 51,
+  "frames": 5278,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.488,
+  "word": "every-2"
+ },
+ "mosaic_h22_14": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_14_breath_C3.wav",
+  "root": 48,
+  "frames": 11776,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.722,
+  "word": "breath"
+ },
+ "mosaic_h22_15": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_15_Meet_C3.wav",
+  "root": 48,
+  "frames": 11617,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.422,
+  "word": "Meet"
+ },
+ "mosaic_h22_16": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_16_me_Eb3.wav",
+  "root": 51,
+  "frames": 10759,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.296,
+  "word": "me"
+ },
+ "mosaic_h22_17": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_17_on_F3.wav",
+  "root": 53,
+  "frames": 9850,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.263,
+  "word": "on"
+ },
+ "mosaic_h22_18": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_18_the_Ab3.wav",
+  "root": 56,
+  "frames": 7191,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.192,
+  "word": "the"
+ },
+ "mosaic_h22_19": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_19_chapel-1_C4.wav",
+  "root": 60,
+  "frames": 10579,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.631,
+  "word": "chapel-1"
+ },
+ "mosaic_h22_20": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_20_chapel-2_Ab3.wav",
+  "root": 56,
+  "frames": 12044,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.718,
+  "word": "chapel-2"
+ },
+ "mosaic_h22_21": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_21_steps_G3.wav",
+  "root": 55,
+  "frames": 29557,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.534,
+  "word": "steps"
+ },
+ "mosaic_h22_22": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_22_sing_Eb3.wav",
+  "root": 51,
+  "frames": 9915,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "sing"
+ },
+ "mosaic_h22_23": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_23_it_G3.wav",
+  "root": 55,
+  "frames": 9819,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.547,
+  "word": "it"
+ },
+ "mosaic_h22_24": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_24_out_Ab3.wav",
+  "root": 56,
+  "frames": 7917,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.644,
+  "word": "out"
+ },
+ "mosaic_h22_25": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_25_with_Bb3.wav",
+  "root": 58,
+  "frames": 11697,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.35,
+  "word": "with"
+ },
+ "mosaic_h22_26": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_26_every-1_C4.wav",
+  "root": 60,
+  "frames": 9873,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.58,
+  "word": "every-1"
+ },
+ "mosaic_h22_27": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_27_every-2_Bb3.wav",
+  "root": 58,
+  "frames": 4666,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.17,
+  "word": "every-2"
+ },
+ "mosaic_h22_28": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_28_breath_G3.wav",
+  "root": 55,
+  "frames": 8204,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.636,
+  "word": "breath"
+ },
+ "mosaic_h22_loop": {
+  "path": "Samples/Vocals/Mosaic/H22/H22_WholeHook_133bpm.wav",
+  "root": 72,
+  "frames": 318315,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 133,
+  "bars": 4
+ },
+ "mosaic_h02_01": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_01_Hold_A3.wav",
+  "root": 57,
+  "frames": 19324,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "Hold"
+ },
+ "mosaic_h02_02": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_02_me_C4.wav",
+  "root": 60,
+  "frames": 7673,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.62,
+  "word": "me"
+ },
+ "mosaic_h02_03": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_03_closer-1_D4.wav",
+  "root": 62,
+  "frames": 15806,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.63,
+  "word": "closer-1"
+ },
+ "mosaic_h02_04": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_04_closer-2_C4.wav",
+  "root": 60,
+  "frames": 26823,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.435,
+  "word": "closer-2"
+ },
+ "mosaic_h02_05": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_05_say_D4.wav",
+  "root": 62,
+  "frames": 12403,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.699,
+  "word": "say"
+ },
+ "mosaic_h02_06": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_06_youll_F4.wav",
+  "root": 65,
+  "frames": 10090,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.573,
+  "word": "youll"
+ },
+ "mosaic_h02_07": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_07_stay_D4.wav",
+  "root": 62,
+  "frames": 48096,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.806,
+  "word": "stay"
+ },
+ "mosaic_h02_08": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_08_Hold_Bb3.wav",
+  "root": 58,
+  "frames": 19940,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.562,
+  "word": "Hold"
+ },
+ "mosaic_h02_09": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_09_me_D4.wav",
+  "root": 62,
+  "frames": 10468,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.511,
+  "word": "me"
+ },
+ "mosaic_h02_10": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_10_closer-1_F4.wav",
+  "root": 65,
+  "frames": 14331,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.569,
+  "word": "closer-1"
+ },
+ "mosaic_h02_11": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_11_closer-2_D4.wav",
+  "root": 62,
+  "frames": 27147,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.413,
+  "word": "closer-2"
+ },
+ "mosaic_h02_12": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_12_say_Cs4.wav",
+  "root": 61,
+  "frames": 12642,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.623,
+  "word": "say"
+ },
+ "mosaic_h02_13": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_13_youll_E4.wav",
+  "root": 64,
+  "frames": 10593,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.394,
+  "word": "youll"
+ },
+ "mosaic_h02_14": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_14_stay_A3.wav",
+  "root": 57,
+  "frames": 42563,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.625,
+  "word": "stay"
+ },
+ "mosaic_h02_loop": {
+  "path": "Samples/Vocals/Mosaic/H02/H02_WholeHook_132bpm.wav",
+  "root": 72,
+  "frames": 320727,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 132,
+  "bars": 4
+ },
+ "mosaic_h03_01": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_01_Sunday-1_Bb4.wav",
+  "root": 70,
+  "frames": 15130,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.834,
+  "word": "Sunday-1"
+ },
+ "mosaic_h03_02": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_02_Sunday-2_G4.wav",
+  "root": 67,
+  "frames": 13969,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "Sunday-2"
+ },
+ "mosaic_h03_03": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_03_morning-1_Bb4.wav",
+  "root": 70,
+  "frames": 19784,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.359,
+  "word": "morning-1"
+ },
+ "mosaic_h03_04": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_04_morning-2_C5.wav",
+  "root": 72,
+  "frames": 27798,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.246,
+  "word": "morning-2"
+ },
+ "mosaic_h03_05": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_05_feeling-1_Eb5.wav",
+  "root": 75,
+  "frames": 17466,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.293,
+  "word": "feeling-1"
+ },
+ "mosaic_h03_06": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_06_feeling-2_D5.wav",
+  "root": 74,
+  "frames": 14235,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.54,
+  "word": "feeling-2"
+ },
+ "mosaic_h03_07": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_07_your_C5.wav",
+  "root": 72,
+  "frames": 8979,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.539,
+  "word": "your"
+ },
+ "mosaic_h03_08": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_08_love_Bb4.wav",
+  "root": 70,
+  "frames": 40889,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.409,
+  "word": "love"
+ },
+ "mosaic_h03_09": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_09_Sunday-1_C5.wav",
+  "root": 72,
+  "frames": 15382,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.749,
+  "word": "Sunday-1"
+ },
+ "mosaic_h03_10": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_10_Sunday-2_Ab4.wav",
+  "root": 68,
+  "frames": 13874,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "Sunday-2"
+ },
+ "mosaic_h03_11": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_11_morning-1_C5.wav",
+  "root": 72,
+  "frames": 18941,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.452,
+  "word": "morning-1"
+ },
+ "mosaic_h03_12": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_12_morning-2_Eb5.wav",
+  "root": 75,
+  "frames": 27901,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.137,
+  "word": "morning-2"
+ },
+ "mosaic_h03_13": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_13_feeling-1_F5.wav",
+  "root": 77,
+  "frames": 16598,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.331,
+  "word": "feeling-1"
+ },
+ "mosaic_h03_14": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_14_feeling-2_Eb5.wav",
+  "root": 75,
+  "frames": 14970,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.389,
+  "word": "feeling-2"
+ },
+ "mosaic_h03_15": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_15_your_D5.wav",
+  "root": 74,
+  "frames": 8807,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.376,
+  "word": "your"
+ },
+ "mosaic_h03_16": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_16_love_Bb4.wav",
+  "root": 70,
+  "frames": 34711,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.209,
+  "word": "love"
+ },
+ "mosaic_h03_loop": {
+  "path": "Samples/Vocals/Mosaic/H03/H03_WholeHook_133bpm.wav",
+  "root": 72,
+  "frames": 318315,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 133,
+  "bars": 4
+ },
+ "mosaic_h06_01": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_01_Deeper-1_A4.wav",
+  "root": 69,
+  "frames": 10915,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "Deeper-1"
+ },
+ "mosaic_h06_02": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_02_Deeper-2_E4.wav",
+  "root": 64,
+  "frames": 30224,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "Deeper-2"
+ },
+ "mosaic_h06_03": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_03_deeper-1_A4.wav",
+  "root": 69,
+  "frames": 10661,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "deeper-1"
+ },
+ "mosaic_h06_04": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_04_deeper-2_E4.wav",
+  "root": 64,
+  "frames": 31982,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.738,
+  "word": "deeper-2"
+ },
+ "mosaic_h06_05": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_05_into-1_G4.wav",
+  "root": 67,
+  "frames": 9304,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.671,
+  "word": "into-1"
+ },
+ "mosaic_h06_06": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_06_into-2_A4.wav",
+  "root": 69,
+  "frames": 10189,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "into-2"
+ },
+ "mosaic_h06_07": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_07_the_C5.wav",
+  "root": 72,
+  "frames": 10854,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.471,
+  "word": "the"
+ },
+ "mosaic_h06_08": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_08_night_A4.wav",
+  "root": 69,
+  "frames": 50734,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.577,
+  "word": "night"
+ },
+ "mosaic_h06_09": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_09_Deeper-1_A4.wav",
+  "root": 69,
+  "frames": 12488,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.52,
+  "word": "Deeper-1"
+ },
+ "mosaic_h06_10": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_10_Deeper-2_E4.wav",
+  "root": 64,
+  "frames": 28438,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.877,
+  "word": "Deeper-2"
+ },
+ "mosaic_h06_11": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_11_deeper-1_A4.wav",
+  "root": 69,
+  "frames": 10217,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.634,
+  "word": "deeper-1"
+ },
+ "mosaic_h06_12": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_12_deeper-2_E4.wav",
+  "root": 64,
+  "frames": 31046,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.609,
+  "word": "deeper-2"
+ },
+ "mosaic_h06_13": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_13_into-1_G4.wav",
+  "root": 67,
+  "frames": 10223,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.566,
+  "word": "into-1"
+ },
+ "mosaic_h06_14": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_14_into-2_E4.wav",
+  "root": 64,
+  "frames": 10138,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "into-2"
+ },
+ "mosaic_h06_15": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_15_the_D4.wav",
+  "root": 62,
+  "frames": 10424,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.407,
+  "word": "the"
+ },
+ "mosaic_h06_16": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_16_night_E4.wav",
+  "root": 64,
+  "frames": 44454,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.606,
+  "word": "night"
+ },
+ "mosaic_h06_loop": {
+  "path": "Samples/Vocals/Mosaic/H06/H06_WholeHook_128bpm.wav",
+  "root": 72,
+  "frames": 330750,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 128,
+  "bars": 4
+ },
+ "mosaic_h11_01": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_01_Feel_Cs3.wav",
+  "root": 49,
+  "frames": 9141,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "Feel"
+ },
+ "mosaic_h11_02": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_02_the_Cs3.wav",
+  "root": 49,
+  "frames": 8870,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.494,
+  "word": "the"
+ },
+ "mosaic_h11_03": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_03_pressure-1_E3.wav",
+  "root": 52,
+  "frames": 10582,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.863,
+  "word": "pressure-1"
+ },
+ "mosaic_h11_04": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_04_pressure-2_Cs3.wav",
+  "root": 49,
+  "frames": 30113,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.508,
+  "word": "pressure-2"
+ },
+ "mosaic_h11_05": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_05_when_A2.wav",
+  "root": 45,
+  "frames": 11247,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.631,
+  "word": "when"
+ },
+ "mosaic_h11_06": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_06_the_B2.wav",
+  "root": 47,
+  "frames": 9737,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.522,
+  "word": "the"
+ },
+ "mosaic_h11_07": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_07_bass_Cs3.wav",
+  "root": 49,
+  "frames": 17251,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.678,
+  "word": "bass"
+ },
+ "mosaic_h11_08": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_08_drop_Fs2.wav",
+  "root": 42,
+  "frames": 39468,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.859,
+  "word": "drop"
+ },
+ "mosaic_h11_09": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_09_Feel_D3.wav",
+  "root": 50,
+  "frames": 12203,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.672,
+  "word": "Feel"
+ },
+ "mosaic_h11_10": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_10_the_D3.wav",
+  "root": 50,
+  "frames": 8527,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.466,
+  "word": "the"
+ },
+ "mosaic_h11_11": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_11_pressure-1_Fs3.wav",
+  "root": 54,
+  "frames": 10125,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.686,
+  "word": "pressure-1"
+ },
+ "mosaic_h11_12": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_12_pressure-2_D3.wav",
+  "root": 50,
+  "frames": 30905,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.448,
+  "word": "pressure-2"
+ },
+ "mosaic_h11_13": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_13_when_B2.wav",
+  "root": 47,
+  "frames": 11150,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.564,
+  "word": "when"
+ },
+ "mosaic_h11_14": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_14_the_Cs3.wav",
+  "root": 49,
+  "frames": 10497,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.494,
+  "word": "the"
+ },
+ "mosaic_h11_15": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_15_bass_Fs3.wav",
+  "root": 54,
+  "frames": 16486,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.539,
+  "word": "bass"
+ },
+ "mosaic_h11_16": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_16_drop_Cs3.wav",
+  "root": 49,
+  "frames": 35094,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.518,
+  "word": "drop"
+ },
+ "mosaic_h11_loop": {
+  "path": "Samples/Vocals/Mosaic/H11/H11_WholeHook_134bpm.wav",
+  "root": 72,
+  "frames": 315940,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 134,
+  "bars": 4
+ },
+ "mosaic_h12_01": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_01_All_G3.wav",
+  "root": 55,
+  "frames": 9006,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "All"
+ },
+ "mosaic_h12_02": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_02_the_Bb3.wav",
+  "root": 58,
+  "frames": 9603,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.752,
+  "word": "the"
+ },
+ "mosaic_h12_03": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_03_girls_C4.wav",
+  "root": 60,
+  "frames": 19480,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.749,
+  "word": "girls"
+ },
+ "mosaic_h12_04": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_04_say_Eb4.wav",
+  "root": 63,
+  "frames": 19417,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.614,
+  "word": "say"
+ },
+ "mosaic_h12_05": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_05_ooh_Eb4.wav",
+  "root": 63,
+  "frames": 68631,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.404,
+  "word": "ooh"
+ },
+ "mosaic_h12_06": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_06_All_Ab3.wav",
+  "root": 56,
+  "frames": 10857,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "All"
+ },
+ "mosaic_h12_07": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_07_the_C4.wav",
+  "root": 60,
+  "frames": 8963,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.717,
+  "word": "the"
+ },
+ "mosaic_h12_08": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_08_girls_Eb4.wav",
+  "root": 63,
+  "frames": 19937,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.66,
+  "word": "girls"
+ },
+ "mosaic_h12_09": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_09_say_G4.wav",
+  "root": 67,
+  "frames": 19318,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.533,
+  "word": "say"
+ },
+ "mosaic_h12_10": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_10_ooh_F4.wav",
+  "root": 65,
+  "frames": 68619,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.228,
+  "word": "ooh"
+ },
+ "mosaic_h12_loop": {
+  "path": "Samples/Vocals/Mosaic/H12/H12_WholeHook_136bpm.wav",
+  "root": 72,
+  "frames": 311294,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 136,
+  "bars": 4
+ },
+ "mosaic_h14_01": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_01_Lift_E4.wav",
+  "root": 64,
+  "frames": 19985,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.832,
+  "word": "Lift"
+ },
+ "mosaic_h14_02": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_02_me_C4.wav",
+  "root": 60,
+  "frames": 10222,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.824,
+  "word": "me"
+ },
+ "mosaic_h14_03": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_03_higher-1_E4.wav",
+  "root": 64,
+  "frames": 20540,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.614,
+  "word": "higher-1"
+ },
+ "mosaic_h14_04": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_04_higher-2_A3.wav",
+  "root": 57,
+  "frames": 30940,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "higher-2"
+ },
+ "mosaic_h14_05": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_05_higher-1_F4.wav",
+  "root": 65,
+  "frames": 31000,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.584,
+  "word": "higher-1"
+ },
+ "mosaic_h14_06": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_06_higher-2_D4.wav",
+  "root": 62,
+  "frames": 51638,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.72,
+  "word": "higher-2"
+ },
+ "mosaic_h14_07": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_07_Lift_D4.wav",
+  "root": 62,
+  "frames": 20630,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.668,
+  "word": "Lift"
+ },
+ "mosaic_h14_08": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_08_me_B3.wav",
+  "root": 59,
+  "frames": 10175,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.592,
+  "word": "me"
+ },
+ "mosaic_h14_09": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_09_higher-1_D4.wav",
+  "root": 62,
+  "frames": 20661,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.406,
+  "word": "higher-1"
+ },
+ "mosaic_h14_10": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_10_higher-2_G3.wav",
+  "root": 55,
+  "frames": 30895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.886,
+  "word": "higher-2"
+ },
+ "mosaic_h14_11": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_11_higher-1_E4.wav",
+  "root": 64,
+  "frames": 30522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.374,
+  "word": "higher-1"
+ },
+ "mosaic_h14_12": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_12_higher-2_C4.wav",
+  "root": 60,
+  "frames": 45236,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.775,
+  "word": "higher-2"
+ },
+ "mosaic_h14_loop": {
+  "path": "Samples/Vocals/Mosaic/H14/H14_WholeHook_128bpm.wav",
+  "root": 72,
+  "frames": 330750,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 128,
+  "bars": 4
+ },
+ "mosaic_h16_01": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_01_You_F3.wav",
+  "root": 53,
+  "frames": 8215,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "You"
+ },
+ "mosaic_h16_02": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_02_got_Ab3.wav",
+  "root": 56,
+  "frames": 12104,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.884,
+  "word": "got"
+ },
+ "mosaic_h16_03": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_03_me_Bb3.wav",
+  "root": 58,
+  "frames": 9676,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.568,
+  "word": "me"
+ },
+ "mosaic_h16_04": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_04_dancing-1_Cs4.wav",
+  "root": 61,
+  "frames": 20733,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.731,
+  "word": "dancing-1"
+ },
+ "mosaic_h16_05": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_05_dancing-2_C4.wav",
+  "root": 60,
+  "frames": 40048,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.477,
+  "word": "dancing-2"
+ },
+ "mosaic_h16_06": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_06_all_Bb3.wav",
+  "root": 58,
+  "frames": 11462,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.73,
+  "word": "all"
+ },
+ "mosaic_h16_07": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_07_night_Cs4.wav",
+  "root": 61,
+  "frames": 19274,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.594,
+  "word": "night"
+ },
+ "mosaic_h16_08": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_08_long_F4.wav",
+  "root": 65,
+  "frames": 41255,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.654,
+  "word": "long"
+ },
+ "mosaic_h16_09": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_09_You_Fs3.wav",
+  "root": 54,
+  "frames": 11547,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.75,
+  "word": "You"
+ },
+ "mosaic_h16_10": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_10_got_Bb3.wav",
+  "root": 58,
+  "frames": 8791,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.702,
+  "word": "got"
+ },
+ "mosaic_h16_11": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_11_me_Cs4.wav",
+  "root": 61,
+  "frames": 9915,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.499,
+  "word": "me"
+ },
+ "mosaic_h16_12": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_12_dancing-1_Eb4.wav",
+  "root": 63,
+  "frames": 22377,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.766,
+  "word": "dancing-1"
+ },
+ "mosaic_h16_13": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_13_dancing-2_Cs4.wav",
+  "root": 61,
+  "frames": 38830,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.438,
+  "word": "dancing-2"
+ },
+ "mosaic_h16_14": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_14_all_C4.wav",
+  "root": 60,
+  "frames": 12622,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.664,
+  "word": "all"
+ },
+ "mosaic_h16_15": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_15_night_Eb4.wav",
+  "root": 63,
+  "frames": 18172,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.394,
+  "word": "night"
+ },
+ "mosaic_h16_16": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_16_long_F4.wav",
+  "root": 65,
+  "frames": 36887,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.245,
+  "word": "long"
+ },
+ "mosaic_h16_loop": {
+  "path": "Samples/Vocals/Mosaic/H16/H16_WholeHook_128bpm.wav",
+  "root": 72,
+  "frames": 330750,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 128,
+  "bars": 4
+ },
+ "mosaic_bh3_01": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_01_Expensive-1_Bb3.wav",
+  "root": 58,
+  "frames": 9892,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "Expensive-1"
+ },
+ "mosaic_bh3_02": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_02_Expensive-2_C4.wav",
+  "root": 60,
+  "frames": 9941,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.822,
+  "word": "Expensive-2"
+ },
+ "mosaic_bh3_03": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_03_Expensive-3_Bb3.wav",
+  "root": 58,
+  "frames": 7287,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.561,
+  "word": "Expensive-3"
+ },
+ "mosaic_bh3_04": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_04_taste_G3.wav",
+  "root": 55,
+  "frames": 41911,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.483,
+  "word": "taste"
+ },
+ "mosaic_bh3_05": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_05_pretty-1_Eb4.wav",
+  "root": 63,
+  "frames": 12637,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.576,
+  "word": "pretty-1"
+ },
+ "mosaic_bh3_06": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_06_pretty-2_D4.wav",
+  "root": 62,
+  "frames": 10292,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.445,
+  "word": "pretty-2"
+ },
+ "mosaic_bh3_07": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_07_face_Bb3.wav",
+  "root": 58,
+  "frames": 49596,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.717,
+  "word": "face"
+ },
+ "mosaic_bh3_08": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_08_Expensive-1_Bb3.wav",
+  "root": 58,
+  "frames": 8523,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.668,
+  "word": "Expensive-1"
+ },
+ "mosaic_bh3_09": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_09_Expensive-2_C4.wav",
+  "root": 60,
+  "frames": 11834,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.618,
+  "word": "Expensive-2"
+ },
+ "mosaic_bh3_10": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_10_Expensive-3_Eb4.wav",
+  "root": 63,
+  "frames": 8747,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "Expensive-3"
+ },
+ "mosaic_bh3_11": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_11_taste_F4.wav",
+  "root": 65,
+  "frames": 41116,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.406,
+  "word": "taste"
+ },
+ "mosaic_bh3_12": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_12_pretty-1_G4.wav",
+  "root": 67,
+  "frames": 12975,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.478,
+  "word": "pretty-1"
+ },
+ "mosaic_bh3_13": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_13_pretty-2_F4.wav",
+  "root": 65,
+  "frames": 9513,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.43,
+  "word": "pretty-2"
+ },
+ "mosaic_bh3_14": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_14_face_Eb4.wav",
+  "root": 63,
+  "frames": 52753,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.742,
+  "word": "face"
+ },
+ "mosaic_bh3_loop": {
+  "path": "Samples/Vocals/Mosaic/BH3/BH3_WholeHook_133bpm.wav",
+  "root": 72,
+  "frames": 318315,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 133,
+  "bars": 4
+ },
+ "mosaic_bh5_01": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_01_Buy_F4.wav",
+  "root": 65,
+  "frames": 14996,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.698,
+  "word": "Buy"
+ },
+ "mosaic_bh5_02": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_02_me_Cs4.wav",
+  "root": 61,
+  "frames": 14167,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.586,
+  "word": "me"
+ },
+ "mosaic_bh5_03": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_03_diamonds-1_Eb4.wav",
+  "root": 63,
+  "frames": 11252,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.772,
+  "word": "diamonds-1"
+ },
+ "mosaic_bh5_04": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_04_diamonds-2_Cs4.wav",
+  "root": 61,
+  "frames": 38544,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.655,
+  "word": "diamonds-2"
+ },
+ "mosaic_bh5_05": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_05_baby-1_Bb3.wav",
+  "root": 58,
+  "frames": 12972,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.686,
+  "word": "baby-1"
+ },
+ "mosaic_bh5_06": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_06_baby-2_F3.wav",
+  "root": 53,
+  "frames": 61917,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.416,
+  "word": "baby-2"
+ },
+ "mosaic_bh5_07": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_07_Buy_F4.wav",
+  "root": 65,
+  "frames": 18000,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.761,
+  "word": "Buy"
+ },
+ "mosaic_bh5_08": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_08_me_Cs4.wav",
+  "root": 61,
+  "frames": 13340,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.536,
+  "word": "me"
+ },
+ "mosaic_bh5_09": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_09_diamonds-1_Eb4.wav",
+  "root": 63,
+  "frames": 12148,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.752,
+  "word": "diamonds-1"
+ },
+ "mosaic_bh5_10": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_10_diamonds-2_F4.wav",
+  "root": 65,
+  "frames": 39128,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "diamonds-2"
+ },
+ "mosaic_bh5_11": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_11_baby-1_Ab4.wav",
+  "root": 68,
+  "frames": 10116,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.782,
+  "word": "baby-1"
+ },
+ "mosaic_bh5_12": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_12_baby-2_F4.wav",
+  "root": 65,
+  "frames": 58331,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.499,
+  "word": "baby-2"
+ },
+ "mosaic_bh5_loop": {
+  "path": "Samples/Vocals/Mosaic/BH5/BH5_WholeHook_128bpm.wav",
+  "root": 72,
+  "frames": 330750,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 128,
+  "bars": 4
+ },
+ "mosaic_h24_01": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_01_Stay_G4.wav",
+  "root": 67,
+  "frames": 12464,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "Stay"
+ },
+ "mosaic_h24_02": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_02_in_Bb4.wav",
+  "root": 70,
+  "frames": 9896,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.556,
+  "word": "in"
+ },
+ "mosaic_h24_03": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_03_bed_C5.wav",
+  "root": 72,
+  "frames": 9279,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.573,
+  "word": "bed"
+ },
+ "mosaic_h24_04": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_04_till_Bb4.wav",
+  "root": 70,
+  "frames": 7759,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.362,
+  "word": "till"
+ },
+ "mosaic_h24_05": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_05_the_G4.wav",
+  "root": 67,
+  "frames": 10001,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.685,
+  "word": "the"
+ },
+ "mosaic_h24_06": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_06_evening-1_Bb4.wav",
+  "root": 70,
+  "frames": 11608,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.778,
+  "word": "evening-1"
+ },
+ "mosaic_h24_07": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_07_evening-2_G4.wav",
+  "root": 67,
+  "frames": 27694,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.42,
+  "word": "evening-2"
+ },
+ "mosaic_h24_08": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_08_you_F4.wav",
+  "root": 65,
+  "frames": 12538,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.406,
+  "word": "you"
+ },
+ "mosaic_h24_09": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_09_and_G4.wav",
+  "root": 67,
+  "frames": 9850,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.47,
+  "word": "and"
+ },
+ "mosaic_h24_10": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_10_me_Bb4.wav",
+  "root": 70,
+  "frames": 9541,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.441,
+  "word": "me"
+ },
+ "mosaic_h24_11": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_11_and_G4.wav",
+  "root": 67,
+  "frames": 6112,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.279,
+  "word": "and"
+ },
+ "mosaic_h24_12": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_12_the_F4.wav",
+  "root": 65,
+  "frames": 4041,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.357,
+  "word": "the"
+ },
+ "mosaic_h24_13": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_13_feeling-1_G4.wav",
+  "root": 67,
+  "frames": 9880,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.422,
+  "word": "feeling-1"
+ },
+ "mosaic_h24_14": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_14_feeling-2_Eb4.wav",
+  "root": 63,
+  "frames": 20224,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.611,
+  "word": "feeling-2"
+ },
+ "mosaic_h24_15": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_15_Stay_Ab4.wav",
+  "root": 68,
+  "frames": 9220,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.721,
+  "word": "Stay"
+ },
+ "mosaic_h24_16": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_16_in_C5.wav",
+  "root": 72,
+  "frames": 9993,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.449,
+  "word": "in"
+ },
+ "mosaic_h24_17": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_17_bed_Eb5.wav",
+  "root": 75,
+  "frames": 9705,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.487,
+  "word": "bed"
+ },
+ "mosaic_h24_18": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_18_till_C5.wav",
+  "root": 72,
+  "frames": 7093,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.001,
+  "word": "till"
+ },
+ "mosaic_h24_19": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_19_the_Bb4.wav",
+  "root": 70,
+  "frames": 12075,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.579,
+  "word": "the"
+ },
+ "mosaic_h24_20": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_20_evening-1_C5.wav",
+  "root": 72,
+  "frames": 7611,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.504,
+  "word": "evening-1"
+ },
+ "mosaic_h24_21": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_21_evening-2_Bb4.wav",
+  "root": 70,
+  "frames": 29686,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.427,
+  "word": "evening-2"
+ },
+ "mosaic_h24_22": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_22_you_G4.wav",
+  "root": 67,
+  "frames": 12121,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.389,
+  "word": "you"
+ },
+ "mosaic_h24_23": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_23_and_Bb4.wav",
+  "root": 70,
+  "frames": 9013,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.501,
+  "word": "and"
+ },
+ "mosaic_h24_24": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_24_me_D5.wav",
+  "root": 74,
+  "frames": 9893,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.387,
+  "word": "me"
+ },
+ "mosaic_h24_25": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_25_and_C5.wav",
+  "root": 72,
+  "frames": 7279,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.463,
+  "word": "and"
+ },
+ "mosaic_h24_26": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_26_the_Bb4.wav",
+  "root": 70,
+  "frames": 4133,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.325,
+  "word": "the"
+ },
+ "mosaic_h24_27": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_27_feeling-1_C5.wav",
+  "root": 72,
+  "frames": 9531,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.386,
+  "word": "feeling-1"
+ },
+ "mosaic_h24_28": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_28_feeling-2_G4.wav",
+  "root": 67,
+  "frames": 10494,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.183,
+  "word": "feeling-2"
+ },
+ "mosaic_h24_loop": {
+  "path": "Samples/Vocals/Mosaic/H24/H24_WholeHook_133bpm.wav",
+  "root": 72,
+  "frames": 318315,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 133,
+  "bars": 4
+ },
+ "mosaic_h29_01": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_01_Glitter-1_F4.wav",
+  "root": 65,
+  "frames": 9663,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.67,
+  "word": "Glitter-1"
+ },
+ "mosaic_h29_02": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_02_Glitter-2_Ab4.wav",
+  "root": 68,
+  "frames": 10193,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.67,
+  "word": "Glitter-2"
+ },
+ "mosaic_h29_03": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_03_on_Bb4.wav",
+  "root": 70,
+  "frames": 10287,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.798,
+  "word": "on"
+ },
+ "mosaic_h29_04": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_04_the_Ab4.wav",
+  "root": 68,
+  "frames": 9661,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.44,
+  "word": "the"
+ },
+ "mosaic_h29_05": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_05_ceiling-1_Cs5.wav",
+  "root": 73,
+  "frames": 21123,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "ceiling-1"
+ },
+ "mosaic_h29_06": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_06_ceiling-2_Bb4.wav",
+  "root": 70,
+  "frames": 19974,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.178,
+  "word": "ceiling-2"
+ },
+ "mosaic_h29_07": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_07_tell_Ab4.wav",
+  "root": 68,
+  "frames": 10841,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.572,
+  "word": "tell"
+ },
+ "mosaic_h29_08": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_08_me_Bb4.wav",
+  "root": 70,
+  "frames": 8772,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.306,
+  "word": "me"
+ },
+ "mosaic_h29_09": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_09_what_Ab4.wav",
+  "root": 68,
+  "frames": 9898,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.427,
+  "word": "what"
+ },
+ "mosaic_h29_10": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_10_youre_F4.wav",
+  "root": 65,
+  "frames": 11481,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.23,
+  "word": "youre"
+ },
+ "mosaic_h29_11": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_11_feeling-1_Ab4.wav",
+  "root": 68,
+  "frames": 21146,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.533,
+  "word": "feeling-1"
+ },
+ "mosaic_h29_12": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_12_feeling-2_F4.wav",
+  "root": 65,
+  "frames": 18499,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.316,
+  "word": "feeling-2"
+ },
+ "mosaic_h29_13": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_13_Glitter-1_Fs4.wav",
+  "root": 66,
+  "frames": 11080,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.474,
+  "word": "Glitter-1"
+ },
+ "mosaic_h29_14": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_14_Glitter-2_Bb4.wav",
+  "root": 70,
+  "frames": 11419,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.274,
+  "word": "Glitter-2"
+ },
+ "mosaic_h29_15": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_15_on_Cs5.wav",
+  "root": 73,
+  "frames": 10223,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.291,
+  "word": "on"
+ },
+ "mosaic_h29_16": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_16_the_Bb4.wav",
+  "root": 70,
+  "frames": 10255,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.268,
+  "word": "the"
+ },
+ "mosaic_h29_17": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_17_ceiling-1_F5.wav",
+  "root": 77,
+  "frames": 20609,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.476,
+  "word": "ceiling-1"
+ },
+ "mosaic_h29_18": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_18_ceiling-2_Cs5.wav",
+  "root": 73,
+  "frames": 18504,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.067,
+  "word": "ceiling-2"
+ },
+ "mosaic_h29_19": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_19_tell_Bb4.wav",
+  "root": 70,
+  "frames": 12189,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.312,
+  "word": "tell"
+ },
+ "mosaic_h29_20": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_20_me_C5.wav",
+  "root": 72,
+  "frames": 8558,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.148,
+  "word": "me"
+ },
+ "mosaic_h29_21": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_21_what_Eb5.wav",
+  "root": 75,
+  "frames": 9444,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.594,
+  "word": "what"
+ },
+ "mosaic_h29_22": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_22_youre_C5.wav",
+  "root": 72,
+  "frames": 12583,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.314,
+  "word": "youre"
+ },
+ "mosaic_h29_23": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_23_feeling-1_Eb5.wav",
+  "root": 75,
+  "frames": 20919,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.327,
+  "word": "feeling-1"
+ },
+ "mosaic_h29_24": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_24_feeling-2_C5.wav",
+  "root": 72,
+  "frames": 13819,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.09,
+  "word": "feeling-2"
+ },
+ "mosaic_h29_loop": {
+  "path": "Samples/Vocals/Mosaic/H29/H29_WholeHook_128bpm.wav",
+  "root": 72,
+  "frames": 330750,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 128,
+  "bars": 4
+ },
+ "mosaic_h30_01": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_01_Hands_C5.wav",
+  "root": 72,
+  "frames": 20013,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.681,
+  "word": "Hands"
+ },
+ "mosaic_h30_02": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_02_up_C5.wav",
+  "root": 72,
+  "frames": 17978,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.843,
+  "word": "up"
+ },
+ "mosaic_h30_03": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_03_higher-1_E5.wav",
+  "root": 76,
+  "frames": 23096,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.583,
+  "word": "higher-1"
+ },
+ "mosaic_h30_04": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_04_higher-2_C5.wav",
+  "root": 72,
+  "frames": 29229,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.466,
+  "word": "higher-2"
+ },
+ "mosaic_h30_05": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_05_everybody-1_A4.wav",
+  "root": 69,
+  "frames": 10166,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.845,
+  "word": "everybody-1"
+ },
+ "mosaic_h30_06": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_06_everybody-2_C5.wav",
+  "root": 72,
+  "frames": 11517,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.422,
+  "word": "everybody-2"
+ },
+ "mosaic_h30_07": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_07_everybody-3_A4.wav",
+  "root": 69,
+  "frames": 8323,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.52,
+  "word": "everybody-3"
+ },
+ "mosaic_h30_08": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_08_everybody-4_G4.wav",
+  "root": 67,
+  "frames": 10767,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.474,
+  "word": "everybody-4"
+ },
+ "mosaic_h30_09": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_09_one_A4.wav",
+  "root": 69,
+  "frames": 12098,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.59,
+  "word": "one"
+ },
+ "mosaic_h30_10": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_10_desire-1_C5.wav",
+  "root": 72,
+  "frames": 5453,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.526,
+  "word": "desire-1"
+ },
+ "mosaic_h30_11": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_11_desire-2_D5.wav",
+  "root": 74,
+  "frames": 13418,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.443,
+  "word": "desire-2"
+ },
+ "mosaic_h30_12": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_12_Hands_B4.wav",
+  "root": 71,
+  "frames": 20993,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.624,
+  "word": "Hands"
+ },
+ "mosaic_h30_13": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_13_up_B4.wav",
+  "root": 71,
+  "frames": 19830,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.727,
+  "word": "up"
+ },
+ "mosaic_h30_14": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_14_higher-1_D5.wav",
+  "root": 74,
+  "frames": 22614,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.589,
+  "word": "higher-1"
+ },
+ "mosaic_h30_15": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_15_higher-2_B4.wav",
+  "root": 71,
+  "frames": 30437,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.434,
+  "word": "higher-2"
+ },
+ "mosaic_h30_16": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_16_everybody-1_A4.wav",
+  "root": 69,
+  "frames": 8515,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "word": "everybody-1"
+ },
+ "mosaic_h30_17": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_17_everybody-2_B4.wav",
+  "root": 71,
+  "frames": 10862,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.408,
+  "word": "everybody-2"
+ },
+ "mosaic_h30_18": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_18_everybody-3_C5.wav",
+  "root": 72,
+  "frames": 11786,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.448,
+  "word": "everybody-3"
+ },
+ "mosaic_h30_19": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_19_everybody-4_B4.wav",
+  "root": 71,
+  "frames": 7803,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.22,
+  "word": "everybody-4"
+ },
+ "mosaic_h30_20": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_20_one_A4.wav",
+  "root": 69,
+  "frames": 12609,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.565,
+  "word": "one"
+ },
+ "mosaic_h30_21": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_21_desire-1_G4.wav",
+  "root": 67,
+  "frames": 5459,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.614,
+  "word": "desire-1"
+ },
+ "mosaic_h30_22": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_22_desire-2_A4.wav",
+  "root": 69,
+  "frames": 8252,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.275,
+  "word": "desire-2"
+ },
+ "mosaic_h30_loop": {
+  "path": "Samples/Vocals/Mosaic/H30/H30_WholeHook_128bpm.wav",
+  "root": 72,
+  "frames": 330750,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "bpm": 128,
+  "bars": 4
+ },
+ "_mosaic": {
+  "h19": {
+   "title": "Orange light on your skin, let the night pull us in",
+   "bpm": 128,
+   "chops": [
+    {
+     "key": "mosaic_h19_01",
+     "word": "Orange-1",
+     "sung": 64,
+     "sec": 0.244
+    },
+    {
+     "key": "mosaic_h19_02",
+     "word": "Orange-2",
+     "sung": 67,
+     "sec": 0.232
+    },
+    {
+     "key": "mosaic_h19_03",
+     "word": "light",
+     "sung": 69,
+     "sec": 0.243
+    },
+    {
+     "key": "mosaic_h19_04",
+     "word": "on",
+     "sung": 67,
+     "sec": 0.22
+    },
+    {
+     "key": "mosaic_h19_05",
+     "word": "your",
+     "sung": 69,
+     "sec": 0.235
+    },
+    {
+     "key": "mosaic_h19_06",
+     "word": "skin",
+     "sung": 72,
+     "sec": 0.643
+    },
+    {
+     "key": "mosaic_h19_07",
+     "word": "let",
+     "sung": 72,
+     "sec": 0.246
+    },
+    {
+     "key": "mosaic_h19_08",
+     "word": "the",
+     "sung": 69,
+     "sec": 0.272
+    },
+    {
+     "key": "mosaic_h19_09",
+     "word": "night",
+     "sung": 67,
+     "sec": 0.459
+    },
+    {
+     "key": "mosaic_h19_10",
+     "word": "pull",
+     "sung": 65,
+     "sec": 0.241
+    },
+    {
+     "key": "mosaic_h19_11",
+     "word": "us",
+     "sung": 64,
+     "sec": 0.245
+    },
+    {
+     "key": "mosaic_h19_12",
+     "word": "in",
+     "sung": 62,
+     "sec": 0.446
+    },
+    {
+     "key": "mosaic_h19_13",
+     "word": "Orange-1",
+     "sung": 64,
+     "sec": 0.241
+    },
+    {
+     "key": "mosaic_h19_14",
+     "word": "Orange-2",
+     "sung": 67,
+     "sec": 0.216
+    },
+    {
+     "key": "mosaic_h19_15",
+     "word": "light",
+     "sung": 71,
+     "sec": 0.248
+    },
+    {
+     "key": "mosaic_h19_16",
+     "word": "on",
+     "sung": 69,
+     "sec": 0.233
+    },
+    {
+     "key": "mosaic_h19_17",
+     "word": "your",
+     "sung": 71,
+     "sec": 0.234
+    },
+    {
+     "key": "mosaic_h19_18",
+     "word": "skin",
+     "sung": 74,
+     "sec": 0.64
+    },
+    {
+     "key": "mosaic_h19_19",
+     "word": "let",
+     "sung": 74,
+     "sec": 0.237
+    },
+    {
+     "key": "mosaic_h19_20",
+     "word": "the",
+     "sung": 72,
+     "sec": 0.287
+    },
+    {
+     "key": "mosaic_h19_21",
+     "word": "night",
+     "sung": 71,
+     "sec": 0.307
+    },
+    {
+     "key": "mosaic_h19_22",
+     "word": "pull",
+     "sung": 69,
+     "sec": 0.292
+    },
+    {
+     "key": "mosaic_h19_23",
+     "word": "us",
+     "sung": 67,
+     "sec": 0.233
+    },
+    {
+     "key": "mosaic_h19_24",
+     "word": "in",
+     "sung": 69,
+     "sec": 0.349
+    }
+   ]
+  },
+  "h20": {
+   "title": "Missed the last train home, so we walk it slow",
+   "bpm": 132,
+   "chops": [
+    {
+     "key": "mosaic_h20_01",
+     "word": "Missed",
+     "sung": 69,
+     "sec": 0.347
+    },
+    {
+     "key": "mosaic_h20_02",
+     "word": "the",
+     "sung": 69,
+     "sec": 0.315
+    },
+    {
+     "key": "mosaic_h20_03",
+     "word": "last",
+     "sung": 72,
+     "sec": 0.393
+    },
+    {
+     "key": "mosaic_h20_04",
+     "word": "train",
+     "sung": 69,
+     "sec": 0.267
+    },
+    {
+     "key": "mosaic_h20_05",
+     "word": "home",
+     "sung": 65,
+     "sec": 0.635
+    },
+    {
+     "key": "mosaic_h20_06",
+     "word": "so",
+     "sung": 62,
+     "sec": 0.227
+    },
+    {
+     "key": "mosaic_h20_07",
+     "word": "we",
+     "sung": 65,
+     "sec": 0.287
+    },
+    {
+     "key": "mosaic_h20_08",
+     "word": "walk",
+     "sung": 67,
+     "sec": 0.361
+    },
+    {
+     "key": "mosaic_h20_09",
+     "word": "it",
+     "sung": 70,
+     "sec": 0.213
+    },
+    {
+     "key": "mosaic_h20_10",
+     "word": "slow",
+     "sung": 69,
+     "sec": 0.557
+    },
+    {
+     "key": "mosaic_h20_11",
+     "word": "Missed",
+     "sung": 69,
+     "sec": 0.36
+    },
+    {
+     "key": "mosaic_h20_12",
+     "word": "the",
+     "sung": 69,
+     "sec": 0.316
+    },
+    {
+     "key": "mosaic_h20_13",
+     "word": "last",
+     "sung": 74,
+     "sec": 0.391
+    },
+    {
+     "key": "mosaic_h20_14",
+     "word": "train",
+     "sung": 72,
+     "sec": 0.271
+    },
+    {
+     "key": "mosaic_h20_15",
+     "word": "home",
+     "sung": 69,
+     "sec": 0.634
+    },
+    {
+     "key": "mosaic_h20_16",
+     "word": "and",
+     "sung": 64,
+     "sec": 0.278
+    },
+    {
+     "key": "mosaic_h20_17",
+     "word": "I",
+     "sung": 67,
+     "sec": 0.237
+    },
+    {
+     "key": "mosaic_h20_18",
+     "word": "want",
+     "sung": 69,
+     "sec": 0.356
+    },
+    {
+     "key": "mosaic_h20_19",
+     "word": "you",
+     "sung": 73,
+     "sec": 0.196
+    },
+    {
+     "key": "mosaic_h20_20",
+     "word": "close",
+     "sung": 69,
+     "sec": 0.425
+    }
+   ]
+  },
+  "h21": {
+   "title": "Swimming in the neon light, pull me under tonight",
+   "bpm": 128,
+   "chops": [
+    {
+     "key": "mosaic_h21_01",
+     "word": "Swimming-1",
+     "sung": 65,
+     "sec": 0.233
+    },
+    {
+     "key": "mosaic_h21_02",
+     "word": "Swimming-2",
+     "sung": 68,
+     "sec": 0.232
+    },
+    {
+     "key": "mosaic_h21_03",
+     "word": "in",
+     "sung": 70,
+     "sec": 0.232
+    },
+    {
+     "key": "mosaic_h21_04",
+     "word": "the",
+     "sung": 68,
+     "sec": 0.231
+    },
+    {
+     "key": "mosaic_h21_05",
+     "word": "neon-1",
+     "sung": 65,
+     "sec": 0.231
+    },
+    {
+     "key": "mosaic_h21_06",
+     "word": "neon-2",
+     "sung": 68,
+     "sec": 0.188
+    },
+    {
+     "key": "mosaic_h21_07",
+     "word": "light",
+     "sung": 73,
+     "sec": 0.733
+    },
+    {
+     "key": "mosaic_h21_08",
+     "word": "pull",
+     "sung": 70,
+     "sec": 0.245
+    },
+    {
+     "key": "mosaic_h21_09",
+     "word": "me",
+     "sung": 68,
+     "sec": 0.234
+    },
+    {
+     "key": "mosaic_h21_10",
+     "word": "under-1",
+     "sung": 65,
+     "sec": 0.246
+    },
+    {
+     "key": "mosaic_h21_11",
+     "word": "under-2",
+     "sung": 68,
+     "sec": 0.205
+    },
+    {
+     "key": "mosaic_h21_12",
+     "word": "tonight-1",
+     "sung": 68,
+     "sec": 0.141
+    },
+    {
+     "key": "mosaic_h21_13",
+     "word": "tonight-2",
+     "sung": 70,
+     "sec": 0.573
+    },
+    {
+     "key": "mosaic_h21_14",
+     "word": "Swimming-1",
+     "sung": 65,
+     "sec": 0.233
+    },
+    {
+     "key": "mosaic_h21_15",
+     "word": "Swimming-2",
+     "sung": 66,
+     "sec": 0.232
+    },
+    {
+     "key": "mosaic_h21_16",
+     "word": "in",
+     "sung": 70,
+     "sec": 0.233
+    },
+    {
+     "key": "mosaic_h21_17",
+     "word": "the",
+     "sung": 73,
+     "sec": 0.195
+    },
+    {
+     "key": "mosaic_h21_18",
+     "word": "neon-1",
+     "sung": 70,
+     "sec": 0.269
+    },
+    {
+     "key": "mosaic_h21_19",
+     "word": "neon-2",
+     "sung": 73,
+     "sec": 0.206
+    },
+    {
+     "key": "mosaic_h21_20",
+     "word": "light",
+     "sung": 77,
+     "sec": 0.668
+    },
+    {
+     "key": "mosaic_h21_21",
+     "word": "pull",
+     "sung": 75,
+     "sec": 0.291
+    },
+    {
+     "key": "mosaic_h21_22",
+     "word": "me",
+     "sung": 72,
+     "sec": 0.234
+    },
+    {
+     "key": "mosaic_h21_23",
+     "word": "under-1",
+     "sung": 68,
+     "sec": 0.222
+    },
+    {
+     "key": "mosaic_h21_24",
+     "word": "under-2",
+     "sung": 72,
+     "sec": 0.238
+    },
+    {
+     "key": "mosaic_h21_25",
+     "word": "tonight-1",
+     "sung": 70,
+     "sec": 0.131
+    },
+    {
+     "key": "mosaic_h21_26",
+     "word": "tonight-2",
+     "sung": 68,
+     "sec": 0.352
+    }
+   ]
+  },
+  "h22": {
+   "title": "Meet me on the chapel steps, sing it out with every breath",
+   "bpm": 133,
+   "chops": [
+    {
+     "key": "mosaic_h22_01",
+     "word": "Meet",
+     "sung": 46,
+     "sec": 0.19
+    },
+    {
+     "key": "mosaic_h22_02",
+     "word": "me",
+     "sung": 51,
+     "sec": 0.244
+    },
+    {
+     "key": "mosaic_h22_03",
+     "word": "on",
+     "sung": 53,
+     "sec": 0.222
+    },
+    {
+     "key": "mosaic_h22_04",
+     "word": "the",
+     "sung": 55,
+     "sec": 0.172
+    },
+    {
+     "key": "mosaic_h22_05",
+     "word": "chapel-1",
+     "sung": 58,
+     "sec": 0.257
+    },
+    {
+     "key": "mosaic_h22_06",
+     "word": "chapel-2",
+     "sung": 55,
+     "sec": 0.247
+    },
+    {
+     "key": "mosaic_h22_07",
+     "word": "steps",
+     "sung": 53,
+     "sec": 0.612
+    },
+    {
+     "key": "mosaic_h22_08",
+     "word": "sing",
+     "sung": 55,
+     "sec": 0.279
+    },
+    {
+     "key": "mosaic_h22_09",
+     "word": "it",
+     "sung": 53,
+     "sec": 0.17
+    },
+    {
+     "key": "mosaic_h22_10",
+     "word": "out",
+     "sung": 51,
+     "sec": 0.234
+    },
+    {
+     "key": "mosaic_h22_11",
+     "word": "with",
+     "sung": 55,
+     "sec": 0.269
+    },
+    {
+     "key": "mosaic_h22_12",
+     "word": "every-1",
+     "sung": 53,
+     "sec": 0.224
+    },
+    {
+     "key": "mosaic_h22_13",
+     "word": "every-2",
+     "sung": 51,
+     "sec": 0.12
+    },
+    {
+     "key": "mosaic_h22_14",
+     "word": "breath",
+     "sung": 48,
+     "sec": 0.267
+    },
+    {
+     "key": "mosaic_h22_15",
+     "word": "Meet",
+     "sung": 48,
+     "sec": 0.263
+    },
+    {
+     "key": "mosaic_h22_16",
+     "word": "me",
+     "sung": 51,
+     "sec": 0.244
+    },
+    {
+     "key": "mosaic_h22_17",
+     "word": "on",
+     "sung": 53,
+     "sec": 0.223
+    },
+    {
+     "key": "mosaic_h22_18",
+     "word": "the",
+     "sung": 56,
+     "sec": 0.163
+    },
+    {
+     "key": "mosaic_h22_19",
+     "word": "chapel-1",
+     "sung": 60,
+     "sec": 0.24
+    },
+    {
+     "key": "mosaic_h22_20",
+     "word": "chapel-2",
+     "sung": 56,
+     "sec": 0.273
+    },
+    {
+     "key": "mosaic_h22_21",
+     "word": "steps",
+     "sung": 55,
+     "sec": 0.67
+    },
+    {
+     "key": "mosaic_h22_22",
+     "word": "sing",
+     "sung": 51,
+     "sec": 0.225
+    },
+    {
+     "key": "mosaic_h22_23",
+     "word": "it",
+     "sung": 55,
+     "sec": 0.223
+    },
+    {
+     "key": "mosaic_h22_24",
+     "word": "out",
+     "sung": 56,
+     "sec": 0.18
+    },
+    {
+     "key": "mosaic_h22_25",
+     "word": "with",
+     "sung": 58,
+     "sec": 0.265
+    },
+    {
+     "key": "mosaic_h22_26",
+     "word": "every-1",
+     "sung": 60,
+     "sec": 0.224
+    },
+    {
+     "key": "mosaic_h22_27",
+     "word": "every-2",
+     "sung": 58,
+     "sec": 0.106
+    },
+    {
+     "key": "mosaic_h22_28",
+     "word": "breath",
+     "sung": 55,
+     "sec": 0.186
+    }
+   ]
+  },
+  "h02": {
+   "title": "Hold me closer, say you'll stay",
+   "bpm": 132,
+   "chops": [
+    {
+     "key": "mosaic_h02_01",
+     "word": "Hold",
+     "sung": 57,
+     "sec": 0.438
+    },
+    {
+     "key": "mosaic_h02_02",
+     "word": "me",
+     "sung": 60,
+     "sec": 0.174
+    },
+    {
+     "key": "mosaic_h02_03",
+     "word": "closer-1",
+     "sung": 62,
+     "sec": 0.358
+    },
+    {
+     "key": "mosaic_h02_04",
+     "word": "closer-2",
+     "sung": 60,
+     "sec": 0.608
+    },
+    {
+     "key": "mosaic_h02_05",
+     "word": "say",
+     "sung": 62,
+     "sec": 0.281
+    },
+    {
+     "key": "mosaic_h02_06",
+     "word": "youll",
+     "sung": 65,
+     "sec": 0.229
+    },
+    {
+     "key": "mosaic_h02_07",
+     "word": "stay",
+     "sung": 62,
+     "sec": 1.091
+    },
+    {
+     "key": "mosaic_h02_08",
+     "word": "Hold",
+     "sung": 58,
+     "sec": 0.452
+    },
+    {
+     "key": "mosaic_h02_09",
+     "word": "me",
+     "sung": 62,
+     "sec": 0.237
+    },
+    {
+     "key": "mosaic_h02_10",
+     "word": "closer-1",
+     "sung": 65,
+     "sec": 0.325
+    },
+    {
+     "key": "mosaic_h02_11",
+     "word": "closer-2",
+     "sung": 62,
+     "sec": 0.616
+    },
+    {
+     "key": "mosaic_h02_12",
+     "word": "say",
+     "sung": 61,
+     "sec": 0.287
+    },
+    {
+     "key": "mosaic_h02_13",
+     "word": "youll",
+     "sung": 64,
+     "sec": 0.24
+    },
+    {
+     "key": "mosaic_h02_14",
+     "word": "stay",
+     "sung": 57,
+     "sec": 0.965
+    }
+   ]
+  },
+  "h03": {
+   "title": "Sunday morning, feeling your love",
+   "bpm": 133,
+   "chops": [
+    {
+     "key": "mosaic_h03_01",
+     "word": "Sunday-1",
+     "sung": 70,
+     "sec": 0.343
+    },
+    {
+     "key": "mosaic_h03_02",
+     "word": "Sunday-2",
+     "sung": 67,
+     "sec": 0.317
+    },
+    {
+     "key": "mosaic_h03_03",
+     "word": "morning-1",
+     "sung": 70,
+     "sec": 0.449
+    },
+    {
+     "key": "mosaic_h03_04",
+     "word": "morning-2",
+     "sung": 72,
+     "sec": 0.63
+    },
+    {
+     "key": "mosaic_h03_05",
+     "word": "feeling-1",
+     "sung": 75,
+     "sec": 0.396
+    },
+    {
+     "key": "mosaic_h03_06",
+     "word": "feeling-2",
+     "sung": 74,
+     "sec": 0.323
+    },
+    {
+     "key": "mosaic_h03_07",
+     "word": "your",
+     "sung": 72,
+     "sec": 0.204
+    },
+    {
+     "key": "mosaic_h03_08",
+     "word": "love",
+     "sung": 70,
+     "sec": 0.927
+    },
+    {
+     "key": "mosaic_h03_09",
+     "word": "Sunday-1",
+     "sung": 72,
+     "sec": 0.349
+    },
+    {
+     "key": "mosaic_h03_10",
+     "word": "Sunday-2",
+     "sung": 68,
+     "sec": 0.315
+    },
+    {
+     "key": "mosaic_h03_11",
+     "word": "morning-1",
+     "sung": 72,
+     "sec": 0.43
+    },
+    {
+     "key": "mosaic_h03_12",
+     "word": "morning-2",
+     "sung": 75,
+     "sec": 0.633
+    },
+    {
+     "key": "mosaic_h03_13",
+     "word": "feeling-1",
+     "sung": 77,
+     "sec": 0.376
+    },
+    {
+     "key": "mosaic_h03_14",
+     "word": "feeling-2",
+     "sung": 75,
+     "sec": 0.339
+    },
+    {
+     "key": "mosaic_h03_15",
+     "word": "your",
+     "sung": 74,
+     "sec": 0.2
+    },
+    {
+     "key": "mosaic_h03_16",
+     "word": "love",
+     "sung": 70,
+     "sec": 0.787
+    }
+   ]
+  },
+  "h06": {
+   "title": "Deeper, deeper, into the night",
+   "bpm": 128,
+   "chops": [
+    {
+     "key": "mosaic_h06_01",
+     "word": "Deeper-1",
+     "sung": 69,
+     "sec": 0.248
+    },
+    {
+     "key": "mosaic_h06_02",
+     "word": "Deeper-2",
+     "sung": 64,
+     "sec": 0.685
+    },
+    {
+     "key": "mosaic_h06_03",
+     "word": "deeper-1",
+     "sung": 69,
+     "sec": 0.242
+    },
+    {
+     "key": "mosaic_h06_04",
+     "word": "deeper-2",
+     "sung": 64,
+     "sec": 0.725
+    },
+    {
+     "key": "mosaic_h06_05",
+     "word": "into-1",
+     "sung": 67,
+     "sec": 0.211
+    },
+    {
+     "key": "mosaic_h06_06",
+     "word": "into-2",
+     "sung": 69,
+     "sec": 0.231
+    },
+    {
+     "key": "mosaic_h06_07",
+     "word": "the",
+     "sung": 72,
+     "sec": 0.246
+    },
+    {
+     "key": "mosaic_h06_08",
+     "word": "night",
+     "sung": 69,
+     "sec": 1.15
+    },
+    {
+     "key": "mosaic_h06_09",
+     "word": "Deeper-1",
+     "sung": 69,
+     "sec": 0.283
+    },
+    {
+     "key": "mosaic_h06_10",
+     "word": "Deeper-2",
+     "sung": 64,
+     "sec": 0.645
+    },
+    {
+     "key": "mosaic_h06_11",
+     "word": "deeper-1",
+     "sung": 69,
+     "sec": 0.232
+    },
+    {
+     "key": "mosaic_h06_12",
+     "word": "deeper-2",
+     "sung": 64,
+     "sec": 0.704
+    },
+    {
+     "key": "mosaic_h06_13",
+     "word": "into-1",
+     "sung": 67,
+     "sec": 0.232
+    },
+    {
+     "key": "mosaic_h06_14",
+     "word": "into-2",
+     "sung": 64,
+     "sec": 0.23
+    },
+    {
+     "key": "mosaic_h06_15",
+     "word": "the",
+     "sung": 62,
+     "sec": 0.236
+    },
+    {
+     "key": "mosaic_h06_16",
+     "word": "night",
+     "sung": 64,
+     "sec": 1.008
+    }
+   ]
+  },
+  "h11": {
+   "title": "Feel the pressure when the bass drop",
+   "bpm": 134,
+   "chops": [
+    {
+     "key": "mosaic_h11_01",
+     "word": "Feel",
+     "sung": 49,
+     "sec": 0.207
+    },
+    {
+     "key": "mosaic_h11_02",
+     "word": "the",
+     "sung": 49,
+     "sec": 0.201
+    },
+    {
+     "key": "mosaic_h11_03",
+     "word": "pressure-1",
+     "sung": 52,
+     "sec": 0.24
+    },
+    {
+     "key": "mosaic_h11_04",
+     "word": "pressure-2",
+     "sung": 49,
+     "sec": 0.683
+    },
+    {
+     "key": "mosaic_h11_05",
+     "word": "when",
+     "sung": 45,
+     "sec": 0.255
+    },
+    {
+     "key": "mosaic_h11_06",
+     "word": "the",
+     "sung": 47,
+     "sec": 0.221
+    },
+    {
+     "key": "mosaic_h11_07",
+     "word": "bass",
+     "sung": 49,
+     "sec": 0.391
+    },
+    {
+     "key": "mosaic_h11_08",
+     "word": "drop",
+     "sung": 42,
+     "sec": 0.895
+    },
+    {
+     "key": "mosaic_h11_09",
+     "word": "Feel",
+     "sung": 50,
+     "sec": 0.277
+    },
+    {
+     "key": "mosaic_h11_10",
+     "word": "the",
+     "sung": 50,
+     "sec": 0.193
+    },
+    {
+     "key": "mosaic_h11_11",
+     "word": "pressure-1",
+     "sung": 54,
+     "sec": 0.23
+    },
+    {
+     "key": "mosaic_h11_12",
+     "word": "pressure-2",
+     "sung": 50,
+     "sec": 0.701
+    },
+    {
+     "key": "mosaic_h11_13",
+     "word": "when",
+     "sung": 47,
+     "sec": 0.253
+    },
+    {
+     "key": "mosaic_h11_14",
+     "word": "the",
+     "sung": 49,
+     "sec": 0.238
+    },
+    {
+     "key": "mosaic_h11_15",
+     "word": "bass",
+     "sung": 54,
+     "sec": 0.374
+    },
+    {
+     "key": "mosaic_h11_16",
+     "word": "drop",
+     "sung": 49,
+     "sec": 0.796
+    }
+   ]
+  },
+  "h12": {
+   "title": "All the girls say ooh",
+   "bpm": 136,
+   "chops": [
+    {
+     "key": "mosaic_h12_01",
+     "word": "All",
+     "sung": 55,
+     "sec": 0.204
+    },
+    {
+     "key": "mosaic_h12_02",
+     "word": "the",
+     "sung": 58,
+     "sec": 0.218
+    },
+    {
+     "key": "mosaic_h12_03",
+     "word": "girls",
+     "sung": 60,
+     "sec": 0.442
+    },
+    {
+     "key": "mosaic_h12_04",
+     "word": "say",
+     "sung": 63,
+     "sec": 0.44
+    },
+    {
+     "key": "mosaic_h12_05",
+     "word": "ooh",
+     "sung": 63,
+     "sec": 1.556
+    },
+    {
+     "key": "mosaic_h12_06",
+     "word": "All",
+     "sung": 56,
+     "sec": 0.246
+    },
+    {
+     "key": "mosaic_h12_07",
+     "word": "the",
+     "sung": 60,
+     "sec": 0.203
+    },
+    {
+     "key": "mosaic_h12_08",
+     "word": "girls",
+     "sung": 63,
+     "sec": 0.452
+    },
+    {
+     "key": "mosaic_h12_09",
+     "word": "say",
+     "sung": 67,
+     "sec": 0.438
+    },
+    {
+     "key": "mosaic_h12_10",
+     "word": "ooh",
+     "sung": 65,
+     "sec": 1.556
+    }
+   ]
+  },
+  "h14": {
+   "title": "Lift me higher, higher",
+   "bpm": 128,
+   "chops": [
+    {
+     "key": "mosaic_h14_01",
+     "word": "Lift",
+     "sung": 64,
+     "sec": 0.453
+    },
+    {
+     "key": "mosaic_h14_02",
+     "word": "me",
+     "sung": 60,
+     "sec": 0.232
+    },
+    {
+     "key": "mosaic_h14_03",
+     "word": "higher-1",
+     "sung": 64,
+     "sec": 0.466
+    },
+    {
+     "key": "mosaic_h14_04",
+     "word": "higher-2",
+     "sung": 57,
+     "sec": 0.702
+    },
+    {
+     "key": "mosaic_h14_05",
+     "word": "higher-1",
+     "sung": 65,
+     "sec": 0.703
+    },
+    {
+     "key": "mosaic_h14_06",
+     "word": "higher-2",
+     "sung": 62,
+     "sec": 1.171
+    },
+    {
+     "key": "mosaic_h14_07",
+     "word": "Lift",
+     "sung": 62,
+     "sec": 0.468
+    },
+    {
+     "key": "mosaic_h14_08",
+     "word": "me",
+     "sung": 59,
+     "sec": 0.231
+    },
+    {
+     "key": "mosaic_h14_09",
+     "word": "higher-1",
+     "sung": 62,
+     "sec": 0.469
+    },
+    {
+     "key": "mosaic_h14_10",
+     "word": "higher-2",
+     "sung": 55,
+     "sec": 0.701
+    },
+    {
+     "key": "mosaic_h14_11",
+     "word": "higher-1",
+     "sung": 64,
+     "sec": 0.692
+    },
+    {
+     "key": "mosaic_h14_12",
+     "word": "higher-2",
+     "sung": 60,
+     "sec": 1.026
+    }
+   ]
+  },
+  "h16": {
+   "title": "You got me dancing all night long",
+   "bpm": 128,
+   "chops": [
+    {
+     "key": "mosaic_h16_01",
+     "word": "You",
+     "sung": 53,
+     "sec": 0.186
+    },
+    {
+     "key": "mosaic_h16_02",
+     "word": "got",
+     "sung": 56,
+     "sec": 0.274
+    },
+    {
+     "key": "mosaic_h16_03",
+     "word": "me",
+     "sung": 58,
+     "sec": 0.219
+    },
+    {
+     "key": "mosaic_h16_04",
+     "word": "dancing-1",
+     "sung": 61,
+     "sec": 0.47
+    },
+    {
+     "key": "mosaic_h16_05",
+     "word": "dancing-2",
+     "sung": 60,
+     "sec": 0.908
+    },
+    {
+     "key": "mosaic_h16_06",
+     "word": "all",
+     "sung": 58,
+     "sec": 0.26
+    },
+    {
+     "key": "mosaic_h16_07",
+     "word": "night",
+     "sung": 61,
+     "sec": 0.437
+    },
+    {
+     "key": "mosaic_h16_08",
+     "word": "long",
+     "sung": 65,
+     "sec": 0.935
+    },
+    {
+     "key": "mosaic_h16_09",
+     "word": "You",
+     "sung": 54,
+     "sec": 0.262
+    },
+    {
+     "key": "mosaic_h16_10",
+     "word": "got",
+     "sung": 58,
+     "sec": 0.199
+    },
+    {
+     "key": "mosaic_h16_11",
+     "word": "me",
+     "sung": 61,
+     "sec": 0.225
+    },
+    {
+     "key": "mosaic_h16_12",
+     "word": "dancing-1",
+     "sung": 63,
+     "sec": 0.507
+    },
+    {
+     "key": "mosaic_h16_13",
+     "word": "dancing-2",
+     "sung": 61,
+     "sec": 0.88
+    },
+    {
+     "key": "mosaic_h16_14",
+     "word": "all",
+     "sung": 60,
+     "sec": 0.286
+    },
+    {
+     "key": "mosaic_h16_15",
+     "word": "night",
+     "sung": 63,
+     "sec": 0.412
+    },
+    {
+     "key": "mosaic_h16_16",
+     "word": "long",
+     "sung": 65,
+     "sec": 0.836
+    }
+   ]
+  },
+  "bh3": {
+   "title": "Expensive taste, pretty face",
+   "bpm": 133,
+   "chops": [
+    {
+     "key": "mosaic_bh3_01",
+     "word": "Expensive-1",
+     "sung": 58,
+     "sec": 0.224
+    },
+    {
+     "key": "mosaic_bh3_02",
+     "word": "Expensive-2",
+     "sung": 60,
+     "sec": 0.225
+    },
+    {
+     "key": "mosaic_bh3_03",
+     "word": "Expensive-3",
+     "sung": 58,
+     "sec": 0.165
+    },
+    {
+     "key": "mosaic_bh3_04",
+     "word": "taste",
+     "sung": 55,
+     "sec": 0.95
+    },
+    {
+     "key": "mosaic_bh3_05",
+     "word": "pretty-1",
+     "sung": 63,
+     "sec": 0.287
+    },
+    {
+     "key": "mosaic_bh3_06",
+     "word": "pretty-2",
+     "sung": 62,
+     "sec": 0.233
+    },
+    {
+     "key": "mosaic_bh3_07",
+     "word": "face",
+     "sung": 58,
+     "sec": 1.125
+    },
+    {
+     "key": "mosaic_bh3_08",
+     "word": "Expensive-1",
+     "sung": 58,
+     "sec": 0.193
+    },
+    {
+     "key": "mosaic_bh3_09",
+     "word": "Expensive-2",
+     "sung": 60,
+     "sec": 0.268
+    },
+    {
+     "key": "mosaic_bh3_10",
+     "word": "Expensive-3",
+     "sung": 63,
+     "sec": 0.198
+    },
+    {
+     "key": "mosaic_bh3_11",
+     "word": "taste",
+     "sung": 65,
+     "sec": 0.932
+    },
+    {
+     "key": "mosaic_bh3_12",
+     "word": "pretty-1",
+     "sung": 67,
+     "sec": 0.294
+    },
+    {
+     "key": "mosaic_bh3_13",
+     "word": "pretty-2",
+     "sung": 65,
+     "sec": 0.216
+    },
+    {
+     "key": "mosaic_bh3_14",
+     "word": "face",
+     "sung": 63,
+     "sec": 1.196
+    }
+   ]
+  },
+  "bh5": {
+   "title": "Buy me diamonds, baby",
+   "bpm": 128,
+   "chops": [
+    {
+     "key": "mosaic_bh5_01",
+     "word": "Buy",
+     "sung": 65,
+     "sec": 0.34
+    },
+    {
+     "key": "mosaic_bh5_02",
+     "word": "me",
+     "sung": 61,
+     "sec": 0.321
+    },
+    {
+     "key": "mosaic_bh5_03",
+     "word": "diamonds-1",
+     "sung": 63,
+     "sec": 0.255
+    },
+    {
+     "key": "mosaic_bh5_04",
+     "word": "diamonds-2",
+     "sung": 61,
+     "sec": 0.874
+    },
+    {
+     "key": "mosaic_bh5_05",
+     "word": "baby-1",
+     "sung": 58,
+     "sec": 0.294
+    },
+    {
+     "key": "mosaic_bh5_06",
+     "word": "baby-2",
+     "sung": 53,
+     "sec": 1.404
+    },
+    {
+     "key": "mosaic_bh5_07",
+     "word": "Buy",
+     "sung": 65,
+     "sec": 0.408
+    },
+    {
+     "key": "mosaic_bh5_08",
+     "word": "me",
+     "sung": 61,
+     "sec": 0.302
+    },
+    {
+     "key": "mosaic_bh5_09",
+     "word": "diamonds-1",
+     "sung": 63,
+     "sec": 0.275
+    },
+    {
+     "key": "mosaic_bh5_10",
+     "word": "diamonds-2",
+     "sung": 65,
+     "sec": 0.887
+    },
+    {
+     "key": "mosaic_bh5_11",
+     "word": "baby-1",
+     "sung": 68,
+     "sec": 0.229
+    },
+    {
+     "key": "mosaic_bh5_12",
+     "word": "baby-2",
+     "sung": 65,
+     "sec": 1.323
+    }
+   ]
+  },
+  "h24": {
+   "title": "Stay in bed till the evening, you and me and the feeling",
+   "bpm": 133,
+   "chops": [
+    {
+     "key": "mosaic_h24_01",
+     "word": "Stay",
+     "sung": 67,
+     "sec": 0.283
+    },
+    {
+     "key": "mosaic_h24_02",
+     "word": "in",
+     "sung": 70,
+     "sec": 0.224
+    },
+    {
+     "key": "mosaic_h24_03",
+     "word": "bed",
+     "sung": 72,
+     "sec": 0.21
+    },
+    {
+     "key": "mosaic_h24_04",
+     "word": "till",
+     "sung": 70,
+     "sec": 0.176
+    },
+    {
+     "key": "mosaic_h24_05",
+     "word": "the",
+     "sung": 67,
+     "sec": 0.227
+    },
+    {
+     "key": "mosaic_h24_06",
+     "word": "evening-1",
+     "sung": 70,
+     "sec": 0.263
+    },
+    {
+     "key": "mosaic_h24_07",
+     "word": "evening-2",
+     "sung": 67,
+     "sec": 0.628
+    },
+    {
+     "key": "mosaic_h24_08",
+     "word": "you",
+     "sung": 65,
+     "sec": 0.284
+    },
+    {
+     "key": "mosaic_h24_09",
+     "word": "and",
+     "sung": 67,
+     "sec": 0.223
+    },
+    {
+     "key": "mosaic_h24_10",
+     "word": "me",
+     "sung": 70,
+     "sec": 0.216
+    },
+    {
+     "key": "mosaic_h24_11",
+     "word": "and",
+     "sung": 67,
+     "sec": 0.139
+    },
+    {
+     "key": "mosaic_h24_12",
+     "word": "the",
+     "sung": 65,
+     "sec": 0.092
+    },
+    {
+     "key": "mosaic_h24_13",
+     "word": "feeling-1",
+     "sung": 67,
+     "sec": 0.224
+    },
+    {
+     "key": "mosaic_h24_14",
+     "word": "feeling-2",
+     "sung": 63,
+     "sec": 0.459
+    },
+    {
+     "key": "mosaic_h24_15",
+     "word": "Stay",
+     "sung": 68,
+     "sec": 0.209
+    },
+    {
+     "key": "mosaic_h24_16",
+     "word": "in",
+     "sung": 72,
+     "sec": 0.227
+    },
+    {
+     "key": "mosaic_h24_17",
+     "word": "bed",
+     "sung": 75,
+     "sec": 0.22
+    },
+    {
+     "key": "mosaic_h24_18",
+     "word": "till",
+     "sung": 72,
+     "sec": 0.161
+    },
+    {
+     "key": "mosaic_h24_19",
+     "word": "the",
+     "sung": 70,
+     "sec": 0.274
+    },
+    {
+     "key": "mosaic_h24_20",
+     "word": "evening-1",
+     "sung": 72,
+     "sec": 0.173
+    },
+    {
+     "key": "mosaic_h24_21",
+     "word": "evening-2",
+     "sung": 70,
+     "sec": 0.673
+    },
+    {
+     "key": "mosaic_h24_22",
+     "word": "you",
+     "sung": 67,
+     "sec": 0.275
+    },
+    {
+     "key": "mosaic_h24_23",
+     "word": "and",
+     "sung": 70,
+     "sec": 0.204
+    },
+    {
+     "key": "mosaic_h24_24",
+     "word": "me",
+     "sung": 74,
+     "sec": 0.224
+    },
+    {
+     "key": "mosaic_h24_25",
+     "word": "and",
+     "sung": 72,
+     "sec": 0.165
+    },
+    {
+     "key": "mosaic_h24_26",
+     "word": "the",
+     "sung": 70,
+     "sec": 0.094
+    },
+    {
+     "key": "mosaic_h24_27",
+     "word": "feeling-1",
+     "sung": 72,
+     "sec": 0.216
+    },
+    {
+     "key": "mosaic_h24_28",
+     "word": "feeling-2",
+     "sung": 67,
+     "sec": 0.238
+    }
+   ]
+  },
+  "h29": {
+   "title": "Glitter on the ceiling, tell me what you're feeling",
+   "bpm": 128,
+   "chops": [
+    {
+     "key": "mosaic_h29_01",
+     "word": "Glitter-1",
+     "sung": 65,
+     "sec": 0.219
+    },
+    {
+     "key": "mosaic_h29_02",
+     "word": "Glitter-2",
+     "sung": 68,
+     "sec": 0.231
+    },
+    {
+     "key": "mosaic_h29_03",
+     "word": "on",
+     "sung": 70,
+     "sec": 0.233
+    },
+    {
+     "key": "mosaic_h29_04",
+     "word": "the",
+     "sung": 68,
+     "sec": 0.219
+    },
+    {
+     "key": "mosaic_h29_05",
+     "word": "ceiling-1",
+     "sung": 73,
+     "sec": 0.479
+    },
+    {
+     "key": "mosaic_h29_06",
+     "word": "ceiling-2",
+     "sung": 70,
+     "sec": 0.453
+    },
+    {
+     "key": "mosaic_h29_07",
+     "word": "tell",
+     "sung": 68,
+     "sec": 0.246
+    },
+    {
+     "key": "mosaic_h29_08",
+     "word": "me",
+     "sung": 70,
+     "sec": 0.199
+    },
+    {
+     "key": "mosaic_h29_09",
+     "word": "what",
+     "sung": 68,
+     "sec": 0.224
+    },
+    {
+     "key": "mosaic_h29_10",
+     "word": "youre",
+     "sung": 65,
+     "sec": 0.26
+    },
+    {
+     "key": "mosaic_h29_11",
+     "word": "feeling-1",
+     "sung": 68,
+     "sec": 0.48
+    },
+    {
+     "key": "mosaic_h29_12",
+     "word": "feeling-2",
+     "sung": 65,
+     "sec": 0.419
+    },
+    {
+     "key": "mosaic_h29_13",
+     "word": "Glitter-1",
+     "sung": 66,
+     "sec": 0.251
+    },
+    {
+     "key": "mosaic_h29_14",
+     "word": "Glitter-2",
+     "sung": 70,
+     "sec": 0.259
+    },
+    {
+     "key": "mosaic_h29_15",
+     "word": "on",
+     "sung": 73,
+     "sec": 0.232
+    },
+    {
+     "key": "mosaic_h29_16",
+     "word": "the",
+     "sung": 70,
+     "sec": 0.233
+    },
+    {
+     "key": "mosaic_h29_17",
+     "word": "ceiling-1",
+     "sung": 77,
+     "sec": 0.467
+    },
+    {
+     "key": "mosaic_h29_18",
+     "word": "ceiling-2",
+     "sung": 73,
+     "sec": 0.42
+    },
+    {
+     "key": "mosaic_h29_19",
+     "word": "tell",
+     "sung": 70,
+     "sec": 0.276
+    },
+    {
+     "key": "mosaic_h29_20",
+     "word": "me",
+     "sung": 72,
+     "sec": 0.194
+    },
+    {
+     "key": "mosaic_h29_21",
+     "word": "what",
+     "sung": 75,
+     "sec": 0.214
+    },
+    {
+     "key": "mosaic_h29_22",
+     "word": "youre",
+     "sung": 72,
+     "sec": 0.285
+    },
+    {
+     "key": "mosaic_h29_23",
+     "word": "feeling-1",
+     "sung": 75,
+     "sec": 0.474
+    },
+    {
+     "key": "mosaic_h29_24",
+     "word": "feeling-2",
+     "sung": 72,
+     "sec": 0.313
+    }
+   ]
+  },
+  "h30": {
+   "title": "Hands up higher, everybody, one desire",
+   "bpm": 128,
+   "chops": [
+    {
+     "key": "mosaic_h30_01",
+     "word": "Hands",
+     "sung": 72,
+     "sec": 0.454
+    },
+    {
+     "key": "mosaic_h30_02",
+     "word": "up",
+     "sung": 72,
+     "sec": 0.408
+    },
+    {
+     "key": "mosaic_h30_03",
+     "word": "higher-1",
+     "sung": 76,
+     "sec": 0.524
+    },
+    {
+     "key": "mosaic_h30_04",
+     "word": "higher-2",
+     "sung": 72,
+     "sec": 0.663
+    },
+    {
+     "key": "mosaic_h30_05",
+     "word": "everybody-1",
+     "sung": 69,
+     "sec": 0.231
+    },
+    {
+     "key": "mosaic_h30_06",
+     "word": "everybody-2",
+     "sung": 72,
+     "sec": 0.261
+    },
+    {
+     "key": "mosaic_h30_07",
+     "word": "everybody-3",
+     "sung": 69,
+     "sec": 0.189
+    },
+    {
+     "key": "mosaic_h30_08",
+     "word": "everybody-4",
+     "sung": 67,
+     "sec": 0.244
+    },
+    {
+     "key": "mosaic_h30_09",
+     "word": "one",
+     "sung": 69,
+     "sec": 0.274
+    },
+    {
+     "key": "mosaic_h30_10",
+     "word": "desire-1",
+     "sung": 72,
+     "sec": 0.124
+    },
+    {
+     "key": "mosaic_h30_11",
+     "word": "desire-2",
+     "sung": 74,
+     "sec": 0.304
+    },
+    {
+     "key": "mosaic_h30_12",
+     "word": "Hands",
+     "sung": 71,
+     "sec": 0.476
+    },
+    {
+     "key": "mosaic_h30_13",
+     "word": "up",
+     "sung": 71,
+     "sec": 0.45
+    },
+    {
+     "key": "mosaic_h30_14",
+     "word": "higher-1",
+     "sung": 74,
+     "sec": 0.513
+    },
+    {
+     "key": "mosaic_h30_15",
+     "word": "higher-2",
+     "sung": 71,
+     "sec": 0.69
+    },
+    {
+     "key": "mosaic_h30_16",
+     "word": "everybody-1",
+     "sung": 69,
+     "sec": 0.193
+    },
+    {
+     "key": "mosaic_h30_17",
+     "word": "everybody-2",
+     "sung": 71,
+     "sec": 0.246
+    },
+    {
+     "key": "mosaic_h30_18",
+     "word": "everybody-3",
+     "sung": 72,
+     "sec": 0.267
+    },
+    {
+     "key": "mosaic_h30_19",
+     "word": "everybody-4",
+     "sung": 71,
+     "sec": 0.177
+    },
+    {
+     "key": "mosaic_h30_20",
+     "word": "one",
+     "sung": 69,
+     "sec": 0.286
+    },
+    {
+     "key": "mosaic_h30_21",
+     "word": "desire-1",
+     "sung": 67,
+     "sec": 0.124
+    },
+    {
+     "key": "mosaic_h30_22",
+     "word": "desire-2",
+     "sung": 69,
+     "sec": 0.187
+    }
+   ]
+  }
+ }
+}

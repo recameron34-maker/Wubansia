@@ -1,0 +1,236 @@
+{
+ "gvfifth_48": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_C3.wav",
+  "root": 48,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.771,
+  "inst": "gvfifth"
+ },
+ "gvfifth_51": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Eb3.wav",
+  "root": 51,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.763,
+  "inst": "gvfifth"
+ },
+ "gvfifth_54": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Fs3.wav",
+  "root": 54,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.828,
+  "inst": "gvfifth"
+ },
+ "gvfifth_57": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_A3.wav",
+  "root": 57,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.79,
+  "inst": "gvfifth"
+ },
+ "gvfifth_60": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_C4.wav",
+  "root": 60,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.86,
+  "inst": "gvfifth"
+ },
+ "gvfifth_63": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Eb4.wav",
+  "root": 63,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.857,
+  "inst": "gvfifth"
+ },
+ "gvfifth_66": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Fs4.wav",
+  "root": 66,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.639,
+  "inst": "gvfifth"
+ },
+ "gvfifth_69": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_A4.wav",
+  "root": 69,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.89,
+  "inst": "gvfifth"
+ },
+ "gvfifth_72": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_C5.wav",
+  "root": 72,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.842,
+  "inst": "gvfifth"
+ },
+ "gvfifth_75": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Eb5.wav",
+  "root": 75,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.817,
+  "inst": "gvfifth"
+ },
+ "gvfifth_78": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Fs5.wav",
+  "root": 78,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.821,
+  "inst": "gvfifth"
+ },
+ "gvfifth_81": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_A5.wav",
+  "root": 81,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.646,
+  "inst": "gvfifth"
+ },
+ "gvfifth_84": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_C6.wav",
+  "root": 84,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.88,
+  "inst": "gvfifth"
+ },
+ "thfifth_24": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_C1.wav",
+  "root": 24,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.554,
+  "inst": "thfifth"
+ },
+ "thfifth_27": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Eb1.wav",
+  "root": 27,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.747,
+  "inst": "thfifth"
+ },
+ "thfifth_30": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Fs1.wav",
+  "root": 30,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.718,
+  "inst": "thfifth"
+ },
+ "thfifth_33": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_A1.wav",
+  "root": 33,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.642,
+  "inst": "thfifth"
+ },
+ "thfifth_36": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_C2.wav",
+  "root": 36,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.697,
+  "inst": "thfifth"
+ },
+ "thfifth_39": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Eb2.wav",
+  "root": 39,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.675,
+  "inst": "thfifth"
+ },
+ "thfifth_42": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Fs2.wav",
+  "root": 42,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.66,
+  "inst": "thfifth"
+ },
+ "thfifth_45": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_A2.wav",
+  "root": 45,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "inst": "thfifth"
+ },
+ "thfifth_48": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_C3.wav",
+  "root": 48,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.639,
+  "inst": "thfifth"
+ },
+ "thfifth_51": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Eb3.wav",
+  "root": 51,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.743,
+  "inst": "thfifth"
+ },
+ "thfifth_54": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Fs3.wav",
+  "root": 54,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.701,
+  "inst": "thfifth"
+ },
+ "thfifth_57": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_A3.wav",
+  "root": 57,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.721,
+  "inst": "thfifth"
+ },
+ "thfifth_60": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_C4.wav",
+  "root": 60,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.791,
+  "inst": "thfifth"
+ }
+}

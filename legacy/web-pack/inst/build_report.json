@@ -1,0 +1,1395 @@
+{
+ "presets": [
+  [
+   "Drums",
+   "Drums - UK Garage Kit",
+   "UK Garage Kit"
+  ],
+  [
+   "Drums",
+   "Drums - Minimal Tech Kit",
+   "Minimal Tech Kit"
+  ],
+  [
+   "Drums",
+   "Drums - Speed Garage Kit",
+   "Speed Garage Kit"
+  ],
+  [
+   "Drums",
+   "Drums - Classic House Kit",
+   "Classic House Kit"
+  ],
+  [
+   "Garage House",
+   "Garage House - Drum Kit",
+   "Garage House Kit"
+  ],
+  [
+   "Drums",
+   "Drums - Break Slicer",
+   "Break Slicer"
+  ],
+  [
+   "Loops",
+   "Loops - Loop Player (Tempo Sync)",
+   "Loop Player"
+  ],
+  [
+   "FX",
+   "FX - FX Hits",
+   "FX Hits"
+  ],
+  [
+   "Vocals",
+   "Vocals - Shouts & Ad-libs",
+   "Shouts & Ad-libs"
+  ],
+  [
+   "Vocals",
+   "Vocals - Vocal Chops",
+   "Vocal Chops"
+  ],
+  [
+   "Bass",
+   "Bass - Reese Bass",
+   "Reese Bass"
+  ],
+  [
+   "Bass",
+   "Bass - 2-Step Sub",
+   "2-Step Sub"
+  ],
+  [
+   "Bass",
+   "Bass - Acid Bass",
+   "Acid Bass"
+  ],
+  [
+   "Bass",
+   "Bass - Organ Bass",
+   "Organ Bass"
+  ],
+  [
+   "Keys",
+   "Keys - House Piano",
+   "House Piano"
+  ],
+  [
+   "Keys",
+   "Keys - Garage Organ",
+   "Garage Organ"
+  ],
+  [
+   "Keys",
+   "Keys - Garage Rhodes",
+   "Garage Rhodes"
+  ],
+  [
+   "Keys",
+   "Keys - Strings",
+   "Strings"
+  ],
+  [
+   "Keys",
+   "Keys - Dub Chords",
+   "Dub Chords"
+  ],
+  [
+   "Garage House",
+   "Garage House - Chord Pluck",
+   "Chord Pluck"
+  ],
+  [
+   "Garage House",
+   "Garage House - Glide Bass",
+   "Glide Bass"
+  ],
+  [
+   "Garage House",
+   "Garage House - Square Stab",
+   "Square Stab"
+  ],
+  [
+   "Garage House",
+   "Garage House - Deep Pad",
+   "Deep Pad"
+  ],
+  [
+   "Keys",
+   "Keys - House Stabs",
+   "House Stabs"
+  ],
+  [
+   "Vocals",
+   "Vocals - Vocal Mosaic",
+   "Vocal Mosaic"
+  ],
+  [
+   "Bass",
+   "Bass - Hoover",
+   "Hoover"
+  ],
+  [
+   "Bass",
+   "Bass - Donk",
+   "Donk"
+  ]
+ ],
+ "sfz": [
+  [
+   "Drums",
+   "UK Garage Kit"
+  ],
+  [
+   "Drums",
+   "Minimal Tech Kit"
+  ],
+  [
+   "Drums",
+   "Speed Garage Kit"
+  ],
+  [
+   "Drums",
+   "Classic House Kit"
+  ],
+  [
+   "Garage House",
+   "Drum Kit"
+  ],
+  [
+   "Drums",
+   "Break Slicer - Slice-Ready 132"
+  ],
+  [
+   "Drums",
+   "Break Slicer - Garage Break 132"
+  ],
+  [
+   "Drums",
+   "Break Slicer - Jungle Edit 136"
+  ],
+  [
+   "Loops",
+   "Loop Player"
+  ],
+  [
+   "FX",
+   "FX Hits"
+  ],
+  [
+   "Vocals",
+   "Shouts - All ad-libs"
+  ],
+  [
+   "Vocals",
+   "Shouts - MTH08 shouts"
+  ],
+  [
+   "Vocals",
+   "Shouts - SG07 shouts"
+  ],
+  [
+   "Vocals",
+   "Shouts - SG08 shouts"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Hey (F4)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Yeah (Ab3)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Oh (C5)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Uh (G2)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Woo (A4)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Ooh (D5)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Ah (E4)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Huh (B2)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Yeah (Eb4)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Come on (C3)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Hey (A4)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Yeah (E3)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Ooh (E5)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Oh (D5)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Ah (C5)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Whoa (G3)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Uh (C3)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Go (F4)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Come on (G4)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Yes (Bb4)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Hah (D3)"
+  ],
+  [
+   "Vocals",
+   "Vocal Chop - Hey (A3)"
+  ],
+  [
+   "Bass",
+   "Reese Bass"
+  ],
+  [
+   "Bass",
+   "2-Step Sub"
+  ],
+  [
+   "Bass",
+   "Organ Bass"
+  ],
+  [
+   "Keys",
+   "House Piano"
+  ],
+  [
+   "Keys",
+   "Garage Organ"
+  ],
+  [
+   "Keys",
+   "Garage Rhodes"
+  ],
+  [
+   "Keys",
+   "Strings"
+  ],
+  [
+   "Keys",
+   "Dub Chords"
+  ],
+  [
+   "Garage House",
+   "Chord Pluck"
+  ],
+  [
+   "Garage House",
+   "Glide Bass"
+  ],
+  [
+   "Garage House",
+   "Square Stab"
+  ],
+  [
+   "Garage House",
+   "Deep Pad"
+  ],
+  [
+   "Keys",
+   "House Stab - Brass stab Bbm11"
+  ],
+  [
+   "Keys",
+   "House Stab - Brass stab Gbmaj9"
+  ],
+  [
+   "Keys",
+   "House Stab - Brass stab Ab6"
+  ],
+  [
+   "Keys",
+   "House Stab - Brass fall Ebm9"
+  ],
+  [
+   "Keys",
+   "House Stab - Orchestra hit Am"
+  ],
+  [
+   "Keys",
+   "House Stab - Orchestra hit F"
+  ],
+  [
+   "Keys",
+   "House Stab - Orchestra hit G"
+  ],
+  [
+   "Keys",
+   "House Stab - Choir aah Fmaj9"
+  ],
+  [
+   "Keys",
+   "House Stab - Choir aah Am9"
+  ],
+  [
+   "Keys",
+   "House Stab - Choir stab Dm9"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H19"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H20"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H21"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H22"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H02"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H03"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H06"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H14"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H16"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - BH3"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - BH5"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H11"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H12"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H24"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H29"
+  ],
+  [
+   "Vocals",
+   "Vocal Mosaic - H30"
+  ],
+  [
+   "Bass",
+   "Hoover"
+  ],
+  [
+   "Bass",
+   "Donk"
+  ]
+ ],
+ "loops": [
+  [
+   36,
+   "Drum Loop \u00b7 Pirate Signal",
+   134,
+   2,
+   "Samples/Loops/UK Garage/UKG01_DrumLoop_134bpm.wav"
+  ],
+  [
+   37,
+   "Drum Loop \u00b7 Velvet Rope",
+   133,
+   2,
+   "Samples/Loops/UK Garage/UKG05_DrumLoop-Var_133bpm.wav"
+  ],
+  [
+   38,
+   "Drum Loop \u00b7 Halftime Pressure",
+   132,
+   2,
+   "Samples/Loops/UK Garage/UKG07_DrumLoop_132bpm.wav"
+  ],
+  [
+   39,
+   "Drum Loop \u00b7 Sunday Wub",
+   133,
+   2,
+   "Samples/Loops/UK Garage/UKG08_DrumLoop-Var_133bpm.wav"
+  ],
+  [
+   40,
+   "Shuffle Top Loop",
+   134,
+   2,
+   "Samples/Loops/UK Garage/UKG_TopLoop_Shuffle_134bpm.wav"
+  ],
+  [
+   41,
+   "Rim & Tamb Top",
+   132,
+   2,
+   "Samples/Loops/UK Garage/UKG_TopLoop_RimTamb_132bpm.wav"
+  ],
+  [
+   42,
+   "Garage Break 132",
+   132,
+   2,
+   "Samples/Loops/UK Garage/UKG_Break_Garage_132bpm.wav"
+  ],
+  [
+   43,
+   "Slice-Ready Break 132",
+   132,
+   1,
+   "Samples/Loops/UK Garage/UKG_Break_SliceReady-1bar_132bpm.wav"
+  ],
+  [
+   44,
+   "Jungle Edit Break 136",
+   136,
+   2,
+   "Samples/Loops/UK Garage/UKG_Break_JungleEdit_136bpm.wav"
+  ],
+  [
+   48,
+   "Drum Loop \u00b7 Basement Loop",
+   128,
+   2,
+   "Samples/Loops/Minimal/MTH01_DrumLoop_128bpm.wav"
+  ],
+  [
+   49,
+   "Drum Loop \u00b7 Concrete Bongos",
+   128,
+   2,
+   "Samples/Loops/Minimal/MTH04_DrumLoop-Var_128bpm.wav"
+  ],
+  [
+   50,
+   "Drum Loop \u00b7 Pattering Beads",
+   128,
+   2,
+   "Samples/Loops/Minimal/MTH07_DrumLoop_128bpm.wav"
+  ],
+  [
+   51,
+   "Drum Loop \u00b7 Black Card Bounce",
+   128,
+   2,
+   "Samples/Loops/Minimal/MTH08_DrumLoop_128bpm.wav"
+  ],
+  [
+   52,
+   "Skippy Top Loop",
+   128,
+   2,
+   "Samples/Loops/Minimal/MTH_TopLoop_Skippy_128bpm.wav"
+  ],
+  [
+   53,
+   "Ride & Shaker Top",
+   128,
+   2,
+   "Samples/Loops/Minimal/MTH_TopLoop_RideShaker_128bpm.wav"
+  ],
+  [
+   54,
+   "Polymetric Beads Perc",
+   128,
+   2,
+   "Samples/Loops/Minimal/MTH_PercLoop_PolymetricBeads_128bpm.wav"
+  ],
+  [
+   55,
+   "Rominimal Bongo Loop",
+   128,
+   2,
+   "Samples/Loops/Minimal/MTH_PercLoop_RominimalBongos_128bpm.wav"
+  ],
+  [
+   60,
+   "Drum Loop \u00b7 Dubplate Pressure",
+   132,
+   2,
+   "Samples/Loops/Speed Garage/SG01_DrumLoop_132bpm.wav"
+  ],
+  [
+   61,
+   "Drum Loop \u00b7 Champagne Riddim",
+   136,
+   2,
+   "Samples/Loops/Speed Garage/SG06_DrumLoop_136bpm.wav"
+  ],
+  [
+   62,
+   "Drum Loop \u00b7 Siren Pressure",
+   134,
+   2,
+   "Samples/Loops/Speed Garage/SG07_DrumLoop_134bpm.wav"
+  ],
+  [
+   63,
+   "Drum Loop \u00b7 Organ Wub",
+   136,
+   2,
+   "Samples/Loops/Speed Garage/SG08_DrumLoop-Var_136bpm.wav"
+  ],
+  [
+   64,
+   "Speed Garage 2-Step Loop",
+   134,
+   2,
+   "Samples/Loops/Speed Garage/SG_DrumLoop_2Step_134bpm.wav"
+  ],
+  [
+   65,
+   "Speed Garage Top Loop",
+   134,
+   2,
+   "Samples/Loops/Speed Garage/SG_TopLoop_134bpm.wav"
+  ],
+  [
+   72,
+   "Drum Loop \u00b7 Piano Anthem",
+   128,
+   2,
+   "Samples/Loops/House/CH01_DrumLoop_128bpm.wav"
+  ],
+  [
+   73,
+   "Drum Loop \u00b7 Deep Hours",
+   128,
+   2,
+   "Samples/Loops/House/CH02_DrumLoop_128bpm.wav"
+  ],
+  [
+   74,
+   "Drum Loop \u00b7 Jack Tracks",
+   130,
+   2,
+   "Samples/Loops/House/CH03_DrumLoop_130bpm.wav"
+  ],
+  [
+   75,
+   "Drum Loop \u00b7 Organ Shuffle",
+   129,
+   2,
+   "Samples/Loops/House/CH04_DrumLoop_129bpm.wav"
+  ],
+  [
+   76,
+   "Drum Loop \u00b7 Filter Disco",
+   128,
+   2,
+   "Samples/Loops/House/CH05_DrumLoop_128bpm.wav"
+  ],
+  [
+   77,
+   "Drum Loop \u00b7 Warehouse Gospel",
+   132,
+   2,
+   "Samples/Loops/House/CH06_DrumLoop_132bpm.wav"
+  ],
+  [
+   78,
+   "Drum Loop \u00b7 Disco Diamonds",
+   128,
+   2,
+   "Samples/Loops/House/CH07_DrumLoop_128bpm.wav"
+  ],
+  [
+   79,
+   "Drum Loop \u00b7 Hands Up Higher",
+   128,
+   2,
+   "Samples/Loops/House/CH08_DrumLoop-Var_128bpm.wav"
+  ],
+  [
+   80,
+   "Shaker & Tamb Top",
+   128,
+   2,
+   "Samples/Loops/House/CH_TopLoop_ShakerTamb_128bpm.wav"
+  ],
+  [
+   81,
+   "Offbeat Hat & Ride Top",
+   128,
+   2,
+   "Samples/Loops/House/CH_TopLoop_OffbeatRide_128bpm.wav"
+  ],
+  [
+   82,
+   "Conga & Bongo Loop",
+   128,
+   2,
+   "Samples/Loops/House/CH_PercLoop_CongaBongo_128bpm.wav"
+  ],
+  [
+   84,
+   "Shuffle Snare Roll",
+   134,
+   1,
+   "Samples/Loops/Fills/UKG_Fill_01_ShuffleSnareRoll_134bpm.wav"
+  ],
+  [
+   85,
+   "Rim Skip",
+   132,
+   1,
+   "Samples/Loops/Fills/UKG_Fill_02_RimSkip_132bpm.wav"
+  ],
+  [
+   86,
+   "Tom Cascade",
+   134,
+   1,
+   "Samples/Loops/Fills/UKG_Fill_03_TomCascade_Fmin-4A_134bpm.wav"
+  ],
+  [
+   87,
+   "Clap Build",
+   136,
+   2,
+   "Samples/Loops/Fills/UKG_Fill_04_ClapBuild-2bars_136bpm.wav"
+  ],
+  [
+   88,
+   "Triplet Hat Roll",
+   138,
+   1,
+   "Samples/Loops/Fills/UKG_Fill_05_TripletHatRoll_138bpm.wav"
+  ],
+  [
+   89,
+   "Kick Skip Stutter",
+   130,
+   1,
+   "Samples/Loops/Fills/UKG_Fill_06_KickSkipStutter_130bpm.wav"
+  ],
+  [
+   90,
+   "Reverse Snare Swell",
+   133,
+   1,
+   "Samples/Loops/Fills/UKG_Fill_07_ReverseSnareSwell_133bpm.wav"
+  ],
+  [
+   91,
+   "Two-Step Break",
+   136,
+   1,
+   "Samples/Loops/Fills/UKG_Fill_08_TwoStepBreak_136bpm.wav"
+  ],
+  [
+   92,
+   "Kick Roll",
+   128,
+   1,
+   "Samples/Loops/Fills/MTH_Fill_01_KickRoll_128bpm.wav"
+  ],
+  [
+   93,
+   "32nd Snare Build",
+   128,
+   2,
+   "Samples/Loops/Fills/MTH_Fill_02_SnareBuild32nds-2bars_128bpm.wav"
+  ],
+  [
+   94,
+   "Perc Click Burst",
+   130,
+   1,
+   "Samples/Loops/Fills/MTH_Fill_03_PercClickBurst_130bpm.wav"
+  ],
+  [
+   95,
+   "Conga Roll",
+   128,
+   1,
+   "Samples/Loops/Fills/MTH_Fill_04_CongaRoll_128bpm.wav"
+  ],
+  [
+   96,
+   "Hat Stutter",
+   132,
+   1,
+   "Samples/Loops/Fills/MTH_Fill_05_HatStutter_132bpm.wav"
+  ],
+  [
+   97,
+   "Clap Echo",
+   129,
+   1,
+   "Samples/Loops/Fills/MTH_Fill_06_ClapEcho_129bpm.wav"
+  ],
+  [
+   98,
+   "Rim Polyrhythm",
+   131,
+   1,
+   "Samples/Loops/Fills/MTH_Fill_07_RimPolyrhythm_131bpm.wav"
+  ],
+  [
+   99,
+   "Drop-out Break",
+   130,
+   1,
+   "Samples/Loops/Fills/MTH_Fill_08_DropoutBreak_130bpm.wav"
+  ],
+  [
+   24,
+   "Two-step shuffle",
+   128,
+   2,
+   "Samples/Loops/Garage House/GH_DrumLoop_TwoStepShuffle_128bpm.wav"
+  ],
+  [
+   25,
+   "Four-floor swing",
+   128,
+   2,
+   "Samples/Loops/Garage House/GH_DrumLoop_FourFloorSwing_128bpm.wav"
+  ],
+  [
+   26,
+   "Rim & shaker groove",
+   128,
+   2,
+   "Samples/Loops/Garage House/GH_DrumLoop_RimShakerGroove_128bpm.wav"
+  ],
+  [
+   27,
+   "Skippy garage",
+   128,
+   2,
+   "Samples/Loops/Garage House/GH_DrumLoop_SkippyGarage_128bpm.wav"
+  ]
+ ],
+ "fx": [
+  [
+   48,
+   "ukg_fx_riser"
+  ],
+  [
+   49,
+   "mth_fx_riser"
+  ],
+  [
+   50,
+   "mth_fx_pitchriser"
+  ],
+  [
+   51,
+   "sg_fx_wobbleriser"
+  ],
+  [
+   52,
+   "fx3_hooverriser"
+  ],
+  [
+   53,
+   "fx3_acidriser"
+  ],
+  [
+   54,
+   "fx3_stringriser"
+  ],
+  [
+   55,
+   "fx3_whoosh_up"
+  ],
+  [
+   56,
+   "fx3_whoosh_down"
+  ],
+  [
+   57,
+   "ukg_fx_revcrash"
+  ],
+  [
+   58,
+   "mth_fx_revcrash"
+  ],
+  [
+   59,
+   "mth_fx_downsweep"
+  ],
+  [
+   60,
+   "sg_fx_reesedown"
+  ],
+  [
+   61,
+   "fx3_bomb"
+  ],
+  [
+   62,
+   "fx3_airhorn"
+  ],
+  [
+   63,
+   "fx3_airhorn_low"
+  ],
+  [
+   64,
+   "fx3_dubhorn"
+  ],
+  [
+   65,
+   "ukg_fx_siren"
+  ],
+  [
+   66,
+   "sg_fx_siren"
+  ],
+  [
+   67,
+   "ukg_fx_laser"
+  ],
+  [
+   68,
+   "ukg_fx_organecho"
+  ],
+  [
+   69,
+   "mth_fx_dubecho"
+  ],
+  [
+   70,
+   "mth_fx_glitch"
+  ],
+  [
+   71,
+   "ukg_fx_vinylstop"
+  ],
+  [
+   72,
+   "fx3_crackle"
+  ],
+  [
+   73,
+   "fx3_clicks"
+  ]
+ ],
+ "stabs": [
+  [
+   "Brass stab Bbm11",
+   58,
+   "Samples/Keys/HouseStabs/CH_BrassStab_Bbm11_Bbmin-3A.wav"
+  ],
+  [
+   "Brass stab Gbmaj9",
+   66,
+   "Samples/Keys/HouseStabs/CH_BrassStab_Gbmaj9_Bbmin-3A.wav"
+  ],
+  [
+   "Brass stab Ab6",
+   56,
+   "Samples/Keys/HouseStabs/CH_BrassStab_Ab6_Bbmin-3A.wav"
+  ],
+  [
+   "Brass fall Ebm9",
+   63,
+   "Samples/Keys/HouseStabs/CH_BrassFall_Ebm9_Bbmin-3A.wav"
+  ],
+  [
+   "Orchestra hit Am",
+   57,
+   "Samples/Keys/HouseStabs/CH_OrchAm_Amin-8A.wav"
+  ],
+  [
+   "Orchestra hit F",
+   53,
+   "Samples/Keys/HouseStabs/CH_OrchF_Amin-8A.wav"
+  ],
+  [
+   "Orchestra hit G",
+   55,
+   "Samples/Keys/HouseStabs/CH_OrchG_Amin-8A.wav"
+  ],
+  [
+   "Choir aah Fmaj9",
+   53,
+   "Samples/Keys/HouseStabs/CH_ChoirAah_Fmaj9_Amin-8A.wav"
+  ],
+  [
+   "Choir aah Am9",
+   57,
+   "Samples/Keys/HouseStabs/CH_ChoirAah_Am9_Amin-8A.wav"
+  ],
+  [
+   "Choir stab Dm9",
+   50,
+   "Samples/Keys/HouseStabs/CH_ChoirStab_Dm9_Amin-8A.wav"
+  ]
+ ],
+ "mosaic": [
+  [
+   "h19",
+   "Orange light on your skin, let the night pull us in",
+   128,
+   [
+    "Orange-1",
+    "Orange-2",
+    "light",
+    "on",
+    "your",
+    "skin",
+    "let",
+    "the",
+    "night",
+    "pull",
+    "us",
+    "in",
+    "Orange-1",
+    "Orange-2",
+    "light",
+    "on",
+    "your",
+    "skin",
+    "let",
+    "the",
+    "night",
+    "pull",
+    "us",
+    "in"
+   ]
+  ],
+  [
+   "h20",
+   "Missed the last train home, so we walk it slow",
+   132,
+   [
+    "Missed",
+    "the",
+    "last",
+    "train",
+    "home",
+    "so",
+    "we",
+    "walk",
+    "it",
+    "slow",
+    "Missed",
+    "the",
+    "last",
+    "train",
+    "home",
+    "and",
+    "I",
+    "want",
+    "you",
+    "close"
+   ]
+  ],
+  [
+   "h21",
+   "Swimming in the neon light, pull me under tonight",
+   128,
+   [
+    "Swimming-1",
+    "Swimming-2",
+    "in",
+    "the",
+    "neon-1",
+    "neon-2",
+    "light",
+    "pull",
+    "me",
+    "under-1",
+    "under-2",
+    "tonight-1",
+    "tonight-2",
+    "Swimming-1",
+    "Swimming-2",
+    "in",
+    "the",
+    "neon-1",
+    "neon-2",
+    "light",
+    "pull",
+    "me",
+    "under-1",
+    "under-2",
+    "tonight-1",
+    "tonight-2"
+   ]
+  ],
+  [
+   "h22",
+   "Meet me on the chapel steps, sing it out with every breath",
+   133,
+   [
+    "Meet",
+    "me",
+    "on",
+    "the",
+    "chapel-1",
+    "chapel-2",
+    "steps",
+    "sing",
+    "it",
+    "out",
+    "with",
+    "every-1",
+    "every-2",
+    "breath",
+    "Meet",
+    "me",
+    "on",
+    "the",
+    "chapel-1",
+    "chapel-2",
+    "steps",
+    "sing",
+    "it",
+    "out",
+    "with",
+    "every-1",
+    "every-2",
+    "breath"
+   ]
+  ],
+  [
+   "h02",
+   "Hold me closer, say you'll stay",
+   132,
+   [
+    "Hold",
+    "me",
+    "closer-1",
+    "closer-2",
+    "say",
+    "youll",
+    "stay",
+    "Hold",
+    "me",
+    "closer-1",
+    "closer-2",
+    "say",
+    "youll",
+    "stay"
+   ]
+  ],
+  [
+   "h03",
+   "Sunday morning, feeling your love",
+   133,
+   [
+    "Sunday-1",
+    "Sunday-2",
+    "morning-1",
+    "morning-2",
+    "feeling-1",
+    "feeling-2",
+    "your",
+    "love",
+    "Sunday-1",
+    "Sunday-2",
+    "morning-1",
+    "morning-2",
+    "feeling-1",
+    "feeling-2",
+    "your",
+    "love"
+   ]
+  ],
+  [
+   "h06",
+   "Deeper, deeper, into the night",
+   128,
+   [
+    "Deeper-1",
+    "Deeper-2",
+    "deeper-1",
+    "deeper-2",
+    "into-1",
+    "into-2",
+    "the",
+    "night",
+    "Deeper-1",
+    "Deeper-2",
+    "deeper-1",
+    "deeper-2",
+    "into-1",
+    "into-2",
+    "the",
+    "night"
+   ]
+  ],
+  [
+   "h14",
+   "Lift me higher, higher",
+   128,
+   [
+    "Lift",
+    "me",
+    "higher-1",
+    "higher-2",
+    "higher-1",
+    "higher-2",
+    "Lift",
+    "me",
+    "higher-1",
+    "higher-2",
+    "higher-1",
+    "higher-2"
+   ]
+  ],
+  [
+   "h16",
+   "You got me dancing all night long",
+   128,
+   [
+    "You",
+    "got",
+    "me",
+    "dancing-1",
+    "dancing-2",
+    "all",
+    "night",
+    "long",
+    "You",
+    "got",
+    "me",
+    "dancing-1",
+    "dancing-2",
+    "all",
+    "night",
+    "long"
+   ]
+  ],
+  [
+   "bh3",
+   "Expensive taste, pretty face",
+   133,
+   [
+    "Expensive-1",
+    "Expensive-2",
+    "Expensive-3",
+    "taste",
+    "pretty-1",
+    "pretty-2",
+    "face",
+    "Expensive-1",
+    "Expensive-2",
+    "Expensive-3",
+    "taste",
+    "pretty-1",
+    "pretty-2",
+    "face"
+   ]
+  ],
+  [
+   "bh5",
+   "Buy me diamonds, baby",
+   128,
+   [
+    "Buy",
+    "me",
+    "diamonds-1",
+    "diamonds-2",
+    "baby-1",
+    "baby-2",
+    "Buy",
+    "me",
+    "diamonds-1",
+    "diamonds-2",
+    "baby-1",
+    "baby-2"
+   ]
+  ],
+  [
+   "h11",
+   "Feel the pressure when the bass drop",
+   134,
+   [
+    "Feel",
+    "the",
+    "pressure-1",
+    "pressure-2",
+    "when",
+    "the",
+    "bass",
+    "drop",
+    "Feel",
+    "the",
+    "pressure-1",
+    "pressure-2",
+    "when",
+    "the",
+    "bass",
+    "drop"
+   ]
+  ],
+  [
+   "h12",
+   "All the girls say ooh",
+   136,
+   [
+    "All",
+    "the",
+    "girls",
+    "say",
+    "ooh",
+    "All",
+    "the",
+    "girls",
+    "say",
+    "ooh"
+   ]
+  ],
+  [
+   "h24",
+   "Stay in bed till the evening, you and me and the feeling",
+   133,
+   [
+    "Stay",
+    "in",
+    "bed",
+    "till",
+    "the",
+    "evening-1",
+    "evening-2",
+    "you",
+    "and",
+    "me",
+    "and",
+    "the",
+    "feeling-1",
+    "feeling-2",
+    "Stay",
+    "in",
+    "bed",
+    "till",
+    "the",
+    "evening-1",
+    "evening-2",
+    "you",
+    "and",
+    "me",
+    "and",
+    "the",
+    "feeling-1",
+    "feeling-2"
+   ]
+  ],
+  [
+   "h29",
+   "Glitter on the ceiling, tell me what you're feeling",
+   128,
+   [
+    "Glitter-1",
+    "Glitter-2",
+    "on",
+    "the",
+    "ceiling-1",
+    "ceiling-2",
+    "tell",
+    "me",
+    "what",
+    "youre",
+    "feeling-1",
+    "feeling-2",
+    "Glitter-1",
+    "Glitter-2",
+    "on",
+    "the",
+    "ceiling-1",
+    "ceiling-2",
+    "tell",
+    "me",
+    "what",
+    "youre",
+    "feeling-1",
+    "feeling-2"
+   ]
+  ],
+  [
+   "h30",
+   "Hands up higher, everybody, one desire",
+   128,
+   [
+    "Hands",
+    "up",
+    "higher-1",
+    "higher-2",
+    "everybody-1",
+    "everybody-2",
+    "everybody-3",
+    "everybody-4",
+    "one",
+    "desire-1",
+    "desire-2",
+    "Hands",
+    "up",
+    "higher-1",
+    "higher-2",
+    "everybody-1",
+    "everybody-2",
+    "everybody-3",
+    "everybody-4",
+    "one",
+    "desire-1",
+    "desire-2"
+   ]
+  ]
+ ]
+}

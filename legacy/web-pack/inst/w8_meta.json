@@ -1,0 +1,1170 @@
+{
+ "kick_gv": {
+  "path": "Samples/Drums/GrooveHouse/GV_Kick-GrooveHouse-Bouncy_G.wav",
+  "root": null,
+  "frames": 18522,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.92,
+  "title": "Kick Groove House Bouncy",
+  "key": "G",
+  "note": "warm, bouncy kick with a low-mid knock, tuned to G"
+ },
+ "clap_gv": {
+  "path": "Samples/Drums/GrooveHouse/GV_Clap-GrooveHouse-BigVerb.wav",
+  "root": null,
+  "frames": 83790,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.86,
+  "title": "Clap Groove House Big Reverb",
+  "key": null,
+  "note": "four-layer clap into a long, dark hall"
+ },
+ "snare_gv": {
+  "path": "Samples/Drums/GrooveHouse/GV_Snare-GrooveHouse-Snappy.wav",
+  "root": null,
+  "frames": 13230,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.84,
+  "title": "Snare Groove House Snappy",
+  "key": null,
+  "note": "snappy snare with a short plate"
+ },
+ "rim_gv": {
+  "path": "Samples/Drums/GrooveHouse/GV_Rim-GrooveHouse-Wood.wav",
+  "root": null,
+  "frames": 6174,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8,
+  "title": "Rim Groove House Wood",
+  "key": null,
+  "note": "woody side-stick"
+ },
+ "chat_gv": {
+  "path": "Samples/Drums/GrooveHouse/GV_ClosedHat-GrooveHouse-Vintage.wav",
+  "root": null,
+  "frames": 6174,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.74,
+  "title": "Closed Hat Groove House Vintage",
+  "key": null,
+  "note": "crisp closed hat with a vintage edge"
+ },
+ "ohat_gv": {
+  "path": "Samples/Drums/GrooveHouse/GV_OpenHat-GrooveHouse-Vintage.wav",
+  "root": null,
+  "frames": 22050,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.74,
+  "title": "Open Hat Groove House Vintage",
+  "key": null,
+  "note": "short open hat, same machine"
+ },
+ "shaker_gv": {
+  "path": "Samples/Drums/GrooveHouse/GV_Shaker-GrooveHouse.wav",
+  "root": null,
+  "frames": 7056,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.7,
+  "title": "Shaker Groove House",
+  "key": null,
+  "note": "soft shaker for swung 16ths"
+ },
+ "perc_gv": {
+  "path": "Samples/Drums/GrooveHouse/GV_Perc-GrooveHouse-GlitchTick.wav",
+  "root": null,
+  "frames": 5292,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.75,
+  "title": "Perc Groove House Glitch Tick",
+  "key": null,
+  "note": "FM tick for minimal percussion"
+ },
+ "kick_th": {
+  "path": "Samples/Drums/TechHouse/TH_Kick-TechHouse-Punch_Ab.wav",
+  "root": null,
+  "frames": 16758,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.93,
+  "title": "Kick Tech House Punch",
+  "key": "Ab",
+  "note": "fat, punchy kick with a resonant bump and a little grit; short sub, so the bass owns the low end"
+ },
+ "snare_th": {
+  "path": "Samples/Drums/TechHouse/TH_Snare-TechHouse-Hard.wav",
+  "root": null,
+  "frames": 14994,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.88,
+  "title": "Snare Tech House Hard",
+  "key": null,
+  "note": "tight, hard snare, distorted, with a short room"
+ },
+ "clap_th": {
+  "path": "Samples/Drums/TechHouse/TH_Clap-TechHouse-Layered.wav",
+  "root": null,
+  "frames": 26460,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.86,
+  "title": "Clap Tech House Layered",
+  "key": null,
+  "note": "two claps layered wide, short room"
+ },
+ "rim_th": {
+  "path": "Samples/Drums/TechHouse/TH_Rim-TechHouse-Bright.wav",
+  "root": null,
+  "frames": 4410,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8,
+  "title": "Rim Tech House Bright",
+  "key": null,
+  "note": "bright rim for offbeat top loops"
+ },
+ "chat_th": {
+  "path": "Samples/Drums/TechHouse/TH_ClosedHat-TechHouse-Driving.wav",
+  "root": null,
+  "frames": 5292,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.76,
+  "title": "Closed Hat Tech House Driving",
+  "key": null,
+  "note": "tight, noisy closed hat with a stick click"
+ },
+ "ohat_th": {
+  "path": "Samples/Drums/TechHouse/TH_OpenHat-TechHouse-Short.wav",
+  "root": null,
+  "frames": 15876,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.76,
+  "title": "Open Hat Tech House Short",
+  "key": null,
+  "note": "short open hat"
+ },
+ "shaker_th": {
+  "path": "Samples/Drums/TechHouse/TH_Shaker-TechHouse-Acoustic.wav",
+  "root": null,
+  "frames": 8820,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.7,
+  "title": "Shaker Tech House Acoustic",
+  "key": null,
+  "note": "two-grain shaker (forward and back)"
+ },
+ "tom_th_lo": {
+  "path": "Samples/Drums/TechHouse/TH_Tom-TechHouse-Low_Gb.wav",
+  "root": null,
+  "frames": 18522,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.82,
+  "title": "Tom Tech House Low",
+  "key": "Gb",
+  "note": "tuned tom with a bit of drive, for offbeat tom grooves"
+ },
+ "tom_th_mid": {
+  "path": "Samples/Drums/TechHouse/TH_Tom-TechHouse-Mid_Db.wav",
+  "root": null,
+  "frames": 18522,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.82,
+  "title": "Tom Tech House Mid",
+  "key": "Db",
+  "note": "tuned tom with a bit of drive, for offbeat tom grooves"
+ },
+ "tom_th_hi": {
+  "path": "Samples/Drums/TechHouse/TH_Tom-TechHouse-High_Gb.wav",
+  "root": null,
+  "frames": 18522,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.82,
+  "title": "Tom Tech House High",
+  "key": "Gb",
+  "note": "tuned tom with a bit of drive, for offbeat tom grooves"
+ },
+ "perc_th": {
+  "path": "Samples/Drums/TechHouse/TH_Perc-TechHouse-MetalPing.wav",
+  "root": null,
+  "frames": 7938,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.75,
+  "title": "Perc Tech House Metal Ping",
+  "key": null,
+  "note": "short metallic FM ping"
+ },
+ "gvfm_24": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_C1.wav",
+  "root": 24,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "inst": "gvfm"
+ },
+ "gvfm_27": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_Eb1.wav",
+  "root": 27,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.869,
+  "inst": "gvfm"
+ },
+ "gvfm_30": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_Fs1.wav",
+  "root": 30,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.842,
+  "inst": "gvfm"
+ },
+ "gvfm_33": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_A1.wav",
+  "root": 33,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.808,
+  "inst": "gvfm"
+ },
+ "gvfm_36": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_C2.wav",
+  "root": 36,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.774,
+  "inst": "gvfm"
+ },
+ "gvfm_39": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_Eb2.wav",
+  "root": 39,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.774,
+  "inst": "gvfm"
+ },
+ "gvfm_42": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_Fs2.wav",
+  "root": 42,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.766,
+  "inst": "gvfm"
+ },
+ "gvfm_45": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_A2.wav",
+  "root": 45,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.753,
+  "inst": "gvfm"
+ },
+ "gvfm_48": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_C3.wav",
+  "root": 48,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.737,
+  "inst": "gvfm"
+ },
+ "gvfm_51": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_Eb3.wav",
+  "root": 51,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.736,
+  "inst": "gvfm"
+ },
+ "gvfm_54": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_Fs3.wav",
+  "root": 54,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.734,
+  "inst": "gvfm"
+ },
+ "gvfm_57": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_A3.wav",
+  "root": 57,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.733,
+  "inst": "gvfm"
+ },
+ "gvfm_60": {
+  "path": "Samples/GrooveHouse/FMRubberBass/FMRubberBass_C4.wav",
+  "root": 60,
+  "frames": 61740,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.742,
+  "inst": "gvfm"
+ },
+ "gvglow_36": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_C2.wav",
+  "root": 36,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.753,
+  "inst": "gvglow"
+ },
+ "gvglow_39": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_Eb2.wav",
+  "root": 39,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.53,
+  "inst": "gvglow"
+ },
+ "gvglow_42": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_Fs2.wav",
+  "root": 42,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.725,
+  "inst": "gvglow"
+ },
+ "gvglow_45": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_A2.wav",
+  "root": 45,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.642,
+  "inst": "gvglow"
+ },
+ "gvglow_48": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_C3.wav",
+  "root": 48,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.698,
+  "inst": "gvglow"
+ },
+ "gvglow_51": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_Eb3.wav",
+  "root": 51,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.605,
+  "inst": "gvglow"
+ },
+ "gvglow_54": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_Fs3.wav",
+  "root": 54,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.579,
+  "inst": "gvglow"
+ },
+ "gvglow_57": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_A3.wav",
+  "root": 57,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.89,
+  "inst": "gvglow"
+ },
+ "gvglow_60": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_C4.wav",
+  "root": 60,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.84,
+  "inst": "gvglow"
+ },
+ "gvglow_63": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_Eb4.wav",
+  "root": 63,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.759,
+  "inst": "gvglow"
+ },
+ "gvglow_66": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_Fs4.wav",
+  "root": 66,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.822,
+  "inst": "gvglow"
+ },
+ "gvglow_69": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_A4.wav",
+  "root": 69,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.697,
+  "inst": "gvglow"
+ },
+ "gvglow_72": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_C5.wav",
+  "root": 72,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.667,
+  "inst": "gvglow"
+ },
+ "gvglow_75": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_Eb5.wav",
+  "root": 75,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.535,
+  "inst": "gvglow"
+ },
+ "gvglow_78": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_Fs5.wav",
+  "root": 78,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.749,
+  "inst": "gvglow"
+ },
+ "gvglow_81": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_A5.wav",
+  "root": 81,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.539,
+  "inst": "gvglow"
+ },
+ "gvglow_84": {
+  "path": "Samples/GrooveHouse/GlowSaw/GlowSaw_C6.wav",
+  "root": 84,
+  "frames": 114660,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.661,
+  "inst": "gvglow"
+ },
+ "gvfifth_48": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_C3.wav",
+  "root": 48,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.802,
+  "inst": "gvfifth"
+ },
+ "gvfifth_51": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Eb3.wav",
+  "root": 51,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.783,
+  "inst": "gvfifth"
+ },
+ "gvfifth_54": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Fs3.wav",
+  "root": 54,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.801,
+  "inst": "gvfifth"
+ },
+ "gvfifth_57": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_A3.wav",
+  "root": 57,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.765,
+  "inst": "gvfifth"
+ },
+ "gvfifth_60": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_C4.wav",
+  "root": 60,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.746,
+  "inst": "gvfifth"
+ },
+ "gvfifth_63": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Eb4.wav",
+  "root": 63,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.73,
+  "inst": "gvfifth"
+ },
+ "gvfifth_66": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Fs4.wav",
+  "root": 66,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.729,
+  "inst": "gvfifth"
+ },
+ "gvfifth_69": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_A4.wav",
+  "root": 69,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.755,
+  "inst": "gvfifth"
+ },
+ "gvfifth_72": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_C5.wav",
+  "root": 72,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.68,
+  "inst": "gvfifth"
+ },
+ "gvfifth_75": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Eb5.wav",
+  "root": 75,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.88,
+  "inst": "gvfifth"
+ },
+ "gvfifth_78": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_Fs5.wav",
+  "root": 78,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.89,
+  "inst": "gvfifth"
+ },
+ "gvfifth_81": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_A5.wav",
+  "root": 81,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.871,
+  "inst": "gvfifth"
+ },
+ "gvfifth_84": {
+  "path": "Samples/GrooveHouse/FifthsLead/FifthsLead_C6.wav",
+  "root": 84,
+  "frames": 97020,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.831,
+  "inst": "gvfifth"
+ },
+ "thbounce_24": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_C1.wav",
+  "root": 24,
+  "frames": 44500,
+  "ch": 1,
+  "loop": [
+   0,
+   44499
+  ],
+  "peak": 0.789,
+  "inst": "thbounce",
+  "seam": 0.43
+ },
+ "thbounce_27": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_Eb1.wav",
+  "root": 27,
+  "frames": 44224,
+  "ch": 1,
+  "loop": [
+   0,
+   44223
+  ],
+  "peak": 0.79,
+  "inst": "thbounce",
+  "seam": 0.44
+ },
+ "thbounce_30": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_Fs1.wav",
+  "root": 30,
+  "frames": 43862,
+  "ch": 1,
+  "loop": [
+   0,
+   43861
+  ],
+  "peak": 0.795,
+  "inst": "thbounce",
+  "seam": 0.44
+ },
+ "thbounce_33": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_A1.wav",
+  "root": 33,
+  "frames": 44100,
+  "ch": 1,
+  "loop": [
+   0,
+   44099
+  ],
+  "peak": 0.798,
+  "inst": "thbounce",
+  "seam": 0.44
+ },
+ "thbounce_36": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_C2.wav",
+  "root": 36,
+  "frames": 43826,
+  "ch": 1,
+  "loop": [
+   0,
+   43825
+  ],
+  "peak": 0.789,
+  "inst": "thbounce",
+  "seam": 0.45
+ },
+ "thbounce_39": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_Eb2.wav",
+  "root": 39,
+  "frames": 44224,
+  "ch": 1,
+  "loop": [
+   0,
+   44223
+  ],
+  "peak": 0.794,
+  "inst": "thbounce",
+  "seam": 0.46
+ },
+ "thbounce_42": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_Fs2.wav",
+  "root": 42,
+  "frames": 43862,
+  "ch": 1,
+  "loop": [
+   0,
+   43861
+  ],
+  "peak": 0.796,
+  "inst": "thbounce",
+  "seam": 0.47
+ },
+ "thbounce_45": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_A2.wav",
+  "root": 45,
+  "frames": 44100,
+  "ch": 1,
+  "loop": [
+   0,
+   44099
+  ],
+  "peak": 0.795,
+  "inst": "thbounce",
+  "seam": 0.48
+ },
+ "thbounce_48": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_C3.wav",
+  "root": 48,
+  "frames": 44163,
+  "ch": 1,
+  "loop": [
+   0,
+   44162
+  ],
+  "peak": 0.792,
+  "inst": "thbounce",
+  "seam": 0.5
+ },
+ "thbounce_51": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_Eb3.wav",
+  "root": 51,
+  "frames": 44224,
+  "ch": 1,
+  "loop": [
+   0,
+   44223
+  ],
+  "peak": 0.798,
+  "inst": "thbounce",
+  "seam": 0.51
+ },
+ "thbounce_54": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_Fs3.wav",
+  "root": 54,
+  "frames": 44101,
+  "ch": 1,
+  "loop": [
+   0,
+   44100
+  ],
+  "peak": 0.797,
+  "inst": "thbounce",
+  "seam": 0.54
+ },
+ "thbounce_57": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_A3.wav",
+  "root": 57,
+  "frames": 44100,
+  "ch": 1,
+  "loop": [
+   0,
+   44099
+  ],
+  "peak": 0.8,
+  "inst": "thbounce",
+  "seam": 0.56
+ },
+ "thbounce_60": {
+  "path": "Samples/TechHouse/BounceBass/BounceBass_C4.wav",
+  "root": 60,
+  "frames": 44163,
+  "ch": 1,
+  "loop": [
+   0,
+   44162
+  ],
+  "peak": 0.798,
+  "inst": "thbounce",
+  "seam": 0.59
+ },
+ "thfifth_24": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_C1.wav",
+  "root": 24,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.711,
+  "inst": "thfifth"
+ },
+ "thfifth_27": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Eb1.wav",
+  "root": 27,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.527,
+  "inst": "thfifth"
+ },
+ "thfifth_30": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Fs1.wav",
+  "root": 30,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "inst": "thfifth"
+ },
+ "thfifth_33": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_A1.wav",
+  "root": 33,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.695,
+  "inst": "thfifth"
+ },
+ "thfifth_36": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_C2.wav",
+  "root": 36,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.655,
+  "inst": "thfifth"
+ },
+ "thfifth_39": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Eb2.wav",
+  "root": 39,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.669,
+  "inst": "thfifth"
+ },
+ "thfifth_42": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Fs2.wav",
+  "root": 42,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.663,
+  "inst": "thfifth"
+ },
+ "thfifth_45": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_A2.wav",
+  "root": 45,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.612,
+  "inst": "thfifth"
+ },
+ "thfifth_48": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_C3.wav",
+  "root": 48,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.668,
+  "inst": "thfifth"
+ },
+ "thfifth_51": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Eb3.wav",
+  "root": 51,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.635,
+  "inst": "thfifth"
+ },
+ "thfifth_54": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_Fs3.wav",
+  "root": 54,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.726,
+  "inst": "thfifth"
+ },
+ "thfifth_57": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_A3.wav",
+  "root": 57,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.635,
+  "inst": "thfifth"
+ },
+ "thfifth_60": {
+  "path": "Samples/TechHouse/FifthBass/FifthBass_C4.wav",
+  "root": 60,
+  "frames": 41895,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.634,
+  "inst": "thfifth"
+ },
+ "thrave_36": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_C2.wav",
+  "root": 36,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.671,
+  "inst": "thrave"
+ },
+ "thrave_39": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_Eb2.wav",
+  "root": 39,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.846,
+  "inst": "thrave"
+ },
+ "thrave_42": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_Fs2.wav",
+  "root": 42,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.76,
+  "inst": "thrave"
+ },
+ "thrave_45": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_A2.wav",
+  "root": 45,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.68,
+  "inst": "thrave"
+ },
+ "thrave_48": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_C3.wav",
+  "root": 48,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.748,
+  "inst": "thrave"
+ },
+ "thrave_51": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_Eb3.wav",
+  "root": 51,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.804,
+  "inst": "thrave"
+ },
+ "thrave_54": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_Fs3.wav",
+  "root": 54,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.872,
+  "inst": "thrave"
+ },
+ "thrave_57": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_A3.wav",
+  "root": 57,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.756,
+  "inst": "thrave"
+ },
+ "thrave_60": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_C4.wav",
+  "root": 60,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.89,
+  "inst": "thrave"
+ },
+ "thrave_63": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_Eb4.wav",
+  "root": 63,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.725,
+  "inst": "thrave"
+ },
+ "thrave_66": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_Fs4.wav",
+  "root": 66,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.749,
+  "inst": "thrave"
+ },
+ "thrave_69": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_A4.wav",
+  "root": 69,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.843,
+  "inst": "thrave"
+ },
+ "thrave_72": {
+  "path": "Samples/TechHouse/RaveStab/RaveStab_C5.wav",
+  "root": 72,
+  "frames": 39690,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.813,
+  "inst": "thrave"
+ },
+ "threese_24": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_C1.wav",
+  "root": 24,
+  "frames": 89000,
+  "ch": 1,
+  "loop": [
+   0,
+   88999
+  ],
+  "peak": 0.781,
+  "inst": "threese",
+  "seam": -0.29
+ },
+ "threese_27": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_Eb1.wav",
+  "root": 27,
+  "frames": 88447,
+  "ch": 1,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.783,
+  "inst": "threese",
+  "seam": 0.82
+ },
+ "threese_30": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_Fs1.wav",
+  "root": 30,
+  "frames": 87725,
+  "ch": 1,
+  "loop": [
+   0,
+   87724
+  ],
+  "peak": 0.792,
+  "inst": "threese",
+  "seam": -1.81
+ },
+ "threese_33": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_A1.wav",
+  "root": 33,
+  "frames": 88200,
+  "ch": 1,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.79,
+  "inst": "threese",
+  "seam": 0.98
+ },
+ "threese_36": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_C2.wav",
+  "root": 36,
+  "frames": 89000,
+  "ch": 1,
+  "loop": [
+   0,
+   88999
+  ],
+  "peak": 0.799,
+  "inst": "threese",
+  "seam": 0.26
+ },
+ "threese_39": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_Eb2.wav",
+  "root": 39,
+  "frames": 88447,
+  "ch": 1,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.799,
+  "inst": "threese",
+  "seam": -0.59
+ },
+ "threese_42": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_Fs2.wav",
+  "root": 42,
+  "frames": 88678,
+  "ch": 1,
+  "loop": [
+   0,
+   88677
+  ],
+  "peak": 0.795,
+  "inst": "threese",
+  "seam": 0.27
+ },
+ "threese_45": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_A2.wav",
+  "root": 45,
+  "frames": 88200,
+  "ch": 1,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.796,
+  "inst": "threese",
+  "seam": 0.43
+ },
+ "threese_48": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_C3.wav",
+  "root": 48,
+  "frames": 88326,
+  "ch": 1,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.796,
+  "inst": "threese",
+  "seam": 0.4
+ },
+ "threese_51": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_Eb3.wav",
+  "root": 51,
+  "frames": 88447,
+  "ch": 1,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.799,
+  "inst": "threese",
+  "seam": 0.58
+ },
+ "threese_54": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_Fs3.wav",
+  "root": 54,
+  "frames": 88201,
+  "ch": 1,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.8,
+  "inst": "threese",
+  "seam": 0.35
+ },
+ "threese_57": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_A3.wav",
+  "root": 57,
+  "frames": 88200,
+  "ch": 1,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.799,
+  "inst": "threese",
+  "seam": 0.06
+ },
+ "threese_60": {
+  "path": "Samples/TechHouse/CrushedReese/CrushedReese_C4.wav",
+  "root": 60,
+  "frames": 88326,
+  "ch": 1,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.8,
+  "inst": "threese",
+  "seam": 0.14
+ }
+}

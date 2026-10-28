@@ -1,0 +1,779 @@
+{
+ "kick_gh": {
+  "path": "Samples/Drums/GarageHouse/Kick-GarageHouse-Round_F.wav",
+  "root": null,
+  "frames": 16758,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "title": "Kick-GarageHouse-Round_F"
+ },
+ "clap_gh": {
+  "path": "Samples/Drums/GarageHouse/Clap-GarageHouse-Plate.wav",
+  "root": null,
+  "frames": 22050,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.85,
+  "title": "Clap-GarageHouse-Plate"
+ },
+ "snare_gh": {
+  "path": "Samples/Drums/GarageHouse/Snare-GarageHouse-Crisp.wav",
+  "root": null,
+  "frames": 13230,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.85,
+  "title": "Snare-GarageHouse-Crisp"
+ },
+ "rim_gh": {
+  "path": "Samples/Drums/GarageHouse/Rim-GarageHouse.wav",
+  "root": null,
+  "frames": 4851,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8,
+  "title": "Rim-GarageHouse"
+ },
+ "chat_gh": {
+  "path": "Samples/Drums/GarageHouse/ClosedHat-GarageHouse.wav",
+  "root": null,
+  "frames": 5292,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.75,
+  "title": "ClosedHat-GarageHouse"
+ },
+ "ohat_gh": {
+  "path": "Samples/Drums/GarageHouse/OpenHat-GarageHouse.wav",
+  "root": null,
+  "frames": 27342,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.75,
+  "title": "OpenHat-GarageHouse"
+ },
+ "shaker_gh": {
+  "path": "Samples/Drums/GarageHouse/Shaker-GarageHouse.wav",
+  "root": null,
+  "frames": 6174,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.7,
+  "title": "Shaker-GarageHouse"
+ },
+ "snap_gh": {
+  "path": "Samples/Drums/GarageHouse/Snap-GarageHouse.wav",
+  "root": null,
+  "frames": 15435,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.8,
+  "title": "Snap-GarageHouse"
+ },
+ "tamb_gh": {
+  "path": "Samples/Drums/GarageHouse/Tambourine-GarageHouse.wav",
+  "root": null,
+  "frames": 13230,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.7,
+  "title": "Tambourine-GarageHouse"
+ },
+ "gh_loop1": {
+  "path": "Samples/Loops/Garage House/GH_DrumLoop_TwoStepShuffle_128bpm.wav",
+  "root": null,
+  "frames": 165375,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.89,
+  "title": "Two-step shuffle",
+  "bpm": 128,
+  "bars": 2
+ },
+ "gh_loop2": {
+  "path": "Samples/Loops/Garage House/GH_DrumLoop_FourFloorSwing_128bpm.wav",
+  "root": null,
+  "frames": 165375,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.89,
+  "title": "Four-floor swing",
+  "bpm": 128,
+  "bars": 2
+ },
+ "gh_loop3": {
+  "path": "Samples/Loops/Garage House/GH_DrumLoop_RimShakerGroove_128bpm.wav",
+  "root": null,
+  "frames": 165375,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.89,
+  "title": "Rim & shaker groove",
+  "bpm": 128,
+  "bars": 2
+ },
+ "gh_loop4": {
+  "path": "Samples/Loops/Garage House/GH_DrumLoop_SkippyGarage_128bpm.wav",
+  "root": null,
+  "frames": 165375,
+  "ch": 2,
+  "loop": null,
+  "peak": 0.89,
+  "title": "Skippy garage",
+  "bpm": 128,
+  "bars": 2
+ },
+ "pluck_36": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_C2.wav",
+  "root": 36,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8188979988134621
+ },
+ "pluck_39": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_Eb2.wav",
+  "root": 39,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8571850274355929
+ },
+ "pluck_42": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_Fs2.wav",
+  "root": 42,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8634927312616864
+ },
+ "pluck_45": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_A2.wav",
+  "root": 45,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.854090279587039
+ },
+ "pluck_48": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_C3.wav",
+  "root": 48,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8754400541851577
+ },
+ "pluck_51": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_Eb3.wav",
+  "root": 51,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8684687037576628
+ },
+ "pluck_54": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_Fs3.wav",
+  "root": 54,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8644879317696709
+ },
+ "pluck_57": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_A3.wav",
+  "root": 57,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8547297985126036
+ },
+ "pluck_60": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_C4.wav",
+  "root": 60,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.883588414799502
+ },
+ "pluck_63": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_Eb4.wav",
+  "root": 63,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8396890587309626
+ },
+ "pluck_66": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_Fs4.wav",
+  "root": 66,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8625465871125942
+ },
+ "pluck_69": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_A4.wav",
+  "root": 69,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89
+ },
+ "pluck_72": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_C5.wav",
+  "root": 72,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.868382136571672
+ },
+ "pluck_75": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_Eb5.wav",
+  "root": 75,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8490383149141798
+ },
+ "pluck_78": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_Fs5.wav",
+  "root": 78,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8601434043127147
+ },
+ "pluck_81": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_A5.wav",
+  "root": 81,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8235948401666613
+ },
+ "pluck_84": {
+  "path": "Samples/Keys/GaragePluck/GaragePluck_C6.wav",
+  "root": 84,
+  "frames": 59535,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.8414312509291566
+ },
+ "gbass_24": {
+  "path": "Samples/Bass/GlideBass/GlideBass_C1.wav",
+  "root": 24,
+  "frames": 44500,
+  "ch": 1,
+  "loop": [
+   0,
+   44499
+  ],
+  "peak": 0.8,
+  "seam": -0.0
+ },
+ "gbass_27": {
+  "path": "Samples/Bass/GlideBass/GlideBass_Eb1.wav",
+  "root": 27,
+  "frames": 44224,
+  "ch": 1,
+  "loop": [
+   0,
+   44223
+  ],
+  "peak": 0.8,
+  "seam": -0.0
+ },
+ "gbass_30": {
+  "path": "Samples/Bass/GlideBass/GlideBass_Fs1.wav",
+  "root": 30,
+  "frames": 43862,
+  "ch": 1,
+  "loop": [
+   0,
+   43861
+  ],
+  "peak": 0.8,
+  "seam": -0.0
+ },
+ "gbass_33": {
+  "path": "Samples/Bass/GlideBass/GlideBass_A1.wav",
+  "root": 33,
+  "frames": 44100,
+  "ch": 1,
+  "loop": [
+   0,
+   44099
+  ],
+  "peak": 0.8,
+  "seam": -0.0
+ },
+ "gbass_36": {
+  "path": "Samples/Bass/GlideBass/GlideBass_C2.wav",
+  "root": 36,
+  "frames": 43826,
+  "ch": 1,
+  "loop": [
+   0,
+   43825
+  ],
+  "peak": 0.8,
+  "seam": -0.0
+ },
+ "gbass_39": {
+  "path": "Samples/Bass/GlideBass/GlideBass_Eb2.wav",
+  "root": 39,
+  "frames": 44224,
+  "ch": 1,
+  "loop": [
+   0,
+   44223
+  ],
+  "peak": 0.8,
+  "seam": 0.0
+ },
+ "gbass_42": {
+  "path": "Samples/Bass/GlideBass/GlideBass_Fs2.wav",
+  "root": 42,
+  "frames": 43862,
+  "ch": 1,
+  "loop": [
+   0,
+   43861
+  ],
+  "peak": 0.8,
+  "seam": -0.0
+ },
+ "gbass_45": {
+  "path": "Samples/Bass/GlideBass/GlideBass_A2.wav",
+  "root": 45,
+  "frames": 44100,
+  "ch": 1,
+  "loop": [
+   0,
+   44099
+  ],
+  "peak": 0.8,
+  "seam": -0.0
+ },
+ "gbass_48": {
+  "path": "Samples/Bass/GlideBass/GlideBass_C3.wav",
+  "root": 48,
+  "frames": 44163,
+  "ch": 1,
+  "loop": [
+   0,
+   44162
+  ],
+  "peak": 0.8,
+  "seam": -0.01
+ },
+ "gbass_51": {
+  "path": "Samples/Bass/GlideBass/GlideBass_Eb3.wav",
+  "root": 51,
+  "frames": 44224,
+  "ch": 1,
+  "loop": [
+   0,
+   44223
+  ],
+  "peak": 0.8,
+  "seam": -0.02
+ },
+ "gbass_54": {
+  "path": "Samples/Bass/GlideBass/GlideBass_Fs3.wav",
+  "root": 54,
+  "frames": 44101,
+  "ch": 1,
+  "loop": [
+   0,
+   44100
+  ],
+  "peak": 0.8,
+  "seam": -0.03
+ },
+ "gbass_57": {
+  "path": "Samples/Bass/GlideBass/GlideBass_A3.wav",
+  "root": 57,
+  "frames": 44100,
+  "ch": 1,
+  "loop": [
+   0,
+   44099
+  ],
+  "peak": 0.8,
+  "seam": -0.05
+ },
+ "gbass_60": {
+  "path": "Samples/Bass/GlideBass/GlideBass_C4.wav",
+  "root": 60,
+  "frames": 44163,
+  "ch": 1,
+  "loop": [
+   0,
+   44162
+  ],
+  "peak": 0.8,
+  "seam": -0.06
+ },
+ "sqstab_36": {
+  "path": "Samples/Keys/SquareStab/SquareStab_C2.wav",
+  "root": 36,
+  "frames": 66076,
+  "ch": 1,
+  "loop": [
+   0,
+   66075
+  ],
+  "peak": 0.8,
+  "seam": 0.0
+ },
+ "sqstab_39": {
+  "path": "Samples/Keys/SquareStab/SquareStab_Eb2.wav",
+  "root": 39,
+  "frames": 66336,
+  "ch": 1,
+  "loop": [
+   0,
+   66335
+  ],
+  "peak": 0.8,
+  "seam": -0.01
+ },
+ "sqstab_42": {
+  "path": "Samples/Keys/SquareStab/SquareStab_Fs2.wav",
+  "root": 42,
+  "frames": 66270,
+  "ch": 1,
+  "loop": [
+   0,
+   66269
+  ],
+  "peak": 0.8,
+  "seam": 0.19
+ },
+ "sqstab_45": {
+  "path": "Samples/Keys/SquareStab/SquareStab_A2.wav",
+  "root": 45,
+  "frames": 66150,
+  "ch": 1,
+  "loop": [
+   0,
+   66149
+  ],
+  "peak": 0.8,
+  "seam": 0.43
+ },
+ "sqstab_48": {
+  "path": "Samples/Keys/SquareStab/SquareStab_C3.wav",
+  "root": 48,
+  "frames": 66076,
+  "ch": 1,
+  "loop": [
+   0,
+   66075
+  ],
+  "peak": 0.8,
+  "seam": -0.6
+ },
+ "sqstab_51": {
+  "path": "Samples/Keys/SquareStab/SquareStab_Eb3.wav",
+  "root": 51,
+  "frames": 66052,
+  "ch": 1,
+  "loop": [
+   0,
+   66051
+  ],
+  "peak": 0.8,
+  "seam": -9.22
+ },
+ "sqstab_54": {
+  "path": "Samples/Keys/SquareStab/SquareStab_Fs3.wav",
+  "root": 54,
+  "frames": 66032,
+  "ch": 1,
+  "loop": [
+   0,
+   66031
+  ],
+  "peak": 0.8,
+  "seam": -3.73
+ },
+ "sqstab_57": {
+  "path": "Samples/Keys/SquareStab/SquareStab_A3.wav",
+  "root": 57,
+  "frames": 66150,
+  "ch": 1,
+  "loop": [
+   0,
+   66149
+  ],
+  "peak": 0.8,
+  "seam": 0.67
+ },
+ "sqstab_60": {
+  "path": "Samples/Keys/SquareStab/SquareStab_C4.wav",
+  "root": 60,
+  "frames": 66076,
+  "ch": 1,
+  "loop": [
+   0,
+   66075
+  ],
+  "peak": 0.8,
+  "seam": -7.25
+ },
+ "sqstab_63": {
+  "path": "Samples/Keys/SquareStab/SquareStab_Eb4.wav",
+  "root": 63,
+  "frames": 66194,
+  "ch": 1,
+  "loop": [
+   0,
+   66193
+  ],
+  "peak": 0.8,
+  "seam": 10.42
+ },
+ "sqstab_66": {
+  "path": "Samples/Keys/SquareStab/SquareStab_Fs4.wav",
+  "root": 66,
+  "frames": 66151,
+  "ch": 1,
+  "loop": [
+   0,
+   66150
+  ],
+  "peak": 0.8,
+  "seam": -1.18
+ },
+ "sqstab_69": {
+  "path": "Samples/Keys/SquareStab/SquareStab_A4.wav",
+  "root": 69,
+  "frames": 66150,
+  "ch": 1,
+  "loop": [
+   0,
+   66149
+  ],
+  "peak": 0.8,
+  "seam": -0.15
+ },
+ "sqstab_72": {
+  "path": "Samples/Keys/SquareStab/SquareStab_C5.wav",
+  "root": 72,
+  "frames": 66160,
+  "ch": 1,
+  "loop": [
+   0,
+   66159
+  ],
+  "peak": 0.8,
+  "seam": 1.54
+ },
+ "dpad_36": {
+  "path": "Samples/Keys/DeepPad/DeepPad_C2.wav",
+  "root": 36,
+  "frames": 89000,
+  "ch": 2,
+  "loop": [
+   0,
+   88999
+  ],
+  "peak": 0.5906625631137732,
+  "seam": -0.01
+ },
+ "dpad_39": {
+  "path": "Samples/Keys/DeepPad/DeepPad_Eb2.wav",
+  "root": 39,
+  "frames": 88447,
+  "ch": 2,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.6102254397751696,
+  "seam": 0.0
+ },
+ "dpad_42": {
+  "path": "Samples/Keys/DeepPad/DeepPad_Fs2.wav",
+  "root": 42,
+  "frames": 88678,
+  "ch": 2,
+  "loop": [
+   0,
+   88677
+  ],
+  "peak": 0.6072142677372652,
+  "seam": -0.01
+ },
+ "dpad_45": {
+  "path": "Samples/Keys/DeepPad/DeepPad_A2.wav",
+  "root": 45,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.5676682979314598,
+  "seam": 0.0
+ },
+ "dpad_48": {
+  "path": "Samples/Keys/DeepPad/DeepPad_C3.wav",
+  "root": 48,
+  "frames": 88326,
+  "ch": 2,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.576359241621343,
+  "seam": 0.64
+ },
+ "dpad_51": {
+  "path": "Samples/Keys/DeepPad/DeepPad_Eb3.wav",
+  "root": 51,
+  "frames": 88447,
+  "ch": 2,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.5506219904206188,
+  "seam": 0.28
+ },
+ "dpad_54": {
+  "path": "Samples/Keys/DeepPad/DeepPad_Fs3.wav",
+  "root": 54,
+  "frames": 88201,
+  "ch": 2,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.5327054921631376,
+  "seam": -0.0
+ },
+ "dpad_57": {
+  "path": "Samples/Keys/DeepPad/DeepPad_A3.wav",
+  "root": 57,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.4944126055386438,
+  "seam": 1.45
+ },
+ "dpad_60": {
+  "path": "Samples/Keys/DeepPad/DeepPad_C4.wav",
+  "root": 60,
+  "frames": 88326,
+  "ch": 2,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.5372159258306634,
+  "seam": 0.01
+ },
+ "dpad_63": {
+  "path": "Samples/Keys/DeepPad/DeepPad_Eb4.wav",
+  "root": 63,
+  "frames": 88164,
+  "ch": 2,
+  "loop": [
+   0,
+   88163
+  ],
+  "peak": 0.4738169843264289,
+  "seam": -3.9
+ },
+ "dpad_66": {
+  "path": "Samples/Keys/DeepPad/DeepPad_Fs4.wav",
+  "root": 66,
+  "frames": 88201,
+  "ch": 2,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.5005153907971538,
+  "seam": -0.14
+ },
+ "dpad_69": {
+  "path": "Samples/Keys/DeepPad/DeepPad_A4.wav",
+  "root": 69,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.5028733445754293,
+  "seam": -0.01
+ },
+ "dpad_72": {
+  "path": "Samples/Keys/DeepPad/DeepPad_C5.wav",
+  "root": 72,
+  "frames": 88326,
+  "ch": 2,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.4894091974473551,
+  "seam": 1.34
+ },
+ "dpad_75": {
+  "path": "Samples/Keys/DeepPad/DeepPad_Eb5.wav",
+  "root": 75,
+  "frames": 88306,
+  "ch": 2,
+  "loop": [
+   0,
+   88305
+  ],
+  "peak": 0.5041658940823749,
+  "seam": 0.24
+ },
+ "dpad_78": {
+  "path": "Samples/Keys/DeepPad/DeepPad_Fs5.wav",
+  "root": 78,
+  "frames": 88201,
+  "ch": 2,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.4585600389461114,
+  "seam": -0.0
+ },
+ "dpad_81": {
+  "path": "Samples/Keys/DeepPad/DeepPad_A5.wav",
+  "root": 81,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.4830499922800465,
+  "seam": 0.3
+ },
+ "dpad_84": {
+  "path": "Samples/Keys/DeepPad/DeepPad_C6.wav",
+  "root": 84,
+  "frames": 88242,
+  "ch": 2,
+  "loop": [
+   0,
+   88241
+  ],
+  "peak": 0.4788097295976265,
+  "seam": -0.25
+ }
+}

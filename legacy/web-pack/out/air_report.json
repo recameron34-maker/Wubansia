@@ -1,0 +1,422 @@
+{
+ "a01": {
+  "vox_dry": "cutoff 10013 gain -3.8 dB",
+  "vox": "cutoff 10013 gain -3.7 dB"
+ },
+ "a02": {
+  "vox_dry": "cutoff 13523 gain +3.0 dB",
+  "vox": "cutoff 13523 gain +3.0 dB"
+ },
+ "a03": {
+  "vox_dry": "cutoff 10045 gain -1.3 dB",
+  "vox": "cutoff 10045 gain -1.4 dB"
+ },
+ "a04": {
+  "vox_dry": "kept (cutoff 13717)",
+  "vox": "kept (cutoff 13717)"
+ },
+ "a05": {
+  "vox_dry": "kept (cutoff 13652)",
+  "vox": "kept (cutoff 13652)"
+ },
+ "a06": {
+  "vox_dry": "cutoff 13275 gain -3.5 dB",
+  "vox": "cutoff 13275 gain -1.7 dB"
+ },
+ "a07": {
+  "vox_dry": "kept (cutoff 13684)",
+  "vox": "kept (cutoff 13706)"
+ },
+ "a08": {
+  "vox_dry": "cutoff 13351 gain +3.0 dB",
+  "vox": "kept (cutoff 16301)"
+ },
+ "a09": {
+  "vox_dry": "cutoff 10196 gain -0.9 dB",
+  "vox": "cutoff 10207 gain -0.9 dB"
+ },
+ "a10": {
+  "vox_dry": "cutoff 13491 gain +3.0 dB",
+  "vox": "cutoff 13491 gain +3.0 dB"
+ },
+ "a11": {
+  "vox_dry": "cutoff 10002 gain -3.7 dB",
+  "vox": "cutoff 10002 gain -3.7 dB"
+ },
+ "a12": {
+  "vox_dry": "cutoff 13544 gain +3.0 dB",
+  "vox": "cutoff 13544 gain +3.0 dB"
+ },
+ "a13": {
+  "vox_dry": "kept (cutoff 13760)",
+  "vox": "kept (cutoff 13770)"
+ },
+ "a14": {
+  "vox_dry": "cutoff 13340 gain +3.0 dB",
+  "vox": "cutoff 13458 gain +3.0 dB"
+ },
+ "a15": {
+  "vox_dry": "kept (cutoff 13491)",
+  "vox": "kept (cutoff 13491)"
+ },
+ "a16": {
+  "vox_dry": "cutoff 13695 gain -4.2 dB",
+  "vox": "kept (cutoff 15332)"
+ },
+ "a17": {
+  "vox_dry": "cutoff 10024 gain -2.6 dB",
+  "vox": "cutoff 10024 gain -2.8 dB"
+ },
+ "a18": {
+  "vox_dry": "cutoff 13491 gain +1.6 dB",
+  "vox": "cutoff 13480 gain +1.6 dB"
+ },
+ "a19": {
+  "vox_dry": "kept (cutoff 13555)",
+  "vox": "kept (cutoff 13555)"
+ },
+ "a20": {
+  "vox_dry": "kept (cutoff 13792)",
+  "vox": "kept (cutoff 13792)"
+ },
+ "a21": {
+  "vox_dry": "cutoff 13318 gain +3.0 dB",
+  "vox": "cutoff 13318 gain +3.0 dB"
+ },
+ "a22": {
+  "vox_dry": "kept (cutoff 13587)",
+  "vox": "kept (cutoff 13587)"
+ },
+ "a23": {
+  "vox_dry": "cutoff 13501 gain -5.6 dB",
+  "vox": "cutoff 13458 gain -5.5 dB"
+ },
+ "a24": {
+  "vox_dry": "cutoff 10002 gain -3.9 dB",
+  "vox": "cutoff 10002 gain -4.2 dB"
+ },
+ "a25": {
+  "vox_dry": "kept (cutoff 13598)",
+  "vox": "kept (cutoff 13587)"
+ },
+ "a26": {
+  "vox_dry": "cutoff 13555 gain +3.0 dB",
+  "vox": "cutoff 13555 gain +3.0 dB"
+ },
+ "a27": {
+  "vox_dry": "kept (cutoff 13674)",
+  "vox": "kept (cutoff 13674)"
+ },
+ "a28": {
+  "vox_dry": "cutoff 13469 gain -3.2 dB",
+  "vox": "cutoff 13458 gain -3.5 dB"
+ },
+ "a29": {
+  "vox_dry": "cutoff 10034 gain -6.4 dB",
+  "vox": "cutoff 10034 gain -6.4 dB"
+ },
+ "a30": {
+  "vox_dry": "kept (cutoff 13437)",
+  "vox": "kept (cutoff 13447)"
+ },
+ "a31": {
+  "vox_dry": "cutoff 13501 gain +3.0 dB",
+  "vox": "cutoff 13329 gain +3.0 dB"
+ },
+ "a32": {
+  "vox_dry": "cutoff 13652 gain -6.2 dB",
+  "vox": "cutoff 13620 gain -6.1 dB"
+ },
+ "c01": {
+  "vox_dry": "cutoff 10013 gain -0.8 dB",
+  "vox": "cutoff 10024 gain -2.0 dB"
+ },
+ "c02": {
+  "vox_dry": "cutoff 10024 gain -0.5 dB",
+  "vox": "cutoff 10024 gain -2.0 dB"
+ },
+ "c03": {
+  "vox_dry": "cutoff 13480 gain +3.0 dB",
+  "vox": "kept (cutoff 17991)"
+ },
+ "c04": {
+  "vox_dry": "cutoff 9981 gain -5.8 dB",
+  "vox": "kept (style)"
+ },
+ "c05": {
+  "vox_dry": "cutoff 9991 gain -4.3 dB",
+  "vox": "cutoff 9991 gain -5.2 dB"
+ },
+ "c06": {
+  "vox_dry": "cutoff 12005 gain +3.0 dB",
+  "vox": "kept (style)"
+ },
+ "c07": {
+  "vox_dry": "cutoff 10002 gain -7.5 dB",
+  "vox": "cutoff 10002 gain -7.7 dB"
+ },
+ "c08": {
+  "vox_dry": "cutoff 8398 gain -4.9 dB",
+  "vox": "kept (style)"
+ },
+ "c09": {
+  "vox_dry": "kept (cutoff 13232)",
+  "vox": "kept (cutoff 13254)"
+ },
+ "c10": {
+  "vox_dry": "cutoff 11208 gain -0.6 dB",
+  "vox": "kept (style)"
+ },
+ "c11": {
+  "vox_dry": "kept (cutoff 17937)",
+  "vox": "kept (style)"
+ },
+ "c12": {
+  "vox_dry": "kept (cutoff 13663)",
+  "vox": "kept (cutoff 13706)"
+ },
+ "c13": {
+  "vox_dry": "kept (cutoff 16538)",
+  "vox": "kept (style)"
+ },
+ "c14": {
+  "vox_dry": "cutoff 13534 gain +3.0 dB",
+  "vox": "cutoff 13609 gain +3.0 dB"
+ },
+ "c15": {
+  "vox_dry": "cutoff 13286 gain -4.4 dB",
+  "vox": "kept (cutoff 17991)"
+ },
+ "c16": {
+  "vox_dry": "cutoff 12974 gain +3.0 dB",
+  "vox": "cutoff 12974 gain +2.7 dB"
+ },
+ "c17": {
+  "vox_dry": "cutoff 9991 gain -7.2 dB",
+  "vox": "cutoff 9991 gain -9.0 dB"
+ },
+ "c18": {
+  "vox_dry": "kept (cutoff 13706)",
+  "vox": "kept (cutoff 13717)"
+ },
+ "c19": {
+  "vox_dry": "kept (cutoff 13620)",
+  "vox": "kept (cutoff 13684)"
+ },
+ "e01": {
+  "vox_dry": "kept (cutoff 16085)",
+  "vox": "kept (style)"
+ },
+ "e02": {
+  "vox_dry": "kept (cutoff 13706)",
+  "vox": "kept (cutoff 13727)"
+ },
+ "e03": {
+  "vox_dry": "cutoff 13480 gain -0.9 dB",
+  "vox": "cutoff 13609 gain -7.6 dB"
+ },
+ "e04": {
+  "vox_dry": "cutoff 11165 gain +0.7 dB",
+  "vox": "kept (style)"
+ },
+ "e05": {
+  "vox_dry": "cutoff 13221 gain -7.2 dB",
+  "vox": "kept (cutoff 13211)"
+ },
+ "e06": {
+  "vox_dry": "cutoff 9970 gain -4.4 dB",
+  "vox": "kept (style)"
+ },
+ "e07": {
+  "vox_dry": "cutoff 10002 gain -4.7 dB",
+  "vox": "cutoff 10002 gain -6.8 dB"
+ },
+ "e08": {
+  "vox_dry": "cutoff 11736 gain +3.0 dB",
+  "vox": "kept (style)"
+ },
+ "e09": {
+  "vox_dry": "cutoff 11154 gain +3.0 dB",
+  "vox": "kept (style)"
+ },
+ "e10": {
+  "vox_dry": "cutoff 13286 gain +3.0 dB",
+  "vox": "cutoff 13318 gain +2.9 dB"
+ },
+ "e11": {
+  "vox_dry": "cutoff 13329 gain -7.9 dB",
+  "vox": "kept (cutoff 13555)"
+ },
+ "e12": {
+  "vox_dry": "cutoff 9981 gain -2.3 dB",
+  "vox": "cutoff 9981 gain -3.6 dB"
+ },
+ "e13": {
+  "vox_dry": "cutoff 11380 gain +1.9 dB",
+  "vox": "kept (style)"
+ },
+ "e14": {
+  "vox_dry": "cutoff 13469 gain -0.2 dB",
+  "vox": "kept (cutoff 13491)"
+ },
+ "e15": {
+  "vox_dry": "cutoff 13577 gain +3.0 dB",
+  "vox": "cutoff 13609 gain +0.6 dB"
+ },
+ "e16": {
+  "vox_dry": "cutoff 13534 gain -4.3 dB",
+  "vox": "kept (cutoff 13609)"
+ },
+ "e17": {
+  "vox_dry": "cutoff 10002 gain -6.3 dB",
+  "vox": "kept (style)"
+ },
+ "e18": {
+  "vox_dry": "cutoff 8872 gain +1.3 dB",
+  "vox": "kept (style)"
+ },
+ "v01": {
+  "vox_dry": "cutoff 10002 gain -3.3 dB",
+  "vox": "cutoff 10002 gain -3.3 dB"
+ },
+ "v02": {
+  "vox_dry": "cutoff 13674 gain +0.2 dB",
+  "vox": "cutoff 13684 gain -1.8 dB"
+ },
+ "v03": {
+  "vox_dry": "cutoff 10002 gain -4.4 dB",
+  "vox": "kept (style)"
+ },
+ "v04": {
+  "vox_dry": "kept (cutoff 13684)",
+  "vox": "kept (cutoff 13684)"
+ },
+ "v05": {
+  "vox_dry": "cutoff 13695 gain -3.0 dB",
+  "vox": "cutoff 13695 gain -2.7 dB"
+ },
+ "v06": {
+  "vox_dry": "cutoff 10002 gain -6.7 dB",
+  "vox": "cutoff 10002 gain -6.7 dB"
+ },
+ "v07": {
+  "vox_dry": "cutoff 13211 gain -8.4 dB",
+  "vox": "kept (cutoff 13501)"
+ },
+ "v08": {
+  "vox_dry": "cutoff 11865 gain +1.9 dB",
+  "vox": "kept (style)"
+ },
+ "v09": {
+  "vox_dry": "kept (cutoff 17937)",
+  "vox": "kept (style)"
+ },
+ "v10": {
+  "vox_dry": "cutoff 13264 gain -8.5 dB",
+  "vox": "kept (cutoff 13286)"
+ },
+ "v11": {
+  "vox_dry": "cutoff 11843 gain -0.8 dB",
+  "vox": "kept (style)"
+ },
+ "v12": {
+  "vox_dry": "kept (cutoff 13254)",
+  "vox": "kept (cutoff 13404)"
+ },
+ "v13": {
+  "vox_dry": "cutoff 10002 gain -6.0 dB",
+  "vox": "cutoff 10002 gain -6.1 dB"
+ },
+ "v14": {
+  "vox_dry": "cutoff 10002 gain -9.0 dB",
+  "vox": "cutoff 10002 gain -9.0 dB"
+ },
+ "v15": {
+  "vox_dry": "cutoff 10002 gain -2.5 dB",
+  "vox": "kept (style)"
+ },
+ "v16": {
+  "vox_dry": "cutoff 13469 gain +3.0 dB",
+  "vox": "cutoff 13469 gain +3.0 dB"
+ },
+ "v17": {
+  "vox_dry": "cutoff 10002 gain -4.7 dB",
+  "vox": "cutoff 10002 gain -4.8 dB"
+ },
+ "v18": {
+  "vox_dry": "cutoff 13684 gain +3.0 dB",
+  "vox": "cutoff 13684 gain +3.0 dB"
+ },
+ "v19": {
+  "vox_dry": "cutoff 13544 gain -2.2 dB",
+  "vox": "cutoff 13544 gain -0.4 dB"
+ },
+ "v20": {
+  "vox_dry": "cutoff 13243 gain -3.7 dB",
+  "vox": "cutoff 13221 gain -2.9 dB"
+ },
+ "v21": {
+  "vox_dry": "kept (cutoff 13706)",
+  "vox": "kept (cutoff 13706)"
+ },
+ "v22": {
+  "vox_dry": "cutoff 13674 gain -5.5 dB",
+  "vox": "cutoff 13674 gain -5.6 dB"
+ },
+ "v23": {
+  "vox_dry": "cutoff 13587 gain -2.1 dB",
+  "vox": "cutoff 13587 gain -3.1 dB"
+ },
+ "v24": {
+  "vox_dry": "kept (cutoff 13663)",
+  "vox": "kept (cutoff 13663)"
+ },
+ "v25": {
+  "vox_dry": "kept (cutoff 13684)",
+  "vox": "kept (cutoff 13684)"
+ },
+ "v26": {
+  "vox_dry": "kept (cutoff 13491)",
+  "vox": "kept (cutoff 13674)"
+ },
+ "v27": {
+  "vox_dry": "cutoff 13318 gain -2.4 dB",
+  "vox": "cutoff 13308 gain -1.2 dB"
+ },
+ "v28": {
+  "vox_dry": "kept (cutoff 13609)",
+  "vox": "kept (cutoff 13609)"
+ },
+ "v29": {
+  "vox_dry": "cutoff 10002 gain -4.8 dB",
+  "vox": "cutoff 10002 gain -4.9 dB"
+ },
+ "v30": {
+  "vox_dry": "cutoff 13491 gain -3.6 dB",
+  "vox": "cutoff 13491 gain -3.6 dB"
+ },
+ "v31": {
+  "vox_dry": "cutoff 13308 gain -8.6 dB",
+  "vox": "kept (cutoff 13351)"
+ },
+ "v32": {
+  "vox_dry": "cutoff 9991 gain -5.7 dB",
+  "vox": "kept (style)"
+ },
+ "v33": {
+  "vox_dry": "cutoff 13523 gain -3.4 dB",
+  "vox": "cutoff 13523 gain -3.3 dB"
+ },
+ "v34": {
+  "vox_dry": "cutoff 11983 gain -3.6 dB",
+  "vox": "kept (style)"
+ },
+ "v35": {
+  "vox_dry": "cutoff 10002 gain -6.0 dB",
+  "vox": "cutoff 10002 gain -6.4 dB"
+ },
+ "v36": {
+  "vox_dry": "kept (cutoff 13028)",
+  "vox": "kept (style)"
+ }
+}
