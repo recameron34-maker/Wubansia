@@ -1,0 +1,2312 @@
+{
+"a01": {
+"bytes": 204986,
+"dry": "flac:audio/voxf/a01.ogg?ch=2&n=44650",
+"file": "flac:audio/voxf/a01.ogg?ch=0,1&n=104156",
+"wav_bytes": 506012
+},
+"a02": {
+"bytes": 175750,
+"dry": "flac:audio/voxf/a02.ogg?ch=2&n=48255",
+"file": "flac:audio/voxf/a02.ogg?ch=0,1&n=111977",
+"wav_bytes": 544506
+},
+"a03": {
+"bytes": 205978,
+"dry": "flac:audio/voxf/a03.ogg?ch=2&n=42531",
+"file": "flac:audio/voxf/a03.ogg?ch=0,1&n=108515",
+"wav_bytes": 519210
+},
+"a04": {
+"bytes": 157604,
+"dry": "flac:audio/voxf/a04.ogg?ch=2&n=29459",
+"file": "flac:audio/voxf/a04.ogg?ch=0,1&n=106909",
+"wav_bytes": 486642
+},
+"a05": {
+"bytes": 179615,
+"dry": "flac:audio/voxf/a05.ogg?ch=2&n=40389",
+"file": "flac:audio/voxf/a05.ogg?ch=0,1&n=103118",
+"wav_bytes": 493338
+},
+"a06": {
+"bytes": 159683,
+"dry": "flac:audio/voxf/a06.ogg?ch=2&n=26800",
+"file": "flac:audio/voxf/a06.ogg?ch=0,1&n=102592",
+"wav_bytes": 464056
+},
+"a07": {
+"bytes": 111710,
+"dry": "flac:audio/voxf/a07.ogg?ch=2&n=19259",
+"file": "flac:audio/voxf/a07.ogg?ch=0,1&n=94630",
+"wav_bytes": 417126
+},
+"a08": {
+"bytes": 118214,
+"dry": "flac:audio/voxf/a08.ogg?ch=2&n=22532",
+"file": "flac:audio/voxf/a08.ogg?ch=0,1&n=99651",
+"wav_bytes": 443756
+},
+"a09": {
+"bytes": 167483,
+"dry": "flac:audio/voxf/a09.ogg?ch=2&n=32544",
+"file": "flac:audio/voxf/a09.ogg?ch=0,1&n=101289",
+"wav_bytes": 470332
+},
+"a10": {
+"bytes": 156548,
+"dry": "flac:audio/voxf/a10.ogg?ch=2&n=37717",
+"file": "flac:audio/voxf/a10.ogg?ch=0,1&n=98459",
+"wav_bytes": 469358
+},
+"a11": {
+"bytes": 214059,
+"dry": "flac:audio/voxf/a11.ogg?ch=2&n=46708",
+"file": "flac:audio/voxf/a11.ogg?ch=0,1&n=113634",
+"wav_bytes": 548040
+},
+"a12": {
+"bytes": 138907,
+"dry": "flac:audio/voxf/a12.ogg?ch=2&n=36361",
+"file": "flac:audio/voxf/a12.ogg?ch=0,1&n=95122",
+"wav_bytes": 453298
+},
+"a13": {
+"bytes": 164014,
+"dry": "flac:audio/voxf/a13.ogg?ch=2&n=30483",
+"file": "flac:audio/voxf/a13.ogg?ch=0,1&n=96377",
+"wav_bytes": 446562
+},
+"a14": {
+"bytes": 180147,
+"dry": "flac:audio/voxf/a14.ogg?ch=2&n=34134",
+"file": "flac:audio/voxf/a14.ogg?ch=0,1&n=112121",
+"wav_bytes": 516840
+},
+"a15": {
+"bytes": 149190,
+"dry": "flac:audio/voxf/a15.ogg?ch=2&n=28362",
+"file": "flac:audio/voxf/a15.ogg?ch=0,1&n=103083",
+"wav_bytes": 469144
+},
+"a16": {
+"bytes": 122764,
+"dry": "flac:audio/voxf/a16.ogg?ch=2&n=21957",
+"file": "flac:audio/voxf/a16.ogg?ch=0,1&n=92146",
+"wav_bytes": 412586
+},
+"a17": {
+"bytes": 237261,
+"dry": "flac:audio/voxf/a17.ogg?ch=2&n=53549",
+"file": "flac:audio/voxf/a17.ogg?ch=0,1&n=122380",
+"wav_bytes": 596706
+},
+"a18": {
+"bytes": 213330,
+"dry": "flac:audio/voxf/a18.ogg?ch=2&n=44106",
+"file": "flac:audio/voxf/a18.ogg?ch=0,1&n=108786",
+"wav_bytes": 523444
+},
+"a19": {
+"bytes": 183154,
+"dry": "flac:audio/voxf/a19.ogg?ch=2&n=35799",
+"file": "flac:audio/voxf/a19.ogg?ch=0,1&n=101601",
+"wav_bytes": 478090
+},
+"a20": {
+"bytes": 214285,
+"dry": "flac:audio/voxf/a20.ogg?ch=2&n=47549",
+"file": "flac:audio/voxf/a20.ogg?ch=0,1&n=108806",
+"wav_bytes": 530410
+},
+"a21": {
+"bytes": 196331,
+"dry": "flac:audio/voxf/a21.ogg?ch=2&n=41190",
+"file": "flac:audio/voxf/a21.ogg?ch=0,1&n=101986",
+"wav_bytes": 490412
+},
+"a22": {
+"bytes": 179370,
+"dry": "flac:audio/voxf/a22.ogg?ch=2&n=39062",
+"file": "flac:audio/voxf/a22.ogg?ch=0,1&n=108571",
+"wav_bytes": 512496
+},
+"a23": {
+"bytes": 165360,
+"dry": "flac:audio/voxf/a23.ogg?ch=2&n=29197",
+"file": "flac:audio/voxf/a23.ogg?ch=0,1&n=96247",
+"wav_bytes": 443470
+},
+"a24": {
+"bytes": 209768,
+"dry": "flac:audio/voxf/a24.ogg?ch=2&n=46622",
+"file": "flac:audio/voxf/a24.ogg?ch=0,1&n=113116",
+"wav_bytes": 545796
+},
+"a25": {
+"bytes": 159743,
+"dry": "flac:audio/voxf/a25.ogg?ch=2&n=33395",
+"file": "flac:audio/voxf/a25.ogg?ch=0,1&n=101121",
+"wav_bytes": 471362
+},
+"a26": {
+"bytes": 165558,
+"dry": "flac:audio/voxf/a26.ogg?ch=2&n=30312",
+"file": "flac:audio/voxf/a26.ogg?ch=0,1&n=100617",
+"wav_bytes": 463180
+},
+"a27": {
+"bytes": 162434,
+"dry": "flac:audio/voxf/a27.ogg?ch=2&n=32039",
+"file": "flac:audio/voxf/a27.ogg?ch=0,1&n=110268",
+"wav_bytes": 505238
+},
+"a28": {
+"bytes": 185205,
+"dry": "flac:audio/voxf/a28.ogg?ch=2&n=36045",
+"file": "flac:audio/voxf/a28.ogg?ch=0,1&n=105635",
+"wav_bytes": 494718
+},
+"a29": {
+"bytes": 217657,
+"dry": "flac:audio/voxf/a29.ogg?ch=2&n=49321",
+"file": "flac:audio/voxf/a29.ogg?ch=0,1&n=118330",
+"wav_bytes": 572050
+},
+"a30": {
+"bytes": 152246,
+"dry": "flac:audio/voxf/a30.ogg?ch=2&n=29678",
+"file": "flac:audio/voxf/a30.ogg?ch=0,1&n=93789",
+"wav_bytes": 434600
+},
+"a31": {
+"bytes": 191780,
+"dry": "flac:audio/voxf/a31.ogg?ch=2&n=57206",
+"file": "flac:audio/voxf/a31.ogg?ch=0,1&n=122082",
+"wav_bytes": 602828
+},
+"a32": {
+"bytes": 231642,
+"dry": "flac:audio/voxf/a32.ogg?ch=2&n=47584",
+"file": "flac:audio/voxf/a32.ogg?ch=0,1&n=112139",
+"wav_bytes": 543812
+},
+"b01": {
+"bytes": 419637,
+"dry": "flac:audio/voxf/b01.ogg?ch=2&n=107384",
+"file": "flac:audio/voxf/b01.ogg?ch=0,1&n=181521",
+"wav_bytes": 940940
+},
+"b02": {
+"bytes": 345991,
+"dry": "flac:audio/voxf/b02.ogg?ch=2&n=87539",
+"file": "flac:audio/voxf/b02.ogg?ch=0,1&n=158841",
+"wav_bytes": 810530
+},
+"b03": {
+"bytes": 271209,
+"dry": "flac:audio/voxf/b03.ogg?ch=2&n=73206",
+"file": "flac:audio/voxf/b03.ogg?ch=0,1&n=152577",
+"wav_bytes": 756808
+},
+"b04": {
+"bytes": 287336,
+"dry": "flac:audio/voxf/b04.ogg?ch=2&n=61299",
+"file": "flac:audio/voxf/b04.ogg?ch=0,1&n=132227",
+"wav_bytes": 651594
+},
+"b05": {
+"bytes": 377427,
+"dry": "flac:audio/voxf/b05.ogg?ch=2&n=92610",
+"file": "flac:audio/voxf/b05.ogg?ch=0,1&n=164251",
+"wav_bytes": 842312
+},
+"b06": {
+"bytes": 379820,
+"dry": "flac:audio/voxf/b06.ogg?ch=2&n=95595",
+"file": "flac:audio/voxf/b06.ogg?ch=0,1&n=149100",
+"wav_bytes": 787678
+},
+"b07": {
+"bytes": 318838,
+"dry": "flac:audio/voxf/b07.ogg?ch=2&n=82026",
+"file": "flac:audio/voxf/b07.ogg?ch=0,1&n=148667",
+"wav_bytes": 758808
+},
+"b08": {
+"bytes": 360678,
+"dry": "flac:audio/voxf/b08.ogg?ch=2&n=109368",
+"file": "flac:audio/voxf/b08.ogg?ch=0,1&n=193155",
+"wav_bytes": 991444
+},
+"b09": {
+"bytes": 303326,
+"dry": "flac:audio/voxf/b09.ogg?ch=2&n=69340",
+"file": "flac:audio/voxf/b09.ogg?ch=0,1&n=118305",
+"wav_bytes": 611988
+},
+"b10": {
+"bytes": 315295,
+"dry": "flac:audio/voxf/b10.ogg?ch=2&n=77616",
+"file": "flac:audio/voxf/b10.ogg?ch=0,1&n=151618",
+"wav_bytes": 761792
+},
+"b11": {
+"bytes": 402585,
+"dry": "flac:audio/voxf/b11.ogg?ch=2&n=103194",
+"file": "flac:audio/voxf/b11.ogg?ch=0,1&n=174674",
+"wav_bytes": 905172
+},
+"b12": {
+"bytes": 261222,
+"dry": "flac:audio/voxf/b12.ogg?ch=2&n=72986",
+"file": "flac:audio/voxf/b12.ogg?ch=0,1&n=162241",
+"wav_bytes": 795024
+},
+"b13": {
+"bytes": 358913,
+"dry": "flac:audio/voxf/b13.ogg?ch=2&n=83790",
+"file": "flac:audio/voxf/b13.ogg?ch=0,1&n=163546",
+"wav_bytes": 821852
+},
+"b14": {
+"bytes": 381475,
+"dry": "flac:audio/voxf/b14.ogg?ch=2&n=85554",
+"file": "flac:audio/voxf/b14.ogg?ch=0,1&n=170282",
+"wav_bytes": 852324
+},
+"b15": {
+"bytes": 256276,
+"dry": "flac:audio/voxf/b15.ogg?ch=2&n=57110",
+"file": "flac:audio/voxf/b15.ogg?ch=0,1&n=135033",
+"wav_bytes": 654440
+},
+"b16": {
+"bytes": 240011,
+"dry": "flac:audio/voxf/b16.ogg?ch=2&n=53582",
+"file": "flac:audio/voxf/b16.ogg?ch=0,1&n=133214",
+"wav_bytes": 640108
+},
+"b17": {
+"bytes": 257292,
+"dry": "flac:audio/voxf/b17.ogg?ch=2&n=55566",
+"file": "flac:audio/voxf/b17.ogg?ch=0,1&n=135068",
+"wav_bytes": 651492
+},
+"b18": {
+"bytes": 405565,
+"dry": "flac:audio/voxf/b18.ogg?ch=2&n=105399",
+"file": "flac:audio/voxf/b18.ogg?ch=0,1&n=170750",
+"wav_bytes": 893886
+},
+"b19": {
+"bytes": 420234,
+"dry": "flac:audio/voxf/b19.ogg?ch=2&n=106061",
+"file": "flac:audio/voxf/b19.ogg?ch=0,1&n=173100",
+"wav_bytes": 904610
+},
+"b20": {
+"bytes": 288058,
+"dry": "flac:audio/voxf/b20.ogg?ch=2&n=78498",
+"file": "flac:audio/voxf/b20.ogg?ch=0,1&n=162872",
+"wav_bytes": 808572
+},
+"ba01": {
+"bytes": 102482,
+"file": "flac:audio/voxf/ba01.ogg?ch=0,1&n=92291",
+"wav_bytes": 369208
+},
+"ba02": {
+"bytes": 147481,
+"file": "flac:audio/voxf/ba02.ogg?ch=0,1&n=107115",
+"wav_bytes": 428504
+},
+"ba03": {
+"bytes": 110269,
+"file": "flac:audio/voxf/ba03.ogg?ch=0,1&n=94630",
+"wav_bytes": 378564
+},
+"ba04": {
+"bytes": 89726,
+"file": "flac:audio/voxf/ba04.ogg?ch=0,1&n=89091",
+"wav_bytes": 356408
+},
+"ba05": {
+"bytes": 142379,
+"file": "flac:audio/voxf/ba05.ogg?ch=0,1&n=96149",
+"wav_bytes": 384640
+},
+"ba06": {
+"bytes": 128941,
+"file": "flac:audio/voxf/ba06.ogg?ch=0,1&n=88297",
+"wav_bytes": 353232
+},
+"ba07": {
+"bytes": 135680,
+"file": "flac:audio/voxf/ba07.ogg?ch=0,1&n=99710",
+"wav_bytes": 398884
+},
+"ba08": {
+"bytes": 157370,
+"file": "flac:audio/voxf/ba08.ogg?ch=0,1&n=111370",
+"wav_bytes": 445524
+},
+"ba09": {
+"bytes": 133894,
+"file": "flac:audio/voxf/ba09.ogg?ch=0,1&n=99795",
+"wav_bytes": 399224
+},
+"ba10": {
+"bytes": 118552,
+"file": "flac:audio/voxf/ba10.ogg?ch=0,1&n=97187",
+"wav_bytes": 388792
+},
+"ba11": {
+"bytes": 122128,
+"file": "flac:audio/voxf/ba11.ogg?ch=0,1&n=88834",
+"wav_bytes": 355380
+},
+"ba12": {
+"bytes": 146480,
+"file": "flac:audio/voxf/ba12.ogg?ch=0,1&n=107394",
+"wav_bytes": 429620
+},
+"bh1": {
+"bytes": 1056590,
+"dry": "flac:audio/voxf/bh1.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/bh1.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"bh2": {
+"bytes": 1066769,
+"dry": "flac:audio/voxf/bh2.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/bh2.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"bh3": {
+"bytes": 1053954,
+"dry": "flac:audio/voxf/bh3.ogg?ch=2&n=318315",
+"file": "flac:audio/voxf/bh3.ogg?ch=0,1&n=318315",
+"wav_bytes": 1909978
+},
+"bh4": {
+"bytes": 1058638,
+"dry": "flac:audio/voxf/bh4.ogg?ch=2&n=315940",
+"file": "flac:audio/voxf/bh4.ogg?ch=0,1&n=315940",
+"wav_bytes": 1895728
+},
+"bh5": {
+"bytes": 1087127,
+"dry": "flac:audio/voxf/bh5.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/bh5.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"bh6": {
+"bytes": 995162,
+"dry": "flac:audio/voxf/bh6.ogg?ch=2&n=306782",
+"file": "flac:audio/voxf/bh6.ogg?ch=0,1&n=306782",
+"wav_bytes": 1840780
+},
+"c01": {
+"bytes": 190745,
+"dry": "flac:audio/voxf/c01.ogg?ch=2&n=41954",
+"file": "flac:audio/voxf/c01.ogg?ch=0,1&n=108519",
+"wav_bytes": 518072
+},
+"c02": {
+"bytes": 226071,
+"dry": "flac:audio/voxf/c02.ogg?ch=2&n=56736",
+"file": "flac:audio/voxf/c02.ogg?ch=0,1&n=123327",
+"wav_bytes": 606868
+},
+"c03": {
+"bytes": 254668,
+"dry": "flac:audio/voxf/c03.ogg?ch=2&n=63665",
+"file": "flac:audio/voxf/c03.ogg?ch=0,1&n=123179",
+"wav_bytes": 620134
+},
+"c04": {
+"bytes": 207266,
+"dry": "flac:audio/voxf/c04.ogg?ch=2&n=67152",
+"file": "flac:audio/voxf/c04.ogg?ch=0,1&n=145999",
+"wav_bytes": 718388
+},
+"c05": {
+"bytes": 243801,
+"dry": "flac:audio/voxf/c05.ogg?ch=2&n=58631",
+"file": "flac:audio/voxf/c05.ogg?ch=0,1&n=124061",
+"wav_bytes": 613594
+},
+"c06": {
+"bytes": 135514,
+"dry": "flac:audio/voxf/c06.ogg?ch=2&n=62161",
+"file": "flac:audio/voxf/c06.ogg?ch=0,1&n=76029",
+"wav_bytes": 428526
+},
+"c07": {
+"bytes": 218783,
+"dry": "flac:audio/voxf/c07.ogg?ch=2&n=54600",
+"file": "flac:audio/voxf/c07.ogg?ch=0,1&n=113693",
+"wav_bytes": 564060
+},
+"c08": {
+"bytes": 222109,
+"dry": "flac:audio/voxf/c08.ogg?ch=2&n=75053",
+"file": "flac:audio/voxf/c08.ogg?ch=0,1&n=160097",
+"wav_bytes": 790582
+},
+"c09": {
+"bytes": 214155,
+"dry": "flac:audio/voxf/c09.ogg?ch=2&n=47992",
+"file": "flac:audio/voxf/c09.ogg?ch=0,1&n=95663",
+"wav_bytes": 478724
+},
+"c10": {
+"bytes": 258862,
+"dry": "flac:audio/voxf/c10.ogg?ch=2&n=75097",
+"file": "flac:audio/voxf/c10.ogg?ch=0,1&n=170344",
+"wav_bytes": 831658
+},
+"c11": {
+"bytes": 125959,
+"dry": "flac:audio/voxf/c11.ogg?ch=2&n=33013",
+"file": "flac:audio/voxf/c11.ogg?ch=0,1&n=103994",
+"wav_bytes": 482090
+},
+"c12": {
+"bytes": 177815,
+"dry": "flac:audio/voxf/c12.ogg?ch=2&n=40335",
+"file": "flac:audio/voxf/c12.ogg?ch=0,1&n=108216",
+"wav_bytes": 513622
+},
+"c13": {
+"bytes": 130304,
+"dry": "flac:audio/voxf/c13.ogg?ch=2&n=47461",
+"file": "flac:audio/voxf/c13.ogg?ch=0,1&n=133296",
+"wav_bytes": 628194
+},
+"c14": {
+"bytes": 173955,
+"dry": "flac:audio/voxf/c14.ogg?ch=2&n=45762",
+"file": "flac:audio/voxf/c14.ogg?ch=0,1&n=121627",
+"wav_bytes": 578120
+},
+"c15": {
+"bytes": 168845,
+"dry": "flac:audio/voxf/c15.ogg?ch=2&n=33550",
+"file": "flac:audio/voxf/c15.ogg?ch=0,1&n=83045",
+"wav_bytes": 399368
+},
+"c16": {
+"bytes": 195979,
+"dry": "flac:audio/voxf/c16.ogg?ch=2&n=43732",
+"file": "flac:audio/voxf/c16.ogg?ch=0,1&n=115930",
+"wav_bytes": 551272
+},
+"c17": {
+"bytes": 279091,
+"dry": "flac:audio/voxf/c17.ogg?ch=2&n=71253",
+"file": "flac:audio/voxf/c17.ogg?ch=0,1&n=134049",
+"wav_bytes": 678790
+},
+"c18": {
+"bytes": 206216,
+"dry": "flac:audio/voxf/c18.ogg?ch=2&n=43726",
+"file": "flac:audio/voxf/c18.ogg?ch=0,1&n=104935",
+"wav_bytes": 507280
+},
+"c19": {
+"bytes": 263526,
+"dry": "flac:audio/voxf/c19.ogg?ch=2&n=65428",
+"file": "flac:audio/voxf/c19.ogg?ch=0,1&n=133860",
+"wav_bytes": 666384
+},
+"ch01": {
+"bytes": 460202,
+"dry": "flac:audio/voxf/ch01.ogg?ch=2&n=157970",
+"file": "flac:audio/voxf/ch01.ogg?ch=0,1&n=157970",
+"wav_bytes": 947908
+},
+"ch02": {
+"bytes": 466769,
+"dry": "flac:audio/voxf/ch02.ogg?ch=2&n=160363",
+"file": "flac:audio/voxf/ch02.ogg?ch=0,1&n=160363",
+"wav_bytes": 962266
+},
+"ch03": {
+"bytes": 443799,
+"dry": "flac:audio/voxf/ch03.ogg?ch=2&n=162830",
+"file": "flac:audio/voxf/ch03.ogg?ch=0,1&n=162830",
+"wav_bytes": 977068
+},
+"ch04": {
+"bytes": 467554,
+"dry": "flac:audio/voxf/ch04.ogg?ch=2&n=155647",
+"file": "flac:audio/voxf/ch04.ogg?ch=0,1&n=155647",
+"wav_bytes": 933970
+},
+"ch05": {
+"bytes": 456735,
+"dry": "flac:audio/voxf/ch05.ogg?ch=2&n=159157",
+"file": "flac:audio/voxf/ch05.ogg?ch=0,1&n=159157",
+"wav_bytes": 955030
+},
+"ch06": {
+"bytes": 431588,
+"dry": "flac:audio/voxf/ch06.ogg?ch=2&n=153391",
+"file": "flac:audio/voxf/ch06.ogg?ch=0,1&n=153391",
+"wav_bytes": 920434
+},
+"ch07": {
+"bytes": 464932,
+"dry": "flac:audio/voxf/ch07.ogg?ch=2&n=164093",
+"file": "flac:audio/voxf/ch07.ogg?ch=0,1&n=164093",
+"wav_bytes": 984646
+},
+"ch08": {
+"bytes": 325148,
+"dry": "flac:audio/voxf/ch08.ogg?ch=2&n=161587",
+"file": "flac:audio/voxf/ch08.ogg?ch=0,1&n=161587",
+"wav_bytes": 969610
+},
+"ch09": {
+"bytes": 468121,
+"dry": "flac:audio/voxf/ch09.ogg?ch=2&n=165375",
+"file": "flac:audio/voxf/ch09.ogg?ch=0,1&n=165375",
+"wav_bytes": 992338
+},
+"ch10": {
+"bytes": 500823,
+"dry": "flac:audio/voxf/ch10.ogg?ch=2&n=160363",
+"file": "flac:audio/voxf/ch10.ogg?ch=0,1&n=160363",
+"wav_bytes": 962266
+},
+"ch11": {
+"bytes": 465656,
+"dry": "flac:audio/voxf/ch11.ogg?ch=2&n=165375",
+"file": "flac:audio/voxf/ch11.ogg?ch=0,1&n=165375",
+"wav_bytes": 992338
+},
+"ch12": {
+"bytes": 411122,
+"dry": "flac:audio/voxf/ch12.ogg?ch=2&n=159157",
+"file": "flac:audio/voxf/ch12.ogg?ch=0,1&n=159157",
+"wav_bytes": 955030
+},
+"ch13": {
+"bytes": 468174,
+"dry": "flac:audio/voxf/ch13.ogg?ch=2&n=160363",
+"file": "flac:audio/voxf/ch13.ogg?ch=0,1&n=160363",
+"wav_bytes": 962266
+},
+"ch14": {
+"bytes": 531372,
+"dry": "flac:audio/voxf/ch14.ogg?ch=2&n=159157",
+"file": "flac:audio/voxf/ch14.ogg?ch=0,1&n=159157",
+"wav_bytes": 955030
+},
+"ch15": {
+"bytes": 490449,
+"dry": "flac:audio/voxf/ch15.ogg?ch=2&n=157970",
+"file": "flac:audio/voxf/ch15.ogg?ch=0,1&n=157970",
+"wav_bytes": 947908
+},
+"ch16": {
+"bytes": 539509,
+"dry": "flac:audio/voxf/ch16.ogg?ch=2&n=165375",
+"file": "flac:audio/voxf/ch16.ogg?ch=0,1&n=165375",
+"wav_bytes": 992338
+},
+"e01": {
+"bytes": 175228,
+"dry": "flac:audio/voxf/e01.ogg?ch=2&n=69816",
+"file": "flac:audio/voxf/e01.ogg?ch=0,1&n=162691",
+"wav_bytes": 790484
+},
+"e02": {
+"bytes": 197564,
+"dry": "flac:audio/voxf/e02.ogg?ch=2&n=40288",
+"file": "flac:audio/voxf/e02.ogg?ch=0,1&n=106101",
+"wav_bytes": 505068
+},
+"e03": {
+"bytes": 152821,
+"dry": "flac:audio/voxf/e03.ogg?ch=2&n=36933",
+"file": "flac:audio/voxf/e03.ogg?ch=0,1&n=87442",
+"wav_bytes": 423722
+},
+"e04": {
+"bytes": 202991,
+"dry": "flac:audio/voxf/e04.ogg?ch=2&n=58639",
+"file": "flac:audio/voxf/e04.ogg?ch=0,1&n=142062",
+"wav_bytes": 685614
+},
+"e05": {
+"bytes": 246599,
+"dry": "flac:audio/voxf/e05.ogg?ch=2&n=58027",
+"file": "flac:audio/voxf/e05.ogg?ch=0,1&n=110036",
+"wav_bytes": 556286
+},
+"e06": {
+"bytes": 180084,
+"dry": "flac:audio/voxf/e06.ogg?ch=2&n=55682",
+"file": "flac:audio/voxf/e06.ogg?ch=0,1&n=137310",
+"wav_bytes": 660692
+},
+"e07": {
+"bytes": 316409,
+"dry": "flac:audio/voxf/e07.ogg?ch=2&n=82920",
+"file": "flac:audio/voxf/e07.ogg?ch=0,1&n=154229",
+"wav_bytes": 782844
+},
+"e08": {
+"bytes": 308743,
+"dry": "flac:audio/voxf/e08.ogg?ch=2&n=95491",
+"file": "flac:audio/voxf/e08.ogg?ch=0,1&n=179665",
+"wav_bytes": 909730
+},
+"e09": {
+"bytes": 209464,
+"dry": "flac:audio/voxf/e09.ogg?ch=2&n=73352",
+"file": "flac:audio/voxf/e09.ogg?ch=0,1&n=148286",
+"wav_bytes": 739936
+},
+"e10": {
+"bytes": 231913,
+"dry": "flac:audio/voxf/e10.ogg?ch=2&n=46247",
+"file": "flac:audio/voxf/e10.ogg?ch=0,1&n=125617",
+"wav_bytes": 595050
+},
+"e11": {
+"bytes": 382705,
+"dry": "flac:audio/voxf/e11.ogg?ch=2&n=97144",
+"file": "flac:audio/voxf/e11.ogg?ch=0,1&n=145327",
+"wav_bytes": 775684
+},
+"e12": {
+"bytes": 319172,
+"dry": "flac:audio/voxf/e12.ogg?ch=2&n=74904",
+"file": "flac:audio/voxf/e12.ogg?ch=0,1&n=144569",
+"wav_bytes": 728172
+},
+"e13": {
+"bytes": 218753,
+"dry": "flac:audio/voxf/e13.ogg?ch=2&n=62754",
+"file": "flac:audio/voxf/e13.ogg?ch=0,1&n=155813",
+"wav_bytes": 748848
+},
+"e14": {
+"bytes": 220944,
+"dry": "flac:audio/voxf/e14.ogg?ch=2&n=54210",
+"file": "flac:audio/voxf/e14.ogg?ch=0,1&n=118696",
+"wav_bytes": 583292
+},
+"e15": {
+"bytes": 317845,
+"dry": "flac:audio/voxf/e15.ogg?ch=2&n=121294",
+"file": "flac:audio/voxf/e15.ogg?ch=0,1&n=147442",
+"wav_bytes": 832444
+},
+"e16": {
+"bytes": 258535,
+"dry": "flac:audio/voxf/e16.ogg?ch=2&n=64693",
+"file": "flac:audio/voxf/e16.ogg?ch=0,1&n=116653",
+"wav_bytes": 596086
+},
+"e17": {
+"bytes": 258971,
+"dry": "flac:audio/voxf/e17.ogg?ch=2&n=85253",
+"file": "flac:audio/voxf/e17.ogg?ch=0,1&n=157234",
+"wav_bytes": 799530
+},
+"e18": {
+"bytes": 179745,
+"dry": "flac:audio/voxf/e18.ogg?ch=2&n=56458",
+"file": "flac:audio/voxf/e18.ogg?ch=0,1&n=128247",
+"wav_bytes": 625992
+},
+"h01": {
+"bytes": 1042763,
+"dry": "flac:audio/voxf/h01.ogg?ch=2&n=315940",
+"file": "flac:audio/voxf/h01.ogg?ch=0,1&n=315940",
+"wav_bytes": 1895728
+},
+"h02": {
+"bytes": 1099675,
+"dry": "flac:audio/voxf/h02.ogg?ch=2&n=320727",
+"file": "flac:audio/voxf/h02.ogg?ch=0,1&n=320727",
+"wav_bytes": 1924450
+},
+"h03": {
+"bytes": 1151552,
+"dry": "flac:audio/voxf/h03.ogg?ch=2&n=318315",
+"file": "flac:audio/voxf/h03.ogg?ch=0,1&n=318315",
+"wav_bytes": 1909978
+},
+"h04": {
+"bytes": 1023974,
+"dry": "flac:audio/voxf/h04.ogg?ch=2&n=311294",
+"file": "flac:audio/voxf/h04.ogg?ch=0,1&n=311294",
+"wav_bytes": 1867852
+},
+"h05": {
+"bytes": 1052451,
+"dry": "flac:audio/voxf/h05.ogg?ch=2&n=306782",
+"file": "flac:audio/voxf/h05.ogg?ch=0,1&n=306782",
+"wav_bytes": 1840780
+},
+"h06": {
+"bytes": 1231529,
+"dry": "flac:audio/voxf/h06.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/h06.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"h07": {
+"bytes": 1131659,
+"dry": "flac:audio/voxf/h07.ogg?ch=2&n=328186",
+"file": "flac:audio/voxf/h07.ogg?ch=0,1&n=328186",
+"wav_bytes": 1969204
+},
+"h08": {
+"bytes": 901726,
+"dry": "flac:audio/voxf/h08.ogg?ch=2&n=320727",
+"file": "flac:audio/voxf/h08.ogg?ch=0,1&n=320727",
+"wav_bytes": 1924450
+},
+"h09": {
+"bytes": 1015864,
+"dry": "flac:audio/voxf/h09.ogg?ch=2&n=325661",
+"file": "flac:audio/voxf/h09.ogg?ch=0,1&n=325661",
+"wav_bytes": 1954054
+},
+"h10": {
+"bytes": 1072219,
+"dry": "flac:audio/voxf/h10.ogg?ch=2&n=320727",
+"file": "flac:audio/voxf/h10.ogg?ch=0,1&n=320727",
+"wav_bytes": 1924450
+},
+"h11": {
+"bytes": 1023293,
+"dry": "flac:audio/voxf/h11.ogg?ch=2&n=315940",
+"file": "flac:audio/voxf/h11.ogg?ch=0,1&n=315940",
+"wav_bytes": 1895728
+},
+"h12": {
+"bytes": 925207,
+"dry": "flac:audio/voxf/h12.ogg?ch=2&n=311294",
+"file": "flac:audio/voxf/h12.ogg?ch=0,1&n=311294",
+"wav_bytes": 1867852
+},
+"h13": {
+"bytes": 1049234,
+"dry": "flac:audio/voxf/h13.ogg?ch=2&n=313600",
+"file": "flac:audio/voxf/h13.ogg?ch=0,1&n=313600",
+"wav_bytes": 1881688
+},
+"h14": {
+"bytes": 1266677,
+"dry": "flac:audio/voxf/h14.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/h14.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"h15": {
+"bytes": 1252102,
+"dry": "flac:audio/voxf/h15.ogg?ch=2&n=320727",
+"file": "flac:audio/voxf/h15.ogg?ch=0,1&n=320727",
+"wav_bytes": 1924450
+},
+"h16": {
+"bytes": 1125660,
+"dry": "flac:audio/voxf/h16.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/h16.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"h17": {
+"bytes": 1118655,
+"dry": "flac:audio/voxf/h17.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/h17.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"h18": {
+"bytes": 981059,
+"dry": "flac:audio/voxf/h18.ogg?ch=2&n=325661",
+"file": "flac:audio/voxf/h18.ogg?ch=0,1&n=325661",
+"wav_bytes": 1954054
+},
+"h19": {
+"bytes": 1144026,
+"dry": "flac:audio/voxf/h19.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/h19.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"h20": {
+"bytes": 1215724,
+"dry": "flac:audio/voxf/h20.ogg?ch=2&n=320727",
+"file": "flac:audio/voxf/h20.ogg?ch=0,1&n=320727",
+"wav_bytes": 1924450
+},
+"h21": {
+"bytes": 1187542,
+"dry": "flac:audio/voxf/h21.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/h21.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"h22": {
+"bytes": 1222561,
+"dry": "flac:audio/voxf/h22.ogg?ch=2&n=318315",
+"file": "flac:audio/voxf/h22.ogg?ch=0,1&n=318315",
+"wav_bytes": 1909978
+},
+"h23": {
+"bytes": 1162298,
+"dry": "flac:audio/voxf/h23.ogg?ch=2&n=320727",
+"file": "flac:audio/voxf/h23.ogg?ch=0,1&n=320727",
+"wav_bytes": 1924450
+},
+"h24": {
+"bytes": 1238679,
+"dry": "flac:audio/voxf/h24.ogg?ch=2&n=318315",
+"file": "flac:audio/voxf/h24.ogg?ch=0,1&n=318315",
+"wav_bytes": 1909978
+},
+"h25": {
+"bytes": 1213294,
+"dry": "flac:audio/voxf/h25.ogg?ch=2&n=323175",
+"file": "flac:audio/voxf/h25.ogg?ch=0,1&n=323175",
+"wav_bytes": 1939138
+},
+"h26": {
+"bytes": 1200577,
+"dry": "flac:audio/voxf/h26.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/h26.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"h27": {
+"bytes": 1140384,
+"dry": "flac:audio/voxf/h27.ogg?ch=2&n=325661",
+"file": "flac:audio/voxf/h27.ogg?ch=0,1&n=325661",
+"wav_bytes": 1954054
+},
+"h28": {
+"bytes": 1120768,
+"dry": "flac:audio/voxf/h28.ogg?ch=2&n=311294",
+"file": "flac:audio/voxf/h28.ogg?ch=0,1&n=311294",
+"wav_bytes": 1867852
+},
+"h29": {
+"bytes": 1045302,
+"dry": "flac:audio/voxf/h29.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/h29.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"h30": {
+"bytes": 1205838,
+"dry": "flac:audio/voxf/h30.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/h30.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"hv01": {
+"bytes": 496339,
+"dry": "flac:audio/voxf/hv01.ogg?ch=2&n=135753",
+"file": "flac:audio/voxf/hv01.ogg?ch=0,1&n=184413",
+"wav_bytes": 1009246
+},
+"hv02": {
+"bytes": 203142,
+"dry": "flac:audio/voxf/hv02.ogg?ch=2&n=71356",
+"file": "flac:audio/voxf/hv02.ogg?ch=0,1&n=154350",
+"wav_bytes": 760200
+},
+"hv03": {
+"bytes": 204189,
+"dry": "flac:audio/voxf/hv03.ogg?ch=2&n=63118",
+"file": "flac:audio/voxf/hv03.ogg?ch=0,1&n=152266",
+"wav_bytes": 735388
+},
+"hv04": {
+"bytes": 285463,
+"dry": "flac:audio/voxf/hv04.ogg?ch=2&n=83101",
+"file": "flac:audio/voxf/hv04.ogg?ch=0,1&n=137343",
+"wav_bytes": 715662
+},
+"hv05": {
+"bytes": 225361,
+"dry": "flac:audio/voxf/hv05.ogg?ch=2&n=64339",
+"file": "flac:audio/voxf/hv05.ogg?ch=0,1&n=111988",
+"wav_bytes": 576718
+},
+"hv06": {
+"bytes": 371268,
+"dry": "flac:audio/voxf/hv06.ogg?ch=2&n=104878",
+"file": "flac:audio/voxf/hv06.ogg?ch=0,1&n=166478",
+"wav_bytes": 875756
+},
+"hv07": {
+"bytes": 361264,
+"dry": "flac:audio/voxf/hv07.ogg?ch=2&n=97702",
+"file": "flac:audio/voxf/hv07.ogg?ch=0,1&n=152054",
+"wav_bytes": 803708
+},
+"hv08": {
+"bytes": 429019,
+"dry": "flac:audio/voxf/hv08.ogg?ch=2&n=125425",
+"file": "flac:audio/voxf/hv08.ogg?ch=0,1&n=217895",
+"wav_bytes": 1122518
+},
+"hv09": {
+"bytes": 336944,
+"dry": "flac:audio/voxf/hv09.ogg?ch=2&n=121253",
+"file": "flac:audio/voxf/hv09.ogg?ch=0,1&n=202733",
+"wav_bytes": 1053526
+},
+"hv10": {
+"bytes": 477472,
+"dry": "flac:audio/voxf/hv10.ogg?ch=2&n=125081",
+"file": "flac:audio/voxf/hv10.ogg?ch=0,1&n=188578",
+"wav_bytes": 1004562
+},
+"hv11": {
+"bytes": 372690,
+"dry": "flac:audio/voxf/hv11.ogg?ch=2&n=105903",
+"file": "flac:audio/voxf/hv11.ogg?ch=0,1&n=189853",
+"wav_bytes": 971306
+},
+"hv12": {
+"bytes": 414681,
+"dry": "flac:audio/voxf/hv12.ogg?ch=2&n=118223",
+"file": "flac:audio/voxf/hv12.ogg?ch=0,1&n=166336",
+"wav_bytes": 901878
+},
+"hv13": {
+"bytes": 261691,
+"dry": "flac:audio/voxf/hv13.ogg?ch=2&n=78594",
+"file": "flac:audio/voxf/hv13.ogg?ch=0,1&n=154088",
+"wav_bytes": 773628
+},
+"hv14": {
+"bytes": 112302,
+"dry": "flac:audio/voxf/hv14.ogg?ch=2&n=21183",
+"file": "flac:audio/voxf/hv14.ogg?ch=0,1&n=89542",
+"wav_bytes": 400622
+},
+"hv15": {
+"bytes": 232936,
+"dry": "flac:audio/voxf/hv15.ogg?ch=2&n=53090",
+"file": "flac:audio/voxf/hv15.ogg?ch=0,1&n=116946",
+"wav_bytes": 574052
+},
+"hv16": {
+"bytes": 204535,
+"dry": "flac:audio/voxf/hv16.ogg?ch=2&n=45344",
+"file": "flac:audio/voxf/hv16.ogg?ch=0,1&n=118181",
+"wav_bytes": 563500
+},
+"hv17": {
+"bytes": 130975,
+"dry": "flac:audio/voxf/hv17.ogg?ch=2&n=31317",
+"file": "flac:audio/voxf/hv17.ogg?ch=0,1&n=99136",
+"wav_bytes": 459266
+},
+"hv18": {
+"bytes": 203112,
+"dry": "flac:audio/voxf/hv18.ogg?ch=2&n=41177",
+"file": "flac:audio/voxf/hv18.ogg?ch=0,1&n=108380",
+"wav_bytes": 515962
+},
+"hv19": {
+"bytes": 170635,
+"dry": "flac:audio/voxf/hv19.ogg?ch=2&n=38707",
+"file": "flac:audio/voxf/hv19.ogg?ch=0,1&n=116394",
+"wav_bytes": 543078
+},
+"hv20": {
+"bytes": 195111,
+"dry": "flac:audio/voxf/hv20.ogg?ch=2&n=60399",
+"file": "flac:audio/voxf/hv20.ogg?ch=0,1&n=124636",
+"wav_bytes": 619430
+},
+"hv21": {
+"bytes": 305481,
+"dry": "flac:audio/voxf/hv21.ogg?ch=2&n=120408",
+"file": "flac:audio/voxf/hv21.ogg?ch=0,1&n=211010",
+"wav_bytes": 1084944
+},
+"hv22": {
+"bytes": 463932,
+"dry": "flac:audio/voxf/hv22.ogg?ch=2&n=96648",
+"file": "flac:audio/voxf/hv22.ogg?ch=0,1&n=198693",
+"wav_bytes": 988156
+},
+"hv23": {
+"bytes": 642612,
+"dry": "flac:audio/voxf/hv23.ogg?ch=2&n=165375",
+"file": "flac:audio/voxf/hv23.ogg?ch=0,1&n=165375",
+"wav_bytes": 992338
+},
+"hv24": {
+"bytes": 642055,
+"dry": "flac:audio/voxf/hv24.ogg?ch=2&n=184059",
+"file": "flac:audio/voxf/hv24.ogg?ch=0,1&n=270470",
+"wav_bytes": 1450086
+},
+"hv25": {
+"bytes": 1250433,
+"dry": "flac:audio/voxf/hv25.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/hv25.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"hv26": {
+"bytes": 1203967,
+"dry": "flac:audio/voxf/hv26.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/hv26.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"hv27": {
+"bytes": 1080861,
+"dry": "flac:audio/voxf/hv27.ogg?ch=2&n=320727",
+"file": "flac:audio/voxf/hv27.ogg?ch=0,1&n=320727",
+"wav_bytes": 1924450
+},
+"hw_fx_bats": {
+"bundle": "hwb_fx2",
+"bytes": 340037,
+"file": "flac:audio/voxf/hwb_fx2.ogg?ch=6,7&n=151306",
+"wav_bytes": 605268
+},
+"hw_fx_bell": {
+"bundle": "hwb_fx1",
+"bytes": 308975,
+"file": "flac:audio/voxf/hwb_fx1.ogg?ch=2,3&n=404511",
+"wav_bytes": 1618088
+},
+"hw_fx_cauldron": {
+"bundle": "hwb_fx4",
+"bytes": 306520,
+"file": "flac:audio/voxf/hwb_fx4.ogg?ch=2,3&n=165375",
+"wav_bytes": 661544
+},
+"hw_fx_chains": {
+"bundle": "hwb_fx2",
+"bytes": 340037,
+"file": "flac:audio/voxf/hwb_fx2.ogg?ch=4,5&n=179042",
+"wav_bytes": 716212
+},
+"hw_fx_choir": {
+"bundle": "hwb_fx3",
+"bytes": 403093,
+"file": "flac:audio/voxf/hwb_fx3.ogg?ch=6,7&n=330750",
+"wav_bytes": 1323044
+},
+"hw_fx_door": {
+"bundle": "hwb_fx1",
+"bytes": 308975,
+"file": "flac:audio/voxf/hwb_fx1.ogg?ch=6,7&n=145168",
+"wav_bytes": 580716
+},
+"hw_fx_heartbeat": {
+"bundle": "hwb_fx4",
+"bytes": 306520,
+"file": "flac:audio/voxf/hwb_fx4.ogg?ch=0,1&n=165375",
+"wav_bytes": 661544
+},
+"hw_fx_howl": {
+"bundle": "hwb_fx2",
+"bytes": 340037,
+"file": "flac:audio/voxf/hwb_fx2.ogg?ch=0,1&n=263264",
+"wav_bytes": 1053100
+},
+"hw_fx_musicbox": {
+"bundle": "hwb_fx3",
+"bytes": 403093,
+"file": "flac:audio/voxf/hwb_fx3.ogg?ch=4,5&n=330750",
+"wav_bytes": 1323044
+},
+"hw_fx_organ": {
+"bundle": "hwb_fx1",
+"bytes": 308975,
+"file": "flac:audio/voxf/hwb_fx1.ogg?ch=4,5&n=275901",
+"wav_bytes": 1103648
+},
+"hw_fx_stinger": {
+"bundle": "hwb_fx2",
+"bytes": 340037,
+"file": "flac:audio/voxf/hwb_fx2.ogg?ch=2,3&n=197008",
+"wav_bytes": 788076
+},
+"hw_fx_theremin": {
+"bundle": "hwb_fx3",
+"bytes": 403093,
+"file": "flac:audio/voxf/hwb_fx3.ogg?ch=2,3&n=330750",
+"wav_bytes": 1323044
+},
+"hw_fx_thunder": {
+"bundle": "hwb_fx1",
+"bytes": 308975,
+"file": "flac:audio/voxf/hwb_fx1.ogg?ch=0,1&n=329668",
+"wav_bytes": 1318716
+},
+"hw_fx_whoosh": {
+"bundle": "hwb_fx3",
+"bytes": 403093,
+"file": "flac:audio/voxf/hwb_fx3.ogg?ch=0,1&n=238624",
+"wav_bytes": 954540
+},
+"mc01": {
+"bytes": 267163,
+"dry": "flac:audio/voxf/mc01.ogg?ch=2&n=82679",
+"file": "flac:audio/voxf/mc01.ogg?ch=0,1&n=138419",
+"wav_bytes": 719122
+},
+"mc02": {
+"bytes": 222761,
+"dry": "flac:audio/voxf/mc02.ogg?ch=2&n=78820",
+"file": "flac:audio/voxf/mc02.ogg?ch=0,1&n=155716",
+"wav_bytes": 780592
+},
+"mc03": {
+"bytes": 277781,
+"dry": "flac:audio/voxf/mc03.ogg?ch=2&n=83162",
+"file": "flac:audio/voxf/mc03.ogg?ch=0,1&n=138752",
+"wav_bytes": 721420
+},
+"mc04": {
+"bytes": 425233,
+"dry": "flac:audio/voxf/mc04.ogg?ch=2&n=124359",
+"file": "flac:audio/voxf/mc04.ogg?ch=0,1&n=215358",
+"wav_bytes": 1110238
+},
+"mc05": {
+"bytes": 228389,
+"dry": "flac:audio/voxf/mc05.ogg?ch=2&n=66733",
+"file": "flac:audio/voxf/mc05.ogg?ch=0,1&n=125066",
+"wav_bytes": 633818
+},
+"mc06": {
+"bytes": 249191,
+"dry": "flac:audio/voxf/mc06.ogg?ch=2&n=65088",
+"file": "flac:audio/voxf/mc06.ogg?ch=0,1&n=144680",
+"wav_bytes": 708984
+},
+"mc07": {
+"bytes": 363939,
+"dry": "flac:audio/voxf/mc07.ogg?ch=2&n=95034",
+"file": "flac:audio/voxf/mc07.ogg?ch=0,1&n=161532",
+"wav_bytes": 836284
+},
+"mc08": {
+"bytes": 389842,
+"dry": "flac:audio/voxf/mc08.ogg?ch=2&n=142984",
+"file": "flac:audio/voxf/mc08.ogg?ch=0,1&n=219680",
+"wav_bytes": 1164776
+},
+"mc09": {
+"bytes": 490303,
+"dry": "flac:audio/voxf/mc09.ogg?ch=2&n=130943",
+"file": "flac:audio/voxf/mc09.ogg?ch=0,1&n=199313",
+"wav_bytes": 1059226
+},
+"mc10": {
+"bytes": 320689,
+"dry": "flac:audio/voxf/mc10.ogg?ch=2&n=98689",
+"file": "flac:audio/voxf/mc10.ogg?ch=0,1&n=173393",
+"wav_bytes": 891038
+},
+"mc11": {
+"bytes": 380930,
+"dry": "flac:audio/voxf/mc11.ogg?ch=2&n=92403",
+"file": "flac:audio/voxf/mc11.ogg?ch=0,1&n=160430",
+"wav_bytes": 826614
+},
+"mc12": {
+"bytes": 155873,
+"dry": "flac:audio/voxf/mc12.ogg?ch=2&n=32188",
+"file": "flac:audio/voxf/mc12.ogg?ch=0,1&n=100112",
+"wav_bytes": 464912
+},
+"mc13": {
+"bytes": 179515,
+"dry": "flac:audio/voxf/mc13.ogg?ch=2&n=36348",
+"file": "flac:audio/voxf/mc13.ogg?ch=0,1&n=100850",
+"wav_bytes": 476184
+},
+"mc14": {
+"bytes": 209512,
+"dry": "flac:audio/voxf/mc14.ogg?ch=2&n=57545",
+"file": "flac:audio/voxf/mc14.ogg?ch=0,1&n=126734",
+"wav_bytes": 622114
+},
+"mc15": {
+"bytes": 231922,
+"dry": "flac:audio/voxf/mc15.ogg?ch=2&n=51708",
+"file": "flac:audio/voxf/mc15.ogg?ch=0,1&n=117632",
+"wav_bytes": 574032
+},
+"mc16": {
+"bytes": 295864,
+"dry": "flac:audio/voxf/mc16.ogg?ch=2&n=76427",
+"file": "flac:audio/voxf/mc16.ogg?ch=0,1&n=135604",
+"wav_bytes": 695358
+},
+"mc17": {
+"bytes": 1024723,
+"dry": "flac:audio/voxf/mc17.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/mc17.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"mc18": {
+"bytes": 520752,
+"dry": "flac:audio/voxf/mc18.ogg?ch=2&n=147543",
+"file": "flac:audio/voxf/mc18.ogg?ch=0,1&n=209758",
+"wav_bytes": 1134206
+},
+"mc19": {
+"bytes": 337040,
+"dry": "flac:audio/voxf/mc19.ogg?ch=2&n=90229",
+"file": "flac:audio/voxf/mc19.ogg?ch=0,1&n=142357",
+"wav_bytes": 749974
+},
+"mc20": {
+"bytes": 463643,
+"dry": "flac:audio/voxf/mc20.ogg?ch=2&n=120390",
+"file": "flac:audio/voxf/mc20.ogg?ch=0,1&n=185890",
+"wav_bytes": 984428
+},
+"mc21": {
+"bytes": 228295,
+"dry": "flac:audio/voxf/mc21.ogg?ch=2&n=80163",
+"file": "flac:audio/voxf/mc21.ogg?ch=0,1&n=174390",
+"wav_bytes": 857974
+},
+"mc22": {
+"bytes": 304779,
+"dry": "flac:audio/voxf/mc22.ogg?ch=2&n=71751",
+"file": "flac:audio/voxf/mc22.ogg?ch=0,1&n=138188",
+"wav_bytes": 696342
+},
+"mc23": {
+"bytes": 414983,
+"dry": "flac:audio/voxf/mc23.ogg?ch=2&n=130873",
+"file": "flac:audio/voxf/mc23.ogg?ch=0,1&n=199219",
+"wav_bytes": 1058710
+},
+"mc24": {
+"bytes": 431545,
+"dry": "flac:audio/voxf/mc24.ogg?ch=2&n=124938",
+"file": "flac:audio/voxf/mc24.ogg?ch=0,1&n=189771",
+"wav_bytes": 1009048
+},
+"mc25": {
+"bytes": 535773,
+"dry": "flac:audio/voxf/mc25.ogg?ch=2&n=173380",
+"file": "flac:audio/voxf/mc25.ogg?ch=0,1&n=223019",
+"wav_bytes": 1238924
+},
+"mc26": {
+"bytes": 356172,
+"dry": "flac:audio/voxf/mc26.ogg?ch=2&n=96218",
+"file": "flac:audio/voxf/mc26.ogg?ch=0,1&n=181378",
+"wav_bytes": 918036
+},
+"mc27": {
+"bytes": 302905,
+"dry": "flac:audio/voxf/mc27.ogg?ch=2&n=91774",
+"file": "flac:audio/voxf/mc27.ogg?ch=0,1&n=163675",
+"wav_bytes": 838336
+},
+"mc28": {
+"bytes": 253619,
+"dry": "flac:audio/voxf/mc28.ogg?ch=2&n=60305",
+"file": "flac:audio/voxf/mc28.ogg?ch=0,1&n=125109",
+"wav_bytes": 621134
+},
+"mc29": {
+"bytes": 322245,
+"dry": "flac:audio/voxf/mc29.ogg?ch=2&n=107887",
+"file": "flac:audio/voxf/mc29.ogg?ch=0,1&n=198568",
+"wav_bytes": 1010134
+},
+"mc30": {
+"bytes": 423694,
+"dry": "flac:audio/voxf/mc30.ogg?ch=2&n=116933",
+"file": "flac:audio/voxf/mc30.ogg?ch=0,1&n=165172",
+"wav_bytes": 894642
+},
+"mc31": {
+"bytes": 322559,
+"dry": "flac:audio/voxf/mc31.ogg?ch=2&n=80707",
+"file": "flac:audio/voxf/mc31.ogg?ch=0,1&n=149428",
+"wav_bytes": 759214
+},
+"mc32": {
+"bytes": 310478,
+"dry": "flac:audio/voxf/mc32.ogg?ch=2&n=80966",
+"file": "flac:audio/voxf/mc32.ogg?ch=0,1&n=171500",
+"wav_bytes": 848020
+},
+"mc33": {
+"bytes": 462382,
+"dry": "flac:audio/voxf/mc33.ogg?ch=2&n=115528",
+"file": "flac:audio/voxf/mc33.ogg?ch=0,1&n=180046",
+"wav_bytes": 951328
+},
+"mc34": {
+"bytes": 164905,
+"dry": "flac:audio/voxf/mc34.ogg?ch=2&n=42116",
+"file": "flac:audio/voxf/mc34.ogg?ch=0,1&n=110463",
+"wav_bytes": 526172
+},
+"mc35": {
+"bytes": 182799,
+"dry": "flac:audio/voxf/mc35.ogg?ch=2&n=41328",
+"file": "flac:audio/voxf/mc35.ogg?ch=0,1&n=105385",
+"wav_bytes": 504284
+},
+"mc36": {
+"bytes": 255831,
+"dry": "flac:audio/voxf/mc36.ogg?ch=2&n=59139",
+"file": "flac:audio/voxf/mc36.ogg?ch=0,1&n=128045",
+"wav_bytes": 630546
+},
+"mc37": {
+"bytes": 184767,
+"dry": "flac:audio/voxf/mc37.ogg?ch=2&n=38594",
+"file": "flac:audio/voxf/mc37.ogg?ch=0,1&n=103445",
+"wav_bytes": 491056
+},
+"mc38": {
+"bytes": 1083035,
+"dry": "flac:audio/voxf/mc38.ogg?ch=2&n=320727",
+"file": "flac:audio/voxf/mc38.ogg?ch=0,1&n=320727",
+"wav_bytes": 1924450
+},
+"mc39": {
+"bundle": "mcb_v1",
+"bytes": 506465,
+"dry": "flac:audio/voxf/mcb_v1.ogg?ch=2&n=185154",
+"file": "flac:audio/voxf/mcb_v1.ogg?ch=0,1&n=243237",
+"wav_bytes": 1343344
+},
+"mc40": {
+"bundle": "mcb_v1",
+"bytes": 506465,
+"dry": "flac:audio/voxf/mcb_v1.ogg?ch=5&n=112509",
+"file": "flac:audio/voxf/mcb_v1.ogg?ch=3,4&n=188423",
+"wav_bytes": 978798
+},
+"mc41": {
+"bundle": "mcb_v2",
+"bytes": 319911,
+"dry": "flac:audio/voxf/mcb_v2.ogg?ch=2&n=80946",
+"file": "flac:audio/voxf/mcb_v2.ogg?ch=0,1&n=138255",
+"wav_bytes": 715000
+},
+"mc42": {
+"bundle": "mcb_v4",
+"bytes": 622276,
+"dry": "flac:audio/voxf/mcb_v4.ogg?ch=2&n=165375",
+"file": "flac:audio/voxf/mcb_v4.ogg?ch=0,1&n=165375",
+"wav_bytes": 992338
+},
+"mc43": {
+"bundle": "mcb_v2",
+"bytes": 319911,
+"dry": "flac:audio/voxf/mcb_v2.ogg?ch=5&n=103556",
+"file": "flac:audio/voxf/mcb_v2.ogg?ch=3,4&n=168421",
+"wav_bytes": 880884
+},
+"mc44": {
+"bundle": "mcb_v3",
+"bytes": 332546,
+"dry": "flac:audio/voxf/mcb_v3.ogg?ch=2&n=110335",
+"file": "flac:audio/voxf/mcb_v3.ogg?ch=0,1&n=182020",
+"wav_bytes": 948838
+},
+"mc45": {
+"bundle": "mcb_v3",
+"bytes": 332546,
+"dry": "flac:audio/voxf/mcb_v3.ogg?ch=5&n=51994",
+"file": "flac:audio/voxf/mcb_v3.ogg?ch=3,4&n=119327",
+"wav_bytes": 581384
+},
+"mc46": {
+"bundle": "mcb_v4",
+"bytes": 622276,
+"dry": "flac:audio/voxf/mcb_v4.ogg?ch=5&n=165375",
+"file": "flac:audio/voxf/mcb_v4.ogg?ch=3,4&n=165375",
+"wav_bytes": 992338
+},
+"mc47": {
+"bytes": 261951,
+"dry": "flac:audio/voxf/mcs_names1.ogg?ch=2&n=69687&o=0",
+"file": "flac:audio/voxf/mcs_names1.ogg?ch=0,1&n=115982&o=0",
+"sprite": "mcs_names1",
+"wav_bytes": 603390
+},
+"mc48": {
+"bytes": 261887,
+"dry": "flac:audio/voxf/mcs_names1.ogg?ch=2&n=68212&o=118187",
+"file": "flac:audio/voxf/mcs_names1.ogg?ch=0,1&n=115954&o=118187",
+"sprite": "mcs_names1",
+"wav_bytes": 600328
+},
+"mc49": {
+"bytes": 261883,
+"dry": "flac:audio/voxf/mcs_names1.ogg?ch=2&n=69557&o=236346",
+"file": "flac:audio/voxf/mcs_names1.ogg?ch=0,1&n=115952&o=236346",
+"sprite": "mcs_names1",
+"wav_bytes": 603010
+},
+"mc50": {
+"bytes": 261951,
+"dry": "flac:audio/voxf/mcs_names1.ogg?ch=2&n=69435&o=354503",
+"file": "flac:audio/voxf/mcs_names1.ogg?ch=0,1&n=115982&o=354503",
+"sprite": "mcs_names1",
+"wav_bytes": 602886
+},
+"mc51": {
+"bytes": 331493,
+"dry": "flac:audio/voxf/mcs_names1.ogg?ch=2&n=108295&o=472690",
+"file": "flac:audio/voxf/mcs_names1.ogg?ch=0,1&n=146773&o=472690",
+"sprite": "mcs_names1",
+"wav_bytes": 803770
+},
+"mc52": {
+"bytes": 307478,
+"dry": "flac:audio/voxf/mcs_names1.ogg?ch=2&n=96966&o=621668",
+"file": "flac:audio/voxf/mcs_names1.ogg?ch=0,1&n=136140&o=621668",
+"sprite": "mcs_names1",
+"wav_bytes": 738580
+},
+"mc53": {
+"bytes": 265210,
+"dry": "flac:audio/voxf/mcs_names1.ogg?ch=2&n=76678&o=760013",
+"file": "flac:audio/voxf/mcs_names1.ogg?ch=0,1&n=117425&o=760013",
+"sprite": "mcs_names1",
+"wav_bytes": 623144
+},
+"mc54": {
+"bytes": 261951,
+"dry": "flac:audio/voxf/mcs_names1.ogg?ch=2&n=57682&o=879643",
+"file": "flac:audio/voxf/mcs_names1.ogg?ch=0,1&n=115982&o=879643",
+"sprite": "mcs_names1",
+"wav_bytes": 579380
+},
+"mc55": {
+"bytes": 253333,
+"dry": "flac:audio/voxf/mcs_names2.ogg?ch=2&n=60634&o=0",
+"file": "flac:audio/voxf/mcs_names2.ogg?ch=0,1&n=115952&o=0",
+"sprite": "mcs_names2",
+"wav_bytes": 585164
+},
+"mc56": {
+"bytes": 253335,
+"dry": "flac:audio/voxf/mcs_names2.ogg?ch=2&n=71240&o=118157",
+"file": "flac:audio/voxf/mcs_names2.ogg?ch=0,1&n=115953&o=118157",
+"sprite": "mcs_names2",
+"wav_bytes": 606380
+},
+"mc57": {
+"bytes": 253399,
+"dry": "flac:audio/voxf/mcs_names2.ogg?ch=2&n=72125&o=236315",
+"file": "flac:audio/voxf/mcs_names2.ogg?ch=0,1&n=115982&o=236315",
+"sprite": "mcs_names2",
+"wav_bytes": 608266
+},
+"mc58": {
+"bytes": 253399,
+"dry": "flac:audio/voxf/mcs_names2.ogg?ch=2&n=70931&o=354502",
+"file": "flac:audio/voxf/mcs_names2.ogg?ch=0,1&n=115982&o=354502",
+"sprite": "mcs_names2",
+"wav_bytes": 605878
+},
+"mc59": {
+"bytes": 253399,
+"dry": "flac:audio/voxf/mcs_names2.ogg?ch=2&n=63729&o=472689",
+"file": "flac:audio/voxf/mcs_names2.ogg?ch=0,1&n=115982&o=472689",
+"sprite": "mcs_names2",
+"wav_bytes": 591474
+},
+"mc60": {
+"bytes": 253399,
+"dry": "flac:audio/voxf/mcs_names2.ogg?ch=2&n=67593&o=590876",
+"file": "flac:audio/voxf/mcs_names2.ogg?ch=0,1&n=115982&o=590876",
+"sprite": "mcs_names2",
+"wav_bytes": 599202
+},
+"mc61": {
+"bytes": 254393,
+"dry": "flac:audio/voxf/mcs_names2.ogg?ch=2&n=74825&o=709063",
+"file": "flac:audio/voxf/mcs_names2.ogg?ch=0,1&n=116437&o=709063",
+"sprite": "mcs_names2",
+"wav_bytes": 615486
+},
+"mc62": {
+"bytes": 253379,
+"dry": "flac:audio/voxf/mcs_names2.ogg?ch=2&n=55210&o=827705",
+"file": "flac:audio/voxf/mcs_names2.ogg?ch=0,1&n=115973&o=827705",
+"sprite": "mcs_names2",
+"wav_bytes": 574400
+},
+"mc63": {
+"bytes": 257384,
+"dry": "flac:audio/voxf/mcs_names3.ogg?ch=2&n=71161&o=0",
+"file": "flac:audio/voxf/mcs_names3.ogg?ch=0,1&n=115982&o=0",
+"sprite": "mcs_names3",
+"wav_bytes": 606338
+},
+"mc64": {
+"bytes": 257384,
+"dry": "flac:audio/voxf/mcs_names3.ogg?ch=2&n=61972&o=118187",
+"file": "flac:audio/voxf/mcs_names3.ogg?ch=0,1&n=115982&o=118187",
+"sprite": "mcs_names3",
+"wav_bytes": 587960
+},
+"mc65": {
+"bytes": 257384,
+"dry": "flac:audio/voxf/mcs_names3.ogg?ch=2&n=69392&o=236374",
+"file": "flac:audio/voxf/mcs_names3.ogg?ch=0,1&n=115982&o=236374",
+"sprite": "mcs_names3",
+"wav_bytes": 602800
+},
+"mc66": {
+"bytes": 285827,
+"dry": "flac:audio/voxf/mcs_names3.ogg?ch=2&n=90314&o=354561",
+"file": "flac:audio/voxf/mcs_names3.ogg?ch=0,1&n=128799&o=354561",
+"sprite": "mcs_names3",
+"wav_bytes": 695912
+},
+"mc67": {
+"bytes": 257384,
+"dry": "flac:audio/voxf/mcs_names3.ogg?ch=2&n=67819&o=485565",
+"file": "flac:audio/voxf/mcs_names3.ogg?ch=0,1&n=115982&o=485565",
+"sprite": "mcs_names3",
+"wav_bytes": 599654
+},
+"mc68": {
+"bytes": 270468,
+"dry": "flac:audio/voxf/mcs_names3.ogg?ch=2&n=82176&o=603752",
+"file": "flac:audio/voxf/mcs_names3.ogg?ch=0,1&n=121878&o=603752",
+"sprite": "mcs_names3",
+"wav_bytes": 651952
+},
+"mc69": {
+"bytes": 257384,
+"dry": "flac:audio/voxf/mcs_names3.ogg?ch=2&n=54091&o=727835",
+"file": "flac:audio/voxf/mcs_names3.ogg?ch=0,1&n=115982&o=727835",
+"sprite": "mcs_names3",
+"wav_bytes": 572198
+},
+"mc70": {
+"bytes": 309945,
+"dry": "flac:audio/voxf/mcs_names3.ogg?ch=2&n=98579&o=846022",
+"file": "flac:audio/voxf/mcs_names3.ogg?ch=0,1&n=139667&o=846022",
+"sprite": "mcs_names3",
+"wav_bytes": 755914
+},
+"mc71": {
+"bytes": 254079,
+"dry": "flac:audio/voxf/mcs_names4.ogg?ch=2&n=58758&o=0",
+"file": "flac:audio/voxf/mcs_names4.ogg?ch=0,1&n=115947&o=0",
+"sprite": "mcs_names4",
+"wav_bytes": 581392
+},
+"mc72": {
+"bytes": 258495,
+"dry": "flac:audio/voxf/mcs_names4.ogg?ch=2&n=76576&o=118152",
+"file": "flac:audio/voxf/mcs_names4.ogg?ch=0,1&n=117962&o=118152",
+"sprite": "mcs_names4",
+"wav_bytes": 625088
+},
+"mc73": {
+"bytes": 258539,
+"dry": "flac:audio/voxf/mcs_names4.ogg?ch=2&n=74958&o=238319",
+"file": "flac:audio/voxf/mcs_names4.ogg?ch=0,1&n=117982&o=238319",
+"sprite": "mcs_names4",
+"wav_bytes": 621932
+},
+"mc74": {
+"bytes": 254062,
+"dry": "flac:audio/voxf/mcs_names4.ogg?ch=2&n=70305&o=358506",
+"file": "flac:audio/voxf/mcs_names4.ogg?ch=0,1&n=115939&o=358506",
+"sprite": "mcs_names4",
+"wav_bytes": 604454
+},
+"mc75": {
+"bytes": 254156,
+"dry": "flac:audio/voxf/mcs_names4.ogg?ch=2&n=63343&o=476650",
+"file": "flac:audio/voxf/mcs_names4.ogg?ch=0,1&n=115982&o=476650",
+"sprite": "mcs_names4",
+"wav_bytes": 590702
+},
+"mc76": {
+"bytes": 254156,
+"dry": "flac:audio/voxf/mcs_names4.ogg?ch=2&n=57696&o=594837",
+"file": "flac:audio/voxf/mcs_names4.ogg?ch=0,1&n=115982&o=594837",
+"sprite": "mcs_names4",
+"wav_bytes": 579408
+},
+"mc77": {
+"bytes": 254156,
+"dry": "flac:audio/voxf/mcs_names4.ogg?ch=2&n=61555&o=713024",
+"file": "flac:audio/voxf/mcs_names4.ogg?ch=0,1&n=115982&o=713024",
+"sprite": "mcs_names4",
+"wav_bytes": 587126
+},
+"mc78": {
+"bytes": 262354,
+"dry": "flac:audio/voxf/mcs_names4.ogg?ch=2&n=72565&o=831211",
+"file": "flac:audio/voxf/mcs_names4.ogg?ch=0,1&n=119723&o=831211",
+"sprite": "mcs_names4",
+"wav_bytes": 624110
+},
+"mc79": {
+"bytes": 238688,
+"dry": "flac:audio/voxf/mcs_drama1.ogg?ch=2&n=54914&o=0",
+"file": "flac:audio/voxf/mcs_drama1.ogg?ch=0,1&n=115982&o=0",
+"sprite": "mcs_drama1",
+"wav_bytes": 573844
+},
+"mc80": {
+"bytes": 238688,
+"dry": "flac:audio/voxf/mcs_drama1.ogg?ch=2&n=44494&o=118187",
+"file": "flac:audio/voxf/mcs_drama1.ogg?ch=0,1&n=115982&o=118187",
+"sprite": "mcs_drama1",
+"wav_bytes": 553004
+},
+"mc81": {
+"bytes": 238688,
+"dry": "flac:audio/voxf/mcs_drama1.ogg?ch=2&n=57205&o=236374",
+"file": "flac:audio/voxf/mcs_drama1.ogg?ch=0,1&n=115982&o=236374",
+"sprite": "mcs_drama1",
+"wav_bytes": 578426
+},
+"mc82": {
+"bytes": 238688,
+"dry": "flac:audio/voxf/mcs_drama1.ogg?ch=2&n=41493&o=354561",
+"file": "flac:audio/voxf/mcs_drama1.ogg?ch=0,1&n=115982&o=354561",
+"sprite": "mcs_drama1",
+"wav_bytes": 547002
+},
+"mc83": {
+"bytes": 238688,
+"dry": "flac:audio/voxf/mcs_drama1.ogg?ch=2&n=47717&o=472748",
+"file": "flac:audio/voxf/mcs_drama1.ogg?ch=0,1&n=115982&o=472748",
+"sprite": "mcs_drama1",
+"wav_bytes": 559450
+},
+"mc84": {
+"bytes": 238557,
+"dry": "flac:audio/voxf/mcs_drama1.ogg?ch=2&n=28377&o=590935",
+"file": "flac:audio/voxf/mcs_drama1.ogg?ch=0,1&n=115918&o=590935",
+"sprite": "mcs_drama1",
+"wav_bytes": 520514
+},
+"mc85": {
+"bytes": 238688,
+"dry": "flac:audio/voxf/mcs_drama1.ogg?ch=2&n=46403&o=709058",
+"file": "flac:audio/voxf/mcs_drama1.ogg?ch=0,1&n=115982&o=709058",
+"sprite": "mcs_drama1",
+"wav_bytes": 556822
+},
+"mc86": {
+"bytes": 238557,
+"dry": "flac:audio/voxf/mcs_drama1.ogg?ch=2&n=36826&o=827245",
+"file": "flac:audio/voxf/mcs_drama1.ogg?ch=0,1&n=115918&o=827245",
+"sprite": "mcs_drama1",
+"wav_bytes": 537412
+},
+"mc87": {
+"bytes": 246585,
+"dry": "flac:audio/voxf/mcs_drama2.ogg?ch=2&n=42822&o=0",
+"file": "flac:audio/voxf/mcs_drama2.ogg?ch=0,1&n=115982&o=0",
+"sprite": "mcs_drama2",
+"wav_bytes": 549660
+},
+"mc88": {
+"bytes": 246494,
+"dry": "flac:audio/voxf/mcs_drama2.ogg?ch=2&n=31773&o=118187",
+"file": "flac:audio/voxf/mcs_drama2.ogg?ch=0,1&n=115939&o=118187",
+"sprite": "mcs_drama2",
+"wav_bytes": 527390
+},
+"mc89": {
+"bytes": 246585,
+"dry": "flac:audio/voxf/mcs_drama2.ogg?ch=2&n=56032&o=236331",
+"file": "flac:audio/voxf/mcs_drama2.ogg?ch=0,1&n=115982&o=236331",
+"sprite": "mcs_drama2",
+"wav_bytes": 576080
+},
+"mc90": {
+"bytes": 249957,
+"dry": "flac:audio/voxf/mcs_drama2.ogg?ch=2&n=65033&o=354518",
+"file": "flac:audio/voxf/mcs_drama2.ogg?ch=0,1&n=117568&o=354518",
+"sprite": "mcs_drama2",
+"wav_bytes": 600426
+},
+"mc91": {
+"bytes": 246585,
+"dry": "flac:audio/voxf/mcs_drama2.ogg?ch=2&n=64466&o=474291",
+"file": "flac:audio/voxf/mcs_drama2.ogg?ch=0,1&n=115982&o=474291",
+"sprite": "mcs_drama2",
+"wav_bytes": 592948
+},
+"mc92": {
+"bytes": 246585,
+"dry": "flac:audio/voxf/mcs_drama2.ogg?ch=2&n=51798&o=592478",
+"file": "flac:audio/voxf/mcs_drama2.ogg?ch=0,1&n=115982&o=592478",
+"sprite": "mcs_drama2",
+"wav_bytes": 567612
+},
+"mc93": {
+"bytes": 246585,
+"dry": "flac:audio/voxf/mcs_drama2.ogg?ch=2&n=32655&o=710665",
+"file": "flac:audio/voxf/mcs_drama2.ogg?ch=0,1&n=115982&o=710665",
+"sprite": "mcs_drama2",
+"wav_bytes": 529326
+},
+"mc94": {
+"bytes": 246585,
+"dry": "flac:audio/voxf/mcs_drama2.ogg?ch=2&n=46563&o=828852",
+"file": "flac:audio/voxf/mcs_drama2.ogg?ch=0,1&n=115982&o=828852",
+"sprite": "mcs_drama2",
+"wav_bytes": 557142
+},
+"mc95": {
+"bytes": 269291,
+"dry": "flac:audio/voxf/mcs_drama3.ogg?ch=2&n=63251&o=0",
+"file": "flac:audio/voxf/mcs_drama3.ogg?ch=0,1&n=115982&o=0",
+"sprite": "mcs_drama3",
+"wav_bytes": 590518
+},
+"mc96": {
+"bytes": 269291,
+"dry": "flac:audio/voxf/mcs_drama3.ogg?ch=2&n=61202&o=118187",
+"file": "flac:audio/voxf/mcs_drama3.ogg?ch=0,1&n=115982&o=118187",
+"sprite": "mcs_drama3",
+"wav_bytes": 586420
+},
+"mc97": {
+"bytes": 269231,
+"dry": "flac:audio/voxf/mcs_drama3.ogg?ch=2&n=71181&o=236374",
+"file": "flac:audio/voxf/mcs_drama3.ogg?ch=0,1&n=115956&o=236374",
+"sprite": "mcs_drama3",
+"wav_bytes": 606274
+},
+"mc_fx_flash": {
+"bytes": 106329,
+"file": "flac:audio/voxf/mc_fx_flash.ogg?ch=0,1&n=83666",
+"wav_bytes": 334708
+},
+"mc_fx_gong": {
+"bundle": "hwb_fx4",
+"bytes": 306520,
+"file": "flac:audio/voxf/hwb_fx4.ogg?ch=4,5&n=374554",
+"wav_bytes": 1498260
+},
+"mc_fx_reveal": {
+"bundle": "hwb_fx4",
+"bytes": 306520,
+"file": "flac:audio/voxf/hwb_fx4.ogg?ch=6,7&n=288246",
+"wav_bytes": 1153028
+},
+"p01": {
+"bytes": 959680,
+"dry": "flac:audio/voxf/p01.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/p01.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"p02": {
+"bytes": 1132697,
+"dry": "flac:audio/voxf/p02.ogg?ch=2&n=330750",
+"file": "flac:audio/voxf/p02.ogg?ch=0,1&n=330750",
+"wav_bytes": 1984588
+},
+"p03": {
+"bytes": 1062819,
+"dry": "flac:audio/voxf/p03.ogg?ch=2&n=318315",
+"file": "flac:audio/voxf/p03.ogg?ch=0,1&n=318315",
+"wav_bytes": 1909978
+},
+"p04": {
+"bytes": 1091214,
+"dry": "flac:audio/voxf/p04.ogg?ch=2&n=318315",
+"file": "flac:audio/voxf/p04.ogg?ch=0,1&n=318315",
+"wav_bytes": 1909978
+},
+"s01": {
+"bytes": 134995,
+"dry": "flac:audio/voxf/s01.ogg?ch=2&n=21228",
+"file": "flac:audio/voxf/s01.ogg?ch=0,1&n=86528",
+"wav_bytes": 388656
+},
+"s02": {
+"bytes": 178331,
+"dry": "flac:audio/voxf/s02.ogg?ch=2&n=34846",
+"file": "flac:audio/voxf/s02.ogg?ch=0,1&n=108131",
+"wav_bytes": 502304
+},
+"s03": {
+"bytes": 138990,
+"dry": "flac:audio/voxf/s03.ogg?ch=2&n=24674",
+"file": "flac:audio/voxf/s03.ogg?ch=0,1&n=99125",
+"wav_bytes": 445936
+},
+"s04": {
+"bytes": 87586,
+"dry": "flac:audio/voxf/s04.ogg?ch=2&n=15963",
+"file": "flac:audio/voxf/s04.ogg?ch=0,1&n=92686",
+"wav_bytes": 402758
+},
+"s05": {
+"bytes": 117962,
+"dry": "flac:audio/voxf/s05.ogg?ch=2&n=27912",
+"file": "flac:audio/voxf/s05.ogg?ch=0,1&n=96368",
+"wav_bytes": 441384
+},
+"s06": {
+"bytes": 177168,
+"dry": "flac:audio/voxf/s06.ogg?ch=2&n=29407",
+"file": "flac:audio/voxf/s06.ogg?ch=0,1&n=104227",
+"wav_bytes": 475810
+},
+"s07": {
+"bytes": 157279,
+"dry": "flac:audio/voxf/s07.ogg?ch=2&n=27152",
+"file": "flac:audio/voxf/s07.ogg?ch=0,1&n=99067",
+"wav_bytes": 450660
+},
+"s08": {
+"bytes": 128665,
+"dry": "flac:audio/voxf/s08.ogg?ch=2&n=17344",
+"file": "flac:audio/voxf/s08.ogg?ch=0,1&n=88718",
+"wav_bytes": 389648
+},
+"s09": {
+"bytes": 147681,
+"dry": "flac:audio/voxf/s09.ogg?ch=2&n=34914",
+"file": "flac:audio/voxf/s09.ogg?ch=0,1&n=87796",
+"wav_bytes": 421100
+},
+"s10": {
+"bytes": 171136,
+"dry": "flac:audio/voxf/s10.ogg?ch=2&n=33970",
+"file": "flac:audio/voxf/s10.ogg?ch=0,1&n=94507",
+"wav_bytes": 446056
+},
+"s11": {
+"bytes": 138006,
+"dry": "flac:audio/voxf/s11.ogg?ch=2&n=17826",
+"file": "flac:audio/voxf/s11.ogg?ch=0,1&n=88702",
+"wav_bytes": 390548
+},
+"s12": {
+"bytes": 194026,
+"dry": "flac:audio/voxf/s12.ogg?ch=2&n=33849",
+"file": "flac:audio/voxf/s12.ogg?ch=0,1&n=108660",
+"wav_bytes": 502426
+},
+"s13": {
+"bytes": 165784,
+"dry": "flac:audio/voxf/s13.ogg?ch=2&n=30012",
+"file": "flac:audio/voxf/s13.ogg?ch=0,1&n=103018",
+"wav_bytes": 472184
+},
+"s14": {
+"bytes": 155681,
+"dry": "flac:audio/voxf/s14.ogg?ch=2&n=24739",
+"file": "flac:audio/voxf/s14.ogg?ch=0,1&n=99620",
+"wav_bytes": 448046
+},
+"s15": {
+"bytes": 127971,
+"dry": "flac:audio/voxf/s15.ogg?ch=2&n=29368",
+"file": "flac:audio/voxf/s15.ogg?ch=0,1&n=101454",
+"wav_bytes": 464640
+},
+"s16": {
+"bytes": 165202,
+"dry": "flac:audio/voxf/s16.ogg?ch=2&n=30515",
+"file": "flac:audio/voxf/s16.ogg?ch=0,1&n=89516",
+"wav_bytes": 419182
+},
+"s17": {
+"bytes": 84292,
+"dry": "flac:audio/voxf/s17.ogg?ch=2&n=15100",
+"file": "flac:audio/voxf/s17.ogg?ch=0,1&n=92098",
+"wav_bytes": 398680
+},
+"s18": {
+"bytes": 134960,
+"dry": "flac:audio/voxf/s18.ogg?ch=2&n=18996",
+"file": "flac:audio/voxf/s18.ogg?ch=0,1&n=88940",
+"wav_bytes": 393840
+},
+"s19": {
+"bytes": 177970,
+"dry": "flac:audio/voxf/s19.ogg?ch=2&n=31577",
+"file": "flac:audio/voxf/s19.ogg?ch=0,1&n=103744",
+"wav_bytes": 478218
+},
+"s20": {
+"bytes": 150629,
+"dry": "flac:audio/voxf/s20.ogg?ch=2&n=23287",
+"file": "flac:audio/voxf/s20.ogg?ch=0,1&n=94966",
+"wav_bytes": 426526
+},
+"s21": {
+"bytes": 133056,
+"dry": "flac:audio/voxf/s21.ogg?ch=2&n=16140",
+"file": "flac:audio/voxf/s21.ogg?ch=0,1&n=90916",
+"wav_bytes": 396032
+},
+"s22": {
+"bytes": 134700,
+"dry": "flac:audio/voxf/s22.ogg?ch=2&n=17966",
+"file": "flac:audio/voxf/s22.ogg?ch=0,1&n=88312",
+"wav_bytes": 389268
+},
+"t01": {
+"bytes": 154745,
+"dry": "flac:audio/voxf/t01.ogg?ch=2&n=46175",
+"file": "flac:audio/voxf/t01.ogg?ch=0,1&n=64709",
+"wav_bytes": 351274
+},
+"t02": {
+"bytes": 178054,
+"dry": "flac:audio/voxf/t02.ogg?ch=2&n=48795",
+"file": "flac:audio/voxf/t02.ogg?ch=0,1&n=66331",
+"wav_bytes": 363002
+},
+"t03": {
+"bytes": 179434,
+"dry": "flac:audio/voxf/t03.ogg?ch=2&n=45166",
+"file": "flac:audio/voxf/t03.ogg?ch=0,1&n=72354",
+"wav_bytes": 379836
+},
+"t04": {
+"bytes": 257177,
+"dry": "flac:audio/voxf/t04.ogg?ch=2&n=58543",
+"file": "flac:audio/voxf/t04.ogg?ch=0,1&n=122679",
+"wav_bytes": 607890
+},
+"t05": {
+"bytes": 133004,
+"dry": "flac:audio/voxf/t05.ogg?ch=2&n=51806",
+"file": "flac:audio/voxf/t05.ogg?ch=0,1&n=72902",
+"wav_bytes": 395308
+},
+"t06": {
+"bytes": 145924,
+"dry": "flac:audio/voxf/t06.ogg?ch=2&n=40632",
+"file": "flac:audio/voxf/t06.ogg?ch=0,1&n=65446",
+"wav_bytes": 343136
+},
+"t07": {
+"bytes": 159618,
+"dry": "flac:audio/voxf/t07.ogg?ch=2&n=41344",
+"file": "flac:audio/voxf/t07.ogg?ch=0,1&n=62630",
+"wav_bytes": 333296
+},
+"t08": {
+"bytes": 210395,
+"dry": "flac:audio/voxf/t08.ogg?ch=2&n=52656",
+"file": "flac:audio/voxf/t08.ogg?ch=0,1&n=124085",
+"wav_bytes": 601740
+},
+"t09": {
+"bytes": 218111,
+"dry": "flac:audio/voxf/t09.ogg?ch=2&n=89496",
+"file": "flac:audio/voxf/t09.ogg?ch=0,1&n=143517",
+"wav_bytes": 753148
+},
+"t10": {
+"bytes": 171780,
+"dry": "flac:audio/voxf/t10.ogg?ch=2&n=50304",
+"file": "flac:audio/voxf/t10.ogg?ch=0,1&n=66375",
+"wav_bytes": 366196
+},
+"t11": {
+"bytes": 216285,
+"dry": "flac:audio/voxf/t11.ogg?ch=2&n=69633",
+"file": "flac:audio/voxf/t11.ogg?ch=0,1&n=81402",
+"wav_bytes": 464962
+},
+"t12": {
+"bytes": 245672,
+"dry": "flac:audio/voxf/t12.ogg?ch=2&n=65700",
+"file": "flac:audio/voxf/t12.ogg?ch=0,1&n=118412",
+"wav_bytes": 605136
+},
+"ts01": {
+"bytes": 102373,
+"dry": "flac:audio/voxf/w8_shots.ogg?ch=2&n=22074&o=0",
+"file": "flac:audio/voxf/w8_shots.ogg?ch=0,1&n=47538&o=0",
+"sprite": "w8_shots",
+"wav_bytes": 234388
+},
+"ts02": {
+"bytes": 106932,
+"dry": "flac:audio/voxf/w8_shots.ogg?ch=2&n=24900&o=49743",
+"file": "flac:audio/voxf/w8_shots.ogg?ch=0,1&n=49655&o=49743",
+"sprite": "w8_shots",
+"wav_bytes": 248508
+},
+"ts03": {
+"bytes": 111461,
+"dry": "flac:audio/voxf/w8_shots.ogg?ch=2&n=27615&o=101603",
+"file": "flac:audio/voxf/w8_shots.ogg?ch=0,1&n=51758&o=101603",
+"sprite": "w8_shots",
+"wav_bytes": 262350
+},
+"ts04": {
+"bytes": 112949,
+"dry": "flac:audio/voxf/w8_shots.ogg?ch=2&n=29269&o=155566",
+"file": "flac:audio/voxf/w8_shots.ogg?ch=0,1&n=52449&o=155566",
+"sprite": "w8_shots",
+"wav_bytes": 268422
+},
+"ts05": {
+"bytes": 116956,
+"dry": "flac:audio/voxf/w8_shots.ogg?ch=2&n=34527&o=210220",
+"file": "flac:audio/voxf/w8_shots.ogg?ch=0,1&n=54310&o=210220",
+"sprite": "w8_shots",
+"wav_bytes": 286382
+},
+"ts06": {
+"bytes": 116543,
+"dry": "flac:audio/voxf/w8_shots.ogg?ch=2&n=34772&o=266735",
+"file": "flac:audio/voxf/w8_shots.ogg?ch=0,1&n=54118&o=266735",
+"sprite": "w8_shots",
+"wav_bytes": 286104
+},
+"ts07": {
+"bytes": 126718,
+"dry": "flac:audio/voxf/w8_shots.ogg?ch=2&n=37329&o=323058",
+"file": "flac:audio/voxf/w8_shots.ogg?ch=0,1&n=58843&o=323058",
+"sprite": "w8_shots",
+"wav_bytes": 310118
+},
+"ts08": {
+"bytes": 121840,
+"dry": "flac:audio/voxf/w8_shots.ogg?ch=2&n=32279&o=384106",
+"file": "flac:audio/voxf/w8_shots.ogg?ch=0,1&n=56578&o=384106",
+"sprite": "w8_shots",
+"wav_bytes": 290958
+},
+"v01": {
+"bytes": 349939,
+"dry": "flac:audio/voxf/v01.ogg?ch=2&n=87467",
+"file": "flac:audio/voxf/v01.ogg?ch=0,1&n=158594",
+"wav_bytes": 809398
+},
+"v02": {
+"bytes": 289155,
+"dry": "flac:audio/voxf/v02.ogg?ch=2&n=116570",
+"file": "flac:audio/voxf/v02.ogg?ch=0,1&n=147358",
+"wav_bytes": 822660
+},
+"v03": {
+"bytes": 296532,
+"dry": "flac:audio/voxf/v03.ogg?ch=2&n=91605",
+"file": "flac:audio/voxf/v03.ogg?ch=0,1&n=168746",
+"wav_bytes": 858282
+},
+"v04": {
+"bytes": 278302,
+"dry": "flac:audio/voxf/v04.ogg?ch=2&n=65099",
+"file": "flac:audio/voxf/v04.ogg?ch=0,1&n=130383",
+"wav_bytes": 651818
+},
+"v05": {
+"bytes": 257564,
+"dry": "flac:audio/voxf/v05.ogg?ch=2&n=100920",
+"file": "flac:audio/voxf/v05.ogg?ch=0,1&n=133732",
+"wav_bytes": 736856
+},
+"v06": {
+"bytes": 332532,
+"dry": "flac:audio/voxf/v06.ogg?ch=2&n=87392",
+"file": "flac:audio/voxf/v06.ogg?ch=0,1&n=158747",
+"wav_bytes": 809860
+},
+"v07": {
+"bytes": 237946,
+"dry": "flac:audio/voxf/v07.ogg?ch=2&n=54515",
+"file": "flac:audio/voxf/v07.ogg?ch=0,1&n=98445",
+"wav_bytes": 502898
+},
+"v08": {
+"bytes": 172985,
+"dry": "flac:audio/voxf/v08.ogg?ch=2&n=42974",
+"file": "flac:audio/voxf/v08.ogg?ch=0,1&n=100691",
+"wav_bytes": 488800
+},
+"v09": {
+"bytes": 147400,
+"dry": "flac:audio/voxf/v09.ogg?ch=2&n=38660",
+"file": "flac:audio/voxf/v09.ogg?ch=0,1&n=121159",
+"wav_bytes": 562044
+},
+"v10": {
+"bytes": 180908,
+"dry": "flac:audio/voxf/v10.ogg?ch=2&n=42428",
+"file": "flac:audio/voxf/v10.ogg?ch=0,1&n=90447",
+"wav_bytes": 446732
+},
+"v11": {
+"bytes": 251709,
+"dry": "flac:audio/voxf/v11.ogg?ch=2&n=68313",
+"file": "flac:audio/voxf/v11.ogg?ch=0,1&n=163677",
+"wav_bytes": 791422
+},
+"v12": {
+"bytes": 342332,
+"dry": "flac:audio/voxf/v12.ogg?ch=2&n=92449",
+"file": "flac:audio/voxf/v12.ogg?ch=0,1&n=148715",
+"wav_bytes": 779846
+},
+"v13": {
+"bytes": 308146,
+"dry": "flac:audio/voxf/v13.ogg?ch=2&n=78629",
+"file": "flac:audio/voxf/v13.ogg?ch=0,1&n=154478",
+"wav_bytes": 775258
+},
+"v14": {
+"bytes": 278856,
+"dry": "flac:audio/voxf/v14.ogg?ch=2&n=65544",
+"file": "flac:audio/voxf/v14.ogg?ch=0,1&n=137585",
+"wav_bytes": 681516
+},
+"v15": {
+"bytes": 225944,
+"dry": "flac:audio/voxf/v15.ogg?ch=2&n=66257",
+"file": "flac:audio/voxf/v15.ogg?ch=0,1&n=148958",
+"wav_bytes": 728434
+},
+"v16": {
+"bytes": 220835,
+"dry": "flac:audio/voxf/v16.ogg?ch=2&n=87545",
+"file": "flac:audio/voxf/v16.ogg?ch=0,1&n=100730",
+"wav_bytes": 578098
+},
+"v17": {
+"bytes": 407591,
+"dry": "flac:audio/voxf/v17.ogg?ch=2&n=106871",
+"file": "flac:audio/voxf/v17.ogg?ch=0,1&n=184514",
+"wav_bytes": 951886
+},
+"v18": {
+"bytes": 302136,
+"dry": "flac:audio/voxf/v18.ogg?ch=2&n=110028",
+"file": "flac:audio/voxf/v18.ogg?ch=0,1&n=125793",
+"wav_bytes": 723316
+},
+"v19": {
+"bytes": 226868,
+"dry": "flac:audio/voxf/v19.ogg?ch=2&n=48487",
+"file": "flac:audio/voxf/v19.ogg?ch=0,1&n=111701",
+"wav_bytes": 543866
+},
+"v20": {
+"bytes": 428789,
+"dry": "flac:audio/voxf/v20.ogg?ch=2&n=106230",
+"file": "flac:audio/voxf/v20.ogg?ch=0,1&n=172617",
+"wav_bytes": 903016
+},
+"v21": {
+"bytes": 201082,
+"dry": "flac:audio/voxf/v21.ogg?ch=2&n=44203",
+"file": "flac:audio/voxf/v21.ogg?ch=0,1&n=111116",
+"wav_bytes": 532958
+},
+"v22": {
+"bytes": 218721,
+"dry": "flac:audio/voxf/v22.ogg?ch=2&n=53180",
+"file": "flac:audio/voxf/v22.ogg?ch=0,1&n=132681",
+"wav_bytes": 637172
+},
+"v23": {
+"bytes": 245614,
+"dry": "flac:audio/voxf/v23.ogg?ch=2&n=56535",
+"file": "flac:audio/voxf/v23.ogg?ch=0,1&n=123109",
+"wav_bytes": 605594
+},
+"v24": {
+"bytes": 226658,
+"dry": "flac:audio/voxf/v24.ogg?ch=2&n=49249",
+"file": "flac:audio/voxf/v24.ogg?ch=0,1&n=116043",
+"wav_bytes": 562758
+},
+"v25": {
+"bytes": 556202,
+"dry": "flac:audio/voxf/v25.ogg?ch=2&n=142421",
+"file": "flac:audio/voxf/v25.ogg?ch=0,1&n=208676",
+"wav_bytes": 1119634
+},
+"v26": {
+"bytes": 480173,
+"dry": "flac:audio/voxf/v26.ogg?ch=2&n=130277",
+"file": "flac:audio/voxf/v26.ogg?ch=0,1&n=173811",
+"wav_bytes": 955886
+},
+"v27": {
+"bytes": 613250,
+"dry": "flac:audio/voxf/v27.ogg?ch=2&n=158226",
+"file": "flac:audio/voxf/v27.ogg?ch=0,1&n=221057",
+"wav_bytes": 1200768
+},
+"v28": {
+"bytes": 474133,
+"dry": "flac:audio/voxf/v28.ogg?ch=2&n=126251",
+"file": "flac:audio/voxf/v28.ogg?ch=0,1&n=195121",
+"wav_bytes": 1033074
+},
+"v29": {
+"bytes": 535436,
+"dry": "flac:audio/voxf/v29.ogg?ch=2&n=148448",
+"file": "flac:audio/voxf/v29.ogg?ch=0,1&n=225876",
+"wav_bytes": 1200488
+},
+"v30": {
+"bytes": 379109,
+"dry": "flac:audio/voxf/v30.ogg?ch=2&n=95356",
+"file": "flac:audio/voxf/v30.ogg?ch=0,1&n=159289",
+"wav_bytes": 827956
+},
+"v31": {
+"bytes": 486517,
+"dry": "flac:audio/voxf/v31.ogg?ch=2&n=131547",
+"file": "flac:audio/voxf/v31.ogg?ch=0,1&n=179417",
+"wav_bytes": 980850
+},
+"v32": {
+"bytes": 386017,
+"dry": "flac:audio/voxf/v32.ogg?ch=2&n=138327",
+"file": "flac:audio/voxf/v32.ogg?ch=0,1&n=210166",
+"wav_bytes": 1117406
+},
+"v33": {
+"bytes": 515726,
+"dry": "flac:audio/voxf/v33.ogg?ch=2&n=136854",
+"file": "flac:audio/voxf/v33.ogg?ch=0,1&n=215068",
+"wav_bytes": 1134068
+},
+"v34": {
+"bytes": 296671,
+"dry": "flac:audio/voxf/v34.ogg?ch=2&n=88145",
+"file": "flac:audio/voxf/v34.ogg?ch=0,1&n=181322",
+"wav_bytes": 901666
+},
+"v35": {
+"bytes": 422896,
+"dry": "flac:audio/voxf/v35.ogg?ch=2&n=113681",
+"file": "flac:audio/voxf/v35.ogg?ch=0,1&n=188654",
+"wav_bytes": 982066
+},
+"v36": {
+"bytes": 299779,
+"dry": "flac:audio/voxf/v36.ogg?ch=2&n=82824",
+"file": "flac:audio/voxf/v36.ogg?ch=0,1&n=176359",
+"wav_bytes": 871172
+}
+}

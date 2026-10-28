@@ -1,0 +1,23 @@
+# Build outputs
+build/
+cmake-build-*/
+.cache/
+
+# Legacy web pack: audio and models come from the web-pack-v21 release (see legacy/web-pack/README.md)
+legacy/web-pack/site/
+legacy/web-pack/models/
+legacy/web-pack/inst/lib/
+legacy/web-pack/audio/lex/
+legacy/web-pack/out/*/
+legacy/web-pack/q8.log
+legacy/web-pack/s5.log
+
+# Future content bundle (download, don't commit)
+content/audio/
+
+# Tooling
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store

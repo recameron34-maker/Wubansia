@@ -1,0 +1,11 @@
+{
+  "name": "web-pack-tests",
+  "private": true,
+  "description": "jsdom smoke tests and bit-exact checks for the legacy web pack",
+  "scripts": {
+    "smoke": "QUICK=1 node smoke8.js && node smoke5.js"
+  },
+  "dependencies": {
+    "jsdom": "^24.1.3"
+  }
+}

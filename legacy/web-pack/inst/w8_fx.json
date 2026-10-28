@@ -1,0 +1,56 @@
+{
+ "fx8_riser": {
+  "path": "Samples/FX/Tech House/TH_FX_EndlessRiser-4bars_128bpm.wav",
+  "title": "Endless Riser",
+  "note": "Shepard riser: octave-spaced tones that climb forever, a noise swell on top; stops dead on the downbeat, 4 bars at 128 BPM",
+  "fam": "th",
+  "bpm": 128,
+  "bars": 4,
+  "ch": 2
+ },
+ "fx8_uplift": {
+  "path": "Samples/FX/Tech House/TH_FX_Uplifter-2bars_128bpm.wav",
+  "title": "Uplifter",
+  "note": "noise through a resonant band-pass sweeping up five octaves, with a phaser; 2 bars at 128 BPM",
+  "fam": "th",
+  "bpm": 128,
+  "bars": 2,
+  "ch": 2
+ },
+ "fx8_down": {
+  "path": "Samples/FX/Tech House/TH_FX_Downlifter-2bars_128bpm.wav",
+  "title": "Downlifter",
+  "note": "noise sweeping down with a falling sub, 2 bars at 128 BPM",
+  "fam": "th",
+  "bpm": 128,
+  "bars": 2,
+  "ch": 2
+ },
+ "fx8_backspin": {
+  "path": "Samples/FX/Groove House/GV_FX_Backspin.wav",
+  "title": "Backspin",
+  "note": "a bar of the groove-house chords and drums pulled backwards and slowing to a stop",
+  "fam": "gv",
+  "bpm": null,
+  "bars": null,
+  "ch": 2
+ },
+ "fx8_impact": {
+  "path": "Samples/FX/Tech House/TH_FX_TechImpact.wav",
+  "title": "Tech Impact",
+  "note": "sub drop, distorted crack and a long dark tail",
+  "fam": "th",
+  "bpm": null,
+  "bars": null,
+  "ch": 2
+ },
+ "fx8_crash": {
+  "path": "Samples/FX/Groove House/GV_FX_CrashIntoReverb.wav",
+  "title": "Crash Into Reverb",
+  "note": "a crash into a long hall for transitions",
+  "fam": "gv",
+  "bpm": null,
+  "bars": null,
+  "ch": 2
+ }
+}

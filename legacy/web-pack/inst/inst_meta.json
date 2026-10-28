@@ -1,0 +1,908 @@
+{
+ "reese_24": {
+  "path": "Samples/Bass/Reese/Reese_C1.wav",
+  "root": 24,
+  "frames": 87652,
+  "ch": 1,
+  "loop": [
+   0,
+   87651
+  ],
+  "peak": 0.89,
+  "seam": 0.0
+ },
+ "reese_27": {
+  "path": "Samples/Bass/Reese/Reese_Eb1.wav",
+  "root": 27,
+  "frames": 88447,
+  "ch": 1,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.89,
+  "seam": 0.04
+ },
+ "reese_30": {
+  "path": "Samples/Bass/Reese/Reese_Fs1.wav",
+  "root": 30,
+  "frames": 87725,
+  "ch": 1,
+  "loop": [
+   0,
+   87724
+  ],
+  "peak": 0.89,
+  "seam": 0.0
+ },
+ "reese_33": {
+  "path": "Samples/Bass/Reese/Reese_A1.wav",
+  "root": 33,
+  "frames": 88200,
+  "ch": 1,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.89,
+  "seam": -37.63
+ },
+ "reese_36": {
+  "path": "Samples/Bass/Reese/Reese_C2.wav",
+  "root": 36,
+  "frames": 88326,
+  "ch": 1,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.89,
+  "seam": -0.01
+ },
+ "reese_39": {
+  "path": "Samples/Bass/Reese/Reese_Eb2.wav",
+  "root": 39,
+  "frames": 88447,
+  "ch": 1,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.89,
+  "seam": 0.0
+ },
+ "reese_42": {
+  "path": "Samples/Bass/Reese/Reese_Fs2.wav",
+  "root": 42,
+  "frames": 88201,
+  "ch": 1,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.89,
+  "seam": 0.0
+ },
+ "reese_45": {
+  "path": "Samples/Bass/Reese/Reese_A2.wav",
+  "root": 45,
+  "frames": 88200,
+  "ch": 1,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.89,
+  "seam": -0.01
+ },
+ "reese_48": {
+  "path": "Samples/Bass/Reese/Reese_C3.wav",
+  "root": 48,
+  "frames": 88326,
+  "ch": 1,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.89,
+  "seam": 0.0
+ },
+ "reese_51": {
+  "path": "Samples/Bass/Reese/Reese_Eb3.wav",
+  "root": 51,
+  "frames": 88164,
+  "ch": 1,
+  "loop": [
+   0,
+   88163
+  ],
+  "peak": 0.89,
+  "seam": 0.0
+ },
+ "reese_54": {
+  "path": "Samples/Bass/Reese/Reese_Fs3.wav",
+  "root": 54,
+  "frames": 88201,
+  "ch": 1,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.89,
+  "seam": 0.0
+ },
+ "reese_57": {
+  "path": "Samples/Bass/Reese/Reese_A3.wav",
+  "root": 57,
+  "frames": 88200,
+  "ch": 1,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.89,
+  "seam": 0.0
+ },
+ "reese_60": {
+  "path": "Samples/Bass/Reese/Reese_C4.wav",
+  "root": 60,
+  "frames": 88158,
+  "ch": 1,
+  "loop": [
+   0,
+   88157
+  ],
+  "peak": 0.89,
+  "seam": -3.45
+ },
+ "organ_36": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_C2.wav",
+  "root": 36,
+  "frames": 41082,
+  "ch": 1,
+  "loop": [
+   14112,
+   41081
+  ],
+  "peak": 0.8080051622834942,
+  "seam": -0.04
+ },
+ "organ_39": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_Eb2.wav",
+  "root": 39,
+  "frames": 41327,
+  "ch": 1,
+  "loop": [
+   14112,
+   41326
+  ],
+  "peak": 0.89,
+  "seam": -0.07
+ },
+ "organ_42": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_Fs2.wav",
+  "root": 42,
+  "frames": 40811,
+  "ch": 1,
+  "loop": [
+   14112,
+   40810
+  ],
+  "peak": 0.7858520529346251,
+  "seam": -0.01
+ },
+ "organ_45": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_A2.wav",
+  "root": 45,
+  "frames": 40572,
+  "ch": 1,
+  "loop": [
+   14112,
+   40571
+  ],
+  "peak": 0.7830357126684709,
+  "seam": 0.07
+ },
+ "organ_48": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_C3.wav",
+  "root": 48,
+  "frames": 40408,
+  "ch": 1,
+  "loop": [
+   14112,
+   40407
+  ],
+  "peak": 0.8146348717992559,
+  "seam": -0.0
+ },
+ "organ_51": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_Eb3.wav",
+  "root": 51,
+  "frames": 40760,
+  "ch": 1,
+  "loop": [
+   14112,
+   40759
+  ],
+  "peak": 0.8089079652986337,
+  "seam": 0.15
+ },
+ "organ_54": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_Fs3.wav",
+  "root": 54,
+  "frames": 40811,
+  "ch": 1,
+  "loop": [
+   14112,
+   40810
+  ],
+  "peak": 0.807886786300603,
+  "seam": 0.07
+ },
+ "organ_57": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_A3.wav",
+  "root": 57,
+  "frames": 40572,
+  "ch": 1,
+  "loop": [
+   14112,
+   40571
+  ],
+  "peak": 0.7948774076385289,
+  "seam": 0.43
+ },
+ "organ_60": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_C4.wav",
+  "root": 60,
+  "frames": 40745,
+  "ch": 1,
+  "loop": [
+   14112,
+   40744
+  ],
+  "peak": 0.8144600055659686,
+  "seam": 0.02
+ },
+ "organ_63": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_Eb4.wav",
+  "root": 63,
+  "frames": 40760,
+  "ch": 1,
+  "loop": [
+   14112,
+   40759
+  ],
+  "peak": 0.8622777122638421,
+  "seam": -0.14
+ },
+ "organ_66": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_Fs4.wav",
+  "root": 66,
+  "frames": 40572,
+  "ch": 1,
+  "loop": [
+   14112,
+   40571
+  ],
+  "peak": 0.8235061098104263,
+  "seam": -0.54
+ },
+ "organ_69": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_A4.wav",
+  "root": 69,
+  "frames": 40572,
+  "ch": 1,
+  "loop": [
+   14112,
+   40571
+  ],
+  "peak": 0.8383622537930912,
+  "seam": 0.13
+ },
+ "organ_72": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_C5.wav",
+  "root": 72,
+  "frames": 40576,
+  "ch": 1,
+  "loop": [
+   14112,
+   40575
+  ],
+  "peak": 0.7981541523316261,
+  "seam": -0.15
+ },
+ "organ_75": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_Eb5.wav",
+  "root": 75,
+  "frames": 40618,
+  "ch": 1,
+  "loop": [
+   14112,
+   40617
+  ],
+  "peak": 0.8011801650271311,
+  "seam": 1.15
+ },
+ "organ_78": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_Fs5.wav",
+  "root": 78,
+  "frames": 40572,
+  "ch": 1,
+  "loop": [
+   14112,
+   40571
+  ],
+  "peak": 0.8339404846633532,
+  "seam": -0.21
+ },
+ "organ_81": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_A5.wav",
+  "root": 81,
+  "frames": 40572,
+  "ch": 1,
+  "loop": [
+   14112,
+   40571
+  ],
+  "peak": 0.8237421304708796,
+  "seam": -1.24
+ },
+ "organ_84": {
+  "path": "Samples/Keys/GarageOrgan/GarageOrgan_C6.wav",
+  "root": 84,
+  "frames": 40576,
+  "ch": 1,
+  "loop": [
+   14112,
+   40575
+  ],
+  "peak": 0.7607061719933073,
+  "seam": 1.0
+ },
+ "strings_36": {
+  "path": "Samples/Keys/Strings/Strings_C2.wav",
+  "root": 36,
+  "frames": 88326,
+  "ch": 2,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.7501151855007206,
+  "seam": -0.13
+ },
+ "strings_39": {
+  "path": "Samples/Keys/Strings/Strings_Eb2.wav",
+  "root": 39,
+  "frames": 88447,
+  "ch": 2,
+  "loop": [
+   0,
+   88446
+  ],
+  "peak": 0.7530308880102047,
+  "seam": -0.03
+ },
+ "strings_42": {
+  "path": "Samples/Keys/Strings/Strings_Fs2.wav",
+  "root": 42,
+  "frames": 88201,
+  "ch": 2,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.6019468424386863,
+  "seam": -0.12
+ },
+ "strings_45": {
+  "path": "Samples/Keys/Strings/Strings_A2.wav",
+  "root": 45,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.5890384165022421,
+  "seam": -1.25
+ },
+ "strings_48": {
+  "path": "Samples/Keys/Strings/Strings_C3.wav",
+  "root": 48,
+  "frames": 88326,
+  "ch": 2,
+  "loop": [
+   0,
+   88325
+  ],
+  "peak": 0.7207704742698958,
+  "seam": -0.08
+ },
+ "strings_51": {
+  "path": "Samples/Keys/Strings/Strings_Eb3.wav",
+  "root": 51,
+  "frames": 88164,
+  "ch": 2,
+  "loop": [
+   0,
+   88163
+  ],
+  "peak": 0.602473772659498,
+  "seam": -0.03
+ },
+ "strings_54": {
+  "path": "Samples/Keys/Strings/Strings_Fs3.wav",
+  "root": 54,
+  "frames": 88201,
+  "ch": 2,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.540468492763689,
+  "seam": 0.01
+ },
+ "strings_57": {
+  "path": "Samples/Keys/Strings/Strings_A3.wav",
+  "root": 57,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.5125509403811495,
+  "seam": 2.7
+ },
+ "strings_60": {
+  "path": "Samples/Keys/Strings/Strings_C4.wav",
+  "root": 60,
+  "frames": 88158,
+  "ch": 2,
+  "loop": [
+   0,
+   88157
+  ],
+  "peak": 0.48526743456166577,
+  "seam": 0.66
+ },
+ "strings_63": {
+  "path": "Samples/Keys/Strings/Strings_Eb4.wav",
+  "root": 63,
+  "frames": 88164,
+  "ch": 2,
+  "loop": [
+   0,
+   88163
+  ],
+  "peak": 0.48154028222206796,
+  "seam": 0.67
+ },
+ "strings_66": {
+  "path": "Samples/Keys/Strings/Strings_Fs4.wav",
+  "root": 66,
+  "frames": 88201,
+  "ch": 2,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.4765462919039072,
+  "seam": -1.36
+ },
+ "strings_69": {
+  "path": "Samples/Keys/Strings/Strings_A4.wav",
+  "root": 69,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.5229057339957932,
+  "seam": -0.32
+ },
+ "strings_72": {
+  "path": "Samples/Keys/Strings/Strings_C5.wav",
+  "root": 72,
+  "frames": 88242,
+  "ch": 2,
+  "loop": [
+   0,
+   88241
+  ],
+  "peak": 0.49226043205293357,
+  "seam": -0.02
+ },
+ "strings_75": {
+  "path": "Samples/Keys/Strings/Strings_Eb5.wav",
+  "root": 75,
+  "frames": 88235,
+  "ch": 2,
+  "loop": [
+   0,
+   88234
+  ],
+  "peak": 0.4480036648830512,
+  "seam": 1.12
+ },
+ "strings_78": {
+  "path": "Samples/Keys/Strings/Strings_Fs5.wav",
+  "root": 78,
+  "frames": 88201,
+  "ch": 2,
+  "loop": [
+   0,
+   88200
+  ],
+  "peak": 0.48659542202824646,
+  "seam": -3.12
+ },
+ "strings_81": {
+  "path": "Samples/Keys/Strings/Strings_A5.wav",
+  "root": 81,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.4791545952687434,
+  "seam": -3.75
+ },
+ "strings_84": {
+  "path": "Samples/Keys/Strings/Strings_C6.wav",
+  "root": 84,
+  "frames": 88200,
+  "ch": 2,
+  "loop": [
+   0,
+   88199
+  ],
+  "peak": 0.49038258836289317,
+  "seam": -5.74
+ },
+ "rhodes_36_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_C2_hard.wav",
+  "root": 36,
+  "frames": 253710,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3492986560156543,
+  "vel": "hard"
+ },
+ "rhodes_36_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_C2_soft.wav",
+  "root": 36,
+  "frames": 252509,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.29283049101517983,
+  "vel": "soft"
+ },
+ "rhodes_39_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Eb2_hard.wav",
+  "root": 39,
+  "frames": 253346,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3490938938604288,
+  "vel": "hard"
+ },
+ "rhodes_39_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Eb2_soft.wav",
+  "root": 39,
+  "frames": 252220,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.32176237235361815,
+  "vel": "soft"
+ },
+ "rhodes_42_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Fs2_hard.wav",
+  "root": 42,
+  "frames": 252966,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.34741342264246167,
+  "vel": "hard"
+ },
+ "rhodes_42_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Fs2_soft.wav",
+  "root": 42,
+  "frames": 252086,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3099253051842044,
+  "vel": "soft"
+ },
+ "rhodes_45_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_A2_hard.wav",
+  "root": 45,
+  "frames": 252713,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3487632586161301,
+  "vel": "hard"
+ },
+ "rhodes_45_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_A2_soft.wav",
+  "root": 45,
+  "frames": 251547,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3294715654714477,
+  "vel": "soft"
+ },
+ "rhodes_48_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_C3_hard.wav",
+  "root": 48,
+  "frames": 253033,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3433568146187888,
+  "vel": "hard"
+ },
+ "rhodes_48_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_C3_soft.wav",
+  "root": 48,
+  "frames": 251330,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3179352775062756,
+  "vel": "soft"
+ },
+ "rhodes_51_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Eb3_hard.wav",
+  "root": 51,
+  "frames": 252501,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3462030245972871,
+  "vel": "hard"
+ },
+ "rhodes_51_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Eb3_soft.wav",
+  "root": 51,
+  "frames": 251119,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3238206041980111,
+  "vel": "soft"
+ },
+ "rhodes_54_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Fs3_hard.wav",
+  "root": 54,
+  "frames": 251997,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.34825955165568206,
+  "vel": "hard"
+ },
+ "rhodes_54_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Fs3_soft.wav",
+  "root": 54,
+  "frames": 251114,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.30616515188769433,
+  "vel": "soft"
+ },
+ "rhodes_57_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_A3_hard.wav",
+  "root": 57,
+  "frames": 251758,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.34584213438590666,
+  "vel": "hard"
+ },
+ "rhodes_57_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_A3_soft.wav",
+  "root": 57,
+  "frames": 250803,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.289761394631765,
+  "vel": "soft"
+ },
+ "rhodes_60_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_C4_hard.wav",
+  "root": 60,
+  "frames": 251509,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.342007509384891,
+  "vel": "hard"
+ },
+ "rhodes_60_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_C4_soft.wav",
+  "root": 60,
+  "frames": 250156,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3187274118867626,
+  "vel": "soft"
+ },
+ "rhodes_63_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Eb4_hard.wav",
+  "root": 63,
+  "frames": 250800,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.34588122887623723,
+  "vel": "hard"
+ },
+ "rhodes_63_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Eb4_soft.wav",
+  "root": 63,
+  "frames": 249694,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.33732060457126223,
+  "vel": "soft"
+ },
+ "rhodes_66_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Fs4_hard.wav",
+  "root": 66,
+  "frames": 250387,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.34038825620636703,
+  "vel": "hard"
+ },
+ "rhodes_66_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Fs4_soft.wav",
+  "root": 66,
+  "frames": 249183,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.33013814779998807,
+  "vel": "soft"
+ },
+ "rhodes_69_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_A4_hard.wav",
+  "root": 69,
+  "frames": 249961,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3468354868669147,
+  "vel": "hard"
+ },
+ "rhodes_69_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_A4_soft.wav",
+  "root": 69,
+  "frames": 248748,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.28654604498900155,
+  "vel": "soft"
+ },
+ "rhodes_72_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_C5_hard.wav",
+  "root": 72,
+  "frames": 249410,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.34825155978394573,
+  "vel": "hard"
+ },
+ "rhodes_72_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_C5_soft.wav",
+  "root": 72,
+  "frames": 248324,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.28095460565773905,
+  "vel": "soft"
+ },
+ "rhodes_75_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Eb5_hard.wav",
+  "root": 75,
+  "frames": 248773,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3485106717691349,
+  "vel": "hard"
+ },
+ "rhodes_75_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Eb5_soft.wav",
+  "root": 75,
+  "frames": 247498,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3180768692582276,
+  "vel": "soft"
+ },
+ "rhodes_78_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Fs5_hard.wav",
+  "root": 78,
+  "frames": 247931,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3405836921852063,
+  "vel": "hard"
+ },
+ "rhodes_78_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_Fs5_soft.wav",
+  "root": 78,
+  "frames": 246794,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3222216066923696,
+  "vel": "soft"
+ },
+ "rhodes_81_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_A5_hard.wav",
+  "root": 81,
+  "frames": 247219,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3510704032660884,
+  "vel": "hard"
+ },
+ "rhodes_81_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_A5_soft.wav",
+  "root": 81,
+  "frames": 246016,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.32001744641869945,
+  "vel": "soft"
+ },
+ "rhodes_84_hard": {
+  "path": "Samples/Keys/Rhodes/Rhodes_C6_hard.wav",
+  "root": 84,
+  "frames": 246496,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.3501474207948127,
+  "vel": "hard"
+ },
+ "rhodes_84_soft": {
+  "path": "Samples/Keys/Rhodes/Rhodes_C6_soft.wav",
+  "root": 84,
+  "frames": 245141,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.316946801842764,
+  "vel": "soft"
+ },
+ "dub_m7": {
+  "path": "Samples/Keys/DubChords/DubChord_Am7.wav",
+  "root": 57,
+  "frames": 55125,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.7517227262686783,
+  "chord": "m7"
+ },
+ "dub_m9": {
+  "path": "Samples/Keys/DubChords/DubChord_Am9.wav",
+  "root": 57,
+  "frames": 55125,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.6732779753651397,
+  "chord": "m9"
+ },
+ "dub_m11": {
+  "path": "Samples/Keys/DubChords/DubChord_Am11.wav",
+  "root": 57,
+  "frames": 55125,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.89,
+  "chord": "m11"
+ },
+ "dub_maj9": {
+  "path": "Samples/Keys/DubChords/DubChord_Amaj9.wav",
+  "root": 57,
+  "frames": 55125,
+  "ch": 1,
+  "loop": null,
+  "peak": 0.6616861597444211,
+  "chord": "maj9"
+ }
+}
