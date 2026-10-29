@@ -33,7 +33,7 @@ Needs CMake 3.25+, Ninja and a C++20 compiler:
 
 - First checkout: `git submodule update --init --recursive`
 - Configure and build: `cmake --preset release && cmake --build --preset release` (Debug: `cmake --preset debug && cmake --build --preset debug`)
-- Tests: `ctest --preset release --output-on-failure` (Linux without a display: `xvfb-run -a ctest --preset release --output-on-failure`)
+- Tests: `ctest --preset release --output-on-failure` (no display needed; the validators below handle that themselves)
 - Everything at once: `cmake --workflow --preset release`
 - Plugins land in `build/release/plugin/Wubansia_artefacts/Release/` (`VST3/`, `AU/`, `CLAP/`, `Standalone/`). Configuring with `-DWUBANSIA_COPY_PLUGINS=ON` also installs them: the VST3, AU and CLAP on macOS; the VST3 and CLAP on Linux (`~/.vst3`, `~/.clap`); on Windows only the VST3 (elevated prompt), so copy the CLAP by hand. The Standalone app is never copied.
 - macOS: re-sign the bundles ad hoc before validating, as CI does (ADR 0004): `for b in build/release/plugin/Wubansia_artefacts/Release/{VST3/Wubansia.vst3,AU/Wubansia.component,CLAP/Wubansia.clap,Standalone/Wubansia.app}; do codesign --force --sign - "$b"; done`

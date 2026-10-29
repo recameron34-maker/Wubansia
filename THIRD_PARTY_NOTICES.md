@@ -2,7 +2,7 @@
 
 Wubansia includes the third-party software below. This file gives each one's license and the notice text that license asks for. It is not legal advice.
 
-> **Re-check on macOS and Windows before M0 is done.** This list was built from `libs/JUCE/JUCE.spdx.json` and the license files in the pinned submodules, then checked against the Linux build on 2026-10-29. `ninja -C build/release -t deps` lists every file each object compiled, including the ones JUCE's unity files `#include`. A grep of those files' headers found the code with its own license that the SBOM leaves out (FreeType, stb, json.h, Unicode data), and `nm` on the binaries shows which formats keep it. `compile_commands.json` isn't enough: it lists only the unity files. Repeat this on each platform, and after any JUCE bump or change to the JUCE config flags.
+> **Re-check on macOS and Windows before M0 is done.** This list was built from `libs/JUCE/JUCE.spdx.json` and the license files in the pinned submodules, then checked against the Linux build on 2026-10-29. `ninja -C build/release -t deps` lists every file each object compiled, including the ones JUCE's unity files `#include`. A grep of those files' headers found the code with its own license that the SBOM leaves out (FreeType, stb, json.h, HarfBuzz's `hb-ucd.cc`, Unicode data), and `nm` on the binaries shows which formats keep it. `compile_commands.json` isn't enough: it lists only the unity files. Repeat this on each platform, and after any JUCE bump or change to the JUCE config flags.
 
 ## What ships, and why
 
@@ -15,6 +15,7 @@ M0 builds with `JUCE_USE_OGGVORBIS=0`, `JUCE_USE_OPUS=0`, `JUCE_USE_WEBP=0`, `JU
 | JUCE | 9.0.4 | JUCE 9 EULA, Starter tier (the AGPLv3 option is not used) | all formats | `libs/JUCE` |
 | zlib | 1.3.2 | Zlib | all formats | `libs/JUCE/modules/juce_core/zip/zlib` |
 | HarfBuzz | 14.2.1 | MIT-Modern-Variant | all formats | `libs/JUCE/modules/juce_graphics/fonts/harfbuzz` |
+| HarfBuzz `hb-ucd.cc` (Unicode functions) | in HarfBuzz 14.2.1 | ISC | all formats | `libs/JUCE/modules/juce_graphics/fonts/harfbuzz/hb-ucd.cc` |
 | SheenBidi | 2.9.0 | Apache-2.0 | all formats | `libs/JUCE/modules/juce_graphics/unicode/sheenbidi` |
 | Unicode Character Database (tables generated from it) | 17.0.0 in HarfBuzz | Unicode-3.0 | all formats | Generated tables in HarfBuzz (for example `hb-ucd-table.hh`), SheenBidi (`Source/*Lookup.c`) and JUCE (`juce_graphics/unicode/juce_UnicodeGenerated.cpp`) |
 | LunaSVG | 3.5.0 | MIT | all formats | `libs/JUCE/modules/juce_graphics/drawables/lunasvg` |
@@ -144,6 +145,26 @@ BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
 FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
 ON AN "AS IS" BASIS, AND THE COPYRIGHT HOLDER HAS NO OBLIGATION TO
 PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+```
+
+### HarfBuzz `hb-ucd.cc`
+
+This one HarfBuzz file is under the ISC license rather than HarfBuzz's own (`hb-ucd.cc`, lines 2-14):
+
+```
+Copyright (C) 2012 Grigori Goronzy <greg@kinoho.net>
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
 ### SheenBidi 2.9.0

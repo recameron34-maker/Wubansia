@@ -103,11 +103,11 @@ Sizes are relative: **S** = a session or two, **M** = several sessions, **L** = 
 
 ### M0. Foundations [S]
 Goal: an empty instrument that builds in CI and loads in your DAW.
-- [ ] Create the project from the Pamplejuce template. Pin JUCE as a submodule (latest stable 8.x or 9.x) and record the choice in `docs/decisions/0001-framework.md`.
-- [ ] Set the company/product names, plugin codes and bundle IDs. Formats: VST3, AU, Standalone; add CLAP through `clap-juce-extensions`.
-- [ ] Minimal processor: a sine voice on MIDI notes, one gain parameter, and state save/restore for it.
-- [ ] CI on macOS and Windows: build, Catch2 tests, pluginval at strictness 10, auval on macOS, and upload of the plugin binaries.
-- [ ] Fill in the real build/test commands in `CLAUDE.md`.
+- [x] Create the project from the Pamplejuce template. Pin JUCE as a submodule (latest stable 8.x or 9.x) and record the choice in `docs/decisions/0001-framework.md`. *(JUCE 9.0.4.)*
+- [x] Set the company/product names, plugin codes and bundle IDs. Formats: VST3, AU, Standalone; add CLAP through `clap-juce-extensions`. *(ADR 0002.)*
+- [x] Minimal processor: a sine voice on MIDI notes, one gain parameter, and state save/restore for it.
+- [ ] CI on macOS and Windows: build, Catch2 tests, pluginval at strictness 10, auval on macOS, and upload of the plugin binaries. *(macOS and Linux green. Windows is manual-only and not yet run: only macOS is needed for now, see the ADR 0004 update of 2026-10-29.)*
+- [x] Fill in the real build/test commands in `CLAUDE.md`.
 
 **Done when:** CI is green on both platforms; pluginval and auval pass; you load the plugin in your DAW, play a note, save, reopen and get the same gain.
 
@@ -308,7 +308,7 @@ Goal: from kit player to an instrument you can perform, which keeps producing ne
 | Component | License | Note |
 |---|---|---|
 | JUCE | AGPLv3 or commercial (Starter free under a revenue threshold, then Indie/Pro) | JUCE 9 kept JUCE 8's terms; check before selling |
-| Third-party code bundled in JUCE | Zlib, libpng-2.0, IJG, BSD-3-Clause, MIT, MIT-Modern-Variant, Apache-2.0, FTL, Unicode-3.0, public domain | See `libs/JUCE/JUCE.spdx.json` and the file headers (FreeType and stb inside PlutoVG, json.h inside the VST3 SDK, Unicode data); notices in `THIRD_PARTY_NOTICES.md` |
+| Third-party code bundled in JUCE | Zlib, libpng-2.0, IJG, BSD-3-Clause, MIT, MIT-Modern-Variant, ISC, Apache-2.0, FTL, Unicode-3.0, public domain | See `libs/JUCE/JUCE.spdx.json` and the file headers (FreeType and stb inside PlutoVG, json.h inside the VST3 SDK, HarfBuzz's `hb-ucd.cc`, Unicode data); notices in `THIRD_PARTY_NOTICES.md` |
 | VST3 SDK | MIT (since VST 3.8, Oct 2025) | |
 | CLAP, clap-juce-extensions | MIT | |
 | Signalsmith Stretch | MIT | |

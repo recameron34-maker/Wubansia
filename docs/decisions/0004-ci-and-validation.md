@@ -40,7 +40,7 @@ The clap-validator hashes match the digests on its release page. The pluginval p
 
 **Report-only:** clap-validator 0.4.1 on Linux, as its own step with `continue-on-error`: `--only-failed --exclude 'state-reproducibility-.*'`. Those tests fail until clap-juce-extensions PR #193 merges (still open on 2026-10-28). After that (M3) it runs on all OSes and blocks.
 
-**macOS ad-hoc re-sign, mandatory, in this order:** build → `codesign --force --sign -` on the VST3, AU, CLAP and app → `codesign --verify --strict --verbose=2` on each, which must pass → `lipo -archs` must show `x86_64 arm64` → install the signed AU → `killall -9 AudioComponentRegistrar || true` → poll `auval -a` for up to 60 s → validate → package. Without it: JUCE signs the VST3 before writing `moduleinfo.json` into it, so the signature is broken; the AU and app are only signed by JUCE's copy step, which CI doesn't run; and the CLAP is never signed.
+**macOS ad-hoc re-sign, mandatory, in this order:** build → `codesign --force --sign -` on the VST3, AU, CLAP and app → `codesign --verify --strict --verbose=2` on each, which must pass → `lipo -archs` must show `x86_64 arm64` → install the signed AU → `killall -9 AudioComponentRegistrar || true` → poll `auval -a` for up to 60 s → validate → package. Without it: JUCE signs the VST3 before writing `moduleinfo.json` into it, so the signature is broken; the AU is signed only by JUCE's copy step, which CI doesn't run; JUCE never signs the Standalone app bundle (its copy step skips app targets); and the CLAP is never signed.
 
 **Artifacts:** one unsigned zip per desktop OS (`ditto` on macOS, `7z` on Windows) holding the plugins and `THIRD_PARTY_NOTICES.md`, which the bundled licenses require next to the binaries. Uploaded with `actions/upload-artifact@v7`, `archive: false`, kept 14 days. Linux uploads nothing.
 
@@ -58,6 +58,6 @@ The clap-validator hashes match the digests on its release page. The pluginval p
 
 ## Sources
 - Runners: https://github.com/actions/runner-images README and issues #13518, #14254, #14748. Prices and quotas: `github/docs` at `57f571f`, `data/reusables/billing/actions-standard-runner-prices.md`, `actions-included-quotas.md`, `content/billing/concepts/product-billing/github-actions.md:141`, `content/billing/how-tos/set-up-budgets.md:34`. Caches and `if`: `content/actions/reference/workflows-and-actions/dependency-caching.md:243,247`, `data/reusables/actions/jobs/section-using-conditions-to-control-job-execution.md:4`.
-- Re-sign: `libs/JUCE/extras/Build/CMake/JUCEUtils.cmake:1051,1166-1174,1285,1296`; `libs/clap-juce-extensions/cmake/ClapTargetHelpers.cmake:111-116`. LTO: `libs/JUCE/extras/Build/CMake/JUCEHelperTargets.cmake:158-162`.
+- Re-sign: `libs/JUCE/extras/Build/CMake/JUCEUtils.cmake:1047-1051,1166-1174,1285,1296`; `libs/clap-juce-extensions/cmake/ClapTargetHelpers.cmake:111-116`. LTO: `libs/JUCE/extras/Build/CMake/JUCEHelperTargets.cmake:158-162`.
 - https://github.com/Tracktion/pluginval/releases/tag/v1.0.4 and `Source/tests/BasicTests.cpp:692` at that tag; https://github.com/free-audio/clap-validator/releases/tag/0.4.1 and `src/commands/validate.rs:34-46`; https://github.com/free-audio/clap-juce-extensions/pull/193.
 - sccache `docs/Configuration.md` (`SCCACHE_CACHE_MULTIARCH`); `actions/upload-artifact@v7` `action.yml:48-53`.
