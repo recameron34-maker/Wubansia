@@ -48,3 +48,11 @@ Method: 4th-order Butterworth band-pass, zero-phase; a 5 ms RMS envelope; the fa
 - The other sounds: "mostly good", no notes per sound. The QA failures measured during planning (stereo low end on 6 sounds, DC on 4, tails on 4) get fixed in the new recipes, from S1a on (plan §2.2).
 
 **Status:** open until you sign off the new kick.
+
+## 2026-10-29 · FUT01 · round 1 (S1a) · sent, ratings pending
+
+The 12 S1a sounds and the 4-bar context loop, dry and wet, as WAV copies of the 48 kHz / 24-bit masters (`s1a-listen`, not in git: `tools/sound/render.py --kit FUT01 --set s1a` and `tools/sound/listen.py` rebuild it). Kick, snare and hat come in two characters each (A/B). The kicks are the de-mudded "split" (A) and "tight" (B) from round 0's shoot-out, so this round also closes round 0. Not blind: the blind player arrives in S1d, so the names are plain.
+
+**Asked:** per sound keep / fix / cut, Cool 1–5 and "one kit?", the A/B picks, and the conditions in the template's header. The gate is plan §7's: at least 8 of 12 kept after one fix round, a median Cool ≥ 4, and "one kit?" yes on at least 10.
+
+**Measured before sending:** every QA check passes on all 133 masters (`qa_report.md`). Mud gate, worst file: Kick Split falls 30 dB in 60 ms and stays 56 dB under its sub; Kick Tight in 57 ms and 54 dB; the context loop's kick and reese, per gap, 25 dB under the sub.

@@ -257,7 +257,7 @@ macOS first; Windows when you ask.
 | The MIDI still sounds machine-made, or we tune to the metrics (Goodhart) | Only 10 two-sided gates; the hook and the form grammar; blind rounds with absolute floors and pre-registered seeds; the N0 ablation; the S1d gate before effects polish | S1b–S1d |
 | The sounds aren't "cool", or don't sound like one kit | S1a gates on Cool ≥ 4, not just "kept"; a commercial reference track; A/B characters; a wet context loop; one alloy and one voice blend | S1a, S1c |
 | Muddy low end (your feedback on the prototypes) | The mud gate on every kick, bass, tom and boom, on single hits and a 2-step loop; about 100 Hz high-pass on everything else with low end | S1a onward |
-| Kokoro hasn't run in a cloud session yet | The model download is the first S1a task. If it's blocked in the cloud, the vocal steps run on your Mac through Remote Control. | S1a |
+| Kokoro hasn't run in a cloud session yet | Resolved in S1a: Kokoro and Whisper run in the cloud session (sherpa-onnx), seeded per take. If a later session can't download the models, the vocal steps run on your Mac through Remote Control. | S1a |
 | WKWebView misbehaves in your DAW (focus, first click, the reload on every open) | The S1f spike before integration; `withInitialisationData`, so the page never flashes defaults; the native placeholder | S1f |
 | Drag-out from the WebView fails | The native drag strip | S1f |
 | RAM and load time | About 206 MB as float32 for the core set; staged loading; the shared cache; full depth only after the go, with M3's packing | S1c, S1d, M3 |
