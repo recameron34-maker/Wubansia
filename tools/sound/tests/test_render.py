@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 import unittest.mock
 from pathlib import Path
@@ -19,6 +20,7 @@ from tools.sound import dsp48 as D
 from tools.sound import qa as Q
 from tools.sound import render as R
 from tools.sound.item import Item, Out, UnknownName
+from tools.sound import kits
 from tools.sound.kits import fut01
 from tools.sound.tests import fixtures as FX
 
@@ -62,6 +64,10 @@ def clean_kick(take):
 
 def muddy_kick(take):
     return FX.muddy_kick(take.vel)
+
+
+def warm(take):
+    return Out(FX.warm_bass(30), loop=(0, int(FX.BASS_S * SR)))
 
 
 def main(*argv):
@@ -111,27 +117,38 @@ class TestItems(unittest.TestCase):
         self.assertEqual(a.rng('x').uniform(), D.rng('FUT01', 'Test', 1, 1, 'x').uniform())
 
     def test_registry(self):
-        items = fut01.items()
+        items = kits.items(fut01)
         names = [i.name for i in items]
         self.assertEqual(len(names), len(set(names)))
         self.assertIn('Ping', names)
-        self.assertEqual(['Ping'], [i.name for i in fut01.items(sets=('example',))])
-        self.assertEqual(['Ping'], [i.name for i in fut01.items(only=('Ping',))])
+        self.assertEqual(['Ping'], [i.name for i in kits.items(fut01, sets=('example',))])
+        self.assertEqual(['Ping'], [i.name for i in kits.items(fut01, only=('Ping',))])
         with self.assertRaises(UnknownName):
-            fut01.items(only=('NoSuchSound',))
+            kits.items(fut01, only=('NoSuchSound',))
+
+    def test_an_empty_recipe_package_has_no_items(self):
+        """A new kit's package before its designer adds a module (a temporary one: the real stubs fill up)."""
+        name = 'wubansia_empty_recipes'
+        with tempfile.TemporaryDirectory() as tmp, unittest.mock.patch.object(sys, 'path', [tmp, *sys.path]):
+            (Path(tmp) / name).mkdir()
+            (Path(tmp) / name / '__init__.py').write_text('')
+            try:
+                self.assertEqual([], kits.items(types.SimpleNamespace(KIT='TEST', RECIPES=name)))
+            finally:
+                sys.modules.pop(name, None)
 
     def test_duplicate_names_are_refused(self):
         a = Item('Perc', 'Same', 'perc', blip)
         with self.assertRaises(ValueError):
-            fut01.check_unique([('one', a), ('two', a)])
+            kits.check_unique([('one', a), ('two', a)])
 
     def test_kit_dna(self):
         self.assertEqual((1.0, 1.483, 1.932, 2.546, 3.011, 3.715, 4.468), fut01.ALLOY)
+        self.assertEqual(fut01.ALLOY, fut01.RATIOS)
         self.assertAlmostEqual(1.0, sum(w for _, w in fut01.VOICE))
-        self.assertEqual(('FUT01', 134.0, 'F# minor', '11A', 'FUT01/space'),
-                         (fut01.KIT, fut01.BPM, fut01.KEY, fut01.CAMELOT, fut01.SPACE_SEED))
-        self.assertTrue(all(fut01.in_key(n) for n in (30, 42, 44, 45, 47, 49, 50, 52)))
-        self.assertFalse(fut01.in_key(43))
+        self.assertEqual(('FUT01', 134.0, 'F# minor', '11A', 'FUT01/space', 0.57, '2step'),
+                         (fut01.KIT, fut01.BPM, fut01.KEY, fut01.CAMELOT, fut01.SPACE_SEED, fut01.SWING, fut01.GROOVE))
+        self.assertEqual('tools.sound.recipes.fut01', fut01.RECIPES)
 
 
 class TestRender(unittest.TestCase):
@@ -174,7 +191,7 @@ class TestRender(unittest.TestCase):
                 it = Item('Drums', 'TestKick', 'kick', render, layers=(0.4, 0.7, 1.0), rr=2, root=fut01.KICK_NOTE)
                 entry = R.qa_item(R.render_item(it, 'FUT01'), Path(tmp), fut01)
                 names = {c['name'] for f in entry['files'] for c in f['checks']} | {c['name'] for c in entry['checks']}
-                self.assertTrue({'mud_150_400_fall', 'mud_share', 'loop_mud_vs_sub', 'tuning'} <= names)
+                self.assertTrue({'mud_150_400_fall', 'mud_share', 'loop_mud_vs_sub', 'tuning', 'kick_crest'} <= names)
                 failed = {c['name'] for _, c in R.failures(entry)}
                 if ok:
                     self.assertEqual(set(), failed)
@@ -205,6 +222,25 @@ class TestRender(unittest.TestCase):
             self.assertIn('## Exceptions', md)
             self.assertIn('| FX/Blip | cut_end | tonal=False | it ends on the downbeat |', md)
             self.assertIn('numpy', md)
+
+    def test_report_tables_for_the_kick_crest_and_bass_body(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            kick = R.qa_item(R.render_item(Item('Drums', 'TestKick', 'kick', clean_kick, layers=(0.4, 1.0),
+                                                root=fut01.KICK_NOTE), 'FUT01'), Path(tmp), fut01)
+            crest = [{c['name']: c for c in f['checks']}['kick_crest'] for f in kick['files']]
+            self.assertEqual(['n/a', 'pass'], [c['status'] for c in crest])      # the top layer only
+            bass = R.qa_item(R.render_item(Item('Bass', 'Warm', 'bass', warm, loop=True, root=30,
+                                                qa={'mud': 'bass-body', 'why': 'B, warm'}), 'FUT01'), Path(tmp), fut01)
+            self.assertIn('body_over_saw', {c['name'] for c in bass['files'][0]['checks']})
+            report = {'kit': 'FUT01', 'title': fut01.TITLE, 'set': None, 'environment': R.environment(),
+                      'items': [kick, bass], 'summary': {'items': 2, 'files': 3, 'failed_checks': 0,
+                                                         'failed_items': []}}
+            R.write_reports(Path(tmp), report)
+            md = (Path(tmp) / 'qa_report.md').read_text()
+            self.assertIn('## Kick crest', md)
+            self.assertIn(f"| Drums/TestKick | {crest[1]['value']:g} |", md)
+            self.assertIn('## Bass body', md)
+            self.assertIn('| Bass/Warm |', md)
 
     def test_report_carries_loop_points_and_meta(self):
         with tempfile.TemporaryDirectory() as tmp:

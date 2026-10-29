@@ -14,7 +14,7 @@ from tools.sound import dsp48 as D
 from tools.sound import qa
 
 GROUPS = ('Drums', 'Perc', 'Bass', 'Stabs', 'Pad', 'Lead', 'Vox', 'FX', 'Textures', 'Loops')
-QA_KEYS = ('mud', 'tonal', 'tune_cents', 'tune_window', 'sustain', 'harm_tol', 'loop_check', 'why')
+QA_KEYS = ('mud', 'tonal', 'tune_cents', 'tune_window', 'sustain', 'harm_tol', 'loop_check', 'crest', 'why')
 NAME = re.compile(r'[A-Z][A-Za-z0-9]*')
 LOW_END_GROUPS = ('Bass', 'Loops')   # their mud rule may be 'off' only with a reason (qa['why'])
 
@@ -30,7 +30,8 @@ class Out:
     splices: tuple = ()      # sample positions the recipe cut or joined (stutters, chop edges)
     loop: tuple = None       # (start, end) samples, end exclusive, for loop items; default the whole file
     f0s: tuple = ()          # fundamentals present (a chord's notes), Hz, for the alias check
-    hits: tuple = ()         # kick onsets (samples) in a loop: the mud gate then also runs per gap between them
+    hits: tuple = ()         # kick onsets (samples) in a loop: the mud gate then also runs per gap between them; in a
+                             # bass-body phrase, the kicks it plays against (tag 'with_kick' if they're in the file)
     meta: dict = None        # facts about the file for the report (and later index.json): slices, a target's settings
 
 
@@ -48,12 +49,12 @@ class Item:
     level: float = None      # LUFS-I target for the loudest take; None = loudest take's true peak at the ceiling
     hp_hz: float = 20.0      # sub-sonic high-pass the renderer applies to every take; None for none
     flags: frozenset = frozenset()  # qa.FLAGS: deliberate_alias, explicit, hf_synthetic, cut_end
-    tags: tuple = ()         # free tags; QA reads riser, wet, dry, clean
+    tags: tuple = ()         # free tags; QA reads riser, wet, dry, clean, with_kick
     sets: tuple = ()         # render sets this item belongs to, e.g. ('s1a',)
     script: str = None       # the words, for vocals: ASR and content checks
     about: str = ''          # one line for the report
-    qa: dict = field(default_factory=dict)  # rule overrides, QA_KEYS: e.g. {'mud': 'gate', 'loop_check': True}; 'why'
-                                            # is one line of reason, written into the report's exceptions
+    qa: dict = field(default_factory=dict)  # rule overrides, QA_KEYS: e.g. {'mud': 'bass-body', 'why': 'B, warm'};
+                                            # 'why' is one line of reason, written into the report's exceptions
 
     def __post_init__(self):
         object.__setattr__(self, 'flags', frozenset(self.flags))
@@ -80,10 +81,21 @@ class Item:
             bad.append(f'unknown qa keys {sorted(set(self.qa) - set(QA_KEYS))}; known: {QA_KEYS}')
         if self.level is not None and self.level >= 0:
             bad.append('level is a LUFS target, below 0')
+        if 'mud' in self.qa and self.qa['mud'] not in qa.MUD_MODES:
+            bad.append(f"qa mud {self.qa['mud']!r} is not one of {qa.MUD_MODES}")
+        if self.category in qa.STRICT and self.qa.get('mud', 'gate') != 'gate':
+            bad.append(f"a {self.category} keeps the strict mud gate (ADR 0011): no qa mud {self.qa['mud']!r}")
+        elif self.qa.get('mud') == 'bass-body' and self.category not in qa.BODY_CATEGORIES:
+            bad.append(f"bass-body is for the categories {qa.BODY_CATEGORIES}, not {self.category!r} (ADR 0011)")
+        elif self.qa.get('mud') == 'bass-body' and not self.qa.get('why'):
+            bad.append("bass-body is an exception (ADR 0011): it needs qa['why']")
         if self.category in qa.CATEGORIES and self.group in LOW_END_GROUPS and not self.qa.get('why') \
                 and self.qa.get('mud', qa.CATEGORY_RULES[self.category]['mud']) == 'off':
-            bad.append(f"a {self.group} item needs a low-end rule: qa={{'mud': 'gate'}} or 'lowcut', or 'off' with "
-                       f"qa['why']")
+            bad.append(f"a {self.group} item needs a low-end rule: qa={{'mud': 'gate'}}, 'bass-body' or 'lowcut', or "
+                       f"'off' with qa['why']")
+        if self.category in qa.CATEGORIES and qa.CATEGORY_RULES[self.category]['crest'] \
+                and self.qa.get('crest') is False and not self.qa.get('why'):
+            bad.append("turning the kick crest floor off needs qa['why']")
         if bad:
             raise ValueError(f'Item {self.name!r}: ' + '; '.join(bad))
 
@@ -132,4 +144,4 @@ class Take:
         rules = {k: v for k, v in it.qa.items() if k not in ('loop_check', 'why')}
         return qa.Spec(it.category, oneshot=not it.loop, f0=self.f0, f0s=tuple(out.f0s), flags=it.flags, tags=it.tags,
                        splices=tuple(out.splices), loop=out.loop if it.loop else None, hits=tuple(out.hits),
-                       **rules)
+                       top=self.layer == len(it.layers), **rules)

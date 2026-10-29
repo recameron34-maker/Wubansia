@@ -343,7 +343,7 @@ def karplus(excite, f0, n, decay_s=1.2, S=0.5, disp=0.0):
 def fdn_reverb(x, r, t60=3.5, size=1.0, damp_hz=7000.0, n_tail=0):
     """8-line FDN, Hadamard matrix, one-pole damping per line, computed in blocks of the shortest delay (exact,
     vectorised). Mono in, stereo out (decorrelated output signs). r sets the delay jitter and input signs: pass the kit's
-    space seed, rng('FUT01/space')."""
+    space, K.space_rng() (rng('FUT01/space') for FUT01)."""
     base = np.array([1153, 1327, 1523, 1741, 1999, 2297, 2593, 2953]) * size
     d = np.round(base * (1 + 0.03 * r.uniform(-1, 1, 8))).astype(int)
     Hm = hadamard(8) / np.sqrt(8)

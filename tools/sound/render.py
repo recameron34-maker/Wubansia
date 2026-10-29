@@ -3,20 +3,22 @@
     python3 tools/sound/render.py --kit FUT01 [--set s1a] [--only NAME ...] [--out build/s1a-listen]
                                   [--no-sheets] [--repro] [--jobs N]
 
+Any kit with a module in tools/sound/kits/ renders (kits.names()); one whose DNA still has a TODO field is refused.
+
 Per item: render every take (note x layer x round robin), high-pass it (Item.hp_hz), finish its edges (one-shots are
 trimmed at -90 dB re peak and faded; loops keep their length), then give the whole instrument one gain: the loudest
-take's true peak at -1.02 dBTP, or the item's LUFS target, capped there. Files are FUT01_<Group>_<Sound>_v<layer>_
-rr<n>.flac, mono where L = R. QA reads the files back. Kicks and bass shots also get the 2-step loop check (the loop
-goes to qa/). --repro renders every item a second time, each in a fresh process (no cache or state carried over), and
-compares the bytes.
+take's true peak at -1.02 dBTP, or the item's LUFS target, capped there. Files are <KIT>_<Group>_<Sound>_v<layer>_
+rr<n>.flac, mono where L = R. QA reads the files back. Kicks and bass shots also get the groove loop check, on the kit's
+GROOVE (the loop goes to qa/). --repro renders every item a second time, each in a fresh process (no cache or state
+carried over), and compares the bytes.
 
 Writes <out> (default build/<kit>, or build/<kit>-<set>) /*.flac, qa_report.json (with the render environment: the
-masters' bytes depend on it, ADR 0007), qa_report.md, sheets/<kit>_<group>_<name>.png and qa/*_2step.flac.
-Exit status: 0 when every check passes, 1 when any fails, 2 on a usage error or when a vocal item lacks the models.
+masters' bytes depend on it, ADR 0007), qa_report.md, sheets/<kit>_<group>_<name>.png and qa/*_<groove>.flac.
+Exit status: 0 when every check passes, 1 when any fails, 2 on a usage error (an unknown kit or item, a kit that isn't
+ready) or when a vocal item lacks the models.
 """
 import argparse
 import hashlib
-import importlib
 import io
 import json
 import multiprocessing
@@ -38,11 +40,11 @@ import scipy  # noqa: E402
 import soundfile as sf  # noqa: E402
 
 from tools.sound import dsp48 as D  # noqa: E402
+from tools.sound import kits  # noqa: E402
 from tools.sound import qa  # noqa: E402
 from tools.sound.models import ModelsMissing  # noqa: E402
 from tools.sound.item import Out, UnknownName  # noqa: E402
 
-KITS = {'FUT01': 'tools.sound.kits.fut01'}
 SR = D.SR
 
 
@@ -122,14 +124,13 @@ def write_flac(path, x):
 
 
 def load_kit(kit):
-    if kit not in KITS:
-        raise UnknownName(f'unknown kit {kit!r}; known: {", ".join(KITS)}')
-    return importlib.import_module(KITS[kit])
+    """The kit's module, ready to render (kits.load: UnknownName, or KitNotReady while its DNA has a TODO)."""
+    return kits.load(kit)
 
 
 def _render_named(job):
     kit, name = job
-    return render_item(load_kit(kit).items(only=(name,))[0], kit)
+    return render_item(kits.items(load_kit(kit), only=(name,))[0], kit)
 
 
 def _hashes_named(job):
@@ -215,10 +216,10 @@ def qa_item(done, out_dir, kit_mod, repro=None):
     if not it.loop and it.qa.get('loop_check', qa.CATEGORY_RULES[it.category]['loop_check']):
         first = done.takes[0].note
         layers = {t.vel: r['x'] for t, r in zip(done.takes, rows) if t.rr == 1 and t.note == first}
-        loop_checks, loop = qa.check_loop(layers, kit_mod.BPM)
+        loop_checks, loop = qa.check_loop(layers, kit_mod.BPM, qa.GROOVES[kit_mod.GROOVE], mud_mode(it))
         checks += loop_checks
         (out_dir / 'qa').mkdir(exist_ok=True)
-        loop_file = f'qa/{kit_mod.KIT}_{it.group}_{it.name}_2step.flac'
+        loop_file = f'qa/{kit_mod.KIT}_{it.group}_{it.name}_{kit_mod.GROOVE}.flac'
         write_flac(out_dir / loop_file, loop * min(1.0, D.undb(D.TP_TARGET - D.true_peak_db(loop))))
     checks += qa.check_content(names=[it.name, it.group] + [f['file'] for f in files],
                                strings=[it.about, *it.tags], script=it.script, flags=it.flags, tags=it.tags,
@@ -234,6 +235,10 @@ def qa_item(done, out_dir, kit_mod, repro=None):
             'flags': sorted(it.flags), 'tags': list(it.tags), 'qa_overrides': dict(it.qa),
             'gain_db': round(done.gain_db, 2), 'capped': done.capped, 'files': files,
             'checks': [c.as_dict() for c in checks], 'loop_file': loop_file}
+
+
+def mud_mode(it):
+    return it.qa.get('mud') or qa.CATEGORY_RULES[it.category]['mud']
 
 
 def failures(entry):
@@ -254,8 +259,8 @@ def _sheet(done, entry, path):
     lines = [entry['about'], summary]
     if fails:
         lines.append('failed: ' + ', '.join(sorted({c['name'] for _, c in fails})))
-    mud = done.item.qa.get('mud') or qa.CATEGORY_RULES[done.item.category]['mud']
-    sheet.draw(path, done.audio[k], takes[k].file, [ln for ln in lines if ln], gated=mud == 'gate')
+    sheet.draw(path, done.audio[k], takes[k].file, [ln for ln in lines if ln],
+               gated=mud_mode(done.item) in ('gate', 'bass-body'))
 
 
 # ------------------------------------------------------------------ reports
@@ -280,20 +285,16 @@ def write_reports(out_dir, report):
                   f"{' (capped)' if e['capped'] else ''} | {res} |")
     gated = [e for e in report['items'] if any(c['name'].startswith('mud_') for f in e['files'] for c in f['checks'])]
     if gated:
-        md += ['', '## Mud gate', '', 'Worst file of each instrument; loop = the 2-bar 2-step loop (for a loop file: '
-               'its own gaps between kicks).', '',
+        md += ['', '## Mud gate', '', "Worst file of each instrument; loop = the 2-bar groove loop on the kit's GROOVE "
+               '(for a loop file: its own gaps between kicks).', '',
                '| Item | 150-400 Hz fall (ms) | vs 30-120 Hz after 80 ms (dB) | share (dB) | 400 Hz-1 kHz fall (ms) '
                '| loop vs sub (dB) | loop before hit (dB) |', '|---|---|---|---|---|---|---|']
         for e in gated:
-            def worst(name, pool):
-                vals = [c['value'] for c in pool if c['name'] == name and c['value'] is not None]
-                bad = [c for c in pool if c['name'] == name and c['status'] == 'fail']
-                return ('n/a' if not vals and not bad else ('inf' if not vals else f'{max(vals):g}')) + \
-                    (' FAIL' if bad else '')
             pool = [c for f in e['files'] for c in f['checks']] + e['checks']   # a loop file carries its own gaps
             md.append(f"| {e['group']}/{e['name']} | " + ' | '.join(
-                worst(n, pool) for n in ('mud_150_400_fall', 'mud_vs_sub_after_80ms', 'mud_share', 'box_400_1k_fall',
+                _worst(n, pool) for n in ('mud_150_400_fall', 'mud_vs_sub_after_80ms', 'mud_share', 'box_400_1k_fall',
                                          'loop_mud_vs_sub', 'loop_mud_before_hit')) + ' |')
+    md += _rule_tables(report['items'])
     special = [e for e in report['items'] if e['flags'] or e['qa_overrides']]
     if special:
         md += ['', '## Exceptions', '', 'Every flag and every override of a category rule, with its reason.', '',
@@ -312,6 +313,38 @@ def write_reports(out_dir, report):
     (out_dir / 'qa_report.md').write_text('\n'.join(md) + '\n', encoding='utf-8')
 
 
+def _worst(name, pool):
+    """The worst value of a check over a pool of checks, marked FAIL if any failed; n/a where it didn't apply."""
+    vals = [c['value'] for c in pool if c['name'] == name and c['value'] is not None]
+    bad = [c for c in pool if c['name'] == name and c['status'] == 'fail']
+    return ('n/a' if not vals and not bad else ('inf' if not vals else f'{max(vals):g}')) + (' FAIL' if bad else '')
+
+
+def _rule_tables(entries):
+    """The kick crest (each kick's lowest top-layer reading) and the bass-body readings (worst file), ADR 0011."""
+    md = []
+    pools = {e['name']: [c for f in e['files'] for c in f['checks']] + e['checks'] for e in entries}
+    kicks = [e for e in entries if any(c['name'] == 'kick_crest' and c['status'] != 'n/a' for c in pools[e['name']])]
+    if kicks:
+        md += ['', '## Kick crest', '', f'True peak over the loudest 50 ms, the top layer: at least '
+               f'{qa.KICK_CREST_MIN_DB:g} dB (a sine reads 3.01). Lowest file of each kick.', '',
+               '| Item | Crest (dB) |', '|---|---|']
+        for e in kicks:
+            vals = [c['value'] for c in pools[e['name']] if c['name'] == 'kick_crest' and c['value'] is not None]
+            bad = any(c['name'] == 'kick_crest' and c['status'] == 'fail' for c in pools[e['name']])
+            md.append(f"| {e['group']}/{e['name']} | {min(vals):g}{' FAIL' if bad else ''} |")
+    body = [e for e in entries if any(c['name'].startswith('body_') for c in pools[e['name']])]
+    if body:
+        names = ('body_vs_sub', 'body_over_saw', 'body_share', 'loop_body_vs_sub', 'loop_mud_before_hit', 'body_duck')
+        md += ['', '## Bass body', '', 'The proposed bass-body rule (ADR 0011). Worst file of each instrument; loop = '
+               'the groove loop, or a phrase\'s own gaps between its kicks.', '',
+               '| Item | vs 30-120 Hz (dB) | over the saw (dB) | share (dB) | loop vs sub (dB) | loop before hit (dB) '
+               '| under the kick (dB) |', '|---|---|---|---|---|---|---|']
+        for e in body:
+            md.append(f"| {e['group']}/{e['name']} | " + ' | '.join(_worst(n, pools[e['name']]) for n in names) + ' |')
+    return md
+
+
 def _env_line(env):
     sim = env['numpy_simd']
     return (f"{env['cpu']} ({env['platform']}), Python {env['python']}, numpy {env['numpy']} (SIMD baseline "
@@ -324,7 +357,7 @@ def _env_line(env):
 # ------------------------------------------------------------------ CLI
 def run(kit, sets, only, out_dir, sheets=True, repro=False, jobs=1):
     kit_mod = load_kit(kit)
-    items = kit_mod.items(sets=sets, only=only)
+    items = kits.items(kit_mod, sets=sets, only=only)
     out_dir.mkdir(parents=True, exist_ok=True)
     if sheets:
         (out_dir / 'sheets').mkdir(exist_ok=True)
@@ -357,7 +390,7 @@ def _finish(done, out_dir, kit_mod, sheets, repro):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('--kit', required=True, help=f'one of {", ".join(KITS)}')
+    ap.add_argument('--kit', required=True, help=f'one of {", ".join(kits.names())}')
     ap.add_argument('--set', action='append', dest='sets', help='render only items in this set (repeatable)')
     ap.add_argument('--only', nargs='+', help='render only these item names')
     ap.add_argument('--out', type=Path, help='output folder (default build/<kit>, or build/<kit>-<set>)')
@@ -372,6 +405,9 @@ def main(argv=None):
         report = run(a.kit, a.sets, a.only, a.out, sheets=not a.no_sheets, repro=a.repro, jobs=a.jobs)
     except UnknownName as e:
         print(f'error: {e.args[0]}', file=sys.stderr)
+        return 2
+    except kits.KitNotReady as e:
+        print(f'error: {e}', file=sys.stderr)
         return 2
     except ModelsMissing as e:
         print(f'error: {e} (the vocal items need the models; render the others with --only)', file=sys.stderr)

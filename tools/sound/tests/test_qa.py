@@ -12,6 +12,7 @@ import soundfile as sf
 from tools.sound import denylist
 from tools.sound import dsp48 as D
 from tools.sound import qa as Q
+from tools.sound.item import Item
 from tools.sound.tests import fixtures as FX
 
 REPO = Path(__file__).resolve().parents[3]
@@ -79,8 +80,8 @@ class TestPrototypeDefects(QaCase):
         self.assertAlmostEqual(m['share_db'], -6.2, delta=1.0)
 
     def test_mud_on_the_two_step_loop(self):
-        muddy, _ = Q.check_loop(FX.shared_layers(FX.muddy_kick, (0.4, 0.7, 1.0)))
-        clean, loop = Q.check_loop(FX.shared_layers(FX.clean_kick, (0.4, 0.7, 1.0)))
+        muddy, _ = Q.check_loop(FX.shared_layers(FX.muddy_kick, (0.4, 0.7, 1.0)), 134.0, Q.TWO_STEP)
+        clean, loop = Q.check_loop(FX.shared_layers(FX.clean_kick, (0.4, 0.7, 1.0)), 134.0, Q.TWO_STEP)
         self.assertEqual([False, False], [c.ok for c in muddy])
         self.assertEqual([True, True], [c.ok for c in clean])
         self.assertEqual(len(loop), round(32 * 60 / 134 / 4 * SR))
@@ -88,7 +89,7 @@ class TestPrototypeDefects(QaCase):
     def test_mud_in_the_gaps_of_a_loop_file(self):
         """A loop that declares its kick onsets gets the per-gap mud checks on the file itself."""
         for kick, ok in ((FX.clean_kick, True), (FX.muddy_kick, False)):
-            loop, onsets = Q.two_step_loop(FX.shared_layers(kick, (0.4, 0.7, 1.0)))
+            loop, onsets = Q.two_step_loop(FX.shared_layers(kick, (0.4, 0.7, 1.0)), 134.0, Q.TWO_STEP)
             got = by_name(Q.check_take(loop, Q.Spec('loop', oneshot=False, mud='gate', hits=tuple(onsets))))
             self.assertIs(got['loop_mud_vs_sub'].ok, ok, got['loop_mud_vs_sub'].value)
             self.assertIn('loop_mud_before_hit', got)
@@ -196,6 +197,157 @@ class TestChecks(QaCase):
         self.assertTrue(all(isinstance(r['value'], (float, int, str, type(None))) for r in rows))
 
 
+class TestKickCrest(QaCase):
+    """Round 1: kick B "sounds a bit hard like its really slamming the limiter". The floor keeps a kick's top layer from
+    being flattened onto its body (ADR 0011)."""
+
+    def test_a_kick_slammed_into_a_limiter_fails(self):
+        spec = Q.Spec('kick', f0=FX.F_KICK)
+        self.assertPasses(FX.master(FX.clean_kick()), spec, 'kick_crest')
+        for drive in (6.0, 12.0):
+            self.assertFlags(FX.clipped_kick(drive), spec, 'kick_crest')
+
+    def test_a_sine_reads_three_db(self):
+        self.assertAlmostEqual(Q.kick_crest_db(FX.tone(1000.0)), 3.01, delta=0.02)     # 50 whole cycles in 50 ms
+
+    def test_the_measure_is_pinned(self):
+        """The window and the method, not only the limit: a 25 ms burst fills half the 50 ms window (6.02 dB; a 100 ms
+        window would read 9.03), and the fixture kick's top layer reads what the ADR quotes."""
+        self.assertAlmostEqual(Q.kick_crest_db(FX.tone_burst()), 6.02, delta=0.02)
+        self.assertAlmostEqual(Q.kick_crest_db(FX.master(FX.clean_kick(1.0, 0))), 4.83, delta=0.02)
+        self.assertAlmostEqual(Q.kick_crest_db(FX.master(FX.clean_kick(1.0, 1))), 4.39, delta=0.02)
+
+    def test_only_the_top_layer_of_a_kick(self):
+        x = FX.clipped_kick(12.0)
+        got = lambda spec: by_name(Q.check_take(x, spec))['kick_crest']
+        self.assertIsNone(got(Q.Spec('kick', top=False)).ok)                 # softer layers are near-sine by design
+        self.assertIsNone(got(Q.Spec('kick', crest=False)).ok)               # an override (a boom), with its why
+        for cat in ('tom', 'bass', 'snare', 'perc'):
+            self.assertIsNone(got(Q.Spec(cat, mud='off')).ok, cat)
+
+    def test_turning_the_floor_off_needs_a_reason(self):
+        with self.assertRaises(ValueError):
+            Item('Drums', 'Boom', 'kick', FX.clean_kick, qa={'crest': False})
+        Item('Drums', 'Boom', 'kick', FX.clean_kick, qa={'crest': False, 'why': 'a round sub boom has no transient'})
+
+
+class TestBassBody(QaCase):
+    """qa={'mud': 'bass-body'} (ADR 0011, proposed): a bass may keep its own harmonics in 150-400 Hz, up to a plain
+    saw's level, but no bump, no low mids without a sub under them, and nothing in the low mids around the kicks."""
+
+    BODY = ('body_vs_sub', 'body_over_saw', 'body_share')
+    SPEC = Q.Spec('bass', oneshot=False, tonal=False, mud='bass-body')
+
+    def test_plain_saws_pass_on_every_bass_note(self):
+        for note in (28, 30, 31, 33, 37, 38, 40, 42, 43):                    # E1 to G2: the four kits' bass register
+            with self.subTest(note=note):
+                self.assertPasses(FX.saw_bass(note), self.SPEC, *self.BODY)
+
+    def test_filtered_saws_and_warm_basses_pass(self):
+        for note in (30, 37, 42):
+            for lp in (200.0, 300.0, 500.0):
+                with self.subTest(note=note, lp=lp):
+                    self.assertPasses(FX.saw_bass(note, lp_hz=lp), self.SPEC, *self.BODY)
+            self.assertPasses(FX.warm_bass(note), self.SPEC, *self.BODY)
+
+    def test_muddy_basses_fail(self):
+        fails = {kind: {c.name for c in Q.failed(Q.check_take(make(), self.SPEC))} & set(self.BODY)
+                 for kind, make in FX.MUDDY_BASS.items()}
+        for kind in ('bump', 'narrow', 'octave', 'fifth', 'resonant', 'boxy'):
+            self.assertIn('body_over_saw', fails[kind], kind)
+        self.assertIn('body_vs_sub', fails['tail'])
+        self.assertEqual(set(FX.MUDDY_BASS), {k for k, v in fails.items() if v})
+
+    def test_the_strict_gate_would_fail_every_saw(self):
+        """Why the mode exists: under the strict gate a plain saw fails on every note, so a gated bass is hollow."""
+        gate = Q.Spec('bass', oneshot=False, tonal=False, mud='gate')
+        for note in (28, 30, 37, 42):
+            self.assertFlags(FX.saw_bass(note), gate, 'mud_vs_sub_after_80ms')
+
+    def test_the_round_0_kick_fails_bass_body_too(self):
+        self.assertFlags(FX.master(FX.muddy_kick()), Q.Spec('bass', tonal=False, mud='bass-body'), 'body_vs_sub')
+
+    def test_kicks_and_toms_keep_the_strict_gate(self):
+        """Kicks, toms and booms can't leave the gate, with or without a reason."""
+        for cat in ('kick', 'tom'):
+            for mode in ('bass-body', 'lowcut', 'off'):
+                with self.assertRaises(ValueError, msg=f'{cat} {mode}'):
+                    Item('Drums', 'Test', cat, FX.clean_kick, qa={'mud': mode, 'why': 'no'})
+            Item('Drums', 'Test', cat, FX.clean_kick, qa={'mud': 'gate'})
+        with self.assertRaises(ValueError):
+            Item('Bass', 'Test', 'bass', FX.clean_kick, qa={'mud': 'warm'})
+
+    def test_bass_body_is_for_basses_and_bass_loops_with_a_reason(self):
+        for group, cat in (('Bass', 'bass'), ('Loops', 'loop'), ('Drums', 'bass')):
+            Item(group, 'Test', cat, FX.clean_kick, qa={'mud': 'bass-body', 'why': 'B, warm'})
+            with self.assertRaises(ValueError, msg=f'{cat} without a why'):
+                Item(group, 'Test', cat, FX.clean_kick, qa={'mud': 'bass-body'})
+        for group, cat in (('Pad', 'pad'), ('Lead', 'lead'), ('Drums', 'snare'), ('Perc', 'perc'), ('Stabs', 'stab')):
+            with self.assertRaises(ValueError, msg=cat):
+                Item(group, 'Test', cat, FX.clean_kick, qa={'mud': 'bass-body', 'why': 'warm'})
+
+    def test_weak_low_mids_still_read(self):
+        """The over-saw measure reads peaks down to 60 dB under the loudest partial: a 250 Hz tone 30 dB under a 50 Hz
+        sub reads 30 - 14 = 16 dB under the saw's roll-off, rather than "nothing in 150-400 Hz"."""
+        x = D.fade(FX.tone(50.0, 2.0) + FX.tone(250.0, 2.0, 0.5 * D.undb(-30.0)), 0.01, 0.01)
+        self.assertAlmostEqual(Q.over_saw_db(x), -16.0, delta=0.2)
+
+    def test_a_phrase_against_kicks(self):
+        """A phrase that declares the kicks it plays against: it must leave each kick room (clear 40-15 ms before it,
+        ducked under its first 80 ms) and keep its body in the gaps."""
+        room, onsets = FX.body_phrase()
+        spec = Q.Spec('loop', oneshot=False, mud='bass-body', hits=tuple(onsets))
+        self.assertPasses(room, spec, 'loop_body_vs_sub', 'loop_mud_before_hit', 'body_duck', 'body_share')
+        self.assertIsNone(by_name(Q.check_take(room, spec))['body_vs_sub'].ok)          # the gaps instead
+        held, _ = FX.body_phrase(dip_db=0.0)
+        self.assertFlags(held, spec, 'loop_mud_before_hit', 'body_duck')
+        with_kick = Q.Spec('loop', oneshot=False, mud='bass-body', hits=tuple(onsets), tags=('with_kick',))
+        self.assertIsNone(by_name(Q.check_take(held, with_kick))['body_duck'].ok)       # the kick is in the file
+
+    def duck(self, x, onsets):
+        return by_name(Q.check_take(x, Q.Spec('loop', oneshot=False, mud='bass-body', hits=tuple(onsets))))['body_duck']
+
+    def test_the_duck_reads_the_bass_own_level_under_every_kick(self):
+        """Each kick against the bass's own level in the gap after it: one loud low-mid accent elsewhere doesn't let
+        an undocked kick pass."""
+        for accent in (0.0, 10.0, 13.0):
+            got = self.duck(*FX.body_phrase(duck_db=0.0, accent_db=accent))
+            self.assertIs(got.ok, False, f'accent +{accent}: {got.value}')
+            self.assertGreater(got.value, -1.0)
+
+    def test_the_same_duck_reads_the_same_on_any_note(self):
+        """F#1, C#2 and F#2 saws (their low mids are harmonics 4-8, 3-5 and 2-4) with the same duck read within 1 dB:
+        6 dB passes on every note, none fails."""
+        for duck, ok in ((6.0, True), (0.0, False)):
+            vals = []
+            for note in (30, 37, 42):
+                for lp in (300.0, 500.0):
+                    got = self.duck(*FX.saw_phrase(note, duck, lp))
+                    self.assertIs(got.ok, ok, f'{note} lp {lp} duck {duck}: {got.value}')
+                    vals.append(got.value)
+            self.assertLess(max(vals) - min(vals), 1.0, vals)
+
+    def test_the_duck_covers_the_kick_s_first_80_ms(self):
+        """Low mids that come back 40 ms after the kick fail, however deep the duck was."""
+        got = self.duck(*FX.body_phrase(duck_db=40.0, back=0.040))
+        self.assertAlmostEqual(got.value, -3.0, delta=0.3)
+        self.assertIs(got.ok, False)
+
+    def test_a_bass_that_sits_out_a_kick(self):
+        """Resting under a kick and through the gap after it reads against the floor (30 dB under the loudest gap),
+        not against the silence of that gap."""
+        x, onsets = FX.body_phrase(sits_out=(2,))
+        self.assertAlmostEqual(Q.loop_mud(x, onsets)[2]['duck_db'], -9.8, delta=0.3)
+        self.assertIs(self.duck(x, onsets).ok, True)
+
+    def test_one_shots_get_the_groove_loop_with_the_body_limits(self):
+        layers = FX.shared_layers(FX.clean_kick, (0.4, 0.7, 1.0))
+        names = [c.name for c in Q.check_loop(layers, 134.0, Q.TWO_STEP, 'bass-body')[0]]
+        self.assertEqual(['loop_body_vs_sub', 'loop_mud_before_hit'], names)
+        self.assertEqual(['loop_mud_vs_sub', 'loop_mud_before_hit'],
+                         [c.name for c in Q.check_loop(layers, 134.0, Q.TWO_STEP)[0]])
+
+
 class TestLimits(QaCase):
     """Each limit flips the result between a fixture just inside it and one just outside: loosening a limit fails a
     test. The fixtures are built to read a set value, which each test checks first."""
@@ -230,7 +382,7 @@ class TestLimits(QaCase):
 
     def test_loop_mud_vs_sub(self):
         for amp, at, ok in ((0.0062, -23, True), (0.0124, -17, False)):
-            checks, _ = Q.check_loop(FX.ringing_layers(0.30, amp))
+            checks, _ = Q.check_loop(FX.ringing_layers(0.30, amp), 134.0, Q.TWO_STEP)
             got = by_name(checks)['loop_mud_vs_sub']
             self.assertAlmostEqual(got.value, at, delta=1.5)
             self.assertIs(got.ok, ok)
@@ -268,6 +420,59 @@ class TestLimits(QaCase):
     def test_low_cut_share(self):
         self.pair(FX.low_share_at(-27.0), FX.low_share_at(-21.0), Q.Spec('pad', oneshot=False, tonal=False),
                   'lowcut_share_below_100hz', Q.low_share_db, -27, -21, 0.5)
+
+    def test_kick_crest(self):
+        self.pair(FX.kick_crest_at(4.5), FX.kick_crest_at(3.5), Q.Spec('kick', f0=FX.F_KICK), 'kick_crest',
+                  Q.kick_crest_db, 4.5, 3.5, 0.05)
+
+    def test_body_vs_sub(self):
+        spec = Q.Spec('bass', oneshot=False, tonal=False, mud='bass-body')
+        self.pair(FX.body_tones(-3.0), FX.body_tones(-1.0), spec, 'body_vs_sub', lambda x: Q.mud(x)['vs_sub_db'],
+                  -3, -1, 0.3)
+
+    def test_body_over_saw(self):
+        spec = Q.Spec('bass', oneshot=False, tonal=False, mud='bass-body')
+        self.pair(FX.saw_with_boost(4.0), FX.saw_with_boost(6.0), spec, 'body_over_saw', Q.over_saw_db, 4, 6, 0.3)
+
+    def test_body_share(self):
+        spec = Q.Spec('bass', oneshot=False, tonal=False, mud='bass-body')
+        self.pair(FX.body_share_at(-6.0), FX.body_share_at(-4.0), spec, 'body_share',
+                  lambda x: Q.mud(x)['share_db'], -6, -4, 0.3)
+
+    def phrase_check(self, name, mode='bass-body', **kw):
+        """One check on FX.body_phrase(**kw), a phrase that declares its kicks."""
+        x, onsets = FX.body_phrase(**kw)
+        return by_name(Q.check_take(x, Q.Spec('loop', oneshot=False, mud=mode, hits=tuple(onsets))))[name]
+
+    def test_loop_body_vs_sub(self):
+        for ratio, ok in ((-3.0, True), (-1.0, False)):
+            got = self.phrase_check('loop_body_vs_sub', ratio_db=ratio, dip_db=0.0)                   # steady
+            self.assertAlmostEqual(got.value, ratio, delta=0.5)
+            self.assertIs(got.ok, ok)
+
+    def test_body_duck(self):
+        """The phrase rests 40 dB before each kick and ducks duck_db under its first 80 ms. The reading is against the
+        gap's mean, which the rest before the next kick pulls about 0.7 dB under the held level."""
+        for duck, at, ok in ((6.0, -5.3, True), (3.0, -2.4, False)):
+            got = self.phrase_check('body_duck', duck_db=duck)
+            self.assertAlmostEqual(got.value, at, delta=0.3)
+            self.assertIs(got.ok, ok)
+
+    def test_loop_body_vs_sub_of_a_bass_shot(self):
+        """A bass one-shot's groove loop under bass-body: the gap limit, four on the floor at 130 BPM."""
+        for ratio, ok in ((-3.0, True), (-1.0, False)):
+            checks, _ = Q.check_loop({1.0: FX.body_shot(ratio)}, 130.0, Q.FOUR_FLOOR, 'bass-body')
+            got = by_name(checks)['loop_body_vs_sub']
+            self.assertAlmostEqual(got.value, ratio, delta=0.5)
+            self.assertIs(got.ok, ok)
+
+    def test_loop_mud_before_hit(self):
+        """The before-hit limit, the same in the strict gate and in bass-body."""
+        for mode in ('bass-body', 'gate'):
+            for dip, at, ok in ((33.0, -34.3, True), (27.0, -28.3, False)):
+                got = self.phrase_check('loop_mud_before_hit', mode, dip_db=dip)
+                self.assertAlmostEqual(got.value, at, delta=0.6, msg=mode)
+                self.assertIs(got.ok, ok, mode)
 
     def test_hf_band_on_synthetic_vocals(self):
         """D4: a vocal master has a synthetic top band (extend_hf); a 24 kHz take resampled to 48 kHz doesn't."""

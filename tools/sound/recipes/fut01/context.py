@@ -3,7 +3,7 @@ sounds, so each sound is heard where it will live.
 
 - ContextLoop: dry. The kit's files exactly as written, played the way the sampler will: hits on the 16th grid, every
   lane on the kit's one swing (K.SWING), a velocity picks the nearest layer, round robins cycle, and the reese plays
-  through the stand-in of its lane filter (bass.lane_filter). A fader and a pan per lane, one insert on the reese (a
+  through the stand-in of its lane filter (sampler.lane_filter). A fader and a pan per lane, one insert on the reese (a
   stand-in of the Bass bus: its sub ducked out under each kick's sub, its mids pumped on the kick's ticks), no master
   chain.
 - ContextLoopWet: the same loop plus the three sends, in their Python versions (tools/sound/sends.py): Space, the
@@ -22,22 +22,22 @@ hits and tails wrap, and the reese lane, the pad and the sends run over two pass
 Rendering needs the vocal models (the chops): see tools/sound/README.md.
 """
 import functools
-import io
 
 import numpy as np
-import soundfile as sf
 
 from tools.sound import dsp48 as D
+from tools.sound import phrase as Ph
 from tools.sound import qa
+from tools.sound import sampler as Sm
 from tools.sound import sends as S
 from tools.sound.item import Item, Out
 from tools.sound.kits import fut01 as K
-from tools.sound.recipes import bass
+from tools.sound.recipes.fut01 import bass
 
 SR = D.SR
 STEPS = 64                          # 4 bars of 16ths
-L = 2 * bass.loop_len()             # 343880 samples: twice the 2-bar phrases, so the pluck phrase tiles exactly
-S16 = L / STEPS                     # samples per 16th
+L = 2 * Ph.loop_len(K, bass.LOOP_STEPS)   # 343880 samples: twice the 2-bar phrases, so the pluck phrase tiles exactly
+G = Ph.Grid(K, STEPS, L)            # the 16th grid on the kit's one swing (G.s16 samples per 16th)
 SEAM_S = 0.02                       # the processed lanes' last 20 ms blend into what precedes the loop's start
 
 # ------------------------------------------------------------------ the parts: (16th, velocity) unless noted
@@ -90,123 +90,52 @@ RESONATOR_TONES = tuple(n + 24 for n in (54, 64, 69, 73, 80))   # the pad's F#m9
                                                                 # and chops reach, and stay out of the low mids
 
 
-# ------------------------------------------------------------------ the kit's files, as written
-@functools.lru_cache(maxsize=None)
-def files(name):
-    """Every file of a kit item exactly as render.py writes it (rendered, given its one gain, through 24-bit FLAC and
-    back), keyed by (note, layer, rr), as Outs with their loop points; and the item's gain in dB."""
-    from tools.sound import render as R
-    item = K.items(only=(name,))[0]
-    done = R.render_item(item, K.KIT)
-    got = {}
-    for t, o in zip(done.takes, done.outs):
-        y, _ = sf.read(io.BytesIO(R.encode(o.audio)), dtype='float64')
-        got[(t.note, t.layer, t.rr)] = Out(D.st(y), loop=o.loop)
-    return item, got, done.gain_db
-
-
-def at(step, swing=K.SWING):
-    """A 16th as a sample position on the kit's swing: odd 16ths land later, the same for every lane."""
-    s = step + (2 * swing - 1 if step % 2 else 0)
-    return int(np.floor(s * S16 + 0.5)) % L
-
-
-def place(buf, x, pos):
-    """Add a sound at pos, its tail wrapping round the loop."""
-    np.add.at(buf, (pos + np.arange(len(x))) % L, D.st(x))
-
-
-def pan(x, p):
-    """Equal-power pan (unity in the centre), p in -1..1."""
-    a = (p + 1) * np.pi / 4
-    return D.st(x) * (np.sqrt(2) * np.array([np.cos(a), np.sin(a)]))
-
-
-def two_pass(fn, x):
-    """fn over two passes of a loop, keeping the second; its last SEAM_S blend into the samples that precede the
-    second pass, so the loop joins even where fn's state isn't exactly periodic (the shimmer's grains, the tape's
-    wow)."""
-    return second_pass(fn(np.concatenate([x, x])), SEAM_S)
-
-
-def second_pass(y, seam, power=False):
-    """y[L:2L] with its last `seam` seconds crossfaded into y[L - seam:L], the samples that precede it, so it joins
-    when it loops. power: an equal-power crossfade, for a held voice whose two ends are different moments of it."""
-    out = np.array(y[L:2 * L])
-    X = int(seam * SR)
-    u = np.linspace(0.0, 1.0, X)[:, None]
-    w_out, w_in = (np.cos(0.5 * np.pi * u), np.sin(0.5 * np.pi * u)) if power else (1 - u, u)
-    out[-X:] = w_out * out[-X:] + w_in * y[L - X:L]
-    return out
-
-
-def hits_lane(name, hits):
-    """One-shots: each hit takes the layer nearest its velocity (the louder on a tie), round robins in turn."""
-    item, got, _ = files(name)
-    buf = np.zeros((L, 2))
-    for k, (step, v) in enumerate(hits):
-        layer = 1 + min(range(len(item.layers)), key=lambda i: (abs(item.layers[i] - v), -i))
-        place(buf, got[(None, layer, 1 + k % item.rr)].audio, at(step))
-    return buf
-
-
+# ------------------------------------------------------------------ the lanes, on the kit's files as written
 def bass_lane():
     """The reese: each note held for its length (the sampler loops it) and released, through the lane stand-in on the
     two CC lanes, then the bus insert: under SUB_XOVER ducked out for each kick's sub, above it pumped. Its drive was
     voiced on the reese before its gain (ReeseTalk), so the files are trimmed back up to that level in front of it;
     the fader comes after."""
-    _, got, gain_db = files('Reese')
+    _, got, gain_db = Ph.kit_files(K, 'Reese')
     x = np.zeros((L, 2))
     for step, length, note, accent in BASS:
-        v = bass.sampler_voice(got[(note, 2 if accent else 1, 1)], int(round(length * S16)) - int(0.01 * SR),
-                               bass.REESE_ATTACK)
-        place(x, v, at(step))
+        v = Sm.sampler_voice(got[(note, 2 if accent else 1, 1)], int(round(length * G.s16)) - int(0.01 * SR),
+                             bass.REESE_ATTACK)
+        Ph.place(x, v, G.at(step))
     trim = D.undb(-gain_db)
-    cc74, cc1 = bass.cc_curve(CC74, L), bass.cc_curve(CC1, L)
-    lane = lambda u: bass.lane_filter(u * trim, np.tile(cc74, 2), np.tile(cc1, 2))
-    y = two_pass(lane, x)
-    lo = circular(lambda u: D.lr4(u, SUB_XOVER, 'lowpass'), y)
-    hi = circular(lambda u: D.lr4(u, SUB_XOVER, 'highpass'), y)
+    cc74, cc1 = Sm.cc_curve(CC74, L, K.STEP), Sm.cc_curve(CC1, L, K.STEP)
+    lane = lambda u: Sm.lane_filter(u * trim, np.tile(cc74, 2), np.tile(cc1, 2), mids_hp=bass.MID_HP)
+    y = Ph.two_pass(lane, x, SEAM_S)
+    lo = Ph.circular(lambda u: D.lr4(u, SUB_XOVER, 'lowpass'), y)
+    hi = Ph.circular(lambda u: D.lr4(u, SUB_XOVER, 'highpass'), y)
     return D.mono_below(lo * D.undb(pump_db(**SUB_DUCK))[:, None] + hi * D.undb(pump_db(**PUMP))[:, None], SUB_XOVER)
 
 
-def circular(fn, x):
-    """A filter run over three passes of a loop, keeping the middle: its state joins at the seam."""
-    return fn(np.concatenate([x, x, x]))[L:2 * L]
-
-
-def pump_db(depth_db=PUMP['depth_db'], ramp=PUMP['ramp'], hold=PUMP['hold'], release=PUMP['release']):
-    """A ducker's gain in dB per sample: on each kick tick, down over `ramp`, held, back up over `release`."""
-    g = np.zeros(L)
-    t = np.arange(L)
-    for step, _ in KICK:
-        tau = ((t - at(step)) % L) / SR
-        u = np.clip((tau - ramp - hold) / release, 0.0, 1.0)
-        e = np.where(tau < ramp, tau / ramp, np.where(u < 1.0, 0.5 + 0.5 * np.cos(np.pi * u), 0.0))
-        g = np.minimum(g, -depth_db * e)
-    return g
+def pump_db(depth_db, ramp, hold, release):
+    """The bus insert's ducker on the loop's kicks, in dB per sample (phrase.pump_db)."""
+    return Ph.pump_db([G.at(step) for step, _ in KICK], L, depth_db, ramp, hold, release)
 
 
 def pad_lane():
     """The pad held through the loop and across its seam: the voice runs two loop lengths, the second is kept, and
     its end crossfades into the moment before it, so the harmony never stops at the loop point."""
-    _, got, _ = files('AirPadFsm9')
-    voice = bass.sampler_voice(got[(None, 1, 1)], 2 * L, attack=0.002, release=0.01)[:2 * L]
-    return second_pass(voice, SEAM_HOLD, power=True)
+    _, got, _ = Ph.kit_files(K, 'AirPadFsm9')
+    voice = Sm.sampler_voice(got[(None, 1, 1)], 2 * L, attack=0.002, release=0.01)[:2 * L]
+    return Ph.second_pass(voice, SEAM_HOLD, L, power=True)
 
 
 def pluck_lane():
-    _, got, _ = files('ChromePluckPhrase')
+    _, got, _ = Ph.kit_files(K, 'ChromePluckPhrase')
     buf = np.zeros((L, 2))
     for step in PLUCK_AT:
-        place(buf, got[(None, 1, 1)].audio, at(step))
+        Ph.place(buf, got[(None, 1, 1)].audio, G.at(step))
     return buf
 
 
 def chop_onset(name):
     """Seconds from the start of a chop's file to its note: where the beat falls, after the onset consonant."""
     from tools.sound import vocals as V
-    from tools.sound.recipes import vox
+    from tools.sound.recipes.fut01 import vox
     _, first, last, _, _ = vox.CHOP_BY_NAME[name]
     track, _ = V.chop(vox.sung_track(), first, last)
     return float(track.events[0]['t_on'])
@@ -216,17 +145,17 @@ def vox_parts():
     """Each chop as its own part of the vox lane (so a throw can take its own sends)."""
     parts = []
     for step, name, _ in CHOPS:
-        _, got, _ = files(name)
+        _, got, _ = Ph.kit_files(K, name)
         buf = np.zeros((L, 2))
-        place(buf, got[(None, 1, 1)].audio, at(step) - int(np.floor(chop_onset(name) * SR + 0.5)))
+        Ph.place(buf, got[(None, 1, 1)].audio, G.at(step) - int(np.floor(chop_onset(name) * SR + 0.5)))
         parts.append(buf)
     return parts
 
 
 def fill_lane():
-    _, got, _ = files('GlitchFill')
+    _, got, _ = Ph.kit_files(K, 'GlitchFill')
     buf = np.zeros((L, 2))
-    place(buf, got[(None, 1, 1)].audio, at(FILL_AT))
+    Ph.place(buf, got[(None, 1, 1)].audio, G.at(FILL_AT))
     return buf
 
 
@@ -234,13 +163,14 @@ def fill_lane():
 def lanes():
     """Each lane as the loop hears it, after its fader and pan; the vox lane's parts (one per chop), the same way;
     and the kick onsets."""
-    fader = lambda k, x: pan(x, LANES[k][2]) * D.undb(LANES[k][1])
+    fader = lambda k, x: Ph.pan(x, LANES[k][2]) * D.undb(LANES[k][1])
     parts = tuple(fader('vox', p) for p in vox_parts())
-    raw = {'kick': hits_lane('KickSplit', KICK), 'bass': bass_lane(), 'snare': hits_lane('SnareMetal', SNARE),
-           'hat': hits_lane('ClosedHatFM', HAT), 'perc': hits_lane('AlloyHit', PERC), 'pad': pad_lane(),
+    hits = lambda name, part: Ph.hits_lane(K, name, part, G)
+    raw = {'kick': hits('KickSplit', KICK), 'bass': bass_lane(), 'snare': hits('SnareMetal', SNARE),
+           'hat': hits('ClosedHatFM', HAT), 'perc': hits('AlloyHit', PERC), 'pad': pad_lane(),
            'pluck': pluck_lane(), 'fill': fill_lane()}
     out = {k: sum(parts) if k == 'vox' else fader(k, raw[k]) for k in LANES}
-    return out, parts, tuple(at(s) for s, _ in KICK)
+    return out, parts, tuple(G.at(s) for s, _ in KICK)
 
 
 def send_bus(mix, parts, send):
@@ -280,6 +210,7 @@ def resonator_freqs():
 def returns():
     """The three returns (after their return gains), each over two passes so its tail wraps."""
     mix, parts, _ = lanes()
+    two_pass = lambda fn, x: Ph.two_pass(fn, x, SEAM_S)
     space = two_pass(lambda u: S.space(u, K.space_rng('send'), **S.SPACE), D.mono(send_bus(mix, parts, 'space')))
     key = np.concatenate([mix['vox'], mix['vox']])
     space = two_pass(lambda u: S.duck(u, key, **S.DUCK)[0], space)
@@ -327,7 +258,7 @@ ITEMS = [
     Item('Loops', 'ContextLoopWet', 'loop', context_wet, loop=True, sets=('s1a',), tags=('wet',), qa=FULL_MIX,
          about=f"{ABOUT}, wet: Space (FDN, a little shimmer), Echo (tape ping-pong) and the Alloy resonator, a "
                "throw on the last chop; the engine's target"),
-    Item('Loops', 'ContextLoopLow', 'loop', context_low, loop=True, sets=('s1a',),
+    Item('Loops', 'ContextLoopLow', 'loop', context_low, loop=True, sets=('s1a',), tags=('with_kick',),
          qa={'mud': 'gate', 'why': 'the kick and reese lanes as mixed: gated over the loop and in every gap'},
          about=f'{ABOUT}: the kick and reese lanes alone, mud-gated in every gap between kicks'),
 ]

@@ -7,8 +7,8 @@ Both stay out of the kick and sub: the pad is high-passed at 100 Hz and mono und
 The pad loop is exactly periodic, like the reese (bass.py): every saw sits on a grid of whole cycles per 4 s loop, and
 its breathing repeats a whole number of times per loop, so the crossfaded loop points join cleanly. The pluck is a
 stiff Karplus-Strong string; dsp48.karplus tunes its delay from the loop filters' delay at DC, which with this stiffness
-leaves the string 0.3 cents sharp at C6 and 2 cents at C7 (the core set's top zone), so ks_tuned() solves for the pitch
-to ask for from the filters' actual phase delay at the note.
+leaves the string 0.3 cents sharp at C6 and 2 cents at C7 (the core set's top zone), so parts.ks_tuned() solves for
+the pitch to ask for from the filters' actual phase delay at the note.
 
 Provenance: the pad and the pluck grow out of the S1 research prototype (recipes.py: pad, ks_pluck, 2026-10-29), with
 the pad's low end fixed (the prototype voiced its root on F#2 and measured side under 120 Hz at -7.3 dB) and the pluck
@@ -16,12 +16,12 @@ tuned.
 The phrase is written for this kit.
 """
 import numpy as np
-from scipy import signal
 
 from tools.sound import dsp48 as D
+from tools.sound import parts as P
+from tools.sound import phrase as Ph
 from tools.sound.item import Item, Out
 from tools.sound.kits import fut01 as K
-from tools.sound.recipes.bass import _t, close_loop, loop_len, raised
 
 SR = D.SR
 
@@ -62,8 +62,8 @@ def air_pad(take):
     body = D.peaking(D.bfilt(body, 1900.0, 'lowpass', order=4), 280.0, -5.0, 0.8)
     air = D.bfilt(air, (6000.0, 13000.0), 'bandpass', order=2)
     y = D.bfilt((body + 0.5 * air) / len(PAD_CHORD), 100.0, 'highpass', order=4)
-    y = D.mono_below(y, 150.0) * (np.sin(0.5 * np.pi * np.clip(_t(n) / 1.1, 0, 1)) ** 2)[:, None]
-    y, loop = close_loop(y, A0, L, xfade=0.05)
+    y = D.mono_below(y, 150.0) * (np.sin(0.5 * np.pi * np.clip(P.times(n) / 1.1, 0, 1)) ** 2)[:, None]
+    y, loop = P.close_loop(y, A0, L, xfade=0.05)
     return Out(y, loop=loop, f0s=tuple(sorted(f0s)))
 
 
@@ -73,50 +73,8 @@ PLUCK_LAYERS = (0.55, 1.0)
 DISP = -0.3                                           # string stiffness: the partials stretch, the "chrome"
 
 
-def ks_loop(f_in, S, disp):
-    """dsp48.karplus's loop for a requested pitch: the integer delay N and the loop filter B/A (brightness FIR, tuning
-    all-pass, dispersion all-pass), built the same way."""
-    period = SR / f_in
-    dd = (1 - disp) / (1 + disp) if disp else 0.0
-    N = int(np.floor(period - S - dd - 0.1))
-    frac = period - N - S - dd
-    eta = (1 - frac) / (1 + frac)
-    B = np.polymul([1 - S, S], [eta, 1.0])
-    A = np.array([1.0, eta])
-    if disp:
-        B = np.polymul(B, [disp, 1.0])
-        A = np.polymul(A, [1.0, disp])
-    return N, B, A
-
-
-def ks_pitch(f_in, S, disp):
-    """The string's actual fundamental: the f at which N plus the loop filter's phase delay at f is one period."""
-    N, B, A = ks_loop(f_in, S, disp)
-    f = f_in
-    for _ in range(20):
-        w = 2 * np.pi * f / SR
-        h = signal.freqz(B, A, worN=[w])[1][0]
-        f = SR / (N - np.angle(h) / w)
-    return f
-
-
-def ks_tuned(f0, S, disp):
-    """The pitch to ask karplus() for so the string sounds at f0 (a few fixed-point steps on ks_pitch)."""
-    f_in = f0
-    for _ in range(30):
-        f_in *= f0 / ks_pitch(f_in, S, disp)
-    return f_in
-
-
 PLUCK_SIDE = (0.35, 53, 0.6)                          # the side: level, and the all-pass that decorrelates it
                                                       # (delay in samples, about 1.1 ms; coefficient)
-
-
-def allpass(x, d, a):
-    """Schroeder all-pass: a flat magnitude and a phase that wanders with frequency, a decorrelator."""
-    b, den = np.zeros(d + 1), np.zeros(d + 1)
-    b[0], b[d], den[0], den[d] = -a, 1.0, 1.0, -a
-    return signal.lfilter(b, den, x)
 
 
 def pluck_note(f0, vel, n, r):
@@ -132,12 +90,12 @@ def pluck_note(f0, vel, n, r):
     p = max(1, int(m * 0.13))
     ex[p:] -= 0.8 * ex[:-p]
     ex[:12] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(12) / 12)
-    string = D.karplus(ex, ks_tuned(f0, S, DISP), n, decay_s=1.0 + 0.4 * vel, S=S, disp=DISP)
+    string = D.karplus(ex, P.ks_tuned(f0, S, DISP), n, decay_s=1.0 + 0.4 * vel, S=S, disp=DISP)
     g, d, a = PLUCK_SIDE
-    side = g * D.bfilt(allpass(string, d, a), 1000.0, 'highpass', order=2)
+    side = g * D.bfilt(P.allpass(string, d, a), 1000.0, 'highpass', order=2)
     y = np.stack([string + side, string - side], 1)
     decays = [0.006 / (1 + 0.3 * k) for k in range(len(K.ALLOY))]
-    tine = D.modal_ir(f0 * 4, K.ALLOY, decays, [1 / (1 + k) for k in range(len(K.ALLOY))], n, r) * raised(n, 0.0004)
+    tine = D.modal_ir(f0 * 4, K.ALLOY, decays, [1 / (1 + k) for k in range(len(K.ALLOY))], n, r) * P.raised(n, 0.0004)
     y += (0.06 + 0.12 * vel) * D.st(tine)
     return D.mono_below(D.bfilt(y, 150.0, 'highpass', order=2), 150.0) * vel ** 0.9
 
@@ -150,6 +108,7 @@ def chrome_pluck(take):
 # ------------------------------------------------------------------ the pluck phrase
 # 2 bars of 16ths in F# minor, on the pad's chord tones plus B: (16th, MIDI note, length in 16ths, velocity). Bar 1
 # leaps F#-C#-A-E on a 3-3-2 rhythm and settles on B; bar 2 answers from A up to G# and ends on C#, leading back to F#.
+PHRASE_STEPS = 32
 PHRASE = ((0, 66, 2, 1.0), (3, 73, 2, 0.7), (6, 69, 2, 0.8), (8, 76, 3, 0.9), (11, 73, 2, 0.6), (14, 71, 2, 0.75),
           (16, 69, 2, 0.95), (19, 76, 2, 0.7), (22, 73, 2, 0.8), (24, 80, 3, 0.9), (27, 78, 2, 0.65), (30, 73, 2, 0.7))
 
@@ -157,7 +116,7 @@ PHRASE = ((0, 66, 2, 1.0), (3, 73, 2, 0.7), (6, 69, 2, 0.8), (8, 76, 3, 0.9), (1
 def pluck_phrase(take):
     """The phrase played on the pluck at its exact pitches, each note damped 120 ms after its length, on the kit's
     swing (its odd 16ths land with the hats'); tails wrap, so it loops."""
-    L = loop_len()
+    L = Ph.loop_len(K, PHRASE_STEPS)
     y = np.zeros((L, 2))
     n = int(1.6 * SR)
     for i, (step, note, length, vel) in enumerate(PHRASE):

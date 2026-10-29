@@ -9,7 +9,8 @@
 
 Both run the way the engine will: fixed feedback loops processed in blocks no longer than their shortest delay, so a
 block only reads samples already written. Mono in, stereo out, the return only (no dry signal). The context loop's
-wet version (recipes/context.py) renders through them, and the engine's sends must match it.
+wet version (recipes/fut01/context.py) renders through them, and the engine's sends must match it. Nothing here
+is tied to a kit: the caller passes the kit's space_rng() and its tempo's delay.
 
 Provenance: space() extends dsp48.fdn_reverb (the S1 research prototype's FDN, 2026-10-29) with the shimmer path. The
 echo's voicing (feedback 0.38, LP 2.6 kHz / HP 300 Hz in the loop) is the legacy web pack's

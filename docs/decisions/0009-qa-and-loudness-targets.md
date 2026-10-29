@@ -1,6 +1,6 @@
 # 0009. Sample QA and loudness targets
 
-**Status:** Accepted, 2026-10-29, in S1a. The method changes below (marked *own*) are not in the plan: the S1a PR is where you check them.
+**Status:** Accepted, 2026-10-29, in S1a. The method changes below (marked *own*) are not in the plan: the S1a PR is where you check them. Amended for the four kits, 2026-10-29: every kit loops its kicks in its own groove, and ADR 0011 (proposed) adds the kick crest floor and the bass-body mode.
 
 ## Context
 Plan §5.2 lists the checks every master must pass, and the user's rule after the prototypes ("the kicks are a bit muddy, I hate muddy") made low-mid clean-up a gate. Writing the checks as code (`tools/sound/qa.py`, with fixtures of the six prototype defects and their controls) showed where the plan's methods needed a precise definition. A review of the S1a render (2026-10-29) then found limits no test pinned, a low cut measured in the wrong place, and D4 unenforced; this version includes its fixes.
@@ -22,7 +22,8 @@ Plan §5.2 lists the checks every master must pass, and the user's rule after th
 | Side under 120 Hz against mid under 120 Hz | ≤ −20 dB |
 | Tuning wherever a pitch is declared (0.10–0.60 s; kicks and toms 0.10–0.25 s) | ±3 cents; kicks and toms ±10; snares, hats, vocals and fx unchecked |
 | Top band on `hf_synthetic` masters: 14–20 kHz against 6–11 kHz | ≥ −40 dB (D4: a 2x resample of a 24 kHz take reads about −61) |
-| Low end | the mud gate or the low cut, below |
+| Kick crest (kicks, the top velocity layer): true peak over the loudest 50 ms (ADR 0011, proposed) | ≥ 4.0 dB |
+| Low end | the mud gate, the bass-body mode (basses, ADR 0011) or the low cut, below |
 | Loudness by category | below |
 
 **The mud gate** (categories `kick`, which covers the 2-step boom, `tom` and `bass`; any item can opt in with `qa={'mud': 'gate'}`):
@@ -31,9 +32,11 @@ Plan §5.2 lists the checks every master must pass, and the user's rule after th
 - After the first 80 ms, 150–400 Hz stays ≥ 20 dB under 30–120 Hz, in every 20 ms window (10 ms hop). Where the sub has faded more than 30 dB under its loudest window, the window is measured against that floor.
 - 150–400 Hz is ≤ −12 dB of the whole sound.
 - 400 Hz–1 kHz falls 30 dB within 150 ms.
-- On a 2-bar 2-step loop at the kit's tempo (one-shot kicks, toms and basses, or any item with `loop_check`), every gap between hits must pass two checks: from 80 ms after the hit to 20 ms before the next, 150–400 Hz stays ≥ 20 dB under 30–120 Hz (the same windows); and 40–15 ms before the next hit, it is ≥ 30 dB under the loop's 150–400 Hz peak.
+- On a 2-bar groove loop at the kit's tempo (one-shot kicks, toms and basses, or any item with `loop_check`), every gap between hits must pass two checks. The groove is the kit's `GROOVE`: 2-step (`qa.TWO_STEP`, FUT01) or four on the floor (`qa.FOUR_FLOOR`, beats at velocity 1.0 and 0.8; FUT02–FUT04). Its tightest gap is 3 16ths in 2-step and 4 in four on the floor. In every gap, from 80 ms after the hit to 20 ms before the next, 150–400 Hz stays ≥ 20 dB under 30–120 Hz (the same windows); and 40–15 ms before the next hit, it is ≥ 30 dB under the loop's 150–400 Hz peak.
 - A loop file that declares its kicks (`Out.hits`) gets the same two gap checks on itself, in place of the whole-file "after 80 ms" check.
-- A `Bass` or `Loops` item must state its low-end rule; `'off'` needs a reason (`qa['why']`), so a bass loop can't go ungated by default.
+- A `Bass` or `Loops` item must state its low-end rule: `'gate'`, `'bass-body'` or `'lowcut'`, or `'off'` with a reason (`qa['why']`), so a bass loop can't go ungated by default.
+
+**The bass-body mode** (`qa={'mud': 'bass-body', 'why': ...}`, ADR 0011, proposed): for the categories `bass` and `loop` only, with a reason; kicks and toms keep the gate and can't take any other mode. A bass may keep its own harmonics in 150–400 Hz up to a plain saw's level on its note (every peak ≤ +5 dB over a saw's roll-off from its sub partials). In every window the low mids stay at least 2 dB under the sub (≤ −2 dB), and the share is ≤ −5 dB. A phrase that declares its kicks gets the same window limit in every gap, the gate's before-hit rule unchanged, and under each kick's first 80 ms its low mids at least 4 dB under its own level in the gap after that kick (mean power both sides). ADR 0011 has the measurements and the fixtures.
 
 **The low cut** (everything else with low end: pads, stabs, textures, chops, hats, snares, perc, fx): ≤ −24 dB of the sound under 100 Hz (4th-order Butterworth, zero-phase). The recipes high-pass at about 100 Hz, higher for a root on F#2, and keep everything under 150 Hz mono.
 
@@ -71,7 +74,7 @@ Plan §5.2 lists the checks every master must pass, and the user's rule after th
 **Exceptions**: a flag or an override with its reason in the recipe (`qa['why']`), never a silent pass. `qa_report.json` carries every item's flags, tags and overrides, and `qa_report.md` lists them under "Exceptions". In S1a:
 - `GlitchFill`: `deliberate_alias` (the crush).
 - `ShiftRiser`: `cut_end` (it ends on the downbeat).
-- The growl shots: `tonal: False`. A moving shot has no steady tone. GrowlChew reads −29.6 dB at 4× and −29.4 dB with every stage at 16×, GrowlRise −24.5 dB at both, so it isn't aliasing; held still, the same chain reads −61.3 and −69.8 dB (`recipes/bass.py`).
+- The growl shots: `tonal: False`. A moving shot has no steady tone. GrowlChew reads −29.6 dB at 4× and −29.4 dB with every stage at 16×, GrowlRise −24.5 dB at both, so it isn't aliasing; held still, the same chain reads −61.3 and −69.8 dB (`recipes/fut01/bass.py`).
 - The full context loops: mud `off` (point 7).
 - The vocals: `hf_synthetic` (D4), now checked (point 9).
 
@@ -89,6 +92,7 @@ Plan §5.2 lists the checks every master must pass, and the user's rule after th
   | ContextLoopLow | n/a | per gap | −20.3 dB | n/a | −25.0 / −42.1 dB (11 gaps) |
 
   The round-0 prototype kick read 771 ms, −2.4 dB, −6.2 dB and 360 ms (the window measure reads +0.5 dB on it).
+- The kick crest (ADR 0011), lowest top-layer file: KickSplit 5.82 dB, KickTight 7.93 dB. Both pass, and the S1a masters are the same bytes with the new rules and the multi-kit layout.
 - **The windows found two real problems the average hid:** the stand-ins started reese notes over 2 ms, which splattered the sub into 150–400 Hz at every note that doesn't land on a kick (the context loop's low end read −15 dB in two gaps), and a near-silent stretch between reese notes read as mud against a −40 dB floor. The stand-ins now start reese notes over 10 ms, as the engine's legato voice will, and the floor is −30 dB.
 - **The 150–400 Hz band's skirt** (4th order, zero-phase) still counts content at 450–550 Hz only 11–23 dB down. That is where the reese's mids start, so the reese's readings are mostly that skirt, not its own low mids (−41 to −48 dB of the bass lane). It is part of the gate as approved; a steeper band would be a method change for S1c to decide.
 - **Toms at F#3 and above** will likely fail "20 dB under 30–120 Hz", because their fundamental sits above that band. They have their own category now, gated like a kick; S1c decides their rule, for example the falls and the share only.

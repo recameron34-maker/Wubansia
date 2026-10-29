@@ -14,6 +14,7 @@ their tails rendered out in full instead of cut by the fade.
 import numpy as np
 
 from tools.sound import dsp48 as D
+from tools.sound import parts as P
 from tools.sound.item import Item
 from tools.sound.kits import fut01 as K
 
@@ -21,76 +22,6 @@ SR = D.SR
 LAYERS = (0.2, 0.4, 0.6, 0.8, 1.0)
 F_KICK = float(D.midi_hz(K.KICK_NOTE))  # F#1, 46.25 Hz
 ALLOY = np.array(K.ALLOY)
-
-
-# ------------------------------------------------------------------ shared pieces
-def _t(n):
-    return np.arange(n) / SR
-
-
-def lerp(pair, v):
-    return pair[0] + (pair[1] - pair[0]) * v
-
-
-def vel_gain(v, span_db, v_min=LAYERS[0]):
-    """Level of a layer: span_db between the softest layer (v_min) and the hardest (1.0). Synthesis adds its own rise
-    on top (brighter, harder hits read louder)."""
-    return float(D.undb(span_db * (v - 1.0) / (1.0 - v_min)))
-
-
-def sweep(n, f_hi, tau1, tau2, w2, f_end=F_KICK):
-    """Kick pitch drop from f_hi to exactly f_end: a fast snap (tau1) and a glide (tau2, weight w2). Returns the phase
-    in radians."""
-    t = _t(n)
-    f = f_end + (f_hi - f_end) * ((1 - w2) * np.exp(-t / tau1) + w2 * np.exp(-t / tau2))
-    return 2 * np.pi * D.phase(f, n)
-
-
-def gate(t, hold, tau):
-    """1 for `hold` seconds, then an exponential fall."""
-    return np.exp(-np.maximum(0.0, t - hold) / tau)
-
-
-def hann_pulse_gain(f, width):
-    """Magnitude of a Hann pulse `width` seconds long at f Hz, re DC: a shorter strike reaches higher modes."""
-    x = np.asarray(f, dtype=float) * width
-    with np.errstate(divide='ignore', invalid='ignore'):
-        g = np.sinc(x) / (1.0 - x * x)
-    return np.abs(np.where(np.isclose(np.abs(x), 1.0), 0.5, g))
-
-
-def modes(n, f0, ratios, decays, amps, bend, r):
-    """Damped sines at f0 * ratios whose pitch starts `bend` (a fraction, one value per sample) sharp: the pitch
-    envelope of a struck plate. Modes above 20 kHz are left out; start phases come from r."""
-    t = _t(n)
-    y = np.zeros(n)
-    for rt, d, a in zip(ratios, decays, amps):
-        f = f0 * rt
-        ph0 = r.uniform(0, 2 * np.pi)
-        if f * (1 + bend[0]) < 20000:
-            y += a * np.exp(-t / d) * np.sin(2 * np.pi * D.phase(f * (1 + bend), n) + ph0)
-    return y
-
-
-def band_noise(r, n, lo, hi, order=2):
-    """Gaussian noise band-passed to lo-hi Hz, scaled by the band's width to about unit RMS (a fixed gain, the same on
-    every take)."""
-    return D.bfilt(r.standard_normal(n), (lo, hi), 'bandpass', order=order) * np.sqrt(0.5 * SR / (hi - lo))
-
-
-def hp_noise(r, n, fc, order=4):
-    """Gaussian noise high-passed at fc, about unit RMS."""
-    return D.bfilt(r.standard_normal(n), fc, 'highpass', order=order) * np.sqrt(0.5 * SR / (0.5 * SR - fc))
-
-
-def soft_clip(x, drive):
-    """tanh(drive x) / drive (ADAA): unity for small signals, so it shaves peaks without moving the level."""
-    return D.tanh_adaa(x, drive) * np.tanh(drive) / drive
-
-
-def low_clean(x, hp=120.0):
-    """Off the kick and sub: high-pass, and mono under 150 Hz."""
-    return D.mono_below(D.bfilt(D.st(x), hp, 'highpass', order=4), 150.0)
 
 
 # ------------------------------------------------------------------ kick A: split
@@ -105,13 +36,13 @@ def kick_split(take):
     v = take.vel
     r = take.rng('split')
     n = int(0.7 * SR)
-    t = _t(n)
+    t = P.times(n)
 
     # sweep: harder hits start higher and snap faster. The round robin moves the start and the snap, never the end. The
     # glide (16 ms, was 30 ms) puts the sub on F#1 by 100 ms (the judge's fix)
     f_hi = (280.0 + 320.0 * v) * 2 ** (r.normal(0, 10) / 1200)
     tau1 = (0.0085 - 0.002 * v) * (1 + 0.04 * r.uniform(-1, 1))
-    s = np.sin(sweep(n, f_hi, tau1, 0.016, 0.28))
+    s = np.sin(P.sweep(n, f_hi, tau1, 0.016, 0.28, F_KICK))
 
     # 1. sub: clean, hold-then-drop envelope, exactly zero from 0.45 s
     a_sub = np.exp(-(t / (0.165 + 0.025 * v)) ** 1.8) * D.taper(n, 0.34, 0.11)
@@ -121,14 +52,14 @@ def kick_split(take):
     #    95 ms
     drive, fold = 2.0 + 4.0 * v, 1.0 + 0.5 * v
     kd = D.oversampled(lambda u: D.sinefold_adaa(D.tanh_adaa(u, drive, bias=0.12), fold), s * np.exp(-t / 0.05), 4)
-    a_k = gate(t, 0.010 + 0.005 * v, 0.022 + 0.006 * v) * D.taper(n, 0.045, 0.050)
+    a_k = P.gate(t, 0.010 + 0.005 * v, 0.022 + 0.006 * v) * D.taper(n, 0.045, 0.050)
     knock = D.peaking(D.lr4(kd * a_k, SPLIT_XOVER, 'highpass'), 255.0, -10.0, 0.75)
     knock = D.bfilt(knock, 5000.0, 'lowpass')
 
     # 3. top: alloy FM click + noise burst + a metal ring on F#6, through the heavy chain at 8x, then nothing under
     #    1 kHz
     nt = int(0.25 * SR)
-    tt = _t(nt)
+    tt = P.times(nt)
     fcar = 2900.0
     idx = (2.0 + 5.0 * v) * np.exp(-tt / 0.0015)
     fm = np.sin(2 * np.pi * fcar * tt + idx * np.sin(2 * np.pi * fcar * ALLOY[2] * tt))
@@ -154,7 +85,7 @@ def kick_split(take):
     top_full[:nt] = top
 
     y = sub + (0.55 + 0.25 * v) * knock + (0.11 + 0.165 * v) * top_full
-    return y * vel_gain(v, 12.0)
+    return y * P.vel_gain(v, 12.0)
 
 
 # ------------------------------------------------------------------ kick B: tight
@@ -170,39 +101,39 @@ def kick_tight(take):
     v = take.vel
     r = take.rng('tight')
     n = int(0.9 * SR)
-    t = _t(n)
-    f_hi = lerp((420.0, 760.0), v) * 2 ** (r.normal(0, 12) / 1200)       # round robin: the start only
-    tau2 = lerp((0.022, 0.016), v) * (1 + 0.03 * r.uniform(-1, 1))
-    osc = np.sin(sweep(n, f_hi, lerp((0.0040, 0.0035), v), tau2, 0.15))
+    t = P.times(n)
+    f_hi = P.lerp((420.0, 760.0), v) * 2 ** (r.normal(0, 12) / 1200)       # round robin: the start only
+    tau2 = P.lerp((0.022, 0.016), v) * (1 + 0.03 * r.uniform(-1, 1))
+    osc = np.sin(P.sweep(n, f_hi, P.lerp((0.0040, 0.0035), v), tau2, 0.15, F_KICK))
 
     # alloy transient: FM click (2900 Hz carrier, modulator on ALLOY[2]) and a 1.5 ms noise burst
-    tc = _t(int(0.012 * SR))
+    tc = P.times(int(0.012 * SR))
     fm = np.sin(2 * np.pi * 2900 * tc + (2 + 5 * v) * np.exp(-tc / 0.0015) * np.sin(2 * np.pi * 2900 * ALLOY[2] * tc))
     click = np.zeros(n)
     click[:len(tc)] = fm * np.exp(-tc / 0.002)
     nb = D.bfilt(r.uniform(-1, 1, n), 3000, 'highpass') * D.env_exp(n, 0.0015)
 
     # the body: a short pre-envelope, then a drive that holds and falls back to 1 (8x, biased tanh -> fold -> clip)
-    x = np.exp(-t / lerp((0.060, 0.100), v)) * osc + (0.22 + 0.45 * v ** 1.5) * (0.7 * click + 0.5 * nb)
-    d0, hold_d, tau_d = lerp((2.0, 9.0), v), lerp((0.020, 0.040), v), lerp((0.025, 0.035), v)
-    fold = lerp((1.0, 1.6), v)
+    x = np.exp(-t / P.lerp((0.060, 0.100), v)) * osc + (0.22 + 0.45 * v ** 1.5) * (0.7 * click + 0.5 * nb)
+    d0, hold_d, tau_d = P.lerp((2.0, 9.0), v), P.lerp((0.020, 0.040), v), P.lerp((0.025, 0.035), v)
+    fold = P.lerp((1.0, 1.6), v)
 
     def chain(u):
-        drv = 1.0 + (d0 - 1.0) * gate(np.arange(len(u)) / (SR * 8), hold_d, tau_d)
+        drv = 1.0 + (d0 - 1.0) * P.gate(np.arange(len(u)) / (SR * 8), hold_d, tau_d)
         u = D.tanh_adaa(drv * u, 1.0, bias=0.25) * np.tanh(1.0) / np.tanh(drv)   # biased tanh, drive per sample
         return D.hardclip_adaa(D.sinefold_adaa(u, fold), 1.4)
     d = D.lr4(D.oversampled(chain, x, 8), TIGHT_XOVER, 'highpass')
     d_lo = D.peaking(D.lr4(d, 1000.0, 'lowpass'), 250.0, -7.0, 0.7)
     d_hi = D.lr4(d, 1000.0, 'highpass')
-    d = d_lo * gate(t, lerp((0.012, 0.018), v), lerp((0.012, 0.014), v)) \
-        + d_hi * gate(t, lerp((0.025, 0.045), v), lerp((0.024, 0.030), v))
+    d = d_lo * P.gate(t, P.lerp((0.012, 0.018), v), P.lerp((0.012, 0.014), v)) \
+        + d_hi * P.gate(t, P.lerp((0.025, 0.045), v), P.lerp((0.024, 0.030), v))
 
     # the clean F#1 sine: slow fall, raised-cosine release from 0.10 s to 0.28 s
     rel = np.clip((t - TIGHT_RELEASE[0]) / TIGHT_RELEASE[1], 0, 1)
     s = D.lr4(0.9 * osc * np.exp(-t / (0.30 + 0.04 * v)) * (0.5 + 0.5 * np.cos(np.pi * rel)), TIGHT_XOVER, 'lowpass')
 
-    y = D.bfilt(d + s, lerp((5200.0, 12000.0), v), 'lowpass')
-    return y * vel_gain(v, 12.0)
+    y = D.bfilt(d + s, P.lerp((5200.0, 12000.0), v), 'lowpass')
+    return y * P.vel_gain(v, 12.0)
 
 
 # ------------------------------------------------------------------ snare A: FM metal
@@ -226,37 +157,37 @@ def snare_metal(take):
     v = take.vel
     r = take.rng('metal')
     n = int(1.4 * SR)
-    t = _t(n)
+    t = P.times(n)
 
     # body: pitch drop and FM index follow velocity; it holds 2 ms, then falls fast so the low mids clear early
     f = SNARE_BODY * (1 + (0.10 + 0.40 * v) * np.exp(-t / 0.006))
     idx = (0.6 + 2.2 * v) * np.exp(-t / (0.010 + 0.008 * v))
     ph = 2 * np.pi * D.phase(f, n)
-    body = np.sin(ph + idx * np.sin(ALLOY[3] * ph)) * gate(t, 0.002, 0.026 + 0.006 * v) * D.env_exp(n, 1.0, 0.0005)
+    body = np.sin(ph + idx * np.sin(ALLOY[3] * ph)) * P.gate(t, 0.002, 0.026 + 0.006 * v) * D.env_exp(n, 1.0, 0.0005)
 
     # wires: noise over 2 kHz with a presence peak, brighter with velocity, soft-clipped (4x); a short crack on top
     def wires(rr):
-        x = D.peaking(hp_noise(rr, n, 2000.0), 5200.0, 4.0, 0.9)
+        x = D.peaking(P.hp_noise(rr, n, 2000.0), 5200.0, 4.0, 0.9)
         x = D.bfilt(x, 6000.0 + 6000.0 * v, 'lowpass', order=2)
-        return D.oversampled(lambda u: soft_clip(u, WIRE_DRIVE), x)
+        return D.oversampled(lambda u: P.soft_clip(u, WIRE_DRIVE), x)
     tail = D.env_exp(n, 0.050 + 0.030 * v, 0.0008)
     crack = (0.3 + 0.9 * v) * D.env_exp(n, 0.0035, 0.0003)
 
     # ring: alloy modes struck by a Hann pulse (shorter, so brighter, on harder hits), the same phases on each side and
     # 0.1% apart, so the ring widens slowly as it decays
     fk = SNARE_RING * ALLOY
-    amps = hann_pulse_gain(fk, lerp((0.0005, 0.00018), v)) / (1 + 0.4 * np.arange(len(ALLOY)))
+    amps = P.hann_pulse_gain(fk, P.lerp((0.0005, 0.00018), v)) / (1 + 0.4 * np.arange(len(ALLOY)))
     decays = [(0.040 + 0.030 * v) / (1 + 0.2 * k) for k in range(len(ALLOY))]
     bend = (0.002 + 0.006 * v) * np.exp(-t / 0.010)
-    ring = [modes(n, SNARE_RING * c, ALLOY, decays, amps, bend, take.rng('metal', 'ring')) for c in (0.9995, 1.0005)]
+    ring = [P.modes(n, SNARE_RING * c, ALLOY, decays, amps, bend, take.rng('metal', 'ring')) for c in (0.9995, 1.0005)]
 
-    g_wire = SNARE_A_MIX[1] * lerp(SNARE_A_WIRE_VEL, v)
-    mid = SNARE_A_MIX[0] * lerp(SNARE_A_BODY_VEL, v) * body + g_wire * wires(r) * (tail + crack)
-    side = SNARE_A_MIX[2] * lerp(SNARE_A_WIRE_VEL, v) * wires(take.rng('metal', 'side')) * tail
+    g_wire = SNARE_A_MIX[1] * P.lerp(SNARE_A_WIRE_VEL, v)
+    mid = SNARE_A_MIX[0] * P.lerp(SNARE_A_BODY_VEL, v) * body + g_wire * wires(r) * (tail + crack)
+    side = SNARE_A_MIX[2] * P.lerp(SNARE_A_WIRE_VEL, v) * wires(take.rng('metal', 'side')) * tail
     g_ring = SNARE_A_MIX[3] * (0.4 + 0.6 * v)
     y = np.stack([mid + side + g_ring * ring[0], mid - side + g_ring * ring[1]], 1)
-    y = D.oversampled(lambda u: soft_clip(u, SNARE_A_CLIP), y)
-    return low_clean(y) * D.taper(n, *SNARE_FADE)[:, None] * vel_gain(v, 12.0)
+    y = D.oversampled(lambda u: P.soft_clip(u, SNARE_A_CLIP), y)
+    return P.low_clean(y) * D.taper(n, *SNARE_FADE)[:, None] * P.vel_gain(v, 12.0)
 
 
 # ------------------------------------------------------------------ snare B: modal metal + clap
@@ -272,27 +203,27 @@ def snare_modal(take):
     v = take.vel
     r = take.rng('modal')
     n = int(1.4 * SR)
-    t = _t(n)
+    t = P.times(n)
 
     # body: a Hann strike of 1.4 ms (soft) to 0.4 ms (hard) through the modes; the modes start sharp and settle
     fk = SNARE_B_BODY * ALLOY
-    amps = hann_pulse_gain(fk, lerp((0.0014, 0.0004), v)) / (1 + 0.3 * np.arange(len(ALLOY)))
+    amps = P.hann_pulse_gain(fk, P.lerp((0.0014, 0.0004), v)) / (1 + 0.3 * np.arange(len(ALLOY)))
     amps[0] *= 0.6                                              # the one mode in the low mids
     decays = [0.024] * len(ALLOY)
     bend = (0.02 + 0.06 * v) * np.exp(-t / 0.008)
-    body = modes(n, SNARE_B_BODY, ALLOY, decays, amps, bend, r) * D.env_exp(n, 1.0, 0.0004)
+    body = P.modes(n, SNARE_B_BODY, ALLOY, decays, amps, bend, r) * D.env_exp(n, 1.0, 0.0004)
 
     # clap: four flams of band noise, the last one carrying the tail
-    spread = lerp((1.25, 0.85), v)
+    spread = P.lerp((1.25, 0.85), v)
     lo, hi = 1200.0 * (1 + 0.2 * v), 3600.0 * (1 + 0.3 * v)
-    nz = [band_noise(take.rng('modal', 'clap', ch), n, lo, hi) for ch in (0, 1)]
+    nz = [P.band_noise(take.rng('modal', 'clap', ch), n, lo, hi) for ch in (0, 1)]
     env = np.zeros(n)
     for k, at in enumerate(CLAP_FLAMS):
         a = int(at * spread * SR * (1 + 0.05 * r.uniform(-1, 1)))
         env[a:] += (0.7 + 0.1 * k) * D.env_exp(n - a, 0.0035, 0.0003)
     env[a:] += 0.55 * D.env_exp(n - a, 0.060, 0.001)              # the tail starts with the last flam
     clap = np.stack([nz[0], 0.9 * nz[0] + 0.3 * nz[1]], 1) * env[:, None]
-    crack = (0.1 + 0.6 * v) * hp_noise(take.rng('modal', 'crack'), n, 5000.0, order=2) * D.env_exp(n, 0.002, 0.0002)
+    crack = (0.1 + 0.6 * v) * P.hp_noise(take.rng('modal', 'crack'), n, 5000.0, order=2) * D.env_exp(n, 0.002, 0.0002)
     clap += crack[:, None]
 
     # a little of the kit's room on the clap, its send high-passed so the room stays out of the low mids
@@ -300,7 +231,7 @@ def snare_modal(take):
     room = D.fdn_reverb(send, K.space_rng('room'), t60=0.45, size=0.35, damp_hz=9000.0)[:n]
 
     y = SNARE_B_MIX[0] * D.st(body) + SNARE_B_MIX[1] * (0.6 + 0.4 * v) * clap + SNARE_B_MIX[2] * room
-    return low_clean(y) * D.taper(n, *SNARE_FADE)[:, None] * vel_gain(v, 12.0)
+    return P.low_clean(y) * D.taper(n, *SNARE_FADE)[:, None] * P.vel_gain(v, 12.0)
 
 
 # ------------------------------------------------------------------ closed hat A: FM metal, tight
@@ -335,7 +266,7 @@ def hat_fm(take):
     tick *= D.env_exp(n, 0.0012, 0.0002)                       # band-passed: nothing above 20 kHz eats the peak gain
     env = D.env_exp(n, 0.010 + 0.008 * v, 0.0003)
     y = x * env[:, None] + (0.2 + 0.8 * v) * D.st(tick)
-    return y * vel_gain(v, 13.0)
+    return y * P.vel_gain(v, 13.0)
 
 
 # ------------------------------------------------------------------ closed hat B: ring-modulated noise, a darker sizzle
@@ -350,11 +281,11 @@ def ring_noise(rr, n, f0):
     """Noise around 1 kHz plus a small alloy tone cluster, ring-modulated onto carriers on the alloy ratios from f0:
     islands of noise with inharmonic partials in them, about unit RMS. Each carrier gets its own noise, so the islands
     flicker independently."""
-    t = _t(n)
+    t = P.times(n)
     tones = sum(np.sin(2 * np.pi * f * t + rr.uniform(0, 2 * np.pi)) for f in RING_HAT_TONES) * RING_HAT_TONE_LEVEL
     out = np.zeros(n)
     for k, ratio in enumerate(ALLOY):
-        out += D.ring_mod(band_noise(rr, n, 400.0, 2200.0, order=4) + tones, f0, (ratio,), r=rr) / (1.0 + 0.4 * k)
+        out += D.ring_mod(P.band_noise(rr, n, 400.0, 2200.0, order=4) + tones, f0, (ratio,), r=rr) / (1.0 + 0.4 * k)
     return out / 1.4
 
 
@@ -368,8 +299,9 @@ def hat_ring(take):
     n = int(1.0 * SR)
     pre = int(HAT_PREROLL * SR)
     f0 = RING_HAT_F0 * (1 + 0.003 * r.uniform(-1, 1))
-    fc = (5000.0 + 1500.0 * v) * (1 + (0.10 + 0.40 * v) * np.exp(-np.maximum(_t(n + pre) - HAT_PREROLL, 0) / 0.010))
-    q = lerp((3.5, 2.0), v)
+    fc = (5000.0 + 1500.0 * v) * (1 + (0.10 + 0.40 * v)
+                                  * np.exp(-np.maximum(P.times(n + pre) - HAT_PREROLL, 0) / 0.010))
+    q = P.lerp((3.5, 2.0), v)
 
     def voice(rr):
         """The band and the air, squashed by a hard, fast leveller that settles in the pre-roll: compressed noise, and
@@ -381,10 +313,10 @@ def hat_ring(take):
                       rms=0.002)
         return D.bfilt(y, 3000.0, 'highpass', order=4)[pre:]      # the leveller leaves the band skirts uncompressed
     env = D.env_exp(n, 0.055 + 0.020 * v, 0.0003)
-    tick = (0.07 + 0.21 * v) * hp_noise(take.rng('ring', 'tick'), n, 8000.0, order=2) * D.env_exp(n, 0.001, 0.0002)
+    tick = (0.07 + 0.21 * v) * P.hp_noise(take.rng('ring', 'tick'), n, 8000.0, order=2) * D.env_exp(n, 0.001, 0.0002)
     mid = voice(r) * env + tick
     side = 0.35 * voice(take.rng('ring', 'side')) * env
-    return np.stack([mid + side, mid - side], 1) * D.taper(n, *RING_HAT_FADE)[:, None] * vel_gain(v, 13.0)
+    return np.stack([mid + side, mid - side], 1) * D.taper(n, *RING_HAT_FADE)[:, None] * P.vel_gain(v, 13.0)
 
 
 # ------------------------------------------------------------------ alloy hit, F#5
@@ -410,7 +342,7 @@ def alloy(take, decay, fade, seconds):
     v = take.vel
     r = take.rng('alloy')
     n = int(seconds * SR)
-    t = _t(n)
+    t = P.times(n)
     f0 = take.f0 * 2 ** (r.uniform(-2, 2) / 1200)               # round robin: +-2 cents and its own scrape
     # every take gets the same mode and carrier phases: the strike's carrier sits on the first mode, and random phases
     # made the two cancel or add, 1.4 dB apart between round robins
@@ -420,7 +352,7 @@ def alloy(take, decay, fade, seconds):
     decays = [decay / (1 + 0.55 * k) for k in range(len(ALLOY))]
     amps = [v ** (0.35 * k) / (1 + 0.6 * k) for k in range(len(ALLOY))]
     bend = (0.004 + 0.016 * v) * np.exp(-t / 0.012)
-    body = modes(n, f0, ALLOY, decays, amps, bend, phases)
+    body = P.modes(n, f0, ALLOY, decays, amps, bend, phases)
 
     # FM strike: mod2 -> mod1 -> carrier, indices fall fast; the index is capped so the sidebands stay under 20 kHz
     fm1, fm2 = f0 * ALLOY[3], f0 * ALLOY[5]
@@ -429,7 +361,7 @@ def alloy(take, decay, fade, seconds):
     m1 = np.sin(2 * np.pi * fm1 * t + i2 * np.sin(2 * np.pi * fm2 * t))
     strike = np.sin(2 * np.pi * f0 * t + i1 * m1) * D.env_exp(n, 0.06 + 0.06 * v, 0.0003)
     clang = D.ring_mod(strike * D.env_exp(n, 0.02), f0 * 0.5, ALLOY, r=phases)
-    scrape = (0.05 + 0.25 * v) * hp_noise(r, n, 5000.0, order=2) * D.env_exp(n, 0.0015, 0.0002)
+    scrape = (0.05 + 0.25 * v) * P.hp_noise(r, n, 5000.0, order=2) * D.env_exp(n, 0.0015, 0.0002)
 
     centre = 0.8 * body + (0.25 + 0.35 * v) * strike + 0.4 * v * clang + scrape
     shift = (6.0 + 30.0 * v) * (1 + 0.05 * r.uniform(-1, 1))
@@ -438,7 +370,7 @@ def alloy(take, decay, fade, seconds):
     g = 0.5 + 0.2 * v
     y = np.stack([centre + g * left, centre + g * right], 1)
     y = D.bfilt(y, 300.0, 'highpass', order=4) * D.taper(n, *fade)[:, None] * D.env_exp(n, 1.0, 0.0003)[:, None]
-    return y * vel_gain(v, 12.0, ALLOY_LAYERS[0])
+    return y * P.vel_gain(v, 12.0, ALLOY_LAYERS[0])
 
 
 ITEMS = [

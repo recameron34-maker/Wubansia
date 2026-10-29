@@ -57,7 +57,9 @@ def sung_track():
     """The one sung performance every chop is cut from: its frames before synthesis, the phrase ends not yet
     released."""
     perf = V.performance(V.sing_text(SUNG_NOTES), K.VOICE, SUNG_HOW.speed, SUNG_HOW.glottal, SUNG_ACCENT, SUNG_DRAW)
-    return V.sing_track(perf, SUNG_NOTES, K.BPM, SUNG_HOW, SUNG_LEN, SUNG_PRE, D.rng(K.KIT, 'SungPhrase', 'sing'))
+    # straight (0.5), as rendered for S1a; swinging the line on K.SWING is a sound change for the fix round's own commit
+    return V.sing_track(perf, SUNG_NOTES, K.BPM, SUNG_HOW, SUNG_LEN, SUNG_PRE, D.rng(K.KIT, 'SungPhrase', 'sing'),
+                        swing=0.5)
 
 
 @functools.lru_cache(maxsize=1)

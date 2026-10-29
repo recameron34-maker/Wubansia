@@ -4,9 +4,12 @@ ADR 0005, D4: a vocal master comes only from WORLD resynthesis at 48 kHz using t
 The band above the take's 12 kHz is synthetic (extend_hf), so every master made here carries the hf_synthetic flag.
 The Kokoro audio is analysed and never resampled into a master; models.asr() resamples only to listen.
 
-    perf = performance('Copper light, moving slow', K.VOICE)       # Kokoro + WORLD analysis, cached per line
-    track = sing_track(perf, notes, bpm, Sing(), total, pre, rng)  # WORLD frames of a sung line, 5 ms apart
+    perf = performance(sing_text(notes), K.VOICE)                  # Kokoro + WORLD analysis, cached per line
+    track = sing_track(perf, notes, K.BPM, Sing(), total, pre, rng, swing=K.SWING)  # WORLD frames, 5 ms apart
     y = synth(track)                                               # 48 kHz mono
+
+Nothing here is tied to a kit: the caller passes its kit's voice blend (K.VOICE), the lyric line and its notes, the
+kit's tempo (K.BPM) and swing, and a seeded rng (take.rng, or dsp48.rng of the kit and the line).
 
 Provenance: ported from legacy/web-pack/audio/vocals3.py (Kokoro run directly through onnxruntime so its phoneme
 durations come back; align_tokens, syllables_of, fit_syllables, the time map, pitch and dynamics of sing(), extend_hf,
@@ -181,7 +184,7 @@ def analyze(x):
 @functools.lru_cache(maxsize=16)
 def performance(text, blend, speed=0.8, glottal=True, accent=None, draw=0):
     """Kokoro speaks the line (words split on spaces, punctuation phrases it); WORLD analyses it. blend: ((voice,
-    weight), ...), e.g. kits.fut01.VOICE; accent and draw: see Kokoro.speak. Cached: a take is deterministic."""
+    weight), ...): the kit's VOICE; accent and draw: see Kokoro.speak. Cached: a take is deterministic."""
     words = tuple(text.split(' '))
     x, toks = kokoro().speak(words, blend, speed, glottal=glottal, accent=accent, draw=draw)
     f0, sp, ap = analyze(x)
@@ -588,11 +591,11 @@ def _sung_pitch(events, kind, ev, S, rng, fps):
     return mid, cents, allnotes
 
 
-def sing_track(perf, notes, bpm, S, total_sec, pre, rng, swing=0.5):
+def sing_track(perf, notes, bpm, S, total_sec, pre, rng, swing):
     """Sing a line as one performance. notes: (step16, len16, midi, text), '~' continuing a word; the words must be
-    perf's words. Times are pre + steps (swung like the kit); rng draws the vibrato, scoops, falls and drift. Returns a
-    Track with 5 ms frames, pre + total_sec long, whose phrases still end dead: release_ends() them to sing the line,
-    or chop() it."""
+    perf's words. Times are pre + steps, odd 16ths on `swing` (the kit's K.SWING, as every lane of a phrase; 0.5
+    straight); rng draws the vibrato, scoops, falls and drift. Returns a Track with 5 ms frames, pre + total_sec long,
+    whose phrases still end dead: release_ends() them to sing the line, or chop() it."""
     st = 60.0 / bpm / 4.0
 
     def T(s):

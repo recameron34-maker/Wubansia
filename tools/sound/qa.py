@@ -3,7 +3,8 @@
 Every check returns a Check: a name, ok (True, False, or None when it doesn't apply), the measured value, the limit and
 a short detail. check_take() runs the per-file checks on one sound; check_layers(), check_loop(), check_gains(),
 check_content() and check_transcript() run the per-instrument ones. A sound declares its category (and overrides) in a
-Spec; the category picks the rules: CATEGORY_RULES below.
+Spec; the category picks the rules: CATEGORY_RULES below. ADR 0011 (proposed) adds two: the kick crest floor and the
+bass-body mode of the low-end rule.
 
 Provenance: lufs, dc_db, click_at, stereo and harmonic_asr are ported from the S1 research prototype (qa.py), the mud
 measures from the kick mud meter (mud.py) and the 2-step loop from the kick judge (judge_loops.py, loopcheck.py), all
@@ -49,29 +50,54 @@ MUD_SHARE_DB = -12.0         # 150-400 Hz share of the whole sound
 BOX_FALL_MS = 150.0          # 400 Hz-1 kHz falls 30 dB within this
 LOOP_BEFORE_HIT_DB = -30.0   # 2-step loop: 150-400 Hz 40-15 ms before each hit, re the loop's 150-400 Hz peak
 TRANSCRIPT_MIN = 0.8         # share of script words heard, minus 0.3 x the share of extra words
+KICK_CREST_MIN_DB = 4.0      # kicks, the top layer: true peak at least this over the loudest 50 ms (RMS). A sine reads
+                             # 3.01; KickSplit 5.8-6.4, and 3.5 driven 6 dB into a limiter; KickTight 7.9-8.9, and
+                             # 4.2-5.0 at 6 dB, 3.1-3.5 at 9 dB: a spikier kick fails only when limited harder
+KICK_CREST_WINDOW = 0.050
+KICK_OWN_S = 0.080           # each kick owns its first 80 ms: the gates start after it, the bass-body duck covers it
+BEFORE_HIT = (0.040, 0.015)  # the before-hit window: from 40 to 15 ms before each hit, seconds
+BODY_VS_SUB_DB = -2.0        # bass-body: 150-400 Hz against 30-120 Hz in every 20 ms window (a plain saw on F#2 reads
+                             # -3.3, on F#1 -8.0; low mids outlasting the sub read +6)
+BODY_OVER_SAW_DB = 5.0       # bass-body: no partial in 150-400 Hz more than this over a saw's roll-off (-6 dB per
+                             # octave) from the sound's own partials in 30-120 Hz (a saw reads 0, a resonant low-pass
+                             # 3-3.5, a +9 dB low-mid bump 6.2)
+BODY_SHARE_DB = -5.0         # bass-body: 150-400 Hz share of the sound (a plain saw on G2 reads -6.3)
+BODY_DUCK_DB = -4.0          # bass-body phrases with kick hits: 150-400 Hz over each kick's first 80 ms against the
+                             # bass's own level in the gap after it, mean power both sides. A steady 6 dB duck reads
+                             # -4.7 to -5.5 on F#1-G2 saws, 3 dB about -2, no duck 0 to +1, resting under the kick
+                             # -26; a sidechain needs about 8 dB
+DUCK_FLOOR_DB = -30.0        # body_duck: a gap more than this under the phrase's loudest gap counts at that floor, so a
+                             # bass that sits out a kick and the gap after it isn't read against silence
+MUD_MODES = ('gate', 'bass-body', 'lowcut', 'off')
+STRICT = ('kick', 'tom')     # these keep the strict gate: 'bass-body', 'lowcut' and 'off' are refused (item.py)
+BODY_CATEGORIES = ('bass', 'loop')   # the categories bass-body may be declared on, with a reason (item.py)
 LOUDNESS = {'texture': (-20.0, 1.0), 'riser': (-14.0, 2.0), 'wet': (-16.0, 1.0), 'dry': (-18.0, 1.0)}  # LUFS-I, +-
 
 CATEGORIES = ('kick', 'tom', 'snare', 'hat', 'perc', 'bass', 'pad', 'stab', 'lead', 'vox', 'fx', 'texture', 'loop')
 FLAGS = ('deliberate_alias', 'explicit', 'hf_synthetic', 'cut_end')
-# per category: low-end rule ('gate' = mud gate, 'lowcut' = nothing under ~100 Hz, 'off'), alias check on the sustain,
-# tuning tolerance in cents when the sound declares a pitch (None = not checked), and the 2-step loop check (one-shots
-# only). The 2-step boom is a 'kick'. Toms get the kick's rules until S1c decides theirs (ADR 0009).
+# per category: low-end rule ('gate' = mud gate, 'bass-body', 'lowcut' = nothing under ~100 Hz, 'off'), alias check on
+# the sustain, tuning tolerance in cents when the sound declares a pitch (None = not checked), the groove loop check
+# (one-shots only) and the kick crest floor (the top layer). The 2-step boom is a 'kick'. Toms get the kick's rules
+# until S1c decides theirs (ADR 0009), but not its crest floor.
 CATEGORY_RULES = {
-    'kick': dict(mud='gate', tonal=False, tune_cents=10.0, loop_check=True),
-    'tom': dict(mud='gate', tonal=False, tune_cents=10.0, loop_check=True),
-    'snare': dict(mud='lowcut', tonal=False, tune_cents=None, loop_check=False),
-    'hat': dict(mud='lowcut', tonal=False, tune_cents=None, loop_check=False),
-    'perc': dict(mud='lowcut', tonal=False, tune_cents=3.0, loop_check=False),
-    'bass': dict(mud='gate', tonal=True, tune_cents=3.0, loop_check=True),
-    'pad': dict(mud='lowcut', tonal=True, tune_cents=3.0, loop_check=False),
-    'stab': dict(mud='lowcut', tonal=True, tune_cents=3.0, loop_check=False),
-    'lead': dict(mud='lowcut', tonal=True, tune_cents=3.0, loop_check=False),
-    'vox': dict(mud='lowcut', tonal=False, tune_cents=None, loop_check=False),
-    'fx': dict(mud='lowcut', tonal=False, tune_cents=None, loop_check=False),
-    'texture': dict(mud='lowcut', tonal=False, tune_cents=None, loop_check=False),
-    'loop': dict(mud='off', tonal=False, tune_cents=None, loop_check=False),
+    'kick': dict(mud='gate', tonal=False, tune_cents=10.0, loop_check=True, crest=True),
+    'tom': dict(mud='gate', tonal=False, tune_cents=10.0, loop_check=True, crest=False),
+    'snare': dict(mud='lowcut', tonal=False, tune_cents=None, loop_check=False, crest=False),
+    'hat': dict(mud='lowcut', tonal=False, tune_cents=None, loop_check=False, crest=False),
+    'perc': dict(mud='lowcut', tonal=False, tune_cents=3.0, loop_check=False, crest=False),
+    'bass': dict(mud='gate', tonal=True, tune_cents=3.0, loop_check=True, crest=False),
+    'pad': dict(mud='lowcut', tonal=True, tune_cents=3.0, loop_check=False, crest=False),
+    'stab': dict(mud='lowcut', tonal=True, tune_cents=3.0, loop_check=False, crest=False),
+    'lead': dict(mud='lowcut', tonal=True, tune_cents=3.0, loop_check=False, crest=False),
+    'vox': dict(mud='lowcut', tonal=False, tune_cents=None, loop_check=False, crest=False),
+    'fx': dict(mud='lowcut', tonal=False, tune_cents=None, loop_check=False, crest=False),
+    'texture': dict(mud='lowcut', tonal=False, tune_cents=None, loop_check=False, crest=False),
+    'loop': dict(mud='off', tonal=False, tune_cents=None, loop_check=False, crest=False),
 }
-TWO_STEP = ((0, 1.0), (10, 0.7), (16, 1.0), (23, 0.4), (26, 0.7))  # (16th, velocity), 2 bars: the kick judge's loop
+# the kick patterns the groove loop check plays a kit's kicks and bass shots in (its GROOVE): (16th, velocity), 2 bars
+TWO_STEP = ((0, 1.0), (10, 0.7), (16, 1.0), (23, 0.4), (26, 0.7))  # the kick judge's loop: 3 16ths is its tightest gap
+FOUR_FLOOR = tuple((4 * k, 1.0 if k % 2 == 0 else 0.8) for k in range(8))  # every beat, the off-beats a little softer
+GROOVES = {'2step': TWO_STEP, '4x4': FOUR_FLOOR}
 
 
 @dataclass(frozen=True)
@@ -86,12 +112,16 @@ class Spec:
     tonal: bool = None
     sustain: tuple = None             # alias-check window, seconds; default 0.10 s to 50 ms before the end (max 1.1 s)
     harm_tol: float = 0.005           # alias check: a bin counts as harmonic within this fraction of k f0
-    mud: str = None                   # 'gate', 'lowcut' or 'off'
+    mud: str = None                   # 'gate', 'bass-body', 'lowcut' or 'off'
+    crest: bool = None                # the kick crest floor (kicks: on)
+    top: bool = True                  # the instrument's hardest velocity layer: the crest floor checks it only
     flags: frozenset = frozenset()
     tags: tuple = ()
     splices: tuple = ()               # sample positions the recipe spliced
     loop: tuple = None                # (start, end), end exclusive; loops default to the whole file
-    hits: tuple = ()                  # kick onsets in a loop that loops from sample 0: the mud gate runs per gap too
+    hits: tuple = ()                  # kick onsets in a loop that loops from sample 0: the mud gate runs per gap too;
+                                      # in a bass-body phrase, the kicks it plays against (tag 'with_kick' when the
+                                      # kicks are in the file)
 
     def rule(self, key):
         own = getattr(self, key)
@@ -320,6 +350,36 @@ def mud(x):
     }
 
 
+def kick_crest_db(x):
+    """The kick crest: true peak (4x) over the RMS level of the loudest 50 ms of the mono sum, dB. A limiter or a
+    clipper pulls the peak down onto the body; a sine (whole cycles in the window) reads 3.01 dB."""
+    m = D.mono(x)
+    w = min(len(m), int(KICK_CREST_WINDOW * SR))
+    c = np.concatenate([[0.0], np.cumsum(m ** 2)])
+    return float(D.true_peak_db(x) - 10 * np.log10((c[w:] - c[:-w]).max() / w + 1e-30))
+
+
+def over_saw_db(x, floor_db=-60.0):
+    """Bass-body: the worst spectral peak in 150-400 Hz above a saw's roll-off (-6 dB per octave) from the strongest of
+    the sound's own partials in 30-120 Hz, dB. A plain saw reads 0 on any note (its low mids are its own harmonics), a
+    filtered one less, a low-mid bump about its height. Long-term spectrum: Welch, Hann, 4x zero-padded so a peak reads
+    within 0.1 dB; peaks are local maxima 3 dB proud of their surroundings and within floor_db of the loudest partial
+    in 30 Hz-1 kHz. None when nothing sits in 150-400 Hz; inf when nothing sits in 30-120 Hz (low mids with no sub)."""
+    m = D.mono(x)
+    n = min(2 ** 15, 2 ** int(np.log2(len(m))))
+    f, P = signal.welch(m, SR, window='hann', nperseg=n, nfft=4 * n)
+    P = 10 * np.log10(P + 1e-30)
+    pk, _ = signal.find_peaks(P, prominence=3.0)
+    pk = pk[P[pk] > P[(f >= 30) & (f <= 1000)].max() + floor_db]
+    subs, lows = pk[(f[pk] >= 30) & (f[pk] <= 120)], pk[(f[pk] >= 150) & (f[pk] <= 400)]
+    if not len(lows):
+        return None
+    if not len(subs):
+        return float('inf')
+    trend = (P[subs][None, :] - 20 * np.log10(f[lows][:, None] / f[subs][None, :])).max(1)
+    return float((P[lows] - trend).max())
+
+
 def low_share_db(x, fc=None):
     """Share of the sound under fc (default LOWCUT_HZ), dB: 4th-order Butterworth, zero-phase."""
     m = D.mono(x)
@@ -344,9 +404,10 @@ def centroid_hz(x):
     return float(np.sum(f * P) / (np.sum(P) + 1e-30))
 
 
-def two_step_loop(layers, bpm=134.0, hits=TWO_STEP, bars=2):
-    """The 2-bar 2-step loop the mud gate also runs on: each hit takes the layer nearest its velocity, all hits sum (no
-    choke) and tails wrap to the start, as a looping clip plays. layers: {velocity: audio}. Returns (loop, onsets)."""
+def two_step_loop(layers, bpm, hits, bars=2):
+    """The 2-bar groove loop the mud gate also runs on, at the kit's BPM in its groove (hits: GROOVES[kit.GROOVE]): each
+    hit takes the layer nearest its velocity, all hits sum (no choke) and tails wrap to the start, as a looping clip
+    plays. layers: {velocity: audio}. Returns (loop, onsets)."""
     s16 = 60.0 / bpm / 4 * SR
     L = int(round(16 * bars * s16))
     loop = np.zeros((L, 2))
@@ -360,26 +421,33 @@ def two_step_loop(layers, bpm=134.0, hits=TWO_STEP, bars=2):
 
 
 def loop_mud(loop, onsets):
-    """Per gap between hits: 150-400 against 30-120 Hz from 80 ms after the hit to 20 ms before the next one (the
-    worst window, vs_sub_db), and the 150-400 level 40-15 ms before the next hit against the loop's 150-400 peak. Bands
-    are filtered circularly (the loop wraps)."""
+    """Per gap between hits, a dict:
+    - vs_sub_db: 150-400 against 30-120 Hz in the gap, from 80 ms after the hit to 20 ms before the next, the worst
+      window;
+    - before_hit_db: the 150-400 level 40-15 ms before the next hit against the loop's 150-400 envelope peak;
+    - duck_db, for a bass phrase played against the hits: the mean 150-400 power over the hit's own first 80 ms
+      against its mean power over the gap after it, the bass's own level there. A gap more than 30 dB under the
+      loudest gap counts at that floor.
+    Bands are filtered circularly (the loop wraps)."""
     m = D.mono(loop)
     L = len(m)
     mid = band_zp(np.tile(m, 3), 150, 400)[L:2 * L]
     sub = band_zp(np.tile(m, 3), 30, 120)[L:2 * L]
     peak = env_db(np.tile(mid, 3))[L:2 * L].max()
     sub_peak = peak_window(sub)
-    rows = []
+    own_n = int(KICK_OWN_S * SR)
+    spans = []
     for i, p in enumerate(onsets):
         nxt = onsets[i + 1] if i + 1 < len(onsets) else onsets[0] + L
-        a, b = p + int(0.08 * SR), max(p + int(0.08 * SR) + 1, nxt - int(GAP_END_S * SR))
-        idx = np.arange(a, b) % L
-        pre = np.arange(nxt - int(0.040 * SR), nxt - int(0.015 * SR)) % L
-        rows.append({
-            'vs_sub_db': vs_sub_db(mid[idx], sub[idx], sub_peak),
-            'before_hit_db': float(10 * np.log10(np.mean(mid[pre] ** 2) + 1e-20) - peak),
-        })
-    return rows
+        gap = np.arange(p + own_n, max(p + own_n + 1, nxt - int(GAP_END_S * SR))) % L
+        pre = np.arange(nxt - int(BEFORE_HIT[0] * SR), nxt - int(BEFORE_HIT[1] * SR)) % L
+        spans.append((np.arange(p, p + own_n) % L, gap, pre))
+    power = lambda idx: float(np.mean(mid[idx] ** 2))
+    floor = max(power(gap) for _, gap, _ in spans) * 10 ** (DUCK_FLOOR_DB / 10)
+    return [{'vs_sub_db': vs_sub_db(mid[gap], sub[gap], sub_peak),
+             'before_hit_db': float(10 * np.log10(power(pre) + 1e-20) - peak),
+             'duck_db': float(10 * np.log10((power(own) + 1e-30) / max(power(gap), floor + 1e-30)))}
+            for own, gap, pre in spans]
 
 
 # ------------------------------------------------------------------ per-file checks
@@ -442,6 +510,8 @@ def _check_low_end(x, spec):
     if mode == 'lowcut':
         return [_le('lowcut_share_below_100hz', low_share_db(x), LOWCUT_MAX_DB, 'dB',
                     'nothing under ~100 Hz may compete with the kick and sub')]
+    if mode == 'bass-body':
+        return _check_body(x, spec)
     m = mud(x)
     sustained = not spec.oneshot
     out = [na('mud_150_400_fall', 'sustained sound: no decay') if sustained else
@@ -459,6 +529,47 @@ def _check_low_end(x, spec):
                 _le('loop_mud_before_hit', max(r['before_hit_db'] for r in rows), LOOP_BEFORE_HIT_DB, 'dB',
                     'worst 40-15 ms before a kick, re the 150-400 Hz peak')]
     return out
+
+
+def _check_body(x, spec):
+    """The bass-body mode of the low-end rule (ADR 0011, proposed): a bass keeps its own harmonics in 150-400 Hz, up to a
+    plain saw's level on its note, but no bump over them, no window where the low mids rival the sub, a capped share,
+    and, in a phrase that declares the kicks it plays against, low mids that duck under each kick and clear before the
+    next. No falls: a held bass note doesn't decay."""
+    m = mud(x)
+    out = [na('body_vs_sub', 'a phrase with kicks: checked in every gap') if spec.hits else
+           _le('body_vs_sub', m['vs_sub_db'], BODY_VS_SUB_DB, 'dB', '150-400 Hz against 30-120 Hz after 80 ms, worst '
+               '20 ms window (a sub that beats or fades fails it too)'),
+           _check_over_saw(x),
+           _le('body_share', m['share_db'], BODY_SHARE_DB, 'dB', '150-400 Hz share of the sound')]
+    if spec.hits:
+        rows = loop_mud(x, sorted(spec.hits))
+        out += [_le('loop_body_vs_sub', max(r['vs_sub_db'] for r in rows), BODY_VS_SUB_DB, 'dB',
+                    f'worst of {len(rows)} gaps, from 80 ms after each kick'),
+                _le('loop_mud_before_hit', max(r['before_hit_db'] for r in rows), LOOP_BEFORE_HIT_DB, 'dB',
+                    'worst 40-15 ms before a kick, re the 150-400 Hz peak'),
+                na('body_duck', 'the kicks are in the file (with_kick)') if 'with_kick' in spec.tags else
+                _le('body_duck', max(r['duck_db'] for r in rows), BODY_DUCK_DB, 'dB',
+                    "worst kick: 150-400 Hz over its first 80 ms against the gap after it (mean power)")]
+    return out
+
+
+def _check_over_saw(x):
+    v = over_saw_db(x)
+    if v is None:
+        return Check('body_over_saw', True, None, f'<= {BODY_OVER_SAW_DB:g} dB', 'nothing in 150-400 Hz')
+    return _le('body_over_saw', v, BODY_OVER_SAW_DB, 'dB', 'no partial in 30-120 Hz under the low mids' if np.isinf(v)
+               else "150-400 Hz partials over a saw's roll-off from the sound's own sub")
+
+
+def _check_crest(x, spec):
+    if not spec.rule('crest'):
+        return na('kick_crest', 'not a kick' if spec.category != 'kick' else 'off (an override)')
+    if not spec.top:
+        return na('kick_crest', 'a softer layer: the floor is for the hardest hits')
+    v = kick_crest_db(x)
+    return Check('kick_crest', bool(v >= KICK_CREST_MIN_DB), v, f'>= {KICK_CREST_MIN_DB:g} dB',
+                 'true peak over the loudest 50 ms (RMS), the top layer')
 
 
 def _check_loudness(x, spec):
@@ -486,6 +597,7 @@ def check_take(x, spec, fmt=None):
     dur = len(x) / SR
     out = _check_format(x, fmt) if fmt else []
     out.append(_le('true_peak', D.true_peak_db(x), CEILING_DBTP, 'dBTP', '4x oversampled'))
+    out.append(_check_crest(x, spec))
     loop = spec.loop or (None if spec.oneshot else (0, len(x)))
     out.append(_le('dc', dc_db(x, loop), DC_MAX_DB, 'dBFS', '5 Hz zero-phase low-pass, max'))
     if loop and loop[0] == 0:
@@ -557,13 +669,16 @@ def check_layers(rows):
     return out
 
 
-def check_loop(layers, bpm=134.0):
-    """The mud gate on the 2-bar 2-step loop. layers: {velocity: audio}. Returns (checks, loop audio)."""
-    loop, onsets = two_step_loop(layers, bpm)
+def check_loop(layers, bpm, hits, mode='gate'):
+    """The mud gate on the 2-bar groove loop at the kit's BPM in its groove (hits: GROOVES[kit.GROOVE]). mode
+    'bass-body': its gap limit instead of the gate's (a bass shot). layers: {velocity: audio}. Returns (checks, loop
+    audio)."""
+    loop, onsets = two_step_loop(layers, bpm, hits)
     rows = loop_mud(loop, onsets)
     worst_sub = max(r['vs_sub_db'] for r in rows)
     worst_pre = max(r['before_hit_db'] for r in rows)
-    return [_le('loop_mud_vs_sub', worst_sub, MUD_VS_SUB_DB, 'dB', 'worst gap, from 80 ms after each hit'),
+    name, limit = ('loop_body_vs_sub', BODY_VS_SUB_DB) if mode == 'bass-body' else ('loop_mud_vs_sub', MUD_VS_SUB_DB)
+    return [_le(name, worst_sub, limit, 'dB', 'worst gap, from 80 ms after each hit'),
             _le('loop_mud_before_hit', worst_pre, LOOP_BEFORE_HIT_DB, 'dB',
                 'worst 40-15 ms before a hit, re the 150-400 Hz peak')], loop
 

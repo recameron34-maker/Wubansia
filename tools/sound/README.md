@@ -1,22 +1,35 @@
 # tools/sound
 
-Wubansia's sound pipeline: 48 kHz DSP helpers, the recipes of each kit, the renderer that writes the 48 kHz / 24-bit FLAC masters, sample QA (with the mud gate) and spectrogram sheets. It is a build-time tool: nothing here ships in the plugin. The plan is `docs/plans/S1-futuristic-slice.md` (§2.2 sounds, §5.2 QA).
+Wubansia's sound pipeline: 48 kHz DSP helpers, the kits and their recipes, the renderer that writes the 48 kHz / 24-bit FLAC masters, sample QA (with the mud gate) and spectrogram sheets. It is a build-time tool: nothing here ships in the plugin. The plans are `docs/plans/S1-futuristic-slice.md` (§2.2 sounds, §5.2 QA) and `docs/plans/S1-four-kits.md` (the four first-listen kits).
+
+**Four kits, one toolkit.** Each kit is a module, `kits/<kit>.py`, holding its DNA, plus a recipe package of its own, `recipes/<kit>/`. A kit's designer edits only those two files or folders. Everything else here is shared and imports no kit.
+
+| Kit | Direction | BPM | Groove | State |
+|---|---|---|---|---|
+| FUT01 "Alloy Signal" | future garage / 2-step | 134 | 2-step | the S1a set |
+| FUT02 "Orbit Relay" | sci-fi club | 130 | four on the floor | stub: DNA TODO, empty recipes |
+| FUT03 "Glass Current" | hyper-clean future house | 128 | four on the floor | stub |
+| FUT04 "Furnace Code" | dark industrial / techno | 136 | four on the floor | stub |
 
 | File | What it is |
 |---|---|
+| `kits/__init__.py` | The kit machinery: the DNA fields, finding kits (`names`, `module`, `load`), checking their DNA (`todo`, `problems`, `camelot`, `scale_of`), and a kit's items (`items`, collected from its recipe package) |
+| `kits/<kit>.py` | One kit's DNA: `fut01.py` and the stubs `fut02.py`, `fut03.py`, `fut04.py` |
+| `recipes/<kit>/` | One kit's recipes, one module per instrument, each exposing `ITEMS = [Item(...)]`. FUT01: `drums.py`, `bass.py`, `music.py`, `vox.py`, `fx.py`, `context.py` (the 4-bar context loop, dry, wet and its low end, played on the kit's own files) and `example.py`, a working template |
 | `dsp48.py` | DSP helpers at `SR = 48000`: seeding (`rng`), oversampling, ADAA shapers, saws, filters, resonators, FDN, envelopes and edges (`finish`), `mono_below`, and the four tools of plan §2.2: `freq_shift`, `ring_mod`, `updown3`, `resample_pass` |
-| `qa.py` | Every check of plan §5.2 plus the mud gate, category-aware, returning `Check` results with numbers |
+| `parts.py` | Shared building blocks: drum pieces (`sweep`, `gate`, `modes`, noise bands, `soft_clip`, `low_clean`, `vel_gain`), loop pieces (`raised`, `frac_delay`, `hp_steep`, `loop_grid`, `close_loop`, `allpass`) and the tuned string (`ks_tuned`) |
+| `phrase.py` | Written phrases and loops: `Grid` (the 16th grid on the kit's one swing), `place`, `pan`, `two_pass`, `second_pass`, `circular`, `pump_db`, `kit_files` (a kit's files exactly as written), `hits_lane` |
+| `sampler.py` | Stand-ins of the engine's sampler voice (`sampler_voice`), CC lanes (`cc_curve`) and bass lane filter (`lane_filter`) |
+| `sends.py` | Python versions of the engine's planned sends: Space (8-line FDN with a little octave-up shimmer and faster-decaying low mids, ducked under the vox), Echo (tape ping-pong) and a stand-in of the Alloy resonator (2-pole modes on a chord's tones times a ratio set). FUT01's wet context loop runs through them: the target the engine must match |
+| `vocals.py` | The vocal chain: a 24 kHz Kokoro take in the kit's voice blend, analysed with WORLD, sung or spoken as a robot on the kit's grid, resynthesised at 48 kHz (ADR 0007); chops cut in the frame domain |
+| `qa.py` | Every check of plan §5.2 plus the mud gate, the bass-body mode and the kick crest floor (ADR 0011), category-aware, returning `Check` results with numbers |
 | `item.py` | `Item` (one instrument), `Take` (one file), `Out` (a render plus what QA needs to know) |
-| `kits/fut01.py` | FUT01 "Alloy Signal": the kit DNA and the registry that collects `ITEMS` from `recipes/*.py` |
-| `recipes/` | One module per instrument, each exposing `ITEMS = [Item(...)]`: `drums.py`, `bass.py`, `music.py`, `vox.py`, `fx.py`, and `context.py` (the 4-bar context loop, dry, wet and its low end, played on the kit's own files). `example.py` is a working template |
 | `render.py` | The CLI: render, one gain per instrument, write FLAC, QA, reports, sheets |
 | `sheet.py` | One PNG per instrument: waveform, spectrogram, band envelopes |
+| `listen.py` | Copies any kit's render to WAV (the same samples) in plain-named `Drums/`, `Bass/`, `Music/`, `Vox/`, `FX/` and `Loops/` folders, for listening |
 | `denylist.py`, `denylists/` | Artist-name, slur and profanity lists, stored as SHA-256 digests |
 | `models.py` | Kokoro TTS and Whisper ASR through sherpa-onnx, from `WUBANSIA_MODELS_DIR` |
-| `vocals.py` | The vocal chain: a 24 kHz Kokoro take analysed with WORLD, sung or spoken as a robot on the grid, resynthesised at 48 kHz (ADR 0007); chops cut in the frame domain |
-| `sends.py` | Python versions of the engine's planned sends: Space (8-line FDN with a little octave-up shimmer and faster-decaying low mids, ducked under the vox), Echo (tape ping-pong, dotted 8th) and a stand-in of the Alloy resonator (2-pole modes on the chord's tones times the alloy ratios). The context loop's wet version runs through them: the target the engine must match |
-| `listen.py` | Copies a render's FLAC masters to WAV (the same samples) in plain-named `Drums/`, `Bass/`, `Music/`, `Vox/`, `FX/` and `Loops/` folders, for listening |
-| `tests/` | `unittest` suite: defect fixtures and controls, a boundary pair for every QA limit, the DSP tools, the sends, the renderer; `masters.sha256` holds the hashes of two rendered instruments, which CI re-renders and compares |
+| `tests/` | `unittest` suite: defect fixtures and controls, a boundary pair for every QA limit, the kits' DNA and isolation, the shared helpers, the DSP tools, the sends, the renderer. `masters.sha256` holds the hashes of two rendered instruments, which CI re-renders and compares |
 
 ## Set up
 
@@ -39,33 +52,64 @@ python3 -m venv .venv
 ## Commands
 
 ```sh
-.venv/bin/python -m unittest discover -s tools/sound/tests -t .                       # tests (about 25 s)
+.venv/bin/python -m unittest discover -s tools/sound/tests -t .                       # tests (about 50 s)
 .venv/bin/python tools/sound/render.py --kit FUT01                                      # every item, to build/FUT01
 .venv/bin/python tools/sound/render.py --kit FUT01 --set s1a --out build/s1a-listen     # render a set
 .venv/bin/python tools/sound/render.py --kit FUT01 --only KickSplit SnareMetal --out build/try   # some items
 .venv/bin/python tools/sound/render.py --kit FUT01 --set example --repro                # to build/FUT01-example
+.venv/bin/python tools/sound/render.py --kit FUT02 --set r2                             # any kit, once its DNA is set
 .venv/bin/python tools/sound/listen.py build/s1a-listen                                 # WAV copies to listen to
 .venv/bin/python tools/sound/denylist.py add artists < names.txt                      # extend a denylist
 ```
 
-`render.py` writes `FUT01_<Group>_<Sound>_v<layer>_rr<n>.flac` (a zoned sound's `<Sound>` carries its note: `Reese-Fs1`), `qa_report.json`, `qa_report.md`, `sheets/<kit>_<group>_<name>.png` and, for kicks and bass shots, `qa/<kit>_<group>_<name>_2step.flac`. `--out` defaults to `build/<kit>`, or `build/<kit>-<set>` with `--set`. Options: `--no-sheets`, `--repro` (render each item a second time, each in a fresh process so no cache carries over, and compare the SHA-256), `--jobs N` (items in parallel). It exits 1 when a check fails (the files are written either way) and 2 on an unknown kit or item name or when a vocal item can't find the models; any other error is a bug and keeps its traceback. Renders go under `build/` (ignored by git, as are `*.flac`, `*.wav` and `*.onnx` anywhere): audio never goes in git.
+`render.py` writes `<KIT>_<Group>_<Sound>_v<layer>_rr<n>.flac` (a zoned sound's `<Sound>` carries its note: `Reese-Fs1`), `qa_report.json`, `qa_report.md`, `sheets/<kit>_<group>_<name>.png` and, for kicks and bass shots, `qa/<kit>_<group>_<name>_<groove>.flac` (`_2step` for FUT01, `_4x4` for the four-on-the-floor kits). `--out` defaults to `build/<kit>`, or `build/<kit>-<set>` with `--set`. Options: `--no-sheets`, `--repro` (render each item a second time, each in a fresh process so no cache carries over, and compare the SHA-256), `--jobs N` (items in parallel). It exits 1 when a check fails (the files are written either way). It exits 2 on an unknown kit or item name, on a kit whose DNA still has a TODO field or an invalid value (the message names them and the file), and when a vocal item can't find the models. Any other error is a bug and keeps its traceback. Renders go under `build/` (ignored by git, as are `*.flac`, `*.wav` and `*.onnx` anywhere): audio never goes in git.
+
+## Starting a kit
+
+1. **Fill the DNA** in `kits/<kit>.py`: replace every `TODO`. The fields are listed in `kits/__init__.py`, and the brief is in the module's docstring and `docs/plans/S1-four-kits.md`.
+   - `KEY` and `CAMELOT` (`kits.camelot('D minor')` is `'7A'`); `SCALE` follows `KEY` (`kits.scale_of`).
+   - `ROOT`, the key's root in the bass register, and `KICK_NOTE`, in the key, MIDI 24–40.
+   - `RATIOS`, the kit's own inharmonic set: 1.0 first, ascending.
+   - `VOICE`, the Kokoro blend: weights summing to 1.
+   - `SWING`, 0.5 to under 0.75.
+   - Already set: `KIT`, `TITLE` (a working name: title-check it), `DIRECTION`, `BPM`, `SPACE_SEED`, `GROOVE` and `RECIPES`.
+
+   `kits.problems(module)` and the tests (`tests/test_kits.py`) say what is wrong. `render.py` refuses the kit until every field is set and valid. No shared test assumes your kit is still a stub, so filling it never means editing a file outside your two.
+2. **Add recipes** to `recipes/<kit>/`: copy `recipes/fut01/example.py` and change its kit import to yours, `from tools.sound.kits import fut02 as K`; it renders as it is (a test copies it to a filled-in kit). Never reach another kit's module or recipes, by an import (relative ones too), `importlib.import_module` or `kits.load('FUT01')`; the tests check that. Use the shared helpers in `parts.py`, `phrase.py`, `sampler.py`, `sends.py` and `vocals.py`. If a helper you need lives in FUT01's recipes, ask for it to move to a shared module rather than importing it.
+3. **Render and listen:** `render.py --kit FUT02 --set <set>`, then `listen.py build/FUT02-<set>`.
 
 ## Writing a recipe
 
-Make a module in `recipes/` (copy `example.py`) and list your instruments in `ITEMS`. Never edit another designer's module; item names must be unique across the kit (the registry refuses duplicates).
+List your instruments in `ITEMS`, in a module of your kit's package. Never edit another designer's module. Item names must be unique across the kit (the registry refuses duplicates).
 
 ```python
+import numpy as np
+
 from tools.sound import dsp48 as D
+from tools.sound import parts as P
 from tools.sound.item import Item, Out
-from tools.sound.kits import fut01 as K
+from tools.sound.kits import fut02 as K
+
+F_KICK = float(D.midi_hz(K.KICK_NOTE))
 
 def kick(take):                       # one take = one file
     r = take.rng('click')              # this take's own noise; extra keys give independent streams
-    ...                                # take.vel (0..1), take.layer, take.rr, take.note, take.f0
+    n = int(0.6 * D.SR)
+    s = np.sin(P.sweep(n, 300 + 300 * take.vel, 0.007, 0.016, 0.28, F_KICK))   # take.vel (0..1), take.layer, take.rr
+    ...
     return y                           # float, (n,) or (n, 2), 48 kHz; or Out(y, splices=..., loop=..., f0s=..., ...)
 
-ITEMS = [Item('Drums', 'Kick', 'kick', kick, layers=(0.4, 0.55, 0.7, 0.85, 1.0), rr=2, root=K.KICK_NOTE,
-              sets=('s1a',), about='split kick on F#1')]
+ITEMS = [Item('Drums', 'Kick', 'kick', kick, layers=(0.2, 0.4, 0.6, 0.8, 1.0), rr=2, root=K.KICK_NOTE,
+              sets=('r2',), about='split kick on the key root')]
+```
+
+**A phrase or loop** sits on the kit's grid, so every lane shares the kit's one swing:
+
+```python
+from tools.sound import phrase as Ph
+G = Ph.Grid(K, 32)                                         # 2 bars of 16ths at K.BPM, odd 16ths on K.SWING
+kick = Ph.hits_lane(K, 'Kick', ((0, 1.0), (4, 0.8), (8, 1.0), (12, 0.8)), G)   # the kit's own files, as written
+Ph.place(buf, x, G.at(6))                                  # add a sound on a 16th, its tail wrapping round the loop
 ```
 
 **`Item` fields**
@@ -79,32 +123,92 @@ ITEMS = [Item('Drums', 'Kick', 'kick', kick, layers=(0.4, 0.55, 0.7, 0.85, 1.0),
 | `layers` | Velocities in (0, 1], softest first: files `v1`..`vN` |
 | `rr` | Round robins: files `rr1`..`rrN` |
 | `notes` | Zone notes (MIDI, C4 = 60), ascending; empty for one unzoned sound |
-| `root` | The note an unzoned sound is tuned to (the kick: `K.KICK_NOTE`, F#1) |
+| `root` | The note an unzoned sound is tuned to (a kick: `K.KICK_NOTE`) |
 | `loop` | A sustain or bed that loops: kept whole, seam checked; return `Out(y, loop=(start, end))` if the loop isn't the whole file |
 | `level` | LUFS-I target for the loudest take (beds -20, risers -14, wet vocals -16, dry -18); default: true peak at the ceiling |
 | `hp_hz` | The renderer's sub-sonic high-pass (default 20 Hz, 4th order); `None` to skip |
 | `flags` | `deliberate_alias`, `explicit`, `hf_synthetic`, `cut_end` |
-| `tags` | Free tags; QA reads `riser`, `wet`, `dry`, `clean` |
+| `tags` | Free tags; QA reads `riser`, `wet`, `dry`, `clean`, and `with_kick` (a loop whose kick hits are in the file itself) |
 | `sets` | Render sets, e.g. `('s1a',)` |
 | `script` | The words of a vocal: Whisper checks dry files against it, the denylists check it |
 | `about` | One line for the report and the sheet |
-| `qa` | Overrides of the category's QA rules: `mud` (`'gate'`, `'lowcut'`, `'off'`), `loop_check` (the 2-step loop), `tonal`, `tune_cents`, `tune_window`, `sustain`, `harm_tol`; and `why`, one line of reason. The report lists every flag and override with its reason ("Exceptions"). A `Bass` or `Loops` item must say its low-end rule: `'gate'`, `'lowcut'`, or `'off'` with a `why` |
+| `qa` | Overrides of the category's QA rules, each listed in the report with its reason ("Exceptions"). See below |
 
-**`Out` fields**: `splices` (sample positions the recipe cut or joined: QA checks each for a click), `loop` (start, end) for a loop that isn't the whole file, `f0s` (every fundamental present: a chord's notes, and every voice of a detuned stack, or the alias check counts the detuning as aliasing), `hits` (kick onsets in a loop: the mud gate then also runs in every gap between them), `meta` (facts for the report, such as a robot phrase's slices or a target's settings: `qa_report.json` carries it, and later `index.json`). The report also carries each loop file's loop points.
+**The `qa` keys:**
+- `mud`: `'gate'`, `'bass-body'`, `'lowcut'` or `'off'`. A `Bass` or `Loops` item must say its low-end rule; `'off'` needs a `why`. `'bass-body'` is for the categories `bass` and `loop` only and needs a `why` (it is an exception, ADR 0011). Kicks and toms keep the gate: any other mode is refused, with or without a reason.
+- `crest`: `False` turns the kick crest floor off, for a boom with no transient; it needs a `why`.
+- `loop_check` (the groove loop), `tonal`, `tune_cents`, `tune_window`, `sustain`, `harm_tol`.
+- `why`: one line of reason.
 
-**What the renderer does to every take**, in order: the sub-sonic high-pass; for one-shots, a trim where the sound stays 90 dB under its peak plus a 5 ms fade-out; a 0.25 ms fade-in (a loop from sample 0 gets neither); then **one gain for the whole instrument**, across every layer, round robin and zone: the loudest take's true peak at -1.02 dBTP (20 mdB under the ceiling, for the 24-bit rounding), or the `level` target capped there. Never normalise inside a recipe. Render long: a tail cut by the fade fails QA.
+**`Out` fields:**
+- `splices`: sample positions the recipe cut or joined; QA checks each for a click.
+- `loop`: (start, end) for a loop that isn't the whole file.
+- `f0s`: every fundamental present, such as a chord's notes and every voice of a detuned stack. Without them, the alias check counts the detuning as aliasing.
+- `hits`: kick onsets in a loop. With the mud gate, its checks then also run in every gap between them. In a bass-body phrase, they are the kicks the bass plays against.
+- `meta`: facts for the report, such as a robot phrase's slices or a target's settings. `qa_report.json` carries it, and later `index.json`. The report also carries each loop file's loop points.
+
+**What the renderer does to every take**, in order:
+1. The sub-sonic high-pass.
+2. For one-shots, a trim where the sound stays 90 dB under its peak, plus a 5 ms fade-out.
+3. A 0.25 ms fade-in (a loop from sample 0 gets neither fade).
+4. **One gain for the whole instrument**, across every layer, round robin and zone: the loudest take's true peak at -1.02 dBTP (20 mdB under the ceiling, for the 24-bit rounding), or the `level` target capped there.
+
+Never normalise inside a recipe. Render long: a tail cut by the fade fails QA.
 
 **Rules for recipes**
-- All noise from `take.rng(...)`, the room from `K.space_rng()` (seed `FUT01/space`). No global random state, no `hash()`.
-- The kit's material comes from `kits/fut01.py`: `ALLOY`, `VOICE`, `ROOT`, `KICK_NOTE`, `SCALE`, `BPM`, `STEP`.
+- All noise from `take.rng(...)`, the room from `K.space_rng()` (seed `K.SPACE_SEED`). No global random state, no `hash()`.
+- The kit's material comes from its own kit module: `RATIOS` (FUT01 also calls it `ALLOY`; write `RATIOS`, which every kit has), `VOICE`, `ROOT`, `KICK_NOTE`, `SCALE`, `BPM`, `STEP`, `SWING`. Never a literal from another kit.
 - Nonlinear stages run oversampled (`D.oversampled`, the ADAA shapers). Asymmetric drive leaves DC: `D.dc_block` it.
-- No mud: kicks, toms and basses must pass the mud gate. Everything else with low end is high-passed so that under 100 Hz it is 24 dB down (a root on F#2, 92.5 Hz, needs its high-pass nearer 130 Hz), and `D.mono_below(x, 150)`.
-- Written phrases (loops, the context loop) put every lane's odd 16ths on the kit's one swing, `K.SWING`, so hits that share a step land together.
+- No mud. Kicks, toms and booms must pass the mud gate. Basses pass the gate, or the bass-body rule (`qa={'mud': 'bass-body', 'why': ...}`, proposed, ADR 0011): a B, warm bass keeps its low mids, for example `sampler.lane_filter(..., mids_hp=None)`, where `mids_hp=450.0` is FUT01's A, clean (the argument has no default). Under bass-body, put a mono sine sub (or one undetuned voice) under any detuned stack: a stack's own fundamentals beat, and where they cancel the window check reads the low mids against a vanishing sub and fails (a raw 3-saw stack, ±12 cents, low-passed at 500 Hz, reads +4 to +21 dB from F#1 to F#2; the same stack high-passed at 120 Hz over a sine sub reads -8 to -15). Everything else with low end is high-passed so that under 100 Hz it is 24 dB down (a root on F#2, 92.5 Hz, needs its high-pass nearer 130 Hz), and `D.mono_below(x, 150)`.
+- Written phrases (loops, the context loop) put every lane on `phrase.Grid(K, steps)`, the kit's one swing, so hits that share a step land together. Sung lines pass `swing=K.SWING` to `vocals.sing_track` (it has no default; FUT01's S1a line passes 0.5, straight, until its fix round). Shared code takes the kit's tempo, groove and swing from its caller: `qa.two_step_loop` and `qa.check_loop` need `bpm` and `hits` (`qa.GROOVES[K.GROOVE]`).
+- A bass phrase that plays against kicks declares them, `Out(y, hits=onsets)`. Under bass-body, it must leave each kick room (see QA). A loop that contains its kicks adds the tag `with_kick`.
 - Vocal masters come only from WORLD or vocoder resynthesis at 48 kHz (ADR 0005, D4), carry `hf_synthetic`, a `script`, and either `explicit` or the `clean` tag. Never resample TTS audio into a master.
 - Names and strings never carry an artist's name (the denylist checks).
 
 ## QA (`qa.py`)
 
-Per file: format (FLAC, PCM_24, 48 kHz; mono where L = R), true peak (4x) <= -1.0 dBTP, DC (5 Hz zero-phase low-pass) <= -60 dBFS, first sample <= -80 dBFS, one-shot tail (last 10 ms) <= -70 dBFS, HF burst at logged splices <= +12 dB, loop seam <= +3 dB, aliasing on tonal sustains <= -60 dB unless `deliberate_alias`, stereo correlation >= 0.2 and side under 120 Hz <= -20 dB, tuning wherever a pitch is declared (+-3 cents; kicks and toms +-10 over 0.10-0.25 s; snares, hats, vocals and fx unchecked), loudness by category, on `hf_synthetic` masters a top band (14-20 kHz at least -40 dB against 6-11 kHz: a 24 kHz take resampled to 48 kHz reads about -61, which D4 bans), and the low-end rule. Per instrument: velocity steps >= 1.5 dB with a rising centroid, round robins within +-0.5 dB, one gain, the 2-step loop (kicks, toms and bass one-shots), the denylists and vocal flags, Whisper on dry vocals, reproducibility (`--repro`). Every limit has a pair of fixtures just inside and just outside it in `tests/test_qa.py`.
+**Per file:**
+- Format: FLAC, PCM_24, 48 kHz; mono where L = R.
+- True peak (4x) ≤ -1.0 dBTP; DC (5 Hz zero-phase low-pass) ≤ -60 dBFS; first sample ≤ -80 dBFS; one-shot tail (last 10 ms) ≤ -70 dBFS.
+- HF burst at logged splices ≤ +12 dB; loop seam ≤ +3 dB.
+- Aliasing on tonal sustains ≤ -60 dB, unless `deliberate_alias`.
+- Stereo correlation ≥ 0.2; side under 120 Hz ≤ -20 dB.
+- Tuning wherever a pitch is declared: ±3 cents; kicks and toms ±10 cents over 0.10-0.25 s; snares, hats, vocals and fx unchecked.
+- Loudness by category.
+- The top band on `hf_synthetic` masters: 14-20 kHz at least -40 dB against 6-11 kHz. A 24 kHz take resampled to 48 kHz reads about -61, which D4 bans.
+- **The kick crest floor** (below).
+- The low-end rule.
 
-**The mud gate** (kicks, toms and basses; the 2-step boom is a `kick`): the 150-400 Hz band falls 30 dB within 120 ms, stays at least 20 dB under 30-120 Hz after the first 80 ms, and is at most -12 dB of the sound; 400 Hz-1 kHz falls 30 dB within 150 ms. Bands are 4th-order Butterworth, zero-phase, with a 5 ms RMS envelope; a fall counts from the band's own peak until it stays down. "Stays under" is checked window by window: every 20 ms window (10 ms hop) from 80 ms on, against the sub in that window, or, where the sub has faded more than 30 dB under its loudest window, against that floor (a near-silent stretch can't read as mud; a ring with nothing under it still does). On a looped (sustained) sound the two falls don't apply. Kicks, toms and bass one-shots are also checked on a 2-bar 2-step loop at the kit's tempo: in every gap, 150-400 Hz stays 20 dB under 30-120 Hz from 80 ms after the hit to 20 ms before the next (the same windows), and is 30 dB under its loop peak 40-15 ms before the next hit. A loop file that declares its kicks (`Out.hits`) gets the same gap checks on itself instead of the whole-file one: the context loop's low end (`ContextLoopLow`) does. Everything else (`'lowcut'`): at most -24 dB of the sound under 100 Hz.
+**Per instrument:**
+- Velocity steps ≥ 1.5 dB, with a rising centroid; round robins within ±0.5 dB; one gain.
+- The groove loop (kicks, toms and bass one-shots).
+- The denylists and the vocal flags; Whisper on dry vocals.
+- Reproducibility (`--repro`).
+
+Every limit has a pair of fixtures just inside and just outside it in `tests/test_qa.py`.
+
+**The mud gate** (kicks, toms and basses; the 2-step boom is a `kick`). The 150-400 Hz band:
+- falls 30 dB within 120 ms;
+- stays at least 20 dB under 30-120 Hz after the first 80 ms;
+- is at most -12 dB of the sound.
+
+And 400 Hz-1 kHz falls 30 dB within 150 ms. Bands are 4th-order Butterworth, zero-phase, with a 5 ms RMS envelope; a fall counts from the band's own peak until it stays down.
+
+"Stays under" is checked window by window: every 20 ms window (10 ms hop) from 80 ms on, against the sub in that window. Where the sub has faded more than 30 dB under its loudest window, the window is measured against that floor, so a near-silent stretch can't read as mud while a ring with nothing under it still does. On a looped (sustained) sound the two falls don't apply.
+
+**The groove loop.** Kicks, toms and bass one-shots are also checked on a 2-bar loop at the kit's tempo, in its `GROOVE`: `qa.TWO_STEP` for FUT01, `qa.FOUR_FLOOR` for the four-on-the-floor kits. In every gap, 150-400 Hz stays 20 dB under 30-120 Hz from 80 ms after the hit to 20 ms before the next (the same windows). It is also 30 dB under its loop peak 40-15 ms before the next hit. A loop file that declares its kicks (`Out.hits`) gets the same gap checks on itself instead of the whole-file one: the context loop's low end (`ContextLoopLow`) does. Everything else (`'lowcut'`): at most -24 dB of the sound under 100 Hz.
+
+**The kick crest floor** (ADR 0011, proposed; category `kick`, the top velocity layer). True peak over the RMS level of the loudest 50 ms must be at least 4.0 dB. A sine reads 3.01. KickSplit reads 5.8-6.4 and fails once driven 6 dB into a limiter (3.5). A spikier kick starts higher and fails only when limited harder: KickTight reads 7.9-8.9, 4.2-5.0 at 6 dB and 3.1-3.5 at 9 dB. So the floor catches a kick flattened onto its body, not one that is merely hard: it says nothing about round 1's "B sounds a bit hard like its really slamming the limiter", which was KickTight, the spikier one. The report's crest table shows how far each new kick sits from Tight (ADR 0011 leaves a ceiling of about 7 dB open for round 2). Softer layers are near-sine by design and aren't checked. A boom with no transient may turn the floor off (`qa={'crest': False, 'why': ...}`).
+
+**The bass-body rule** (ADR 0011, proposed; `qa={'mud': 'bass-body', 'why': ...}`, categories `bass` and `loop`). A bass keeps its own harmonics in 150-400 Hz, up to a plain saw's level on its note:
+- `body_over_saw`: no spectral peak in 150-400 Hz more than +5 dB over a saw's roll-off (-6 dB per octave) from the sound's own partials in 30-120 Hz;
+- `body_vs_sub`: in every window (as the gate's), 150-400 Hz at least 2 dB under 30-120 Hz (≤ -2 dB). A sub that beats or fades under its low mids fails it, so keep a mono sine sub under a detuned stack;
+- `body_share`: the share at most -5 dB;
+- no falls.
+
+A phrase that declares the kicks it plays against (`Out.hits`) also gets:
+- in every gap, the same -2 dB window limit;
+- 40-15 ms before each kick, 30 dB under its 150-400 Hz peak (the gate's rule);
+- `body_duck`: under each kick's first 80 ms, the low mids at least 4 dB under the bass's own level in the gap after that kick (mean power both sides, ≤ -4 dB; a gap more than 30 dB under the loudest one counts at that floor). A steady 6 dB duck reads -4.7 to -5.5 from F#1 to G2 and passes, 3 dB about -2 and fails, a note held through the kick or starting on it undocked 0 to +1, a bass resting under the kick -26 or lower. A sidechain releasing over 120-250 ms needs about 8 dB (6 dB reads -2.9 to -4.2). Not checked with the `with_kick` tag.
+
+Notes up to G2 (98 Hz): above, the fundamental leaves the 30-120 Hz band. In round 2 every kit's bass comes as A "clean" (the gate) and B "warm" (bass-body), for you to pick by ear.

@@ -370,3 +370,176 @@ def resampled_vocal(dur=1.0):
     sos = signal.butter(8, (300, 11000), 'bandpass', fs=24000, output='sos')
     x24 = signal.sosfilt(sos, D.rng('fixture', 'tts').standard_normal(n))
     return to_ceiling_fade(signal.resample_poly(x24, 2, 1))
+
+
+# ------------------------------------------------------------------ the kick crest: a kick slammed into a limiter
+def clipped_kick(drive_db, vel=1.0):
+    """clean_kick driven drive_db into a clipper at its own peak (4x oversampled), finished like a master: what a kick
+    slammed into a limiter does to its peaks."""
+    x = clean_kick(vel)
+    c = np.abs(x).max()
+    return master(D.oversampled(lambda u: np.clip(u * D.undb(drive_db), -c, c), x, 4))
+
+
+def kick_crest_at(crest_db):
+    """clean_kick (v1.0), clipped until the kick crest (true peak over its loudest 50 ms) reads crest_db. clean_kick
+    itself reads about 4.8 dB, so this reaches anything under that."""
+    from tools.sound import qa
+    lo, hi = 0.0, 24.0
+    for _ in range(30):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if qa.kick_crest_db(clipped_kick(mid)) > crest_db else (lo, mid)
+    return clipped_kick(0.5 * (lo + hi))
+
+
+def tone_burst(f=1000.0, burst=0.025, seconds=0.5, amp=0.5):
+    """A tone of whole cycles for `burst` seconds, then silence: the crest measure reads 10 log10(2 x window / burst)
+    on it (a 25 ms burst in the 50 ms window: 6.02 dB), so it pins the window."""
+    x = np.zeros(int(seconds * SR))
+    x[:int(burst * SR)] = tone(f, burst, amp)
+    return x
+
+
+# ------------------------------------------------------------------ bass body: saws, warm and muddy basses
+BASS_S = 2.0
+
+
+def saw_bass(note=30, lp_hz=None, seconds=BASS_S):
+    """A plain band-limited saw on a MIDI note, the bass-body rule's reference; lp_hz: a 4th-order low-pass."""
+    x = 0.5 * D.additive_saw(float(D.midi_hz(note)), int(seconds * SR))
+    return x if lp_hz is None else D.bfilt(x, lp_hz, 'lowpass', order=4)
+
+
+def warm_bass(note=30, hp_hz=200.0):
+    """A sine sub under saw mids high-passed at hp_hz (8th order): body from the mids' own harmonics, no bump."""
+    n = int(BASS_S * SR)
+    f0 = float(D.midi_hz(note))
+    mids = D.bfilt(D.bfilt(D.additive_saw(f0, n), hp_hz, 'highpass', order=4), hp_hz, 'highpass', order=4)
+    return 0.4 * (np.sin(2 * np.pi * f0 * _t(n)) + mids)
+
+
+def _grit_tail():
+    """A sub note gone by 0.35 s whose driven low mids ring on (tau 0.5 s): low mids that outlast the note."""
+    n = int(BASS_S * SR)
+    t = _t(n)
+    note = np.sin(2 * np.pi * F_KICK * t) * D.taper(n, 0.25, 0.1)
+    grit = D.bfilt(D.tanh_adaa(3 * saw_bass(30), 2.0), (150, 400), 'bandpass', order=4, zero_phase=True)
+    return note + 0.5 * grit * np.exp(-t / 0.5)
+
+
+MUDDY_BASS = {
+    'bump': lambda: D.peaking(saw_bass(30), 250.0, 12.0, 2.0),          # a +12 dB bump at 250 Hz on F#1
+    'narrow': lambda: D.peaking(saw_bass(30), 250.0, 9.0, 4.0),         # +9 dB, narrow
+    'octave': lambda: D.peaking(saw_bass(42), 250.0, 12.0, 2.0),        # the bump on F#2
+    'fifth': lambda: D.peaking(saw_bass(37), 300.0, 8.0, 2.0),          # +8 dB at 300 Hz on C#2
+    'resonant': lambda: D.svf_tpt(saw_bass(30), 250.0, q=3.0)[0],       # a resonant low-pass parked at 250 Hz
+    'boxy': lambda: D.peaking(saw_bass(30, lp_hz=300.0), 220.0, 10.0, 3.0),  # dark, with a boxy honk
+    'tail': _grit_tail,
+}
+
+
+# ------------------------------------------------------------------ bass body: boundary pairs
+def _band_gain(f, lo, hi):
+    """What QA's zero-phase 4th-order band (qa.band_zp) does to a steady tone at f: |H(f)| squared."""
+    sos = signal.butter(4, (lo, hi), 'bandpass', fs=SR, output='sos')
+    return float(np.abs(signal.sosfreqz(sos, worN=[f], fs=SR)[1][0]) ** 2)
+
+
+SUB_50 = 50.0                # a fixture sub: exactly one cycle in each of the gate's 20 ms windows, so no window reads
+                             # the partial cycle (a 46.25 Hz sine swings 0.36 dB from window to window)
+
+
+def _tone_parts(t, ratio_db, f_sub=SUB_50, f=250.0):
+    """A sine at f_sub and a tone at f that QA's bands read ratio_db apart (150-400 against 30-120 Hz): (sub, tone)."""
+    a = 0.5 * D.undb(ratio_db) * _band_gain(f_sub, 30, 120) / _band_gain(f, 150, 400)
+    return 0.5 * np.sin(2 * np.pi * f_sub * t), a * np.sin(2 * np.pi * f * t)
+
+
+def _tone_pair(t, ratio_db, f_sub=SUB_50, f=250.0):
+    return sum(_tone_parts(t, ratio_db, f_sub, f))
+
+
+def body_tones(ratio_db, f=250.0):
+    """A 50 Hz sine sub with a steady tone at f Hz, a 10 ms fade-in and a 0.2 s fade-out (long next to the bands' own
+    ringing, so the last windows read like the rest): the bass-body windows (150-400 against 30-120 Hz) read
+    ratio_db."""
+    return D.fade(_tone_pair(_t(int(BASS_S * SR)), ratio_db, f=f), 0.01, 0.2)
+
+
+def body_shot(ratio_db, seconds=0.36):
+    """A bass one-shot: a 50 Hz sub and a 250 Hz tone ratio_db apart (as body_tones), a 10 ms fade-in, faded out over
+    its last 0.1 s. In the groove loop four on the floor at 130 BPM (a beat is 461.5 ms) it is gone before the next
+    hit, so its gaps read ratio_db."""
+    return D.fade(_tone_pair(_t(int(seconds * SR)), ratio_db), 0.01, 0.1)
+
+
+def body_share_at(share_db):
+    """A 50 Hz sine sub and a 250 Hz tone holding share_db of the energy (what the bass-body share measures)."""
+    r = D.undb(share_db) ** 2
+    t = _t(int(BASS_S * SR))
+    a = 0.5 * np.sqrt(r / (1 - r)) / np.sqrt(_band_gain(250.0, 150, 400))
+    return D.fade(0.5 * np.sin(2 * np.pi * SUB_50 * t) + a * np.sin(2 * np.pi * 250.0 * t), 0.01, 0.01)
+
+
+def saw_with_boost(gain_db, k=5, note=30):
+    """saw_bass(note) with its harmonic k gain_db louder (on F#1, k = 5 is 231 Hz): the over-saw measure reads it."""
+    n = int(BASS_S * SR)
+    f0 = float(D.midi_hz(note))
+    ph = 2 * np.pi * D.phase(f0, n)
+    return saw_bass(note) + 0.5 * (2 / np.pi) * (D.undb(gain_db) - 1) * np.sin(k * ph) / k
+
+
+def _dips(L, onsets, a, b, depth_db, ramp=0.010):
+    """Gain in dB per sample: 0, except from a to b seconds around each onset, depth_db down, with raised-cosine ramps
+    outside that span; the loop wraps."""
+    g = np.zeros(L)
+    t = np.arange(L)
+    for p in onsets:
+        tau = ((t - p + L // 2) % L - L // 2) / SR
+        u = np.clip(np.minimum(tau - (a - ramp), (b + ramp) - tau) / ramp, 0.0, 1.0)
+        g = np.minimum(g, -depth_db * (0.5 - 0.5 * np.cos(np.pi * u)))
+    return g
+
+
+def _two_step(bpm):
+    """2 bars of qa.TWO_STEP at bpm: (length, kick onsets, whole), whole(f) rounding f to whole cycles per loop so the
+    seam joins."""
+    from tools.sound import qa
+    s16 = 60.0 / bpm / 4 * SR
+    L = int(round(32 * s16))
+    return L, [int(round(s * s16)) for s, _ in qa.TWO_STEP], lambda f: round(f * L / SR) * SR / L
+
+
+def _rest_and_duck(L, onsets, rest_db, duck_db, back):
+    """Gain in dB: rest_db down from 55 ms before each kick to the kick (the before-hit window), duck_db down from the
+    kick to `back` seconds after it (the kick's own 80 ms)."""
+    return np.minimum(_dips(L, onsets, -0.055, 0.0, rest_db), _dips(L, onsets, 0.0, back, duck_db))
+
+
+def body_phrase(ratio_db=-12.0, dip_db=40.0, duck_db=None, back=0.080, accent_db=0.0, sits_out=(), bpm=134.0):
+    """A held bass over 2 bars of 2-step (qa.TWO_STEP's onsets): a 50 Hz sub and a 250 Hz tone ratio_db apart (as
+    body_tones), dip_db down from 55 ms before each kick to the kick and duck_db down (default dip_db) from the kick to
+    `back` seconds after it. accent_db opens the 250 Hz tone for 120 ms in the middle of the first gap; the bass sits
+    out (dip_db down) the kicks numbered in sits_out and the gaps after them. Returns (loop, onsets): a bass phrase and
+    the kicks it plays against."""
+    L, onsets, whole = _two_step(bpm)
+    sub, mid = _tone_parts(_t(L), ratio_db, whole(SUB_50), whole(250.0))
+    accent, edge = np.zeros(L), np.hanning(int(0.02 * SR))
+    c = onsets[1] // 2
+    accent[c - int(0.06 * SR):c + int(0.06 * SR)] = accent_db
+    accent = np.convolve(accent, edge / edge.sum(), 'same')
+    g = _rest_and_duck(L, onsets, dip_db, dip_db if duck_db is None else duck_db, back)
+    for k in sits_out:
+        nxt = onsets[k + 1] if k + 1 < len(onsets) else onsets[0] + L
+        g = np.minimum(g, _dips(L, [onsets[k]], -0.055, (nxt - onsets[k]) / SR - 0.055, dip_db))
+    return (sub + mid * D.undb(accent)) * D.undb(g), onsets
+
+
+def saw_phrase(note, duck_db, lp_hz=500.0, bpm=134.0):
+    """A bass over 2 bars of 2-step: a sine sub on a MIDI note under a saw on it low-passed at lp_hz (4th order), resting
+    from 55 ms before each kick, each note starting on the kick, duck_db down under the kick's first 80 ms. Returns
+    (loop, onsets)."""
+    L, onsets, whole = _two_step(bpm)
+    f0 = whole(float(D.midi_hz(note)))
+    x = 0.45 * np.sin(2 * np.pi * f0 * _t(L)) + D.bfilt(0.3 * D.additive_saw(f0, L), lp_hz, 'lowpass', order=4)
+    return x * D.undb(_rest_and_duck(L, onsets, 40.0, duck_db, 0.080)), onsets
