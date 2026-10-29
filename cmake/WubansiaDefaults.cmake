@@ -5,7 +5,7 @@
 
 add_library(wubansia_build_defaults INTERFACE)
 
-if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC") # cl or clang-cl
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC") # cl or clang-cl
     target_compile_options(wubansia_build_defaults INTERFACE
         /fp:precise
         $<$<COMPILE_LANGUAGE:CXX>:/Zc:__cplusplus>)

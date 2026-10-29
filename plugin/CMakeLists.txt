@@ -71,7 +71,7 @@ endif()
 
 # Warnings as errors on our own files only: JUCE's module sources compile inside these targets too.
 if(WUBANSIA_WERROR)
-    if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
         set(_wubansia_werror /WX)
     else()
         set(_wubansia_werror -Werror)
