@@ -1,0 +1,25 @@
+# tools/sound: rendering, QA, sheets and tests. CI installs only this file (with --only-binary :all:).
+# Versions are legacy/web-pack/requirements.txt's pins; all have wheels for CPython 3.12 (CI, ubuntu-24.04)
+# and 3.13 on x86_64 Linux, so nothing compiles. Lines below "transitive" pin their dependencies, so a
+# fresh venv renders the same bytes with the same numpy SIMD level and OpenBLAS kernel: tools/sound pins
+# them to the x86-64-v2 baseline and Prescott on x86_64 Linux (ADR 0007). Vocals add requirements-vocals.txt. pedalboard (GPLv3) stays pinned
+# in legacy/web-pack/requirements.txt only: no recipe here uses it.
+numpy==2.5.3
+scipy==1.18.1
+soundfile==0.14.0         # bundles libsndfile (FLAC writer)
+matplotlib==3.11.2        # spectrogram sheets
+pillow==12.3.0
+
+# transitive
+cffi==2.1.1
+contourpy==1.4.0
+cycler==0.12.1
+fonttools==4.68.0
+kiwisolver==1.5.1
+packaging==26.3
+pycparser==3.12
+pyparsing==3.3.3
+python-dateutil==3.0.0
+six==1.17.0
+typing_extensions==4.16.0
+tzdata==2026.6

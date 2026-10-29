@@ -15,6 +15,14 @@ legacy/web-pack/s5.log
 # Future content bundle (download, don't commit)
 content/audio/
 
+# Audio and model files never go in git (CLAUDE.md: large files go into the content bundle), wherever a render
+# or a models folder lands. A test fixture that must be audio needs `git add -f`.
+*.flac
+*.wav
+*.onnx
+kokoro-*/
+sherpa-onnx-*/
+
 # Tooling
 node_modules/
 __pycache__/
