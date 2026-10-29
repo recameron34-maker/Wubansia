@@ -78,18 +78,22 @@ flowchart LR
 
 ```
 CLAUDE.md
+THIRD_PARTY_NOTICES.md  license notices for everything that ships
 docs/ROADMAP.md, docs/decisions/NNNN-*.md, docs/listening.md
 legacy/web-pack/        original web app (core.js, app.js, build_site.py), its sound pipeline (audio/, inst/), manifests (out/), tests;
                         audio comes from the web-pack-v21 release, see legacy/web-pack/README.md
 content/kits/*.json     43 kits + schema.json
 content/index.json      every sound: id, file, category, family, kit, key, camelot, bpm, bars, root, loop, gain, tags, explicit
 content/golden/         reference MIDI + JSON event dumps exported from legacy core.js
+libs/                   pinned submodules: JUCE, clap-juce-extensions, Catch2
+cmake/                  our CMake helpers (identity, build defaults)
 core/                   groove core (C++20) + tests
 engine/                 audio engine + tests
 plugin/                 JUCE processor/editor, parameters, state, bridge
 ui/                     TypeScript + Vite front end
 cli/                    `groovecore` tool: export MIDI, render WAV, validate
 tools/                  Python sound design + vocals, content packer, golden exporter
+tools/ci/               validator scripts used by CI and locally
 .github/workflows/      build, test, pluginval/auval, (later) sign + notarize
 ```
 
@@ -304,11 +308,15 @@ Goal: from kit player to an instrument you can perform, which keeps producing ne
 | Component | License | Note |
 |---|---|---|
 | JUCE | AGPLv3 or commercial (Starter free under a revenue threshold, then Indie/Pro) | JUCE 9 kept JUCE 8's terms; check before selling |
+| Third-party code bundled in JUCE | Zlib, libpng-2.0, IJG, BSD-3-Clause, MIT, MIT-Modern-Variant, Apache-2.0, FTL, Unicode-3.0, public domain | See `libs/JUCE/JUCE.spdx.json` and the file headers (FreeType and stb inside PlutoVG, json.h inside the VST3 SDK, Unicode data); notices in `THIRD_PARTY_NOTICES.md` |
 | VST3 SDK | MIT (since VST 3.8, Oct 2025) | |
 | CLAP, clap-juce-extensions | MIT | |
 | Signalsmith Stretch | MIT | |
 | Catch2 | BSL-1.0 | |
 | pluginval | GPLv3 | CI tool only, never shipped |
+| clap-validator | MIT | CI tool only, never shipped |
+| GitHub Actions (`actions/checkout`, `actions/upload-artifact`, `ilammy/msvc-dev-cmd`; `mozilla-actions/sccache-action`) | MIT; Apache-2.0 | CI only |
+| Pamplejuce | MIT | Template; our build files, plugin sources, tests and CI started from it. License in `docs/third_party/pamplejuce-LICENSE` |
 | pedalboard (Python) | GPLv3 | Build-time sound design only, never linked into the plugin |
 | Kokoro TTS / Whisper | Apache-2.0 / MIT | Vocal pipeline |
 
