@@ -33,6 +33,7 @@ namespace wubansia
             double phase = 0.0; // radians
             double phaseDelta = 0.0;
             float level = 0.0f; // velocity, scaled so all voices together can't clip
+            float targetLevel = 0.0f; // level ramps here, so a retriggered or stolen voice doesn't click
             float envelope = 0.0f; // linear attack and release, 0..1
         };
 

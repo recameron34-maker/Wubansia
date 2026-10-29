@@ -89,6 +89,7 @@ TEST_CASE ("note-on is sample-accurate", "[audio]")
 
     CHECK (out.getNumChannels() == 2);
     CHECK (juce::exactlyEqual (out.getMagnitude (0, 0, 16), 0.0f));
+    CHECK (out.getMagnitude (0, 16, 2) > 0.0f); // not late either
     CHECK (out.getMagnitude (0, 16, blockSize - 16) > 0.01f);
     CHECK (out.getMagnitude (1, 16, blockSize - 16) > 0.01f);
 }
@@ -216,9 +217,54 @@ TEST_CASE ("odd block sizes", "[audio]")
 
     SECTION ("prepare, release, prepare")
     {
+        REQUIRE (plugin.getNumActiveVoices() == 1);
         plugin.releaseResources();
+        CHECK (plugin.getNumActiveVoices() == 0);
+
         prepare (plugin, 96000.0, 64);
         const auto out = process (plugin, 64);
-        CHECK (juce::exactlyEqual (out.getMagnitude (0, 64), 0.0f)); // releaseResources stopped every voice
+        CHECK (juce::exactlyEqual (out.getMagnitude (0, 64), 0.0f));
     }
+}
+
+TEST_CASE ("host reset and bypass leave no stuck notes", "[audio]")
+{
+    PluginProcessor plugin;
+    prepare (plugin, sampleRate, blockSize);
+    render (plugin, blockSize, midiAt (juce::MidiMessage::noteOn (1, 60, (juce::uint8) 100), 0));
+    REQUIRE (plugin.getNumActiveVoices() == 1);
+
+    SECTION ("reset() stops every voice before the next block")
+    {
+        plugin.reset(); // hosts may call this from any thread
+        const auto out = process (plugin, blockSize);
+        CHECK (juce::exactlyEqual (out.getMagnitude (0, blockSize), 0.0f));
+        CHECK (plugin.getNumActiveVoices() == 0);
+    }
+
+    SECTION ("a note-off while bypassed can't leave the note hanging")
+    {
+        juce::AudioBuffer<float> buffer (2, blockSize);
+        auto midi = midiAt (juce::MidiMessage::noteOff (1, 60), 0);
+        plugin.processBlockBypassed (buffer, midi);
+        CHECK (juce::exactlyEqual (buffer.getMagnitude (0, blockSize), 0.0f));
+
+        const auto out = process (plugin, blockSize);
+        CHECK (juce::exactlyEqual (out.getMagnitude (0, blockSize), 0.0f));
+    }
+}
+
+TEST_CASE ("retriggering or stealing a voice doesn't click", "[audio]")
+{
+    PluginProcessor plugin;
+    prepare (plugin, sampleRate, blockSize);
+    render (plugin, blockSize, midiAt (juce::MidiMessage::noteOn (1, 60, (juce::uint8) 127), 0));
+
+    // Retrigger the same note much quieter, inside the block. A sine at this pitch and level
+    // changes by at most about 0.005 per sample, so a jump in level shows up as a far bigger step.
+    const auto out = process (plugin, blockSize, midiAt (juce::MidiMessage::noteOn (1, 60, (juce::uint8) 1), 16));
+    float largestStep = 0.0f;
+    for (int i = 1; i < blockSize; ++i)
+        largestStep = std::max (largestStep, std::abs (out.getSample (0, i) - out.getSample (0, i - 1)));
+    CHECK (largestStep < 0.01f);
 }

@@ -9,13 +9,37 @@ using wubansia::PluginProcessor;
 
 namespace
 {
-    // Counts operator new calls inside one processBlock. Buffers and MIDI are built outside the count.
+    // Where the counter test parks its allocations, so the optimiser can't remove them.
+    void* volatile sink = nullptr;
+
+    // Counts allocations inside one processBlock. Buffers and MIDI are built outside the count.
     int allocationsDuring (PluginProcessor& p, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
     {
         allocations::Scope scope;
         p.processBlock (buffer, midi);
         return scope.count();
     }
+}
+
+TEST_CASE ("the allocation counter counts", "[realtime]")
+{
+    // Without this, a counter that silently counts nothing would make every check below pass.
+    {
+        allocations::Scope scope;
+        auto* p = new int (1);
+        sink = p;
+        delete p;
+        CHECK (scope.count() == 1);
+    }
+
+#if WUBANSIA_COUNTS_MALLOC
+    {
+        allocations::Scope scope;
+        juce::HeapBlock<float> block (64); // JUCE's containers allocate with std::malloc
+        sink = block.get();
+        CHECK (scope.count() >= 1);
+    }
+#endif
 }
 
 TEST_CASE ("processBlock does not allocate", "[realtime]")
@@ -66,10 +90,12 @@ TEST_CASE ("processBlock does not allocate", "[realtime]")
     }
 }
 
-TEST_CASE ("host automation path", "[realtime][!mayfail]")
+TEST_CASE ("host automation path: allocations only", "[realtime][!mayfail]")
 {
-    // Informational (docs/decisions/0001-framework.md): VST3 hosts apply automation on the audio
-    // thread through JUCE's parameter code, which we don't control. This shows what that path costs.
+    // Informational, never fails (docs/decisions/0001-framework.md, D5): VST3 hosts apply
+    // automation on the audio thread through JUCE's parameter code, which we don't control.
+    // This counts allocations on that path only. The locks it takes (listenerLock, the APVTS
+    // lock) and the message-queue post with the editor open are not measured here.
     PluginProcessor plugin;
     auto& gain = wubansia::test::masterGainParameter (plugin);
 

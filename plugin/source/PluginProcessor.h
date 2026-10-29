@@ -23,6 +23,16 @@ namespace wubansia
         using AudioProcessor::processBlock;
         void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
+        // A bypassed instrument outputs silence and drops its voices, so no note can hang.
+        using AudioProcessor::processBlockBypassed;
+        void processBlockBypassed (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+        // Hosts call this to stop all sound, possibly from a non-audio thread, so it only
+        // raises a flag that the next block acts on.
+        void reset() override;
+
+        int getNumActiveVoices() const noexcept { return voices.getNumActiveVoices(); }
+
         juce::AudioProcessorEditor* createEditor() override;
         bool hasEditor() const override { return true; }
 
@@ -50,6 +60,7 @@ namespace wubansia
 
     private:
         std::atomic<float>* masterGainDb = nullptr; // owned by apvts; read lock-free on the audio thread
+        std::atomic<bool> resetPending { false };
         juce::LinearSmoothedValue<float> masterGain;
         SineVoices voices;
 

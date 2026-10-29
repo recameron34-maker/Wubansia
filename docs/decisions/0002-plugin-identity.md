@@ -28,13 +28,15 @@ Rules that follow:
 - Parameter IDs are snake_case. Rename the label, never the ID (CLAUDE.md).
 - A parameter added in a later release gets a version hint higher than any earlier one: 1 for the first release, then 2, 3 and so on. Lower hints break saved AU automation in some hosts.
 - A state format change bumps `stateVersion`, and every older version must keep loading.
+- Saving never lowers `stateVersion`: a state from a newer build keeps its version and its unknown data, so that build's migrations still work when it reopens the project.
+- A non-finite parameter value in a loaded state falls back to the parameter's default.
 - The values live in `cmake/WubansiaIdentity.cmake`. The frozen literals live only in `plugin/tests/IdentityTests.cpp`, so an edit to the CMake file alone fails CI.
 
 How the tests enforce it:
 - `IdentityTests` "identity matches ADR 0002": the name and company (`JucePlugin_Manufacturer`); `JucePlugin_ManufacturerCode` and `JucePlugin_PluginCode` against the hex values above; the AU type as the stringified literal `'aumu'` (`JUCE_STRINGIFY(JucePlugin_AUMainType)`); the bundle ID through `JUCE_STRINGIFY(JucePlugin_CFBundleIdentifier)`; the CLAP ID through `WUBANSIA_TEST_CLAP_ID`; `JucePlugin_IsSynth`, `JucePlugin_WantsMidiInput`, `JucePlugin_ProducesMidiOutput` and `JucePlugin_IsMidiEffect`. The file also has an `#error` if either JUCE flag above isn't 0.
 - `IdentityTests` "bus layout": no inputs, one output bus that is stereo by default (mono is accepted, 5.1 is not), MIDI in, no MIDI out, not a MIDI effect, one program with a name.
 - `ParameterTests` "parameter IDs are frozen": the complete list is `{master_gain}`. "master gain parameter": version hint 1, range −60 to +6 dB, default 0 dB.
-- `StateTests`: the saved root tag is `WubansiaState` with `stateVersion == 1`, and the hard-coded M0 blob `<WubansiaState stateVersion="1"><PARAM id="master_gain" value="-12.5"/></WubansiaState>` still restores −12.5 dB.
+- `StateTests`: the saved root tag is `WubansiaState` with `stateVersion == 1`, the hard-coded M0 state (byte for byte what M0 saves, XML header included) still restores −12.5 dB, a newer `stateVersion` survives a save, and a `nan` value falls back to the default.
 
 ## Consequences
 - After the first saved project, changing a permanent value breaks that project in at least one format. It would need a new ADR and a migration plan.

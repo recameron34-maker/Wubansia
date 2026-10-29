@@ -38,7 +38,7 @@ namespace wubansia::test
         return buffer;
     }
 
-    // Opens the editor the way a host does, runs the test code, then closes it.
+    // Creates the editor as a host does (without a native window), runs the test code, then deletes it.
     inline void withEditor (PluginProcessor& p, const std::function<void (juce::AudioProcessorEditor&)>& testCode)
     {
         auto* editor = p.createEditorAndMakeActive();

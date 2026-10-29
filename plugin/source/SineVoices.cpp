@@ -59,10 +59,14 @@ namespace wubansia
                     target = &v;
         }
 
+        const auto wasSilent = target->note < 0;
         target->note = note;
         target->releasing = false;
         target->phaseDelta = juce::MathConstants<double>::twoPi * juce::MidiMessage::getMidiNoteInHertz (note) / sampleRate;
-        target->level = velocity / (float) numVoices; // all voices at full level can't clip
+        target->targetLevel = velocity / (float) numVoices; // all voices at full level can't clip
+
+        if (wasSilent) // its envelope starts from zero, so it can take the new level at once
+            target->level = target->targetLevel;
     }
 
     void SineVoices::noteOff (int note) noexcept
@@ -76,6 +80,7 @@ namespace wubansia
     {
         const auto numChannels = buffer.getNumChannels();
         const auto endSample = startSample + numSamples;
+        const auto levelStep = envelopeStep / (float) numVoices; // full level change in 5 ms
 
         for (auto& v : voices)
         {
@@ -89,6 +94,7 @@ namespace wubansia
                     break;
                 }
 
+                v.level += juce::jlimit (-levelStep, levelStep, v.targetLevel - v.level);
                 const auto sample = (float) std::sin (v.phase) * v.level * v.envelope;
 
                 for (int ch = 0; ch < numChannels; ++ch)
