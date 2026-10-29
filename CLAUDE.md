@@ -10,8 +10,10 @@ This is a VST3/AU/CLAP instrument and standalone app. It plays groove constructi
 - `plugin/`: JUCE processor and editor, parameters, state, host sync, and the WebView bridge.
 - `ui/`: TypeScript + Vite front end loaded in the WebView. It talks to C++ only through `ui/src/bridge.ts`.
 - `cli/`: the `groovecore` tool (export MIDI, render WAV, validate).
+- `libs/`: pinned submodules (JUCE, clap-juce-extensions, Catch2). Bump only through an ADR.
+- `cmake/`: our CMake helpers (identity, build defaults).
 - `content/`: `kits/*.json` (+ `schema.json`), `index.json` (the sound library), `golden/` (reference outputs). Audio files are not in git.
-- `tools/`: Python sound design and vocal pipelines, content packer, golden exporter.
+- `tools/`: Python sound design and vocal pipelines, content packer, golden exporter, plus `tools/ci/` (validator scripts used by CI and locally).
 - `legacy/web-pack/`: the original web app. It's the reference: read it and run it, but only change it to export goldens or to load kits from `content/kits`. It holds:
   - the page source (`core.js`, `app.js`, `flac.js`, `ui/`, `build_site.py`)
   - the sound pipeline (`audio/`, `inst/`) and manifests (`out/`)
@@ -20,15 +22,28 @@ This is a VST3/AU/CLAP instrument and standalone app. It plays groove constructi
 
   Its audio lives in the `web-pack-v21` GitHub release, not in git. See `legacy/web-pack/README.md`.
 - `docs/`: the roadmap, `decisions/` (one short ADR per decision) and `listening.md` (listening sign-offs).
+- `THIRD_PARTY_NOTICES.md`, `docs/third_party/`: license notices.
 
 ## Commands
-Replace these placeholders with the real commands during M0, and keep them accurate.
-- Configure and build: `cmake --preset release && cmake --build --preset release`
-- Tests: `ctest --preset release --output-on-failure`
-- Golden check: `cmake --build --preset release --target golden_check`
-- Plugin validation: `pluginval --strictness-level 10 --validate <path-to-plugin>` (and `auval -a` on macOS)
-- UI: `cd ui && npm run dev` / `npm run build`
-- Regenerate goldens (only when asked): `node tools/export_golden.js`
+Run from the repo root. Keep these commands accurate; entries marked "arrives in Mx" don't exist yet.
+Needs CMake 3.25+, Ninja and a C++20 compiler:
+- macOS: Xcode 16.
+- Windows: Visual Studio 2022 or later with the "C++ Clang Compiler for Windows" component, in an x64 shell: the "x64 Native Tools Command Prompt for VS", or PowerShell after `& "<VS folder>\Common7\Tools\Launch-VsDevShell.ps1" -Arch amd64 -HostArch amd64`. CMake picks clang-cl by itself and stops if the shell is 32-bit.
+- Linux: Clang 18 with lld (what CI uses) or GCC 13.
+
+- First checkout: `git submodule update --init --recursive`
+- Configure and build: `cmake --preset release && cmake --build --preset release` (Debug: `cmake --preset debug && cmake --build --preset debug`)
+- Tests: `ctest --preset release --output-on-failure` (no display needed; the validators below handle that themselves)
+- Everything at once: `cmake --workflow --preset release`
+- Plugins land in `build/release/plugin/Wubansia_artefacts/Release/` (`VST3/`, `AU/`, `CLAP/`, `Standalone/`). Configuring with `-DWUBANSIA_COPY_PLUGINS=ON` also installs them: the VST3, AU and CLAP on macOS; the VST3 and CLAP on Linux (`~/.vst3`, `~/.clap`); on Windows only the VST3 (elevated prompt), so copy the CLAP by hand. The Standalone app is never copied.
+- macOS: re-sign the bundles ad hoc before validating, as CI does (ADR 0004): `for b in build/release/plugin/Wubansia_artefacts/Release/{VST3/Wubansia.vst3,AU/Wubansia.component,CLAP/Wubansia.clap,Standalone/Wubansia.app}; do codesign --force --sign - "$b"; done`
+- Plugin validation, same pinned tools and flags as CI: `tools/ci/validate.sh build/release` (Windows: Git Bash; on macOS it installs the AU into `~/Library/Audio/Plug-Ins/Components`). By hand:
+  - `pluginval --strictness-level 10 --verbose --validate build/release/plugin/Wubansia_artefacts/Release/VST3/Wubansia.vst3` (pluginval v1.0.4)
+  - macOS AU, after re-signing and copying `Wubansia.component` to `~/Library/Audio/Plug-Ins/Components`: `killall -9 AudioComponentRegistrar; auval -a | grep Wuba; auval -strict -v aumu Wbns Wuba`
+  - CLAP, report-only until clap-juce-extensions PR #193 lands: `clap-validator validate build/release/plugin/Wubansia_artefacts/Release/CLAP/Wubansia.clap --only-failed --exclude 'state-reproducibility-.*'` (clap-validator 0.4.1)
+- Golden check: `cmake --build --preset release --target golden_check` (arrives in M2)
+- UI: `cd ui && npm run dev` / `npm run build` (arrives in M4)
+- Regenerate goldens (only when asked): `node tools/export_golden.js` (arrives in M1)
 - Legacy web pack (these work today):
   - Get the audio: `gh release download web-pack-v21 -p web-pack-site-v21.zip && unzip web-pack-site-v21.zip -d legacy/web-pack`
   - Rebuild the page (byte-identical to the published v21): `python3 legacy/web-pack/build_site.py`

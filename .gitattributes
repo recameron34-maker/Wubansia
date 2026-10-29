@@ -1,0 +1,13 @@
+# LF everywhere, so checkouts are byte-identical on every platform (docs/decisions/0003).
+* text=auto eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Golden files are compared byte for byte: never convert them.
+content/golden/** -text
+
+*.mid binary
+*.wav binary
+*.flac binary
+*.zip binary
