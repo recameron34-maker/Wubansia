@@ -1,4 +1,8 @@
-"""FUT01 drums for the first listen: two kicks, two metal snares and two closed hats to A/B, and the alloy hit on F#5.
+"""FUT01 drums: two kicks, two metal snares and two closed hats to A/B, and the alloy hit on F#5.
+
+Round 2 (set r2) keeps every one of them unchanged except kick B: round 1 picked A, Split ("B sounds a bit hard like
+its really slamming the limiter"), so KickTight stays in the s1a set only, as round 1's history. The snares, hats and
+alloy hit were not rated in round 1 and come back as they were.
 
 Every drum has 5 velocity layers (the alloy hit 4). Velocity moves the brightness, the transient and the pitch envelope,
 not just the level. The kicks pass the mud gate (plan section 5.2): after ~100 ms only a clean sine on F#1 is left, and
@@ -374,20 +378,20 @@ def alloy(take, decay, fade, seconds):
 
 
 ITEMS = [
-    Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('s1a',),
+    Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('s1a', 'r2'),
          about='kick A, split: clean F#1 sub, a driven knock gone by 95 ms, an alloy top above 1 kHz'),
     Item('Drums', 'KickTight', 'kick', kick_tight, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('s1a',),
          about='kick B, tight: a driven body gated short and cut at 250 Hz, a short clean F#1 sine (gone by 0.28 s)'),
-    Item('Drums', 'SnareMetal', 'snare', snare_metal, layers=LAYERS, rr=2, sets=('s1a',),
+    Item('Drums', 'SnareMetal', 'snare', snare_metal, layers=LAYERS, rr=2, sets=('s1a', 'r2'),
          about='metal snare A: FM body on C#4, bright wires, an alloy ring from F#6'),
-    Item('Drums', 'SnareModal', 'snare', snare_modal, layers=LAYERS, rr=2, sets=('s1a',),
+    Item('Drums', 'SnareModal', 'snare', snare_modal, layers=LAYERS, rr=2, sets=('s1a', 'r2'),
          about='metal snare B: struck alloy body on D4 and a four-flam clap in the kit room'),
-    Item('Drums', 'ClosedHatFM', 'hat', hat_fm, layers=LAYERS, rr=3, sets=('s1a',),
+    Item('Drums', 'ClosedHatFM', 'hat', hat_fm, layers=LAYERS, rr=3, sets=('s1a', 'r2'),
          about='closed hat A, tight: FM pairs on the high alloy ratios at 4x, 30 dB down in 45-70 ms'),
-    Item('Drums', 'ClosedHatRing', 'hat', hat_ring, layers=LAYERS, rr=3, sets=('s1a',),
+    Item('Drums', 'ClosedHatRing', 'hat', hat_ring, layers=LAYERS, rr=3, sets=('s1a', 'r2'),
          about='closed hat B, a darker sizzle: ring-modulated noise and alloy tones through a falling 5-6.5 kHz band'),
-    Item('Perc', 'AlloyHit', 'perc', alloy_hit, layers=ALLOY_LAYERS, rr=2, root=ALLOY_NOTE, sets=('s1a',),
+    Item('Perc', 'AlloyHit', 'perc', alloy_hit, layers=ALLOY_LAYERS, rr=2, root=ALLOY_NOTE, sets=('s1a', 'r2'),
          about='alloy hit on F#5: struck alloy modes, FM strike, ring-mod clang, +-6-36 Hz shifted sides'),
-    Item('Perc', 'AlloyHitShort', 'perc', alloy_short, layers=ALLOY_LAYERS, rr=2, root=ALLOY_NOTE, sets=('s1a',),
+    Item('Perc', 'AlloyHitShort', 'perc', alloy_short, layers=ALLOY_LAYERS, rr=2, root=ALLOY_NOTE, sets=('s1a', 'r2'),
          about='the alloy hit as the stab transient: the same strike, its modes three times shorter, gone by 0.35 s'),
 ]

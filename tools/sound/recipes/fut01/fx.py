@@ -1,25 +1,37 @@
-"""FUT01 effects for the first listen: a one-beat glitch fill and an 8-bar frequency-shifted barber-pole riser.
+"""FUT01 effects: round 2's half-bar glitch fill made from the kit's own sounds, round 1's glitch fill (set s1a only)
+and an 8-bar frequency-shifted barber-pole riser (both rounds).
 
-Both are built from kit-like material made here on the kit DNA (alloy-ratio strikes on F#, a metal snare, data ticks,
-a laser zap), not from other instruments' files.
-
-- GlitchFill: one beat at 134 BPM, one 16th at a time: the hit; a 32nd stutter, its repeat shifted 35 Hz down; four
+- GlitchFillLift (round 2): half a bar (beats 3 and 4 before the drop) at 134 BPM on the kit's swing, played on the
+  kit's own sounds: kick A, snare A, hat A and the alloy hit exactly as written (phrase.kit_files), and the chrome
+  pluck's own voice (music.pluck_note) at exact pitches, at its files' level. Beat 1 quotes the pluck phrase's opening,
+  F#4 C#5 A4 on its 3-3-2, at twice its speed, with snare and hat under each note and kick A's knock on the first.
+  Beat 2 is a roll that cuts each 16th finer than the last (two 32nds, two 32nds, four 64ths, eight 128ths), snare
+  and hat climbing from layer 2 to 5 and 7 dB louder, while the pluck stutters up E5 F#5 A5 C#6. Under it the alloy
+  hit on F#5, reversed, swells into the downbeat, and a high-pass opens from 150 Hz to 900 Hz. Every slice is gated
+  with 1 ms edges and logged as a splice. The file ends on the downbeat, loud (cut_end), so the drop lands where it
+  stops. Round 1 rated its one-beat fill 3 (texture, not a gesture): this one is the kit's own motif, then a roll
+  that speeds up and rises.
+- GlitchFill (round 1, set s1a only): one beat at 134 BPM, one 16th at a time: the hit; a 32nd stutter, its repeat
+  shifted 35 Hz down; four
   64ths of the strike, repitched up and crushed harder each time (4x oversampled sample-and-hold, so the aliasing is
   the planned kind); eight 128ths of tick and zap whose frequency shift climbs to +900 Hz, the last left to ring.
-  Every slice edge has a 1 ms raised-cosine fade and is logged as a splice.
+  Every slice edge has a 1 ms raised-cosine fade and is logged as a splice. Built from kit-like material made here on
+  the kit DNA (alloy-ratio strikes on F#, a metal snare, data ticks, a laser zap), not from other instruments' files.
 - ShiftRiser: 8 bars, end-aligned: the file ends on the downbeat and stays loud to the end (cut_end; the renderer's
   5 ms fade is the only edge). An alloy chord on F#3 and F#4 plus air goes through four frequency shifters whose shift
   ramps 0-600 Hz and wraps, each faded out at its wrap (sin^2 windows a quarter apart sum to a constant): a barber pole
   whose partials glide up for ever. The pole speeds up, a common shift climbs to +1.5 kHz in the last bars, the
   band opens, a little saturation thickens it and the level rises 24 dB.
 
-Both are high-passed well above the kick and sub and mono under 150 Hz.
+All three are high-passed well above the kick and sub and mono under 150 Hz.
 """
 import numpy as np
 
 from tools.sound import dsp48 as D
+from tools.sound import phrase as Ph
 from tools.sound.item import Item, Out
 from tools.sound.kits import fut01 as K
+from tools.sound.recipes.fut01 import music
 
 SR = D.SR
 ALLOY = np.array(K.ALLOY)
@@ -137,6 +149,91 @@ def glitch_fill(take):
     return Out(D.mono_below(y, 150.0), splices=tuple(c for c in cuts if c > 0))
 
 
+# ------------------------------------------------------------------ round 2: the glitch fill on the kit's own files
+def swung(s):
+    """A position in 16ths of the beat (fractional: 32nds, 64ths, 128ths) as a sample index on the kit's swing: the
+    first 16th of each 8th spans 2 x K.SWING of it and the second the rest, so a slice inside the swung 16th shrinks
+    with it and the odd 16ths land where phrase.Grid puts them (with the hats)."""
+    base = np.floor(s / 2) * 2
+    f = s - base
+    u = f * K.SWING if f <= 1 else K.SWING + (f - 1) * (1 - K.SWING)
+    return int(np.floor((base + 2 * u) * S16 + 0.5))
+
+
+LIFT_STEPS = 8                  # half a bar: beats 3 and 4 before the drop
+F_S4 = 66                       # the fill's root: the motif starts on F#4
+# Beat 1, the motif: the pluck phrase's opening (music.PHRASE: F#4 C#5 A4 on its 3-3-2) at twice its speed, so the 3-3-2
+# falls in 32nds. One slice per row: (start, end) in 16ths, the pluck (MIDI, velocity: the phrase's own), the drums
+# under it ((item, (note, layer, rr), dB), ...), and the pan
+LIFT_MOTIF = (
+    (0.0, 1.5, (66, 1.0), (('KickSplit', (None, 5, 1), -3.0), ('SnareMetal', (None, 5, 1), -1.0)), 0.0),
+    (1.5, 3.0, (73, 0.7), (('SnareMetal', (None, 4, 2), -2.0), ('ClosedHatFM', (None, 4, 1), -6.0)), -0.3),
+    (3.0, 4.0, (69, 0.8), (('SnareMetal', (None, 4, 1), -3.0), ('ClosedHatFM', (None, 3, 2), -6.0)), 0.3),
+)
+# Beat 2, the roll: each 16th cut finer than the last (two 32nds, two 32nds, four 64ths, eight 128ths), its pluck note
+# retriggered on every slice, climbing from the phrase's E5 up the F# minor triad (F#5 A5 C#6) toward the drop's F#.
+# (16th, pluck MIDI, pluck velocity, slices)
+LIFT_ROLL = ((4, 76, 0.7, 2), (5, 78, 0.8, 2), (6, 81, 0.9, 4), (7, 85, 1.0, 8))
+LIFT_ROLL_DB = (-8.0, -1.0)     # snare and hat over the roll's 16 slices: a crescendo, layers 2 up to 5
+LIFT_PLUCK_DB = -3.0            # the pluck against its own files' level (the ChromePluck instrument's one gain)
+LIFT_SWELL = ('AlloyHit', (None, 4, 1), -5.0)   # the alloy hit on F#5, reversed: it swells into the downbeat
+LIFT_HP = (150.0, 900.0)        # the high-pass opens over the fill, most of it in beat 2: it thins out toward the drop
+
+
+def kit_take(name, key):
+    """One of the kit's files exactly as written (stereo)."""
+    return Ph.kit_files(K, name)[1][key].audio
+
+
+def head(x, m):
+    """The first m samples of a file, padded with silence when it is shorter (hat A is 0.12 s)."""
+    return np.concatenate([x[:m], np.zeros((max(0, m - len(x)),) + x.shape[1:])])
+
+
+def pluck(note, vel, m, r):
+    """The kit's chrome pluck (music.pluck_note, as ChromePluckPhrase plays it) at its exact pitch, mono, at the level
+    of the ChromePluck files (that instrument's one gain), so C#5, E5 and C#6, between its zones, need no repitching."""
+    gain = D.undb(Ph.kit_files(K, 'ChromePluck')[2] + LIFT_PLUCK_DB)
+    return gain * D.mono(music.pluck_note(float(D.midi_hz(note)), vel, m, r))
+
+
+def drums(parts, m):
+    return sum(D.undb(g) * head(D.mono(kit_take(name, key)), m) for name, key, g in parts)
+
+
+def glitch_lift(take):
+    n = swung(LIFT_STEPS)
+    out = np.zeros((n, 2))
+    cuts = []
+    for s0, s1, (note, vel), parts, p in LIFT_MOTIF:
+        a, b = swung(s0), swung(s1)
+        sl = drums(parts, b - a) + pluck(note, vel, b - a, take.rng('pluck', note))
+        out[a:b] += pan(edge(sl), p)
+        cuts += [a, b]
+    total = sum(k for *_, k in LIFT_ROLL)
+    i = 0
+    for step, note, vel, k in LIFT_ROLL:
+        string = pluck(note, vel, swung(step + 1) - swung(step), take.rng('pluck', note))
+        for j in range(k):
+            a, b = swung(step + j / k), swung(step + (j + 1) / k)
+            u = i / (total - 1)
+            layer = 2 + int(np.floor(3 * u + 0.5))
+            g = LIFT_ROLL_DB[0] + (LIFT_ROLL_DB[1] - LIFT_ROLL_DB[0]) * u
+            parts = (('SnareMetal', (None, layer, 1 + i % 2), g), ('ClosedHatFM', (None, layer, 1 + i % 3), g - 5.0))
+            sl = drums(parts, b - a) + head(string, b - a)            # the string retriggered: its attack stutters
+            out[a:b] += pan(edge(sl), 0.35 * (-1) ** i)
+            cuts += [a, b]
+            i += 1
+    name, key, g = LIFT_SWELL
+    swell = head(kit_take(name, key), n)[::-1] * D.undb(g)
+    swell = swell * (np.arange(n) / (n - 1))[:, None] ** 2.0          # out of nothing, its strike at the downbeat
+    y = out + swell
+    u = np.arange(n) / n
+    y = svf_sweep(y, LIFT_HP[0] * (LIFT_HP[1] / LIFT_HP[0]) ** (u ** 1.5), 'hp')
+    y = D.bfilt(y, 150.0, 'highpass', order=4)
+    return Out(D.mono_below(y, 150.0), splices=tuple(sorted({c for c in cuts if 0 < c < n})))
+
+
 # ------------------------------------------------------------------ the frequency-shifted riser
 RISER_BARS = 8
 RISER_N = int(np.floor(RISER_BARS * 4 * K.BEAT * SR + 0.5))
@@ -181,7 +278,13 @@ ITEMS = [
     Item('FX', 'GlitchFill', 'fx', glitch_fill, sets=('s1a',), flags={'deliberate_alias'}, tags=('fill',),
          qa={'why': 'the sample-and-hold crush aliases on purpose (run at 4x, so only its own images fold back)'},
          about='one-beat glitch fill: hit, 32nd stutter shifted down, crushed 64ths rising, 128ths shifted to +900 Hz'),
-    Item('FX', 'ShiftRiser', 'fx', shift_riser, level=-14.0, sets=('s1a',), flags={'cut_end'}, tags=('riser',),
+    Item('FX', 'GlitchFillLift', 'fx', glitch_lift, root=F_S4, sets=('r2',), flags={'cut_end'}, tags=('fill',),
+         qa={'why': 'it ends on the next downbeat: the reversed alloy hit swells to its strike there, where the drop '
+                    'takes over'},
+         about='half-bar glitch fill on the kit\'s own kick, snare, hat, pluck and alloy hit, on the swing: the pluck '
+               'motif F#4 C#5 A4 on a 3-3-2 in 32nds, then a roll from 32nds to 128ths up E5 F#5 A5 C#6, a reversed '
+               'alloy swell into the downbeat'),
+    Item('FX', 'ShiftRiser', 'fx', shift_riser, level=-14.0, sets=('s1a', 'r2'), flags={'cut_end'}, tags=('riser',),
          qa={'why': 'end-aligned: it stays loud to the downbeat, where the next section takes over'},
          about='8-bar barber-pole frequency-shifted riser on an alloy chord, end-aligned: it ends on the downbeat'),
 ]
