@@ -49,10 +49,37 @@ Method: 4th-order Butterworth band-pass, zero-phase; a 5 ms RMS envelope; the fa
 
 **Status:** open until you sign off the new kick.
 
-## 2026-10-29 · FUT01 · round 1 (S1a) · sent, ratings pending
+## 2026-10-29 · FUT01 · round 1 (S1a) · Listener: you · Monitoring: not reported · DAW: not reported · Level: not reported · Mono check: not reported
 
-The 12 S1a sounds and the 4-bar context loop, dry and wet, as WAV copies of the 48 kHz / 24-bit masters (`s1a-listen`, not in git: `tools/sound/render.py --kit FUT01 --set s1a` and `tools/sound/listen.py` rebuild it). Kick, snare and hat come in two characters each (A/B). The kicks are the de-mudded "split" (A) and "tight" (B) from round 0's shoot-out, so this round also closes round 0. Not blind: the blind player arrives in S1d, so the names are plain.
+The 12 S1a sounds and the 4-bar context loop, dry and wet, as WAV copies of the 48 kHz / 24-bit masters (`s1a-listen`, not in git: `tools/sound/render.py --kit FUT01 --set s1a` and `tools/sound/listen.py` rebuild it), and on the round 1 listening page, which plays MP3 previews of single hits and 16-bit WAV previews of the loops. Kick, snare and hat came in two characters each (A/B). Not blind: the blind player arrives in S1d.
 
-**Asked:** per sound keep / fix / cut, Cool 1–5 and "one kit?", the A/B picks, and the conditions in the template's header. The gate is plan §7's: at least 8 of 12 kept after one fix round, a median Cool ≥ 4, and "one kit?" yes on at least 10.
+### A. Sounds
 
-**Measured before sending:** every QA check passes on all 133 masters (`qa_report.md`). Mud gate, worst file: Kick Split falls 30 dB in 60 ms and stays 56 dB under its sub; Kick Tight in 57 ms and 54 dB; the context loop's kick and reese, per gap, 25 dB under the sub.
+Your ratings, from the listening page (its store, read back on 2026-10-29):
+
+| # | Sound | Pick | keep / fix / cut | Cool 1–5 | One kit? | Notes (yours) |
+|---|---|---|---|---|---|---|
+| — | Context loop | | fix | 4 | yes | "Reese doesnt sound that musical and doesnt make me want to dance. The high plucks are nice." |
+| 1 | Kick | A Split | | 4 | | "B sounds a bit hard like its really slamming the limiter" |
+| 2 | Metal snare | | | | | not rated |
+| 3 | Closed hat | | | | | not rated |
+| 4 | Alloy hit | | | | | not rated |
+| 5 | Neuro reese that talks | | fix | 2 | | "reeses needs the most work of all" |
+| 6 | Resampled growl shot | | fix | 3 | | |
+| 7 | Air pad, F#m9 | | | 4 | | |
+| 8 | Chrome pluck phrase | | | 5 | | |
+| 9 | Sung chops | | fix | 4 | | "sounds good weird phrase though" |
+| 10 | Sliced robot phrase | | keep | 4 | | |
+| 11 | Glitch fill | | | 3 | | |
+| 12 | Frequency-shifted riser | | | 4 | | |
+
+**Against the S1a gate** (plan §7, before the fix round): 9 of 12 rated; median Cool 4 (met); kept with Cool ≥ 4: 1 marked keep (the robot), 4 more at Cool ≥ 4 with no verdict (kick A, pad, pluck, riser), against 8 needed; "one kit?" answered only for the loop (yes). Not passed yet: the fix round comes next, as the plan allows.
+
+**What it changes:**
+- Kick A (Split) is the kit's kick; B (Tight) is cut. The "slamming the limiter" note becomes a QA rule: a crest floor for kicks (ADR 0011).
+- The reese is the weakest sound. Two causes: its line in the loop follows the kick instead of grooving against it, and its sound is hollow (its mids start at 450 Hz to pass the strict mud gate). The fix round writes real basslines and offers the bass as A "clean" (strict gate) and B "warm" (a proposed bass-body rule, ADR 0011), so you decide by ear.
+- The sung line gets new, more natural lyrics; growl and glitch fill get a clearer musical gesture.
+- The pluck (Cool 5) and the high plucks in the loop are the kit's strength.
+- Snare, hat and alloy hit stay as they are until you rate them.
+
+**Then:** you asked for four kits ("give me four kits"). The fix round for FUT01 runs together with three new first-listen kits, one per remaining direction (ADR 0010). They come back as round 2.
