@@ -16,9 +16,10 @@ M0 is done when CI is green on macOS and Windows, pluginval and auval pass, and 
 
 **Triggers and cost controls** (`.github/workflows/ci.yml`):
 - `linux` runs on every push to any branch, except changes only to `docs/**`, `**/*.md` or `legacy/**`. It never runs on `pull_request`, so nothing runs twice.
-- `macos` and `windows` run on ready (not draft) PRs to `main`, on pushes to `main` (which seeds the sccache entries every branch can restore), and on `workflow_dispatch` with `platforms: all|linux|macos|windows`.
+- `macos` and `windows` run on ready (not draft) PRs to `main`, on pushes to `main` (which seeds the sccache entries every branch can restore), and on `workflow_dispatch` with `platforms: all|linux|macos|windows`. The same `paths-ignore` applies to PRs, judged on the PR's whole diff, so docs-only PRs cost nothing. If a job ever becomes a required check, `paths-ignore` must come off `pull_request`, or docs-only PRs wait forever on it.
 - Three jobs with job-level `if`s, not a matrix: a job-level `if` can't read `matrix`.
-- Concurrency group `${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ inputs.platforms }}` with `cancel-in-progress: true`, so a push doesn't cancel a dispatch run that is already billed, and dispatching one platform doesn't cancel a dispatch for another. Job timeouts 30 min (Linux) and 40 min (macOS, Windows); 10 min per validator step. `permissions: contents: read`. `SCCACHE_GHA_ENABLED=true` and `SCCACHE_CACHE_MULTIARCH=1`, without which universal macOS compiles are never cached.
+- Concurrency group `${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ inputs.platforms }}` with `cancel-in-progress: true`, so a push doesn't cancel a dispatch run that is already billed, and dispatching one platform doesn't cancel a dispatch for another. Job timeouts 30 min (Linux) and 40 min (macOS, Windows); 5 min per validator download (curl also aborts a stalled transfer after 30 s and retries); 10 min per validator step. `permissions: contents: read`. `SCCACHE_GHA_ENABLED=true` and `SCCACHE_CACHE_MULTIARCH=1`, without which universal macOS compiles are never cached.
+- sccache is pinned to v0.19.0 (`sccache-action` `version:`), like every other CI tool. The action checks each download against the `.sha256` published in the same sccache release.
 - Estimate: about $0.61 per warm desktop run (macOS + Windows) and $1.37 cold; about $10 for all of M0, $15–20 worst case. Free includes $12 a month and Pro $18. Without a payment method, jobs stop once that is used up. If the account is Free, the user should add a payment method with a $20 Actions budget set to stop at the limit, or confirm Pro.
 
 **Validators** (`tools/ci/fetch-validators.sh` checks each SHA-256; `tools/ci/validate.sh` runs the same steps in CI and locally):
@@ -40,7 +41,7 @@ The clap-validator hashes match the digests on its release page. The pluginval p
 
 **macOS ad-hoc re-sign, mandatory, in this order:** build → `codesign --force --sign -` on the VST3, AU, CLAP and app → `codesign --verify --strict --verbose=2` on each, which must pass → `lipo -archs` must show `x86_64 arm64` → install the signed AU → `killall -9 AudioComponentRegistrar || true` → poll `auval -a` for up to 60 s → validate → package. Without it: JUCE signs the VST3 before writing `moduleinfo.json` into it, so the signature is broken; the AU and app are only signed by JUCE's copy step, which CI doesn't run; and the CLAP is never signed.
 
-**Artifacts:** one unsigned zip per desktop OS (`ditto` on macOS, `7z` on Windows), uploaded with `actions/upload-artifact@v7`, `archive: false`, kept 14 days. Linux uploads nothing.
+**Artifacts:** one unsigned zip per desktop OS (`ditto` on macOS, `7z` on Windows) holding the plugins and `THIRD_PARTY_NOTICES.md`, which the bundled licenses require next to the binaries. Uploaded with `actions/upload-artifact@v7`, `archive: false`, kept 14 days. Linux uploads nothing.
 
 **Later:** Dependabot comes in M7 with `interval: monthly`, one `groups:` block and `open-pull-requests-limit: 1`, because its PRs aren't drafts and would each run the paid matrix. Real signing and notarization come in M7, each step gated on a job-level `HAS_*` flag so CI stays green without secrets. No tag or release pipeline in M0.
 

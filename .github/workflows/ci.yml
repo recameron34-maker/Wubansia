@@ -1,0 +1,307 @@
+# CI: build, test and validate the plugin (ADR 0004).
+#
+# Which jobs run:
+#
+#   Event                                                  linux  macos  windows
+#   push to main                                             yes    yes    yes
+#   push to any other branch                                 yes    no     no
+#   pull_request to main, ready for review                   no     yes    yes
+#     (opened, synchronize, reopened, ready_for_review)
+#   pull_request to main, draft                              no     no     no
+#   workflow_dispatch, platforms=all                         yes    yes    yes
+#   workflow_dispatch, platforms=linux | macos | windows     only the chosen job
+#
+# Nothing runs for:
+#   - pushes and PRs that change only docs/**, **/*.md or legacy/**. A PR is filtered on
+#     its whole diff, so a docs-only commit to a PR with code changes still runs the
+#     desktop jobs. If a job here ever becomes a required check, drop paths-ignore from
+#     pull_request: a docs-only PR would stay "Pending" and couldn't merge (GitHub docs,
+#     "Skipping workflow runs").
+#   - tag pushes ("branches" is set, so tags never match)
+#   - PRs to other base branches, other PR activity (closed, labeled, ...), and PRs
+#     with a merge conflict (GitHub skips pull_request runs until it is resolved)
+#
+# Why:
+#   - Linux never runs on pull_request. The push to the PR branch already runs it.
+#   - macOS costs about 10x Linux a minute, so the desktop jobs wait until a PR is
+#     ready. They also run on pushes to main so that main holds the sccache entries
+#     that PR runs can restore.
+#   - Concurrency is per event, ref and dispatch choice: a push doesn't cancel a
+#     dispatched run, and dispatching windows doesn't cancel a dispatched macos run.
+#
+# The "Run workflow" button appears once this file is on main. Before that, dispatch from
+# the command line (it works once the workflow has run on that branch):
+#   gh workflow run ci.yml --ref <branch> -f platforms=macos
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    paths-ignore: ["docs/**", "**/*.md", "legacy/**"]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ["docs/**", "**/*.md", "legacy/**"]
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: Which jobs to run
+        type: choice
+        options: [all, linux, macos, windows]
+        default: all
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ inputs.platforms }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  SCCACHE_GHA_ENABLED: "true"
+  # Without this, sccache doesn't cache compiles with several -arch flags (the universal macOS build).
+  SCCACHE_CACHE_MULTIARCH: "1"
+
+defaults:
+  run:
+    shell: bash # Git Bash on Windows
+
+jobs:
+  linux:
+    name: Linux
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.platforms == 'all' || inputs.platforms == 'linux'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # Clang, not GCC: JUCE adds -flto in Release, and lld can't link GCC's LTO objects.
+      CC: clang-18
+      CXX: clang++-18
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - uses: mozilla-actions/sccache-action@v0.0.11
+        with:
+          # Pinned like the validators. Unset, the action takes sccache's latest release.
+          version: v0.19.0
+
+      - name: Install build dependencies
+        # JUCE's list (docs/Linux Dependencies.md) without libwebkit2gtk-4.1-dev and
+        # libcurl4-openssl-dev, which JUCE_WEB_BROWSER=0 and JUCE_USE_CURL=0 make unnecessary.
+        # Ninja, xvfb and unzip are already on the image.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libasound2-dev libjack-jackd2-dev ladspa-sdk libfreetype-dev libfontconfig1-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxinerama-dev \
+            libxrandr-dev libxrender-dev libxi-dev libegl-dev libglu1-mesa-dev mesa-common-dev \
+            lld
+
+      - name: Configure
+        run: |
+          cmake --version
+          "$CXX" --version
+          cmake --preset release \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld \
+            -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld \
+            -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld
+
+      - name: Build
+        run: cmake --build --preset release
+
+      - name: Test
+        run: xvfb-run -a ctest --preset release --output-on-failure
+
+      - name: Fetch validators
+        # pluginval only. The report-only step below fetches clap-validator itself, so a
+        # failed clap-validator download can't turn this job red.
+        timeout-minutes: 5
+        env:
+          WUBANSIA_CLAP_VALIDATOR: "0"
+        run: bash tools/ci/fetch-validators.sh
+
+      - name: pluginval (VST3)
+        timeout-minutes: 10
+        run: bash tools/ci/validate.sh build/release vst3
+
+      - name: clap-validator (CLAP, report-only)
+        # Report-only until clap-juce-extensions PR #193 lands (ADR 0004).
+        timeout-minutes: 10
+        continue-on-error: true
+        run: bash tools/ci/validate.sh build/release clap
+
+  macos:
+    name: macOS
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
+      (github.event_name == 'workflow_dispatch' && (inputs.platforms == 'all' || inputs.platforms == 'macos'))
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      ARTEFACTS: build/release/plugin/Wubansia_artefacts/Release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - uses: mozilla-actions/sccache-action@v0.0.11
+        with:
+          version: v0.19.0
+
+      - name: Configure
+        run: |
+          xcodebuild -version
+          cmake --version
+          cmake --preset release \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+
+      - name: Build
+        run: cmake --build --preset release
+
+      - name: Test
+        run: ctest --preset release --output-on-failure
+
+      - name: Re-sign the bundles ad hoc
+        # Required, not a precaution. JUCE signs the VST3 before it writes moduleinfo.json
+        # into it, the AU and Standalone only get a bundle signature in JUCE's copy step
+        # (not run here), and clap-juce-extensions never signs the CLAP.
+        run: |
+          for bundle in "$ARTEFACTS/VST3/Wubansia.vst3" "$ARTEFACTS/AU/Wubansia.component" \
+                        "$ARTEFACTS/CLAP/Wubansia.clap" "$ARTEFACTS/Standalone/Wubansia.app"; do
+            codesign --force --sign - "$bundle"
+            codesign --verify --strict --verbose=2 "$bundle"
+          done
+
+      - name: Check the bundles are universal
+        run: |
+          for bundle in "$ARTEFACTS/VST3/Wubansia.vst3" "$ARTEFACTS/AU/Wubansia.component" \
+                        "$ARTEFACTS/CLAP/Wubansia.clap" "$ARTEFACTS/Standalone/Wubansia.app"; do
+            exe=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$bundle/Contents/Info.plist")
+            archs=$(lipo -archs "$bundle/Contents/MacOS/$exe")
+            echo "$bundle: $archs"
+            sorted=$(echo "$archs" | tr ' ' '\n' | sort | tr '\n' ' ')
+            if [ "$sorted" != "arm64 x86_64 " ]; then
+              echo "::error::$bundle/Contents/MacOS/$exe has '$archs', expected arm64 and x86_64"
+              exit 1
+            fi
+          done
+
+      - name: Fetch validators
+        timeout-minutes: 5
+        run: bash tools/ci/fetch-validators.sh
+
+      - name: pluginval (VST3, AU) and auval
+        # Installs the signed AU into ~/Library/Audio/Plug-Ins/Components, waits up to 60 s
+        # for it to register, then runs pluginval on it and auval -strict.
+        timeout-minutes: 10
+        run: bash tools/ci/validate.sh build/release mac
+
+      - name: Package
+        id: package
+        env:
+          # The PR head commit, which is what the PR page shows. The build itself is
+          # GitHub's merge of that commit into main.
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          zip="Wubansia-macOS-${HEAD_SHA:0:7}.zip"
+          mkdir -p dist/Wubansia
+          for bundle in "$ARTEFACTS/VST3/Wubansia.vst3" "$ARTEFACTS/AU/Wubansia.component" \
+                        "$ARTEFACTS/CLAP/Wubansia.clap" "$ARTEFACTS/Standalone/Wubansia.app"; do
+            ditto "$bundle" "dist/Wubansia/$(basename "$bundle")"
+          done
+          cp THIRD_PARTY_NOTICES.md dist/Wubansia/ # the bundled licenses require it with the binaries
+          ditto -c -k --keepParent dist/Wubansia "$zip"
+          echo "zip=$zip" >> "$GITHUB_OUTPUT"
+
+      - name: Upload
+        # archive: false uploads the zip itself (one unzip for the user, and ditto keeps
+        # the file modes). The artifact takes the file's name. `name` must match it anyway,
+        # because overwrite deletes the old artifact by `name` (default "artifact").
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.package.outputs.zip }}
+          path: ${{ steps.package.outputs.zip }}
+          archive: false
+          overwrite: true
+          retention-days: 14
+          if-no-files-found: error
+
+  windows:
+    name: Windows
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
+      (github.event_name == 'workflow_dispatch' && (inputs.platforms == 'all' || inputs.platforms == 'windows'))
+    runs-on: windows-2025
+    timeout-minutes: 40
+    env:
+      ARTEFACTS: build/release/plugin/Wubansia_artefacts/Release
+    steps:
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - uses: mozilla-actions/sccache-action@v0.0.11
+        with:
+          version: v0.19.0
+
+      - name: Configure
+        # No compiler flags: the root CMakeLists.txt picks clang-cl itself. The last line
+        # shows which clang-cl it picked (VS-bundled or the image's LLVM).
+        run: |
+          cmake --version
+          clang-cl --version || true
+          cmake --preset release \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+          grep -hE '^set\(CMAKE_(C|CXX)_COMPILER(_VERSION)? ' build/release/CMakeFiles/*/CMake*Compiler.cmake || true
+
+      - name: Build
+        run: cmake --build --preset release
+
+      - name: Test
+        run: ctest --preset release --output-on-failure
+
+      - name: Fetch validators
+        timeout-minutes: 5
+        run: bash tools/ci/fetch-validators.sh
+
+      - name: pluginval (VST3)
+        timeout-minutes: 10
+        run: bash tools/ci/validate.sh build/release vst3
+
+      - name: Package
+        id: package
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          zip="Wubansia-Windows-${HEAD_SHA:0:7}.zip"
+          mkdir -p dist/Wubansia
+          cp -R "$ARTEFACTS/VST3/Wubansia.vst3" "$ARTEFACTS/CLAP/Wubansia.clap" \
+                "$ARTEFACTS/Standalone/Wubansia.exe" THIRD_PARTY_NOTICES.md dist/Wubansia/
+          (cd dist && 7z a -tzip "../$zip" Wubansia)
+          echo "zip=$zip" >> "$GITHUB_OUTPUT"
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.package.outputs.zip }}
+          path: ${{ steps.package.outputs.zip }}
+          archive: false
+          overwrite: true
+          retention-days: 14
+          if-no-files-found: error
