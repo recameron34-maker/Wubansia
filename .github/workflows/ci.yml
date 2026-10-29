@@ -3,13 +3,15 @@
 # Which jobs run:
 #
 #   Event                                                  linux  macos  windows
-#   push to main                                             yes    yes    yes
+#   push to main                                             yes    yes    no
 #   push to any other branch                                 yes    no     no
-#   pull_request to main, ready for review                   no     yes    yes
+#   pull_request to main, ready for review                   no     yes    no
 #     (opened, synchronize, reopened, ready_for_review)
 #   pull_request to main, draft                              no     no     no
 #   workflow_dispatch, platforms=all                         yes    yes    yes
 #   workflow_dispatch, platforms=linux | macos | windows     only the chosen job
+#
+# Windows runs only when dispatched: for now only macOS is needed (ADR 0004).
 #
 # Nothing runs for:
 #   - pushes and PRs that change only docs/**, **/*.md or legacy/**. A PR is filtered on
@@ -238,10 +240,7 @@ jobs:
 
   windows:
     name: Windows
-    if: >-
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
-      (github.event_name == 'workflow_dispatch' && (inputs.platforms == 'all' || inputs.platforms == 'windows'))
+    if: github.event_name == 'workflow_dispatch' && (inputs.platforms == 'all' || inputs.platforms == 'windows')
     runs-on: windows-2025
     timeout-minutes: 40
     env:

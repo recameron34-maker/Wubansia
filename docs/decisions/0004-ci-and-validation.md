@@ -7,6 +7,7 @@ M0 is done when CI is green on macOS and Windows, pluginval and auval pass, and 
 - **D3, budget:** the cost controls below. The user didn't say whether the account is GitHub Free or Pro, or whether a payment method with a budget is set up.
 - **D4, macOS:** deployment target 11.0 and one universal arm64 + x86_64 build on `macos-15`. The user didn't say which macOS version or chip their DAW Mac has.
 - **D6, where M0 runs:** in the cloud session. macOS and Windows are proven by CI only, and the user checks the CI artifacts in their DAW.
+- **Update, 2026-10-29:** the user only needs macOS for now. Windows CI became manual-only (dispatch), and M0's Windows checks wait until the user asks for Windows. The Windows build setup (clang-cl, the 64-bit check, the static runtime) stays in place. Its first CI run was cancelled before it finished, so Windows has never been built.
 
 ## Decision
 **Runners**, pinned by label:
@@ -16,11 +17,11 @@ M0 is done when CI is green on macOS and Windows, pluginval and auval pass, and 
 
 **Triggers and cost controls** (`.github/workflows/ci.yml`):
 - `linux` runs on every push to any branch, except changes only to `docs/**`, `**/*.md` or `legacy/**`. It never runs on `pull_request`, so nothing runs twice.
-- `macos` and `windows` run on ready (not draft) PRs to `main`, on pushes to `main` (which seeds the sccache entries every branch can restore), and on `workflow_dispatch` with `platforms: all|linux|macos|windows`. The same `paths-ignore` applies to PRs, judged on the PR's whole diff, so docs-only PRs cost nothing. If a job ever becomes a required check, `paths-ignore` must come off `pull_request`, or docs-only PRs wait forever on it.
+- `macos` runs on ready (not draft) PRs to `main`, on pushes to `main` (which seeds the sccache entries every branch can restore), and on `workflow_dispatch` with `platforms: all|linux|macos|windows`. `windows` runs only on `workflow_dispatch` with `all` or `windows`. The same `paths-ignore` applies to PRs, judged on the PR's whole diff, so docs-only PRs cost nothing. If a job ever becomes a required check, `paths-ignore` must come off `pull_request`, or docs-only PRs wait forever on it.
 - Three jobs with job-level `if`s, not a matrix: a job-level `if` can't read `matrix`.
 - Concurrency group `${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ inputs.platforms }}` with `cancel-in-progress: true`, so a push doesn't cancel a dispatch run that is already billed, and dispatching one platform doesn't cancel a dispatch for another. Job timeouts 30 min (Linux) and 40 min (macOS, Windows); 5 min per validator download (curl also aborts a stalled transfer after 30 s and retries); 10 min per validator step. `permissions: contents: read`. `SCCACHE_GHA_ENABLED=true` and `SCCACHE_CACHE_MULTIARCH=1`, without which universal macOS compiles are never cached.
 - sccache is pinned to v0.19.0 (`sccache-action` `version:`), like every other CI tool. The action checks each download against the `.sha256` published in the same sccache release.
-- Estimate: about $0.61 per warm desktop run (macOS + Windows) and $1.37 cold; about $10 for all of M0, $15–20 worst case. Free includes $12 a month and Pro $18. Without a payment method, jobs stop once that is used up. If the account is Free, the user should add a payment method with a $20 Actions budget set to stop at the limit, or confirm Pro.
+- Estimate: about $0.61 per warm desktop run (macOS + Windows) and $1.37 cold; about $10 for all of M0, $15–20 worst case. Measured on the first run (2026-10-29): the cold macOS job took 5 min 11 s, about $0.31, so with Windows manual-only M0 should cost well under that estimate. Free includes $12 a month and Pro $18. Without a payment method, jobs stop once that is used up. If the account is Free, the user should add a payment method with a $20 Actions budget set to stop at the limit, or confirm Pro.
 
 **Validators** (`tools/ci/fetch-validators.sh` checks each SHA-256; `tools/ci/validate.sh` runs the same steps in CI and locally):
 
