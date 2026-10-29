@@ -1,98 +1,120 @@
-# Roadmap: from the web pack to a plugin
+# Roadmap: Wubansia
 
-Working name: **UKG & Minimal Pack (plugin edition)**. Rename any time; nothing below depends on the name.
+**Wubansia** is the product name (identity in ADR 0002). The direction was reset on 2026-10-29 (ADR 0005). The current step's plan, in full detail: [`docs/plans/S1-futuristic-slice.md`](plans/S1-futuristic-slice.md).
 
 ## 1. What we're building
 
-The web pack is now a VST3/AU/CLAP instrument plus a standalone app. It plays groove construction kits in time with your DAW across seven genres: UK garage, garage house, minimal, speed garage, house, groove house and tech house. It builds full songs and extended mixes from each kit and can make new kits in each genre's style. It exports MIDI, stems and full mixes.
+Wubansia is a VST3/AU/CLAP instrument plus a standalone app for futuristic club music. It plays groove kits in time with your DAW in four directions: sci-fi club, future garage / 2-step, hyper-clean future house, and dark industrial / techno. A new generator (v2) writes a whole track per seed, and an extended mix of it, with MIDI that should sound programmed by a person, not by a machine. It has its own effects, a UI that looks like lit hardware, and it exports MIDI and audio.
+
+Four goals, tested together on one kit before anything scales:
+1. cool futuristic samples, rendered natively per kit
+2. MIDI that isn't written like AI
+3. effects
+4. an impressive, fun UI that is also pro and slick
 
 **v1 in one sentence:** open the plugin in your DAW, and it can do all of this:
-- pick a kit or generate a new one
-- play it in sync, launching sections from a keyboard
-- reshape it with a few macro knobs
+- pick a kit in one of the four directions, and a seed for a new track
+- play it in sync, launching sections and effects from pads or a keyboard
+- reshape it with a few macro knobs and sends
 - drag the MIDI or audio into your project
 
-**Not in v1:** hosting other plugins inside it, AAX/Pro Tools, iPad, accounts or cloud sync.
+**Not in v1:** hosting other plugins inside it, AAX/Pro Tools, iPad, accounts or cloud sync, the 43 classic kits (they stay in the web app), and Windows until you ask for it.
 
-### What already exists (and gets reused)
+### What already exists (and what happens to it)
 
-| Today (web pack) | Size | Becomes |
+| Today | Size | Becomes |
 |---|---|---|
-| `core.js`: 43 kits as data (UKG 8, MTH 8, SG 8, CH 8, GH 4, GV 3, TH 4), the pattern compiler, full-song and extended-mix builders, a MIDI file writer. Deterministic (seeded PRNG). | ~3,600 lines | `content/kits/*.json` + `core/` (C++ port, tested byte-for-byte against the original) |
-| `app.js`: WebAudio engine. about 30 synth voices (donk, reese, organ, stab, fmpluck…), a multisample player with 13 instruments, a sidechain bus, reverb/delay, visualizers, the kit/song UI, pack zips | ~2,400 lines | `engine/` (audio) + `ui/` (the same look, running in the plugin's WebView) |
-| ~840 sounds (drum hits, multisampled basses/keys, loops, FX, vocals) as FLAC, 44.1 kHz / 16-bit | ~200 MB | `content/` library, re-rendered in HD (M1b), one FLAC per sound + `index.json` |
-| 48 Python sound-design and vocal scripts (numpy, pedalboard, Kokoro TTS, Whisper checks) | — | in `legacy/web-pack/audio` and `inst` now; they become `tools/` and the HD renderer in M1b |
-| Validators (in key, note ranges), jsdom smoke tests, bit-exact checks | — | the C++ test suite and golden files |
-| Decent Sampler + SFZ instrument library (already delivered) | — | stop-gap that plays the sounds in a DAW today; replaced by the plugin |
+| The M0 plugin: JUCE 9.0.4, VST3/AU/CLAP/Standalone, CI with pluginval and auval | — | The shell S1 builds on |
+| `core.js`: 43 kits as data (UKG 8, MTH 8, SG 8, CH 8, GH 4, GV 3, TH 4), the pattern compiler, full-song and extended-mix builders, a MIDI file writer. Deterministic (seeded PRNG). | ~3,600 lines | Frozen as a test baseline: a hash manifest, expected metrics and listening condition L (S1b). Not ported (ADR 0005). |
+| `app.js`: WebAudio engine. about 30 synth voices, a multisample player with 13 instruments, a sidechain bus, reverb/delay, visualizers, the kit/song UI, pack zips | ~2,400 lines | A reference for the engine, effects and UI (the swell reverb, the echo voicing, `hitPad`, `drawSong`). Not ported. |
+| ~840 sounds (drum hits, multisampled basses/keys, loops, FX, vocals) as FLAC, 44.1 kHz / 16-bit | ~200 MB | Stay in the web app. Not re-rendered: each new kit is rendered natively. |
+| 48 Python sound-design and vocal scripts (numpy, pedalboard, Kokoro TTS, Whisper checks) | — | The starting point for `tools/sound` (48 kHz from the start) and the vocal chain |
+| Validators (in key, note ranges), jsdom smoke tests, bit-exact checks | — | `golden_check` on the legacy baseline, and the C++ metrics |
+| Decent Sampler + SFZ instrument library (already delivered) | — | Stop-gap that plays the old sounds in a DAW today |
 
-## 2. Decisions (defaults; change them before M0 if you disagree)
+## 2. Decisions (revised 2026-10-29, ADR 0005)
 
 | Decision | Default | Why | Revisit if |
 |---|---|---|---|
-| Framework | **JUCE 8.x or 9.x, CMake**, starting from the **Pamplejuce** template | The most documented plugin framework. Builds VST3, AU and standalone from one codebase. Pamplejuce already wires up Catch2 tests, pluginval, GitHub Actions, macOS notarization and Windows signing. | You want Rust (nih-plug) or a fully open stack. |
-| Formats | **VST3 + AU + Standalone** first, **CLAP** via `clap-juce-extensions` | VST3 covers Ableton, FL Studio, Cubase, Bitwig and Reaper; AU is required for Logic. JUCE 9 doesn't author CLAP natively yet. | You use Pro Tools (add AAX later). |
-| Platforms | **macOS (Apple Silicon + Intel) and Windows x64**; Linux built in CI only | Where the DAWs are. | — |
-| UI | **WebView UI** (JUCE's WebBrowserComponent with native integration), reusing the current HTML/CSS/canvas design, with small native fallbacks | Keeps the look you already have and is fast to iterate on. Native fallbacks cover anything the WebView can't do (MIDI drag-out). | The M4 spike shows WebView problems in your DAW. |
-| Generator | **Port `core.js` to C++** with golden tests | The plugin must play when its window is closed and must be real-time safe, so the generator can't live only in the UI. One deterministic core also lets the web app use it later via WebAssembly. | The port stalls; fallback is embedding QuickJS. |
-| Time-stretch / pitch | **Signalsmith Stretch** (MIT) | Good quality, permissive license. | — |
-| Content | FLAC per sound + `content/index.json`; audio **outside git** (GitHub Releases or Git LFS) | Repo stays small; content gets its own version. | — |
-| Sound quality ("upscale") | **48 kHz / 24-bit masters re-rendered from the synthesis scripts**, plus velocity layers and round robins (M1b) | Almost every sound is synthesized, so re-rendering adds real detail; resampling the old files would only add size. | You want 96 kHz masters for extreme pitch-down work. |
+| Framework | **JUCE 9.0.4, CMake**, started from the **Pamplejuce** template (ADR 0001) | The most documented plugin framework. Builds VST3, AU and standalone from one codebase. | — |
+| Formats | **VST3 + AU + Standalone**, **CLAP** via `clap-juce-extensions` | VST3 covers Ableton, FL Studio, Cubase, Bitwig and Reaper; AU is required for Logic. JUCE 9 doesn't author CLAP natively yet. | You use Pro Tools (add AAX later). |
+| Platforms | **macOS universal (Apple Silicon + Intel) only, for now**; Linux built in CI only | You only need macOS (ADR 0004 update). The Windows build setup stays in place. | You ask for Windows. |
+| UI | **WebView UI** (JUCE's WebBrowserComponent, WKWebView on macOS), TypeScript + Vite, lit hardware with pro restraint, a native drag strip as fallback | Fast to iterate on, and the same WebKit as Safari, so the UI can be checked outside the DAW. | The S1f spike shows WebView problems in your DAW. |
+| Generator | **Generator v2** (`core/gen`): new, deterministic, integer-only, counter-based RNG. `core.js` is frozen as a test baseline. | The legacy generator reads as machine-made (4-bar loops, one swing per kit, fills on bar 8 of 8), and a port would reproduce that. In C++ it plays with the window closed and is real-time safe. | The blind rounds fail. For the classic kits, QuickJS is the escape hatch. |
+| Sounds | **Per-kit native renders** at 48 kHz / 24-bit from `tools/sound`, each kit with its own DNA. A core set first, full depth after a listening sign-off. Vocals through 48 kHz resynthesis (D4). | Rendered, never upscaled. One DNA per kit keeps it sounding like one kit. | You want 96 kHz masters. |
+| Effects | **Our own effects** on JUCE `dsp` building blocks: an FDN space with shimmer, a tape echo, the chord-tracking Alloy resonator, bus inserts, macros, performance pads | Effects are one of the four goals. Freeverb is generic, convolution costs too much CPU, and chowdsp's DSP is GPLv3. | — |
+| Time-stretch / pitch | **Signalsmith Stretch** (MIT), in M3, only where slicing doesn't cover | S1 avoids it: robot phrases are sliced to the grid and risers are end-aligned. | — |
+| Content | FLAC per sound + `content/index.json` in git; audio **outside git**, per kit, in GitHub Releases | Repo stays small; each kit has its own version, and state stores it. | — |
 | JUCE license | **Starter** (free) while revenue is under JUCE's threshold, then Indie/Pro; or AGPLv3 if the project is open source | Starter costs nothing up front. | Before selling: check current terms on juce.com. |
 
 ## 3. Architecture
 
+Plugin-native and "render first" (ADR 0006): everything that ships is C++ (plus the WebView UI) from the start, and every goal gets an early check through files before the plugin plays. Detail in the plan's §3.
+
 ```mermaid
 flowchart LR
   subgraph Plugin["Plugin: VST3 / AU / CLAP / Standalone"]
-    UI["Web UI (WebView)"] <-->|params, events, meters| PROC["Processor: parameters, state, host sync"]
-    PROC -->|kit, key, seed, options| CORE["Groove core (C++): kits, songs, variations, MIDI"]
-    CORE -->|immutable timeline| ENG["Audio engine: voices, sampler, mixer, FX"]
+    UI["Web UI (WebView)"] <-->|relays, native functions, frames| PROC["Processor: parameters, state, host sync"]
+    PROC -->|seed, feel| SVC["Service thread: generator v2, retire queue"]
+    SVC -->|immutable timeline| ENG["Audio engine: sampler, buses, sends, master"]
+    LOAD["Loader: FLAC into a shared cache"] -->|immutable kit samples| ENG
+    UI -->|command FIFO: pads, mutes, FX| ENG
+    ENG -->|meters, sample ring, live events| UI
     PROC --> ENG
   end
-  CONTENT["Content: kits/*.json, FLAC + index.json"] --> CORE
-  CONTENT --> ENG
+  CONTENT["Content: kit, style and feel JSON; FLAC + index.json"] --> SVC
+  CONTENT --> LOAD
   DAW["DAW"] <-->|audio, MIDI in, tempo, transport, automation, drag-out| PROC
 ```
 
 ### Components
-- **Groove core (`core/`)**: pure C++20, no JUCE, no allocations promised (it runs off the audio thread). Input: kit, key, BPM, seed, options. Output: events, CC lanes, sections and Standard MIDI Files. Same inputs give the same bytes on every platform.
+- **Groove core (`core/`)**: generator v2. Pure C++20, no JUCE, and no floating point in any decision or timing (it runs off the audio thread). Input: kit, style, feel, seed, options. Output: an immutable Timeline (performed events, the quantized score, sections, CC curves, fills, slices), Standard MIDI Files and metrics. Same inputs give the same bytes on every platform.
 - **Audio engine (`engine/`)**: everything that makes sound.
-  - Drum voices, the multisample sampler and synth voices ported from `app.js`.
-  - Vocal and FX players.
-  - Buses with sidechain ducking, sends (reverb, delay, swell reverb), drive, filter macro, master glue compressor and limiter.
-  - The same engine renders offline for stems and tests.
+  - Kit loading into a shared cache; the sampler (16-tap sinc, zones, layers, round robins, loops, choke, slices, P-center); the reese lane voice.
+  - Scheduling: ticks to samples, loop wrap, Jam and Song modes.
+  - Four buses with pump, filter, drive and crush; the Space, Echo and Alloy resonator sends; a master with filter macro, widener, glue compressor and limiter; performance FX.
+  - The same engine renders offline for listening rounds, stems and tests.
 - **Processor (`plugin/`)**: JUCE `AudioProcessor`.
   - Reads the host playhead (tempo, PPQ position, play state, loop region).
-  - Owns the parameters (automatable, stable IDs) and the saved state (versioned, with migrations).
-  - Owns multi-out buses and the MIDI input (keyswitches, pads).
+  - Owns the parameters (automatable, stable IDs), the saved state (versioned, with migrations; v2 stores the seed, `gen_version`, the score, the kit ID and content version) and the service thread.
+  - Owns the MIDI input: pads on notes 0–15, drums on 35–59, chops on 60–84.
 - **UI (`ui/`)**: TypeScript + Vite, loaded into the WebView from assets compiled into the binary (no network). It talks to C++ only through `ui/src/bridge.ts`.
-- **Content (`content/`)**: kit JSON (+ JSON Schema) and a sound index. Audio is installed to the OS's standard application-support folder.
+- **Content (`content/`)**: kit, style and feel JSON (+ JSON Schema; integers only for C++), lyrics and a sound index. Audio is installed to `~/Library/Application Support/Wubansia Audio/Wubansia/Content/`.
 
 ### Threads
-- **Message thread:** UI and parameter changes. It asks for a new timeline when the kit, key, seed or options change.
-- **Worker thread:** the groove core builds the timeline and publishes it through an atomic pointer swap. The old timeline is freed back on the message thread.
-- **Loader thread:** decodes the current kit's FLAC files into memory. The audio thread switches kits only when loading is complete, so there are no dropouts.
-- **Audio thread:** maps the host position to song ticks (480 PPQ, 120 ticks per 16th) and schedules events sample-accurately into voices. It never allocates, locks, logs or does I/O.
+- **Message thread:** UI and parameter changes. While the editor is open, a frame timer (60 Hz playing, 10 Hz idle, off when hidden) reads the meters and the sample ring and sends one `frame` event to the page.
+- **Service thread:** owned by the processor, so it runs with the editor closed. It builds timelines ("latest wins") and publishes them through an atomic pointer swap: a new seed takes over at the next 4-bar line, a Feel change at the next bar. It frees the old timelines and kit samples that the audio thread hands back through a retire FIFO, and it starts kit loads.
+- **Loader thread:** decodes the kit's FLAC files into a process-wide, reference-counted cache keyed by kit ID and content version, so instances share memory. Loading is staged (drums, perc and bass first), and each stage is published by atomic swap.
+- **Audio thread:** maps the host position to song ticks (480 PPQ, 120 ticks per 16th) and schedules events sample-accurately into voices. It never allocates, locks, logs or does I/O. The one exception: in offline renders only, it may wait up to 30 s for the kit (D5).
+- **FIFOs:** pads, mutes and FX go from the editor to the audio thread through an SPSC command FIFO. Meters come back through atomics, samples and live events through SPSC rings. Lane lights are scheduled in the page from the timeline.
 
 ## 4. Repo layout
 
 ```
 CLAUDE.md
 THIRD_PARTY_NOTICES.md  license notices for everything that ships
-docs/ROADMAP.md, docs/decisions/NNNN-*.md, docs/listening.md
+.nvmrc                  the pinned Node LTS (UI build, legacy baseline)
+docs/ROADMAP.md, docs/decisions/NNNN-*.md, docs/listening.md, docs/midi-map.md
+docs/plans/             step plans (S1-futuristic-slice.md)
 legacy/web-pack/        original web app (core.js, app.js, build_site.py), its sound pipeline (audio/, inst/), manifests (out/), tests;
-                        audio comes from the web-pack-v21 release, see legacy/web-pack/README.md
-content/kits/*.json     43 kits + schema.json
-content/index.json      every sound: id, file, category, family, kit, key, camelot, bpm, bars, root, loop, gain, tags, explicit
-content/golden/         reference MIDI + JSON event dumps exported from legacy core.js
+                        the reference and test baseline; audio comes from the web-pack-v21 release, see legacy/web-pack/README.md
+content/kits/           FUT01.json + schema.json (C++ reads them: integers and strings only); FUT01.dna.json (Python only)
+content/styles/         hand-authored style specs per direction (+ schema)
+content/feels/          hand-authored feel templates per direction (+ schema)
+content/lyrics/         vocal lines per kit, clean and R-rated
+content/index.json      every sound: id, path, sha256, sr, bits, layer, rr, root, loop, gain, slices, pcenter, flags, tags
+content/golden/         legacy-v21.sha256: hash manifest of the frozen legacy core.js output
 libs/                   pinned submodules: JUCE, clap-juce-extensions, Catch2
 cmake/                  our CMake helpers (identity, build defaults)
-core/                   groove core (C++20) + tests
-engine/                 audio engine + tests
+core/                   groove core (C++20): gen/, model/, midi/, metrics/ + tests
+engine/                 audio engine: kit/, sampler/, sched/, fx/, perf/, render/ + tests
 plugin/                 JUCE processor/editor, parameters, state, bridge
 ui/                     TypeScript + Vite front end
-cli/                    `groovecore` tool: export MIDI, render WAV, validate
-tools/                  Python sound design + vocals, content packer, golden exporter
+cli/                    `groovecore` tool: gen, metrics, render
+tools/sound/            48 kHz sound design: dsp48.py, recipes, kit scripts, render.py, qa.py, sheets
+tools/legacy_audit/     metrics on the legacy baseline (pinned Node)
+tools/listening/        blind listening player
+tools/                  export_golden.js, fetch_content.py, content packer
 tools/ci/               validator scripts used by CI and locally
 .github/workflows/      build, test, pluginval/auval, (later) sign + notarize
 ```
@@ -101,154 +123,100 @@ tools/ci/               validator scripts used by CI and locally
 
 Sizes are relative: **S** = a session or two, **M** = several sessions, **L** = sustained iteration with listening tests. Each milestone ends with something you can try in your DAW or on the command line.
 
-### M0. Foundations [S]
+**Order (ADR 0005):** M0 ✓ → S1 → S2 → M3 → M4 → M5 → M6 → M7. S1 runs as steps, each on its own branch with its own PR.
+
+### M0. Foundations [S]: done
 Goal: an empty instrument that builds in CI and loads in your DAW.
 - [x] Create the project from the Pamplejuce template. Pin JUCE as a submodule (latest stable 8.x or 9.x) and record the choice in `docs/decisions/0001-framework.md`. *(JUCE 9.0.4.)*
 - [x] Set the company/product names, plugin codes and bundle IDs. Formats: VST3, AU, Standalone; add CLAP through `clap-juce-extensions`. *(ADR 0002.)*
 - [x] Minimal processor: a sine voice on MIDI notes, one gain parameter, and state save/restore for it.
-- [ ] CI on macOS and Windows: build, Catch2 tests, pluginval at strictness 10, auval on macOS, and upload of the plugin binaries. *(macOS and Linux green. Windows is manual-only and not yet run: only macOS is needed for now, see the ADR 0004 update of 2026-10-29.)*
+- [ ] CI on macOS and Windows: build, Catch2 tests, pluginval at strictness 10, auval on macOS, and upload of the plugin binaries. *(macOS and Linux green. Windows is manual-only and not yet run: deferred until you ask, see the ADR 0004 update of 2026-10-29.)*
 - [x] Fill in the real build/test commands in `CLAUDE.md`.
 
 **Done when:** CI is green on both platforms; pluginval and auval pass; you load the plugin in your DAW, play a note, save, reopen and get the same gain.
 
-### M1. Bring the current pack in [M]
-Goal: one source of truth for kit data, and reference outputs to test the port against.
+*Result, 2026-10-29 (macOS only):* CI is green on macOS and Linux, and pluginval and auval pass. You installed the macOS CI build and report "plug in works" in your DAW. Not reported: which DAW, which format (VST3, AU or CLAP), and the save/reopen gain check. Windows is deferred.
+
+### S1. Futuristic one-kit slice [L]
+Goal: test all four goals small, on one kit: FUT01 "Alloy Signal", sci-fi club × future garage / 2-step, 134 BPM, F# minor (11A), a core set of about 373 sounds. Plan: [`docs/plans/S1-futuristic-slice.md`](plans/S1-futuristic-slice.md) (§7 has the steps in full).
+- [ ] **S1.0 Approve** [S]: ADRs 0005–0006, this roadmap, the exact `CLAUDE.md` diff, `docs/listening.md`, the plan. *You get:* this as a PR. *You check:* the `CLAUDE.md` diff, line by line. This box is ticked at the start of S1a, once the PR is merged.
+- [ ] **S1a First listen, 12 sounds** [M]: `tools/sound` with QA tests first (the mud gate included), the 48 kHz vocal chain, 12 sounds (kick, snare and hat in 2 characters each) and a 4-bar context loop, dry and wet. *You get:* `s1a-listen`. *You check:* listening round 1; pass is ≥ 8 of 12 kept with Cool ≥ 4 after one fix round, a median Cool ≥ 4, and "one kit?" yes on ≥ 10.
+- [ ] **S1b1 Generator, part 1** [M]: the legacy baseline and the metric suite first; then RNG, harmony, rhythm, feel, the SMF writer, `groovecore gen` and `metrics`. *You get:* drums, bass and chords `.mid` for 10 seeds, and a metrics report against legacy. *You check:* an optional skim.
+- [ ] **S1b2 Generator, part 2** [M]: form grammar, hook, motifs, fills, CC lanes, full songs; snapshot parity on macOS arm64. *You get:* `s1b-midi`, 10 seeds as full songs (with feel and quantized), `docs/midi-map.md`. *You check:* optional and unrated.
+- [ ] **S1c The core kit** [M]: about 40 title-checked candidate vocal lines for you to pick from; then the 373-file render behind the QA gate, `index.json`, packing, `fetch_content.py`. *You get:* `content-fut01-v1` and a kit tour. *You check:* round 2 per instrument, and the clean and R-rated vocals.
+- [ ] **S1d Hear it, dry** [M–L]: real-time, TSan, no-editor, block-size and host-sync tests first; then the sampler, scheduler, offline renderer, `groovecore render` and the blind player. *You get:* `s1d-blind-1`. *You check:* blind session 1 (pass rule in §8).
+- [ ] **S1e Effects** [M]: effect tests first; then the buses, Space, Echo, the Alloy resonator, the master, macros and performance FX. *You get:* `s1e-fx` and `s1e-blind-2`. *You check:* the effects sign-off, and blind session 2 on another day.
+- [ ] **S1f See it: UI + WebView spike** [M]: Playwright tests first; then `ui/` on a mocked bridge, and a spike plugin with a WebView, one parameter with gestures and MIDI drag-out. *You get:* the mock UI page (open it in Safari) and a macOS CI zip of the spike. *You check:* the look; in your DAW, the spike loads, knob and automation move each other, and a `.mid` drags onto a track.
+- [ ] **S1g Play it in your DAW** [L]: parameter, state v1→v2, real-time and host-sync tests first; then the processor-owned services, 8 parameters frozen and `SineVoices` deleted (both need your approval), state v2, the Standalone transport, the MIDI map and the drag strip. *You get:* a macOS universal CI zip plus `fetch_content`. *You check:* the DAW checklist (plan §5.6 E).
+- [ ] **S1h Tune and sign off** [S–M]: one fix round from your notes; tune feel, macros and the effects preset; freeze the generator snapshots. *You get:* the final build and renders. *You check:* the final sign-off on all four goals, and go or no-go for S2.
+
+**Done when:**
+- all 373 core sounds pass sample QA, the mud gate included
+- the generator passes the 10 gating metrics and its snapshots match on Linux and macOS
+- the real-time, render and plugin tests pass, with pluginval and auval
+- both blind sessions pass the rule in §8
+- you've played it through the DAW checklist and signed off all four goals in `docs/listening.md`
+
+### S2. Depth and two more directions [L]
+Goal: prove the generator and the sound pipeline generalize. Planned in detail after the S1h go.
+- [ ] FUT01 at full depth (1,145 files: more round robins, 2-semitone zones, 12 + 12 phrases), if the S1h go asks for it. Playing it needs packed or streamed samples (M3).
+- [ ] (c) Hyper-clean future house at 128 BPM: 3-layer phase-locked drums, supersaw and pluck multisamples.
+- [ ] (d) Dark industrial / techno at 136 BPM: the 8× kick chain, noise, modular blips, and acid as the first real-time engine voice (a ZDF diode ladder, tested against the Python model).
+- [ ] A style spec and a feel template for each direction, and a kit switcher in the UI.
+
+**Done when:** both new kits pass the same gates as FUT01 (sample QA with the mud gate, the gating metrics, a blind round), and you sign them off in `docs/listening.md`.
+
+### M1. Bring the current pack in [M]: mostly dropped (ADR 0005)
+The two done items stay. The rest was dropped or moved:
 - [x] Import the web app, its Python pipeline, manifests and tests into `legacy/web-pack/`. Paths are relative (`PACK_ROOT`), and `build_site.py` rebuilds the published page byte-for-byte. Audio is in the `web-pack-v21` release.
 - [x] Pin the Python pipeline's requirements (`legacy/web-pack/requirements.txt`).
-- [ ] Move the 43 kits out of `core.js` into `content/kits/<ID>.json` and write `schema.json`. Change legacy `core.js` to load them; its output must not change.
-- [ ] Write `tools/export_golden.js` to export, for every kit:
-  - every MIDI file the web app exports (12 per kit) in the original key and two transposed keys
-  - full song and extended mix
-  - JSON event dumps for readable diffs
-- [ ] Split the FLAC time-sprites into one FLAC per sound and write `content/index.json`, with checksums.
-- [ ] Package content as a versioned bundle (GitHub Release asset or Git LFS), plus a `tools/fetch_content` script.
+- Kits out of `core.js` into JSON: dropped, because the kits aren't ported.
+- `tools/export_golden.js`: moved to S1b1, original keys only (516 files, a hash manifest, no MIDI committed). Transposed goldens are dropped.
+- Splitting the FLAC sprites: dropped. The old library stays in the web app.
+- The content bundle and `tools/fetch_content`: moved to S1c, per kit.
 
-**Done when:** goldens regenerate byte-identically from legacy `core.js`; every kit validates against the schema; the index covers every sound.
+### M1b. HD re-render of the old library: dropped (ADR 0005)
+Every new kit is rendered natively at 48 kHz / 24-bit, and the old library stays at 44.1/16 for the web app. The master spec, oversampling rules, QA, spectrogram sheets and index fields move into S1a and S1c. Velocity layers and round robins are part of each new kit. D4 settles the vocal question.
 
-### M1b. HD sound library: upscale everything [L] (runs alongside M2)
-Goal: every sound re-made at studio resolution and with more variation, so the plugin's library holds up next to commercial packs.
+### M2. Port `core.js` to C++: dropped (ADR 0005, D2)
+Generator v2 (S1b) replaces it, and `core.js` is a frozen test baseline. If the classic kits are ever wanted, embedding `core.js` through QuickJS is cheaper than a byte-exact port. The validators become the S1b metrics. The parity pitfalls that were listed here stay in CLAUDE.md.
 
-"Upscale" here means re-rendering, not resampling. Nearly every sound in the pack is synthesized by the Python scripts at 44.1 kHz / 16-bit (`SR = 44100` in `audio/dsp.py`). Rendered again at a higher spec, they gain real detail; resampling the existing files would only make them bigger.
-
-- [ ] ADR for the master spec:
-  - 48 kHz / 24-bit FLAC
-  - band-limited oscillators
-  - oversampled nonlinear stages (drive, saturation, bit-crush)
-  - dither only when exporting 16-bit
-- [ ] Make sample rate and bit depth parameters of the pipeline (`dsp.py`, the writers, `render_inst.py`), and move it into `tools/`.
-- [ ] Pilot: re-render one genre end-to-end (tech house) and compare old against new on spectrogram sheets (`tests/sheet.py`) and by ear before doing the rest.
-- [ ] Drums:
-  - 3–5 velocity layers, where velocity changes brightness, transient and pitch envelope, not just level
-  - 3–4 round robins per hit
-  - full natural tails
-- [ ] Instruments:
-  - sampled every 2 semitones, chromatic in the bass register
-  - 3 velocity layers
-  - round robins for plucks and stabs
-  - crossfaded loop points with `smpl` metadata
-  - release samples for keys
-- [ ] Loops: re-render from the kit MIDI with the HD instruments, plus per-part stems.
-- [ ] FX and transitions: re-render at the new spec with longer tails.
-- [ ] Vocals: the TTS voice renders at 24 kHz, so vocals stop near 12 kHz and re-rendering alone won't fix them. Blind A/B per vocal, and keep the clean and R-rated versions:
-  - a voice model that renders at 44.1/48 kHz
-  - neural bandwidth extension (audio super-resolution)
-  - the current "air" exciter
-- [ ] QA:
-  - peak and loudness targets per category, with a true-peak ceiling
-  - checks for clicks, DC offset, loop seams and aliasing
-  - spectrogram sheets and a listening log in `docs/listening.md`
-- [ ] Derivatives, generated from the HD masters:
-  - the 44.1 kHz / 16-bit set for the web app
-  - a refreshed Decent Sampler/SFZ library
-- [ ] Extend `content/index.json` with layers, round robins, sample rate and bit depth, and split the content bundle by genre if it gets large.
+### M3. Engine hardening [L]
+Goal: Wubansia holds up across hosts, several kits and your Mac. Web-parity renders are dropped.
+- [ ] Host test matrix in the DAWs you use, in AU, VST3 and CLAP: tempo ramps, loop wrap, jumps, start mid-bar, offline bounce.
+- [ ] The RTSan run in CI, as ADR 0001 D5 promised (clang 20 comes with the host matrix).
+- [ ] Packed 24-bit or streamed samples, and a memory budget for several kits at once (FUT01 full depth needs it).
+- [ ] Signalsmith Stretch where slicing doesn't cover.
+- [ ] Multi-out: stereo outputs for drums, bass, music, vocals and FX.
+- [ ] CPU and RAM measured on your Mac.
+- [ ] clap-validator blocking on all OSes once clap-juce-extensions PR #193 lands (ADR 0004).
 
 **Done when:**
-- every sound in the index has an HD master that passes QA
-- the pilot genre and a random sample of the rest are signed off by ear
-- the web app rebuilds from the derivatives without regressions
+- the realtime sanitizer is clean on the audio thread
+- playback stays in time across the host matrix while the DAW loops and jumps
+- CPU and RAM stay within budget on your Mac with several kits loaded
+- clap-validator passes
 
-Size note: 48 kHz / 24-bit alone is about 1.6× today's data. Velocity layers and round robins multiply that, so expect a few GB and per-genre downloads.
+### M4. UI v1 [M–L]
+Goal: the S1 panel grows into the full UI. The WebView spike, MIDI drag-out, parameters and state v2 already arrive in S1f and S1g.
+- [ ] A browser across directions and kits (the S2 kit switcher grows into it).
+- [ ] A resizable editor and a light theme.
+- [ ] Per-bus knobs in the Mix drawer: pump, filter, drive, crush.
+- [ ] Effects presets and scene presets.
+- [ ] Polish from your S1 and S2 notes.
 
-### M2. Groove core in C++ [M–L]
-Goal: `core/` reproduces the web generator exactly.
-- [ ] Notes, keys, Camelot, transposition (`noteNum`, `keyInfo`, `transposeFor`).
-- [ ] The token parser and `compileDrums`/`compileMelodic`: velocity digits, holds, slides, `@Chord` tokens, swing warp.
-- [ ] `buildSong` for every family form, including risers, breakdown progressions and gaps.
-- [ ] `buildExtended`: layers, fills, perc, stabs, counter-melodies, strings, piano, vocal and shout rhythms, rewinds, tape stops, verb swells, sidechain CCs.
-- [ ] SMF writer: type 1, track names, tempo, key and time signatures, CCs, pitch bends, lyrics.
-- [ ] `groovecore` CLI: `export --kit TH01 --key 4A --song {loop|full|ext} --out file.mid`, plus `validate`.
-- [ ] Port the validators (in-key %, note ranges, density) so generated kits can be checked later.
-
-**Done when:** 100% of goldens match byte-for-byte in CI on both platforms, and an extended mix generates in well under 50 ms.
-
-**Parity pitfalls (read before porting):**
-- JS `Math.round` rounds .5 up, so `Math.round(-2.5)` is −2. Use `floor(x + 0.5)`, not `std::round`.
-- `Math.imul`, `>>> 0` and `| 0` mean 32-bit wraparound. Use `uint32_t`/`int32_t` (`hash32`, `mulberry`).
-- `Array.prototype.sort` is stable, and with no comparator it sorts as strings. Use `std::stable_sort` with the same comparator.
-- JS object key order is insertion order, except integer-like keys, which come first in ascending order. Mirror the iteration order exactly.
-- Keep `double` wherever JS used numbers, and keep the same operation order. If a mismatch is off by one velocity unit, suspect `pow`/`exp` differences at a rounding boundary.
-- Strings in MIDI (track names, lyrics) are UTF-8 via `TextEncoder`.
-
-### M3. Audio engine v1 [L]
-Goal: any kit's loop and songs play in sync with your DAW and sound like the web version.
-- [ ] Host sync:
-  - tempo, PPQ position, play/stop, time signature
-  - jumps when the DAW loop region wraps
-  - sample-accurate scheduling within each block
-- [ ] Timeline handoff from the worker thread (atomic swap) and per-kit sample loading on the loader thread.
-- [ ] Drum voices: velocity curve, per-lane gain/pan (the `MIX` table), open/closed hat choke, and the per-family lane maps (`LANE_HIT`).
-- [ ] Sampler: the instruments sampled every minor third play from the nearest root with pitch shift. Also:
-  - loop points from the WAV `smpl` chunks, and release envelopes
-  - the velocity-driven filter (`vfilt`) and the talking-bass filter
-  - sends and the swell reverb (the `SAMPLER` table)
-- [ ] Synth voices from `app.js`. Port the ones the kits use first, listed in `docs/engine.md` as you go.
-- [ ] Buses and FX:
-  - sidechain duck depth and recovery per family
-  - reverb and delay sends, drive, filter macro
-  - master glue compressor and limiter
-- [ ] Vocal shots, risers and impacts for extended mixes, time- and pitch-matched with Signalsmith Stretch. Pre-render them on kit, key or tempo change, never on the audio thread.
-- [ ] Offline renderer (same engine) and `groovecore render` for tests and stems.
-- [ ] Reference renders of every kit loop from the web version (headless Chromium), for A/B comparison. Prove parity on the current library first, then switch to the HD library from M1b.
-
-**Done when:**
-- every kit loop is within ±1 LU and has a similar spectral balance to the web reference
-- you have signed it off by ear in `docs/listening.md`
-- the realtime sanitizer or allocation guard is clean on the audio thread
-- CPU stays within budget at 48 kHz / 128 samples
-- playback stays in time while the DAW loops and jumps
-
-### M4. Plugin UI v1 [M–L]
-Goal: the web app's Kits view, inside the plugin.
-- [ ] **Spike first:** WebView in the editor, two-way messages, one parameter bound through JUCE's web relays, and **MIDI drag-out from the UI into a DAW track** on both platforms. If the WebView can't start a native drag, overlay a small native drag handle.
-- [ ] Port the UI to `ui/`:
-  - genre chips and per-genre skins and fonts
-  - kit list and kit detail (lane previews, play, key/tempo/swing, A/B variations, full song / extended mix)
-  - visualizers fed by engine meters
-- [ ] Parameters (`AudioProcessorValueTreeState`): kit, key, follow host tempo, swing, per-lane level/mute/solo, macros. All automatable.
-- [ ] State: kit, key, seeds, edits, mixer, window size and theme, versioned with migrations.
-- [ ] MIDI drag-out per lane and variation, and for the full song and extended mix (the same files the web app exports).
-- [ ] Resizable editor, light/dark, fonts bundled in the binary, works offline.
-
-**Done when:** in your DAW you can browse all 43 kits, play in sync, change key and tempo, drag MIDI onto a track, reopen the project and get the same state, all with no internet connection.
+**Done when:** in your DAW you can browse every kit in every direction, resize the editor, switch themes, and reopen the project with the same state, all with no internet connection.
 
 ### M5. Make it dynamic [L]
-Goal: from kit player to an instrument you can perform, which keeps producing new ideas.
-- [ ] Section engine:
-  - keyswitch notes (e.g. C0–B0) launch intro, groove, build, drop, break and outro, quantized to the bar or phrase
-  - a "follow DAW timeline" mode for full arrangements
-  - automatic fills on section changes
-- [ ] Performance pads on MIDI notes: drum hits, vocal shots and FX throws (tape stop, rewind, filter sweep, riser).
-- [ ] Variation engine (seeded, per family), learned from what the 43 hand-made kits do:
-  - drums: per-step probability grids plus groove rules
-  - bass: rhythm templates, chord-tone and scale choices, and family moves such as octave jumps (groove house), accents on the kick (tech house) or 2-step syncopation (UKG)
-  - chords: progression pools, voice leading and stab rhythms
-  - leads: motif and answer, with chord tones on strong beats
-- [ ] Variation controls: density, syncopation, swing, energy, fill rate, humanize, lane locks, "mutate this bar/section". Seeds are saved in state.
-- [ ] Generated kits must pass the same validators as the hand-made ones. Keep a blind listening log in `docs/listening.md`.
-- [ ] Macros: Energy, Filter, Space, Drive, Swing. Each is one knob driving many parameters, and all are automatable.
-- [ ] Multi-out: stereo outputs for drums, bass, music, vocals and FX.
+Goal: from one track per seed to an instrument that keeps producing new ideas. Sections, pads, macros and the variation engine already arrive in S1.
+- [ ] Lane locks and "mutate this bar/section", cheap with the counter RNG. Seeds are saved in state.
+- [ ] Generator controls: density, syncopation, energy, fill rate, humanize. All automatable.
+- [ ] Change key: play and export a track in a key other than the kit's own (FUT01 is in F# minor).
+- [ ] "New kit": new MIDI from a seed in each direction, over the shipped sound sets.
+- [ ] DNA variants: new sound sets made offline from a kit's DNA, shipped as content.
+- [ ] Generated tracks keep passing the gating metrics and the blind rule. Keep the listening log in `docs/listening.md`.
 
-**Done when:** you can perform a whole track from a MIDI keyboard (sections, pads, macros) and record it in the DAW, and "new kit" in any genre regularly gives you something worth keeping.
+**Done when:** you can perform a whole track from a MIDI keyboard (sections, pads, macros) and record it in the DAW, and "new kit" in any direction regularly gives you something worth keeping.
 
 ### M6. Producer workflow [M–L]
 - [ ] Sound browser: tags and search, auditioning in sync and in key, favorites (the crate), drag audio out.
@@ -256,27 +224,29 @@ Goal: from kit player to an instrument you can perform, which keeps producing ne
   - MIDI per lane, section or song
   - audio stems and full mix via the offline renderer
   - filenames that carry BPM, key and Camelot
-- [ ] Presets: factory (the 43 kits plus curated generated ones) and user presets, a preset browser, import/export.
+- [ ] Extended mixes: a longer, DJ-friendly version of a seed's track, to play and to export.
+- [ ] Presets: factory (curated kits and seeds per direction) and user presets, a preset browser, import/export.
 - [ ] Arrangement editor: reorder and resize sections, toggle lanes per section, save as a preset.
 
 **Done when:** you can go from a kit to stems in your DAW in under a minute, and presets survive a reinstall and move between machines.
 
 ### M7. Release [M]
+macOS first; Windows when you ask.
 - [ ] Installers:
   - signed and notarized macOS package
-  - signed Windows installer
+  - signed Windows installer, once Windows is back in scope
   - content installed, or downloaded on first run, versioned and repairable
-- [ ] Manual, changelog and a site (the current web app can become the demo).
-- [ ] If selling: license keys, EULA, store and pricing. Also rename the artist-styled families to plain genre names (see section 9).
+- [ ] Manual, changelog and a site. If the current web app becomes the demo, first rename its artist-styled families (`legacy/web-pack/app.js:13-15`) to plain genre names (section 9).
+- [ ] If selling: license keys, EULA, store and pricing.
 - [ ] Optional: AAX for Pro Tools (needs Avid's developer program and PACE signing).
 
-**Done when:** a clean Mac and a clean Windows PC can install, open the plugin in Ableton, Logic and FL Studio, and uninstall cleanly.
+**Done when:** a clean Mac can install, open the plugin in Ableton, Logic and FL Studio, and uninstall cleanly. A clean Windows PC too, once Windows is back in scope.
 
 ## 6. After v1
 - Compile the groove core to WebAssembly so the web app and the plugin share one engine.
 - A MIDI-only variant (AU MIDI FX for Logic, VST3 MIDI out where hosts allow) to drive your own synths.
 - AUv3 for iPad.
-- More genres (bassline, UK funky, breaks); instruments with velocity layers and round robins.
+- More directions and kits; the 43 classic kits through QuickJS, if you want them.
 - Kit from text: describe a kit, generate kit JSON (e.g. with the Claude API), validate it, audition it.
 - Sharing user kits.
 
@@ -284,58 +254,79 @@ Goal: from kit player to an instrument you can perform, which keeps producing ne
 
 | Risk | Mitigation | When |
 |---|---|---|
-| Native MIDI/audio drag-out from a WebView | Spike on both platforms; native drag-handle overlay as fallback | Start of M4 |
-| WebView differences (WebView2 on Windows, WKWebView on macOS) | Test both early; bundle all assets; no network | M4 |
-| Real-time safety | Allocation guard or the realtime sanitizer in tests; lock-free timeline swap; no I/O in `processBlock` | M3 onward |
-| Port drift from the web generator | Golden files plus the parity pitfalls list | M2 |
-| Sounds different from the web version | Reference renders, loudness/spectral checks, listening log | M3 |
-| Host quirks (loop wrap, tempo ramps, AU validation) | Host test matrix; auval and pluginval in CI | M3–M4 |
-| Content size and memory (the HD library with layers and round robins runs to GBs) | Load per kit; FLAC on disk; per-genre bundles; optional download-on-demand | M1b, M3, M7 |
-| "Upscaled" vocals still sound band-limited | Blind A/B of voice models, bandwidth extension and the exciter; keep the best per vocal | M1b |
+| The MIDI still sounds machine-made, or we tune to the metrics (Goodhart) | Only 10 two-sided gates; the hook and the form grammar; blind rounds with absolute floors and pre-registered seeds; the N0 ablation; the S1d gate before effects polish | S1b–S1d |
+| The sounds aren't "cool", or don't sound like one kit | S1a gates on Cool ≥ 4, not just "kept"; a commercial reference track; A/B characters; a wet context loop; one alloy and one voice blend | S1a, S1c |
+| Muddy low end (your feedback on the prototypes) | The mud gate on every kick, bass, tom and boom, on single hits and a 2-step loop; about 100 Hz high-pass on everything else with low end | S1a onward |
+| Kokoro hasn't run in a cloud session yet | The model download is the first S1a task. If it's blocked in the cloud, the vocal steps run on your Mac through Remote Control. | S1a |
+| WKWebView misbehaves in your DAW (focus, first click, the reload on every open) | The S1f spike before integration; `withInitialisationData`, so the page never flashes defaults; the native placeholder | S1f |
+| Drag-out from the WebView fails | The native drag strip | S1f |
+| RAM and load time | About 206 MB as float32 for the core set; staged loading; the shared cache; full depth only after the go, with M3's packing | S1c, S1d, M3 |
+| CPU on Apple Silicon is unknown | Sampler and effects benchmarks on macos-15; budgets of 6% + 6% within 15%; a cap of 64 voices | S1d, S1e |
+| macOS renders drift with Accelerate or libm updates | macOS is checked by tolerance; exact hashes on Linux only | S1d |
+| Reported latency (about 68 samples) and the Bitwig CLAP bounce stall (clap-juce-extensions #184) | Use the VST3 in Bitwig until it's fixed; the latency is constant and tested | S1e, S1g |
+| Host quirks (loop wrap, tempo ramps, AU validation) | Host-sync tests in S1d; the host matrix in M3; auval and pluginval in CI | S1d, M3 |
+| Parameter IDs and state become permanent once projects are saved (ADR 0002) | Provisional names until the S1g freeze; state v2 with a migration test; the score stored in state | S1g |
+| Content rules (R-rated lines, title collisions, artist names) | A title check before the S1c render; you pick the lines; Whisper plus the slur and name denylists | S1c |
+| Scope creep | The plan's out-of-scope list and cut order (§2.7); every step ends with a check you make | All of S1 |
+| macOS CI cost | Draft PRs until ready; three dispatched checkpoints; about $10–20 for S1 | All of S1 |
 | Legal: artist names, dependency licenses | See section 9 | Before any public release |
 
+What a cloud session can't verify (how it sounds, the plugin in your DAW, WKWebView timing, CPU on your Mac) is listed in the plan's §9.
+
 ## 8. Testing
-- **Unit (Catch2):** parser, keys, generators, MIDI writer, scheduler math.
-- **Golden:** byte-identical MIDI against legacy `core.js`. Never regenerate goldens to make a test pass.
-- **Audio regression:** offline renders, with hashes where deterministic and loudness/spectral tolerances where floating-point FX differ across platforms.
-- **Real-time:** allocation guard or realtime sanitizer around `processBlock` in tests.
-- **Plugin:** pluginval (strictness 10) on every PR, and auval on macOS.
-- **UI:** Playwright against `ui/` with a mocked bridge.
-- **You:** a short DAW checklist per milestone (Ableton, Logic, FL Studio — whichever you use), plus the listening log.
+- **Unit (Catch2):** generator stages, the RNG, the integer-only JSON reader, the MIDI writer, scheduler math, effects.
+- **Legacy baseline ("golden"):** `golden_check` regenerates the 516 legacy MIDI files from frozen `core.js` with the pinned Node, checks them against `content/golden/legacy-v21.sha256`, and asserts that they fail the gating bands. The manifest and `core/tests/legacy_expected.json` are never regenerated to make a test pass; fix the metric code.
+- **Generator snapshots, not goldens:** `core/tests/snapshots/gen.sha256` holds 16 seeds × {feel, quantized}, identical on Linux x86_64 and macOS arm64. Each regeneration goes in its own commit until they are frozen in S1h. After that, a change needs a reason, and an ADR note if it is musical.
+- **Gating metrics:** 10 two-sided bands on 64 seeds (G1–G10: progression diversity, harmonic rhythm, one-bar repetition, phrase-aligned changes, velocity resolution, chord velocities, microtiming, per-lane swing, fills, form diversity). The rest are reported, not gated. Invariants: same seed, same bytes; kick and bass within 2 ticks; in key; the hook placed; 128 bars in under 50 ms. Plan §5.1.
+- **Sample QA (`tools/sound/qa.py`):** format, true peak, DC, clicks, tails, seams, aliasing, stereo low end, tuning, velocity steps, loudness, reproducibility, and the content denylists with Whisper. Plan §5.2.
+- **The mud gate (your rule):** for kicks, basses, toms and the 2-step boom, the 150–400 Hz band falls 30 dB within 120 ms, stays at least 20 dB under 30–120 Hz after the first 80 ms, and is at most −12 dB of the sound; 400 Hz–1 kHz falls 30 dB within 150 ms. Pads, stabs, textures and chops are high-passed at about 100 Hz. Checked on single hits and on a 2-bar 2-step loop.
+- **Audio renders:** exact hashes on Linux CI. On macOS, identical across runs and block sizes, and within tolerance of Linux (null residual, ±0.1 LU, per-band spectrum). Our mixing and gain code uses plain scalar loops, and a grep test bans `FloatVectorOperations` and the `AudioBuffer`/`AudioBlock` gain helpers in `engine/` (ADR 0015).
+- **Real-time:** an allocation counter and lock interposition around the full chain, TSan stress on timeline and kit swaps, and a no-editor test. RTSan comes in M3.
+- **Plugin:** pluginval (strictness 10) on the VST3 and the AU, auval on macOS, clap-validator report-only (ADR 0004).
+- **UI:** Playwright (WebKit) against `ui/` with a mocked bridge, and one bridge contract schema checked by Playwright and by a C++ test.
+- **Listening (`docs/listening.md`):** blind rounds of L (legacy), N (new) and N0 (new, feel off) on 6 pre-registered seeds, loudness-matched. Pass: N's median beats L's by at least 1 on "programmed by a person?" and "stays interesting"; N ≥ N0 on "makes me want to move"; N's median ≥ 5 on both, with no seed below 3. Plan §5.6.
+- **You:** the DAW checklist per step (plan §5.6 E), plus the listening log.
 
 ## 9. Licenses and legal (not legal advice)
 
 | Component | License | Note |
 |---|---|---|
-| JUCE | AGPLv3 or commercial (Starter free under a revenue threshold, then Indie/Pro) | JUCE 9 kept JUCE 8's terms; check before selling |
-| Third-party code bundled in JUCE | Zlib, libpng-2.0, IJG, BSD-3-Clause, MIT, MIT-Modern-Variant, ISC, Apache-2.0, FTL, Unicode-3.0, public domain | See `libs/JUCE/JUCE.spdx.json` and the file headers (FreeType and stb inside PlutoVG, json.h inside the VST3 SDK, HarfBuzz's `hb-ucd.cc`, Unicode data); notices in `THIRD_PARTY_NOTICES.md` |
+| JUCE | AGPLv3 or commercial (Starter free under a revenue threshold, then Indie/Pro) | JUCE 9 kept JUCE 8's terms; check before selling. `juce_dsp` and `juce_gui_extra` come from the same pinned submodule. |
+| `@juce-framework/webview` (from the JUCE submodule, a Vite alias, not npm) | AGPL-3.0-only OR LicenseRef-JUCE | Ships in the UI; covered by our JUCE licence |
+| Third-party code bundled in JUCE | Zlib, libpng-2.0, IJG, BSD-3-Clause, MIT, MIT-Modern-Variant, ISC, Apache-2.0, FTL, Unicode-3.0, public domain | See `libs/JUCE/JUCE.spdx.json` and the file headers (FreeType and stb inside PlutoVG, json.h inside the VST3 SDK, HarfBuzz's `hb-ucd.cc`, Unicode data); notices in `THIRD_PARTY_NOTICES.md`. Re-check them when `juce_dsp` and `juce_gui_extra` are linked. |
 | VST3 SDK | MIT (since VST 3.8, Oct 2025) | |
 | CLAP, clap-juce-extensions | MIT | |
-| Signalsmith Stretch | MIT | |
+| Space Grotesk, JetBrains Mono, Doto (WOFF2) | OFL-1.1 | The only fonts that ship; notice in `THIRD_PARTY_NOTICES.md` |
+| Signalsmith Stretch | MIT | M3 |
 | Catch2 | BSL-1.0 | |
+| Vite 8.3.5 | MIT | UI build only, never shipped |
+| TypeScript 7.0.2 | Apache-2.0 | UI build only, never shipped |
+| @playwright/test 1.64.1, with its WebKit build | Apache-2.0 | UI tests only, never shipped |
+| Node (exact LTS in `.nvmrc`), `actions/setup-node` | MIT | UI build, legacy baseline and CI only |
 | pluginval | GPLv3 | CI tool only, never shipped |
 | clap-validator | MIT | CI tool only, never shipped |
 | GitHub Actions (`actions/checkout`, `actions/upload-artifact`, `ilammy/msvc-dev-cmd`; `mozilla-actions/sccache-action`) | MIT; Apache-2.0 | CI only |
 | Pamplejuce | MIT | Template; our build files, plugin sources, tests and CI started from it. License in `docs/third_party/pamplejuce-LICENSE` |
-| pedalboard (Python) | GPLv3 | Build-time sound design only, never linked into the plugin |
-| Kokoro TTS / Whisper | Apache-2.0 / MIT | Vocal pipeline |
+| pedalboard (Python), espeak-ng data | GPLv3 | Build-time sound design and vocals only, never linked into the plugin |
+| Kokoro-82M weights / Whisper base.en | Apache-2.0 / MIT | Vocal render and QA, build time only |
 
-- Content rules carry over from the pack: everything is original, with no audio, melodies, lyrics or song titles from existing records.
-- The pack labels two families "Chris Stussy-style" and "Chris Lake & Riordan-style" (and garage house "Disclosure-style"). That's fine for a personal tool. For a commercial release, use plain genre names in the product and marketing, and get advice on any use of artist names.
+Declined: three.js and PixiJS (too big), nlohmann/json (the integer-only reader replaces it), chowdsp (its DSP modules are GPLv3), and the Groove MIDI Dataset (the grooves must be ours). No new Python packages or C++ libraries.
+
+- Content rules carry over from the pack: everything is original, with no audio, melodies, lyrics or song titles from existing records. Vocal lines and kit names are title-checked before rendering.
+- The legacy web app labels three families after artists (`legacy/web-pack/app.js:13-15`). Wubansia doesn't carry those titles over (ADR 0005): its directions have plain names, and artist names never appear in product, sound, file or preset strings. The web app keeps them only as a personal reference. If it becomes the public demo (M7), they get plain genre names first.
 
 ## 10. Working with Claude Code
 
 - **Where to run it:**
-  - Use Claude Code on the computer that has your DAW for M0 and M3–M5, so it can build, install the plugin and run pluginval while you listen.
-  - Pure code milestones (M1, M2) also work in cloud sessions against the GitHub repo.
-  - The HD re-render (M1b) runs anywhere Python runs. Its vocal steps need the speech models listed in `legacy/web-pack/README.md`.
-- **Loop per milestone:** plan the milestone and approve the plan, write the tests first, implement, then run the "Done when" checks. You do the DAW and listening checks; Claude Code ticks the boxes here and writes an ADR for each decision.
+  - Cloud sessions build, test and render everything in S1. macOS is proven by CI (ADR 0004), and you try the CI zips in your DAW.
+  - Claude Code on your Mac (for example through Remote Control) can skip the CI round trip in S1g, and runs the vocal steps if the speech models can't be downloaded in the cloud.
+- **Loop per step:** plan the step and approve the plan, write the tests first, implement, then run the step's checks. You do the DAW and listening checks; Claude Code ticks the boxes here, writes the listening log and writes an ADR for each decision.
 - **What needs you:**
-  - choosing DAWs and platforms
-  - listening sign-offs
-  - an Apple Developer account and Windows signing when you distribute
-  - store and licensing decisions if you sell
+  - listening sign-offs and the blind sessions
+  - the `CLAUDE.md` diff (S1.0), the vocal lines (S1c), the parameter freeze and the `SineVoices` deletion (S1g), and the go for S2 (S1h)
+  - facts still open: your Mac's chip, RAM and macOS version, your DAW and its version, and your listening setup (plan §10.2)
+  - an Apple Developer account when you distribute, and store and licensing decisions if you sell
 
 **Kick-off prompt:**
 
-> Read CLAUDE.md and docs/ROADMAP.md. We're starting M0. Propose the exact steps first: template, JUCE version pin, CMake presets, CI matrix, CLAP wrapper. Wait for my OK, then implement. Stop when the M0 "Done when" checks pass, and tell me how to load the plugin in my DAW.
+> Read CLAUDE.md, docs/ROADMAP.md and docs/plans/S1-futuristic-slice.md. We're on S1: start the first unticked step. Propose the exact plan for that step first: files, the tests you'll write first, risks, and what I'll get and check. Wait for my OK, then implement on its own branch. Stop when the step's checks pass, open a draft PR, and tell me exactly what to listen to or try.
