@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This is a VST3/AU/CLAP instrument and standalone app. It plays groove construction kits (UK garage, garage house, minimal, speed garage, house, groove house, tech house) in sync with the DAW, builds full songs and extended mixes, generates new kits per genre, and exports MIDI and audio. It grows out of the "UKG & Minimal Pack" web app, kept in `legacy/web-pack/`.
+This is a VST3/AU/CLAP instrument and standalone app. It plays futuristic groove kits in four directions (sci-fi club, future garage / 2-step, hyper-clean future house, dark industrial / techno) in sync with the DAW, builds full songs and extended mixes, generates new kits per direction, and exports MIDI and audio. It grows out of the "UKG & Minimal Pack" web app, kept in `legacy/web-pack/` as the reference and test baseline.
 
 **The plan is `docs/ROADMAP.md`. Work one milestone at a time, in order, and tick its boxes as you go.**
 
@@ -12,8 +12,8 @@ This is a VST3/AU/CLAP instrument and standalone app. It plays groove constructi
 - `cli/`: the `groovecore` tool (export MIDI, render WAV, validate).
 - `libs/`: pinned submodules (JUCE, clap-juce-extensions, Catch2). Bump only through an ADR.
 - `cmake/`: our CMake helpers (identity, build defaults).
-- `content/`: `kits/*.json` (+ `schema.json`), `index.json` (the sound library), `golden/` (reference outputs). Audio files are not in git.
-- `tools/`: Python sound design and vocal pipelines, content packer, golden exporter, plus `tools/ci/` (validator scripts used by CI and locally).
+- `content/`: `kits/*.json` (+ `schema.json`), `styles/` and `feels/` (the generator's style and feel templates), `lyrics/` (vocal lines, clean and R-rated), `index.json` (the sound library), `golden/` (reference outputs). Audio files are not in git.
+- `tools/`: Python sound design and vocal pipelines (`sound/`), the legacy metrics audit (`legacy_audit/`), the blind listening player (`listening/`), content packer, golden exporter, plus `tools/ci/` (validator scripts used by CI and locally).
 - `legacy/web-pack/`: the original web app. It's the reference: read it and run it, but only change it to export goldens or to load kits from `content/kits`. It holds:
   - the page source (`core.js`, `app.js`, `flac.js`, `ui/`, `build_site.py`)
   - the sound pipeline (`audio/`, `inst/`) and manifests (`out/`)
@@ -25,11 +25,13 @@ This is a VST3/AU/CLAP instrument and standalone app. It plays groove constructi
 - `THIRD_PARTY_NOTICES.md`, `docs/third_party/`: license notices.
 
 ## Commands
-Run from the repo root. Keep these commands accurate; entries marked "arrives in Mx" don't exist yet.
+Run from the repo root. Keep these commands accurate; entries marked "arrives in …" don't exist yet.
 Needs CMake 3.25+, Ninja and a C++20 compiler:
 - macOS: Xcode 16.
 - Windows: Visual Studio 2022 or later with the "C++ Clang Compiler for Windows" component, in an x64 shell: the "x64 Native Tools Command Prompt for VS", or PowerShell after `& "<VS folder>\Common7\Tools\Launch-VsDevShell.ps1" -Arch amd64 -HostArch amd64`. CMake picks clang-cl by itself and stops if the shell is 32-bit.
 - Linux: Clang 18 with lld (what CI uses) or GCC 13.
+
+Node: one exact LTS version from `.nvmrc` (arrives in S1b; with nvm: `nvm install`), used by `golden_check` and the UI build.
 
 - First checkout: `git submodule update --init --recursive`
 - Configure and build: `cmake --preset release && cmake --build --preset release` (Debug: `cmake --preset debug && cmake --build --preset debug`)
@@ -41,9 +43,12 @@ Needs CMake 3.25+, Ninja and a C++20 compiler:
   - `pluginval --strictness-level 10 --verbose --validate build/release/plugin/Wubansia_artefacts/Release/VST3/Wubansia.vst3` (pluginval v1.0.4)
   - macOS AU, after re-signing and copying `Wubansia.component` to `~/Library/Audio/Plug-Ins/Components`: `killall -9 AudioComponentRegistrar; auval -a | grep Wuba; auval -strict -v aumu Wbns Wuba`
   - CLAP, report-only until clap-juce-extensions PR #193 lands: `clap-validator validate build/release/plugin/Wubansia_artefacts/Release/CLAP/Wubansia.clap --only-failed --exclude 'state-reproducibility-.*'` (clap-validator 0.4.1)
-- Golden check: `cmake --build --preset release --target golden_check` (arrives in M2)
-- UI: `cd ui && npm run dev` / `npm run build` (arrives in M4)
-- Regenerate goldens (only when asked): `node tools/export_golden.js` (arrives in M1)
+- Golden check (the legacy baseline): `cmake --build --preset release --target golden_check`. It regenerates the legacy MIDI files from frozen `legacy/web-pack/core.js`, checks them against `content/golden/legacy-v21.sha256` and runs the generator metrics on them (arrives in S1b)
+- Export the legacy baseline into `build/golden/`: `node tools/export_golden.js` (arrives in S1b). Change the committed manifest only when asked.
+- Generator CLI: `groovecore gen` (MIDI from a kit and seed) and `groovecore metrics` (arrive in S1b); `groovecore render` (WAV through the engine, arrives in S1d)
+- Render a kit's sounds: `python3 tools/sound/render.py --kit FUT01` (arrives in S1a for the first 12 sounds; the full core set in S1c)
+- Install a kit's sounds: `python3 tools/fetch_content.py --kit FUT01 --version 1`, or `--from-zip <path>` for a downloaded zip (arrives in S1c)
+- UI build, before configuring on Apple: `npm --prefix ui ci && npm --prefix ui run build`; hot reload: `npm --prefix ui run dev` (arrives in S1f)
 - Legacy web pack (these work today):
   - Get the audio: `gh release download web-pack-v21 -p web-pack-site-v21.zip && unzip web-pack-site-v21.zip -d legacy/web-pack`
   - Rebuild the page (byte-identical to the published v21): `python3 legacy/web-pack/build_site.py`
@@ -57,13 +62,16 @@ Needs CMake 3.25+, Ninja and a C++20 compiler:
   - log
   - read or write files or the network
   - throw
+- The single exception: in non-realtime (offline) renders only, `processBlock` may wait, bounded at 30 s, on an atomic "ready" flag for the kit and timeline (ADR 0005 D5, ADR 0014). It never waits in real time.
 - The UI and worker threads share data with the audio thread only through atomics, lock-free FIFOs or immutable objects swapped by pointer. Old objects are freed off the audio thread.
 - Generate timelines and decode samples on worker threads, never in `processBlock`.
 - Parameter IDs are permanent once released. Rename the label, never the ID.
 
 ## Determinism and golden files
 - The same kit, key, BPM, seed and options must produce the same bytes on every platform.
-- `content/golden/` comes from `legacy/web-pack/core.js`. Never edit or regenerate goldens to make a test pass; fix the port.
+- `content/golden/` comes from `legacy/web-pack/core.js`. Never edit or regenerate the legacy baseline or `core/tests/legacy_expected.json` to make a test pass; fix the metric code.
+- Generator snapshots (`core/tests/snapshots/gen.sha256`) change only in their own commit.
+- Audio renders are exact on Linux and within tolerance on macOS (ADR 0015).
 - If a deliberate musical change breaks goldens:
   - say so and explain why
   - regenerate in a separate commit
@@ -85,7 +93,7 @@ Needs CMake 3.25+, Ninja and a C++20 compiler:
 
 ## How to work
 - Start each milestone by proposing a plan: the files you'll touch, the tests you'll add, the risks. Wait for approval before anything hard to undo (deleting files, rewriting history, changing goldens, adding dependencies).
-- Write tests first for ports and generators. Keep changes small, with one milestone per branch and a PR at the end.
+- Write tests first for ports and generators. Keep changes small, with one step per branch, each with its own PR (S1 runs as S1.0–S1h).
 - Before calling something done:
   - build
   - run the tests
