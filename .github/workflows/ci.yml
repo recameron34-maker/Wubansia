@@ -2,14 +2,16 @@
 #
 # Which jobs run:
 #
-#   Event                                                  linux  macos  windows
-#   push to main                                             yes    yes    no
-#   push to any other branch                                 yes    no     no
-#   pull_request to main, ready for review                   no     yes    no
+#   Event                                                  linux  sound  macos  windows
+#   push to main                                             yes    yes    yes    no
+#   push to any other branch                                 yes    yes    no     no
+#   pull_request to main, ready for review                   no     no     yes    no
 #     (opened, synchronize, reopened, ready_for_review)
-#   pull_request to main, draft                              no     no     no
-#   workflow_dispatch, platforms=all                         yes    yes    yes
-#   workflow_dispatch, platforms=linux | macos | windows     only the chosen job
+#   pull_request to main, draft                              no     no     no     no
+#   workflow_dispatch, platforms=all                         yes    yes    yes    yes
+#   workflow_dispatch, platforms=linux | macos | windows     only the chosen job (linux brings sound)
+#
+# "sound" runs the tests of the Python sound tools (tools/sound) on the image's own python3.
 #
 # Windows runs only when dispatched: for now only macOS is needed (ADR 0004).
 #
@@ -138,6 +140,30 @@ jobs:
         timeout-minutes: 10
         continue-on-error: true
         run: bash tools/ci/validate.sh build/release clap
+
+  sound:
+    name: Sound tools
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && (inputs.platforms == 'all' || inputs.platforms == 'linux'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Python packages
+        # The image's python3 (3.12), in a venv, wheels only: nothing compiles. The vocal chain
+        # (requirements-vocals.txt) and its models stay out of CI; the Whisper test skips itself.
+        run: |
+          python3 --version
+          python3 -m venv .venv
+          .venv/bin/python -m pip install --only-binary :all: -r tools/sound/requirements.txt
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Test
+        run: python3 -m unittest discover -s tools/sound/tests -t . -v
 
   macos:
     name: macOS

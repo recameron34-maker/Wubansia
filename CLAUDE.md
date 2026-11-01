@@ -12,7 +12,7 @@ This is a VST3/AU/CLAP instrument and standalone app. It plays futuristic groove
 - `cli/`: the `groovecore` tool (export MIDI, render WAV, validate).
 - `libs/`: pinned submodules (JUCE, clap-juce-extensions, Catch2). Bump only through an ADR.
 - `cmake/`: our CMake helpers (identity, build defaults).
-- `content/`: `kits/*.json` (+ `schema.json`), `styles/` and `feels/` (the generator's style and feel templates), `lyrics/` (vocal lines, clean and R-rated), `index.json` (the sound library), `golden/` (reference outputs). Audio files are not in git.
+- `content/`: `kits/*.json` (+ `schema.json`), `styles/` and `feels/` (the generator's style and feel templates), `lyrics/` (vocal lines, clean and R-rated), `midi/` (each kit's written loop as MIDI, from `tools/sound/midi.py`), `index.json` (the sound library), `golden/` (reference outputs), `samples/` (the kits' WAVs, through Git LFS: ADR 0012). Other audio is not in git.
 - `tools/`: Python sound design and vocal pipelines (`sound/`), the legacy metrics audit (`legacy_audit/`), the blind listening player (`listening/`), content packer, golden exporter, plus `tools/ci/` (validator scripts used by CI and locally).
 - `legacy/web-pack/`: the original web app. It's the reference: read it and run it, but only change it to export goldens or to load kits from `content/kits`. It holds:
   - the page source (`core.js`, `app.js`, `flac.js`, `ui/`, `build_site.py`)
@@ -33,7 +33,7 @@ Needs CMake 3.25+, Ninja and a C++20 compiler:
 
 Node: one exact LTS version from `.nvmrc` (arrives in S1b; with nvm: `nvm install`), used by `golden_check` and the UI build.
 
-- First checkout: `git submodule update --init --recursive`
+- First checkout: `git submodule update --init --recursive`, and `git lfs pull` for the kits' samples (needs git-lfs)
 - Configure and build: `cmake --preset release && cmake --build --preset release` (Debug: `cmake --preset debug && cmake --build --preset debug`)
 - Tests: `ctest --preset release --output-on-failure` (no display needed; the validators below handle that themselves)
 - Everything at once: `cmake --workflow --preset release`
@@ -46,7 +46,7 @@ Node: one exact LTS version from `.nvmrc` (arrives in S1b; with nvm: `nvm instal
 - Golden check (the legacy baseline): `cmake --build --preset release --target golden_check`. It regenerates the legacy MIDI files from frozen `legacy/web-pack/core.js`, checks them against `content/golden/legacy-v21.sha256` and runs the generator metrics on them (arrives in S1b)
 - Export the legacy baseline into `build/golden/`: `node tools/export_golden.js` (arrives in S1b). Change the committed manifest only when asked.
 - Generator CLI: `groovecore gen` (MIDI from a kit and seed) and `groovecore metrics` (arrive in S1b); `groovecore render` (WAV through the engine, arrives in S1d)
-- Render a kit's sounds: `python3 tools/sound/render.py --kit FUT01` (arrives in S1a for the first 12 sounds; the full core set in S1c)
+- Render a kit's sounds (`.venv` and the vocal models as in `tools/sound/README.md`): `.venv/bin/python tools/sound/render.py --kit FUT02 --set r2 --out build/fut02-r2`, then `.venv/bin/python tools/sound/listen.py build/fut02-r2` for WAV copies; kits FUT01–FUT04 (the full core set arrives in S1c)
 - Install a kit's sounds: `python3 tools/fetch_content.py --kit FUT01 --version 1`, or `--from-zip <path>` for a downloaded zip (arrives in S1c)
 - UI build, before configuring on Apple: `npm --prefix ui ci && npm --prefix ui run build`; hot reload: `npm --prefix ui run dev` (arrives in S1f)
 - Legacy web pack (these work today):

@@ -1,0 +1,13 @@
+# Vocal chain and the Whisper QA check, on top of requirements.txt. Not installed in CI.
+# The models are not packages: point WUBANSIA_MODELS_DIR at a folder holding
+# kokoro-multi-lang-v1_0/ and sherpa-onnx-whisper-base.en/ (see README.md).
+-r requirements.txt
+onnxruntime==1.29.0
+sherpa-onnx==1.13.8       # Kokoro TTS + Whisper ASR
+pyworld==0.3.5            # WORLD vocoder. Linux has no wheel for any version, so pip builds this
+                          # sdist (needs a C++ compiler; pip fetches Cython for the build only)
+
+# transitive
+flatbuffers==25.12.19
+protobuf==7.36.2
+sherpa-onnx-core==1.13.8
