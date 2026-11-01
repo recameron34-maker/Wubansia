@@ -12,7 +12,7 @@ This is a VST3/AU/CLAP instrument and standalone app. It plays futuristic groove
 - `cli/`: the `groovecore` tool (export MIDI, render WAV, validate).
 - `libs/`: pinned submodules (JUCE, clap-juce-extensions, Catch2). Bump only through an ADR.
 - `cmake/`: our CMake helpers (identity, build defaults).
-- `content/`: `kits/*.json` (+ `schema.json`), `styles/` and `feels/` (the generator's style and feel templates), `lyrics/` (vocal lines, clean and R-rated), `midi/` (each kit's written loop as MIDI, from `tools/sound/midi.py`), `index.json` (the sound library), `golden/` (reference outputs). Audio files are not in git.
+- `content/`: `kits/*.json` (+ `schema.json`), `styles/` and `feels/` (the generator's style and feel templates), `lyrics/` (vocal lines, clean and R-rated), `midi/` (each kit's written loop as MIDI, from `tools/sound/midi.py`), `index.json` (the sound library), `golden/` (reference outputs), `samples/` (the kits' WAVs, through Git LFS: ADR 0012). Other audio is not in git.
 - `tools/`: Python sound design and vocal pipelines (`sound/`), the legacy metrics audit (`legacy_audit/`), the blind listening player (`listening/`), content packer, golden exporter, plus `tools/ci/` (validator scripts used by CI and locally).
 - `legacy/web-pack/`: the original web app. It's the reference: read it and run it, but only change it to export goldens or to load kits from `content/kits`. It holds:
   - the page source (`core.js`, `app.js`, `flac.js`, `ui/`, `build_site.py`)
@@ -33,7 +33,7 @@ Needs CMake 3.25+, Ninja and a C++20 compiler:
 
 Node: one exact LTS version from `.nvmrc` (arrives in S1b; with nvm: `nvm install`), used by `golden_check` and the UI build.
 
-- First checkout: `git submodule update --init --recursive`
+- First checkout: `git submodule update --init --recursive`, and `git lfs pull` for the kits' samples (needs git-lfs)
 - Configure and build: `cmake --preset release && cmake --build --preset release` (Debug: `cmake --preset debug && cmake --build --preset debug`)
 - Tests: `ctest --preset release --output-on-failure` (no display needed; the validators below handle that themselves)
 - Everything at once: `cmake --workflow --preset release`

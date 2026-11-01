@@ -11,3 +11,7 @@ content/golden/** -text
 *.wav binary
 *.flac binary
 *.zip binary
+
+# The kits' samples are in the repo through Git LFS (ADR 0012): install git-lfs before cloning, or run
+# `git lfs pull` after. CI checks out without them.
+content/samples/**/*.wav filter=lfs diff=lfs merge=lfs -text

@@ -20,6 +20,8 @@ content/audio/
 *.flac
 *.wav
 *.onnx
+# ...except the kits' samples, which are in the repo through Git LFS (.gitattributes, ADR 0012)
+!content/samples/**/*.wav
 kokoro-*/
 sherpa-onnx-*/
 
