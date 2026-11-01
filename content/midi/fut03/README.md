@@ -31,6 +31,7 @@ by 12 ticks, so a synth set to legato glide slides there.
 **Lead** (2 bars): Glass Pluck, rooted at D4, G4, A#4, D5, G5, A#5.
 
 **Chords:** the voicing file is for your own synth. The Stab Gm9 sample is the whole chord, so play it
-with the sample trigger file: one note on G2.
+with the sample trigger file: one note on C3 (MIDI 60), where Ableton's Simpler and most samplers
+play a sample at its own pitch.
 
 **Full loop** (4 bars): all of the above in one file, the bassline and lead played twice.

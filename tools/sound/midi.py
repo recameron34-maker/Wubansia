@@ -22,6 +22,7 @@ from tools.sound import kits  # noqa: E402
 PPQ = 960
 S16 = PPQ // 4
 SLIDE_TICKS = 12
+TRIGGER_NOTE = 60                   # C3: where Ableton's Simpler and most samplers play a sample at its own pitch
 DRUM_CHANNEL = 9                    # channel 10
 NOTE_NAMES = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
 
@@ -110,8 +111,7 @@ def files(kit):
         raise kits.UnknownName(f'{kit} has no midi module in {K.RECIPES}')
     title = f'{kit} {K.TITLE}, {K.BPM:g} BPM, {K.KEY}'
     lead, chords = P['lead'], P['chords']
-    root = min(n for _, n, _, _, _ in chords['notes'])
-    trigger = sorted({(s, root, ln, v, False) for s, _, ln, v, _ in chords['notes']})
+    trigger = sorted({(s, TRIGGER_NOTE, ln, v, False) for s, _, ln, v, _ in chords['notes']})
     out = {f'{kit}_Drums_4bars.mid': smf(K.BPM, title, [('Drums', P['drums'], DRUM_CHANNEL, 1, 64)], K.SWING)}
     for name, line in P['lines'].items():
         tag = '_InTheLoop' if name == P['pick'] else ''
@@ -126,11 +126,11 @@ def files(kit):
     out[f'{kit}_FullLoop_4bars.mid'] = smf(K.BPM, title, [
         ('Drums', P['drums'], DRUM_CHANNEL, 1, 64), (f'Bass {P["pick"]}', P['lines'][P['pick']], 0, 2, 32),
         (lead['name'], lead['notes'], 1, 2, 32), (chords['name'], chords['notes'], 2, 1, 64)], K.SWING)
-    out['README.md'] = readme(kit, K, P, root, sorted(out)).encode()
+    out['README.md'] = readme(kit, K, P, sorted(out)).encode()
     return out
 
 
-def readme(kit, K, P, root, names):
+def readme(kit, K, P, names):
     drums = '\n'.join(f'| {n} ({note_name(n)}) | {name} |' for n, name in sorted(P['drum_map'].items()))
     clips = '\n'.join(f'- `{n}`' for n in names if n.endswith('.mid'))
     return f"""# {kit} "{K.TITLE}": the written loop as MIDI
@@ -155,7 +155,8 @@ by {SLIDE_TICKS} ticks, so a synth set to legato glide slides there.
 **Lead** (2 bars): {P['lead']['sample']}, rooted at {P['lead']['zones']}.
 
 **Chords:** the voicing file is for your own synth. The {P['chords']['sample']} sample is the whole chord, so play it
-with the sample trigger file: one note on {note_name(root)}.
+with the sample trigger file: one note on {note_name(TRIGGER_NOTE)} (MIDI {TRIGGER_NOTE}), where Ableton's Simpler and most samplers
+play a sample at its own pitch.
 
 **Full loop** (4 bars): all of the above in one file, the bassline and lead played twice.
 """
