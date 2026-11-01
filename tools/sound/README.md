@@ -26,6 +26,7 @@ Wubansia's sound pipeline: 48 kHz DSP helpers, the kits and their recipes, the r
 | `item.py` | `Item` (one instrument), `Take` (one file), `Out` (a render plus what QA needs to know) |
 | `render.py` | The CLI: render, one gain per instrument, write FLAC, QA, reports, sheets |
 | `sheet.py` | One PNG per instrument: waveform, spectrogram, band envelopes |
+| `midi.py` | Exports a kit's written loop as MIDI (drums, basslines, lead, chords, the full loop) at its tempo and swing, from the `midi` module of its recipe package, into `content/midi/<kit>/` with a README of the drum map; a test keeps the committed files equal to a fresh export |
 | `listen.py` | Copies any kit's render to WAV (the same samples) in plain-named `Drums/`, `Bass/`, `Music/`, `Vox/`, `FX/` and `Loops/` folders, for listening |
 | `denylist.py`, `denylists/` | Artist-name, slur and profanity lists, stored as SHA-256 digests |
 | `models.py` | Kokoro TTS and Whisper ASR through sherpa-onnx, from `WUBANSIA_MODELS_DIR` |
@@ -54,11 +55,12 @@ python3 -m venv .venv
 ```sh
 .venv/bin/python -m unittest discover -s tools/sound/tests -t .                       # tests (about 50 s)
 .venv/bin/python tools/sound/render.py --kit FUT01                                      # every item, to build/FUT01
-.venv/bin/python tools/sound/render.py --kit FUT01 --set s1a --out build/s1a-listen     # render a set
+.venv/bin/python tools/sound/render.py --kit FUT02 --set r2 --out build/fut02-r2        # a kit's round 2 set
 .venv/bin/python tools/sound/render.py --kit FUT01 --only KickSplit SnareMetal --out build/try   # some items
 .venv/bin/python tools/sound/render.py --kit FUT01 --set example --repro                # to build/FUT01-example
-.venv/bin/python tools/sound/render.py --kit FUT02 --set r2                             # any kit, once its DNA is set
-.venv/bin/python tools/sound/listen.py build/s1a-listen                                 # WAV copies to listen to
+.venv/bin/python tools/sound/render.py --kit FUT01 --set s1a --out build/s1a-again      # round 1's set (FUT01's fix round replaced 6 of its 31 items)
+.venv/bin/python tools/sound/listen.py build/fut02-r2                                   # WAV copies to listen to
+.venv/bin/python tools/sound/midi.py --kit FUT02                                        # the kit's loop as MIDI, to content/midi/fut02
 .venv/bin/python tools/sound/denylist.py add artists < names.txt                      # extend a denylist
 ```
 
