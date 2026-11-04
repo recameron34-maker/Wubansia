@@ -157,6 +157,8 @@ Generator v2 exports every file twice. Each metric names the version it reads:
 
 Each gate is computed across a set of seeds (for legacy, kits stand in for seeds), with the band from the plan. "Legacy" below is the audit's value on the file set that matches the plan's "Legacy (audit)" column, then the plan's own figure. Where they differ, the reason follows. Legacy fails all ten gates on those sets, but G4 fails only through the lead.
 
+The bands of G3, G5, G6 and G7 are pure functions of each gate's aggregate, `bands` in `metrics.js` and `bands::` in `core/metrics`. `fixtures/expected.json` ("bands") pins every bound at its edge: the bound itself passes and one unit past it fails, with the band's other parts well inside. `test/audit.test.js` and `core/tests/test_metrics_fixtures.cpp` check both copies against those answers.
+
 ### G1 Progression-shape diversity
 - **Measured on.**
   - The *break window*: the first 8 bars (16 harmony slots) of the first section of kind `break`.
@@ -286,6 +288,7 @@ Each gate is computed across a set of seeds (for legacy, kits stand in for seeds
   - fill positions: 399 of 403 at position 7 (990‰), against the plan's "100% on bar 8 of 8"; the planning audit found 412 by matching core.js's fill pattern, which the MIDI can't
   - median distinct 111‰ (the same fill bar again and again)
   - It fails all three parts.
+- **Known limit, for the S1b2 gating ADR:** a perc key that sounds in most of a section's bars still makes "rare" steps when it is a moving cycle: FUT01's 3/16 rim polymeter lands on a different step of the bar each time, so most of its G9 fills are the rim's (in round 2's review, seeds 11 to 30 had 457 fills, and 63 without the rim; ADR 0013 §5). A rule that a key sounding in most of a section's bars can't make a fill would fix that; it changes the legacy values of G9, so it waits for that ADR.
 - **Known miss:** GV02 and MTH08 fill by swapping bongos for congas on the same steps. In one group that isn't new material. Identity by key would catch it, but would flag every pitched-perc phrase in generator v2 (blips on 8 keys) as a fill.
 - **ExtendedMix:** 401 of 411, position 7 at 816‰, median distinct 375‰.
 
