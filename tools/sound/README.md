@@ -6,15 +6,15 @@ Wubansia's sound pipeline: 48 kHz DSP helpers, the kits and their recipes, the r
 
 | Kit | Direction | BPM | Groove | State |
 |---|---|---|---|---|
-| FUT01 "Alloy Signal" | future garage / 2-step | 134 | 2-step | the S1a set |
-| FUT02 "Orbit Relay" | sci-fi club | 130 | four on the floor | stub: DNA TODO, empty recipes |
-| FUT03 "Glass Current" | hyper-clean future house | 128 | four on the floor | stub |
-| FUT04 "Furnace Code" | dark industrial / techno | 136 | four on the floor | stub |
+| FUT01 "Alloy Signal" | future garage / 2-step | 134 | 2-step | first-listen set (rounds 1 and 2) |
+| FUT02 "Orbit Relay" | sci-fi club | 130 | four on the floor | first-listen set (round 2) |
+| FUT03 "Glass Current" | hyper-clean future house | 128 | four on the floor | first-listen set (round 2) |
+| FUT04 "Furnace Code" | dark industrial / techno | 136 | four on the floor | first-listen set (round 2) |
 
 | File | What it is |
 |---|---|
 | `kits/__init__.py` | The kit machinery: the DNA fields, finding kits (`names`, `module`, `load`), checking their DNA (`todo`, `problems`, `camelot`, `scale_of`), and a kit's items (`items`, collected from its recipe package) |
-| `kits/<kit>.py` | One kit's DNA: `fut01.py` and the stubs `fut02.py`, `fut03.py`, `fut04.py` |
+| `kits/<kit>.py` | One kit's DNA: `fut01.py` to `fut04.py` |
 | `recipes/<kit>/` | One kit's recipes, one module per instrument, each exposing `ITEMS = [Item(...)]`. FUT01: `drums.py`, `bass.py`, `music.py`, `vox.py`, `fx.py`, `context.py` (the 4-bar context loop, dry, wet and its low end, played on the kit's own files) and `example.py`, a working template |
 | `dsp48.py` | DSP helpers at `SR = 48000`: seeding (`rng`), oversampling, ADAA shapers, saws, filters, resonators, FDN, envelopes and edges (`finish`), `mono_below`, and the four tools of plan §2.2: `freq_shift`, `ring_mod`, `updown3`, `resample_pass` |
 | `parts.py` | Shared building blocks: drum pieces (`sweep`, `gate`, `modes`, noise bands, `soft_clip`, `low_clean`, `vel_gain`), loop pieces (`raised`, `frac_delay`, `hp_steep`, `loop_grid`, `close_loop`, `allpass`) and the tuned string (`ks_tuned`) |
