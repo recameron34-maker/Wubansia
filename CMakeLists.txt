@@ -67,4 +67,10 @@ if(WUBANSIA_BUILD_TESTS)
     include(libs/Catch2/extras/Catch.cmake)
 endif()
 
+# golden_check, the legacy baseline (docs/plans/S1-futuristic-slice.md §4.3). OPTIONAL: the project
+# configures without cmake/WubansiaGolden.cmake too. Included before the subdirectories, so they can
+# add steps with wubansia_golden_check_add_step(); the module defines golden_check itself once this
+# file is done (cmake_language(DEFER)).
+include(WubansiaGolden OPTIONAL)
+
 add_subdirectory(plugin)
