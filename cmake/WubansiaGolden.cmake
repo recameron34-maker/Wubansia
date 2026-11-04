@@ -145,9 +145,9 @@ else()
             set(problem "Node v${have} (${node}), but .nvmrc pins ${want}")
         endif()
         if(problem)
-            message(STATUS "golden_check: ${problem}. golden_check will refuse to run, and the test "
-                "golden.export_golden is skipped. Install Node ${want} (nvm install, from the repo root) and "
-                "configure again, or pass -DWUBANSIA_NODE_EXECUTABLE=<path to it>.")
+            message(STATUS "golden_check: ${problem}. golden_check will refuse to run, and the tests "
+                "golden.export_golden and golden.legacy_audit are skipped. Install Node ${want} (nvm install, "
+                "from the repo root) and configure again, or pass -DWUBANSIA_NODE_EXECUTABLE=<path to it>.")
         else()
             message(STATUS "golden_check: Node v${have} (${node}), the version in .nvmrc")
         endif()

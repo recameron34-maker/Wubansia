@@ -1,8 +1,10 @@
-// The generator's pipeline (song.h): arrangement, harmony, rhythm, pitches, then the feel.
+// The generator's pipeline (song.h): arrangement, harmony, rhythm, pitches, then the feel; a --bars
+// cut last, on the finished song.
 
 #include "gen/arp.h"
 #include "gen/arrange.h"
 #include "gen/cc.h"
+#include "gen/cut.h"
 #include "gen/duck.h"
 #include "gen/feel.h"
 #include "gen/harmony.h"
@@ -34,11 +36,8 @@ namespace wubansia::gen
         song.seed = options.seed;
         song.feelAmount = options.feelAmount >= 0 ? options.feelAmount : bundle.feel.amount;
 
-        // 1. the arrangement
-        auto sections = arrange (style, options.bars);
-        if (!sections.ok())
-            return R::failure (sections.error);
-        song.sections = std::move (sections.value);
+        // 1. the arrangement: the whole form, whatever the cut (step 6)
+        song.sections = arrange (style);
         for (const auto& s : song.sections)
             song.totalBars += s.bars;
         for (const auto& lane : style.lanes)
@@ -89,6 +88,10 @@ namespace wubansia::gen
         for (std::size_t i = 0; i < style.lanes.size(); ++i)
             if (style.lanes[i].kind == LaneKind::bass)
                 duckPerformance (song, bundle, i);
+
+        // 6. a --bars cut: the finished song cut at that bar, so the cut is exactly its head
+        if (options.bars != 0)
+            return cutSong (std::move (song), options.bars);
         return R::success (std::move (song));
     }
 }

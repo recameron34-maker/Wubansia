@@ -40,7 +40,10 @@ namespace wubansia::cli
                   "                    song (another seed or kit, or other regions), and never deletes a file\n"
                   "  --quantized       write only the quantized version\n"
                   "  --feel            write only the version with feel\n"
-                  "  --bars <N>        only the first N bars, a multiple of 8 (the default is the whole form)\n"
+                  "  --bars <N>        the whole song's first N bars, N a multiple of 8 (the default is the\n"
+                  "                    whole form): each note that starts in them in the score, ended where\n"
+                  "                    they end (with feel, a note on the next downbeat played a few ticks\n"
+                  "                    early is left out)\n"
                   "  --feel-amount <P> the feel's amount in permille, 0 to 2000 (the default is the feel file's)\n"
                   "  --content <DIR>   the content folder (default: content, from the current folder)\n"
                   "  --help            this text\n";

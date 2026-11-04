@@ -234,14 +234,13 @@ namespace wubansia::gen
             {
                 if (!s.active (li, bar))
                     continue;
-                // the grid this bar plays: the section's, or with stages the one for its part of the
-                // section (on the planned length, so a --bars cut is still a prefix of the whole song)
-                const auto stageAt = [&] { return static_cast<std::size_t> (static_cast<std::int64_t> (bar) * static_cast<std::int64_t> (use.stages.size()) / s.plannedBars); };
+                // the grid this bar plays: the section's, or with stages the one for its part of the section
+                const auto stageAt = [&] { return static_cast<std::size_t> (static_cast<std::int64_t> (bar) * static_cast<std::int64_t> (use.stages.size()) / s.bars); };
                 const DrumGrid& grid = use.stages.empty() ? use : gridNamed (use.stages[stageAt()]);
                 const std::string_view gridName = grid.name;
-                // and the section grid's crescendo, permille, from its first bar to its last planned one
+                // and the section grid's crescendo, permille, from its first bar to its last
                 const std::int32_t ramp = !use.ramp ? 1000
-                                                    : static_cast<std::int32_t> (use.ramp->lo + static_cast<std::int64_t> (use.ramp->hi - use.ramp->lo) * bar / std::max (1, s.plannedBars - 1));
+                                                    : static_cast<std::int32_t> (use.ramp->lo + static_cast<std::int64_t> (use.ramp->hi - use.ramp->lo) * bar / std::max (1, s.bars - 1));
                 const std::int32_t variant = variantAt (song, style, li, s.index, bar);
                 const auto key = std::make_pair (std::string (gridName), variant);
                 auto it = patterns.find (key);
@@ -501,7 +500,8 @@ namespace wubansia::gen
             Note& n = line[i].note;
             const std::int64_t next = endOf (i);
             // the gap is before a next note in the note's own range only: one starting on the range's
-            // end (the next section's first, on its line) isn't there in a --bars cut at that line
+            // end is the next section's first, on its line, and a section's notes never depend on the
+            // next section's (ADR 0013 §3), so its last note ends the same whatever starts there
             const TickRange* own = rangeAt (ranges, n.tick);
             const bool toNext = i + 1 < line.size() && line[i + 1].note.tick == next && own != nullptr && next < own->end;
             if (line[i].hold)

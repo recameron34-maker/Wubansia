@@ -164,11 +164,11 @@ namespace wubansia::gen
         std::optional<Range> sync; // the pattern's LHL syncopation band (rhythm.h)
         std::vector<std::vector<std::int32_t>> never; // bar steps (0-15) a bar may not hold all of
         // Instead of voices, a ladder (a build's): the section split into stages.size() equal parts,
-        // bar b of a section planned for B bars playing grid stages[b * size / B], each a grid of the
-        // lane with voices of its own (quarters, then 8ths, then 16ths).
+        // bar b of a section of B bars playing grid stages[b * size / B], each a grid of the lane with
+        // voices of its own (quarters, then 8ths, then 16ths).
         std::vector<std::string> stages;
         // permille: every hit's velocity scaled from lo at the section's first bar to hi at its last
-        // planned bar, in a straight line (a build's crescendo). On the grid a section kind uses.
+        // bar, in a straight line (a build's crescendo). On the grid a section kind uses.
         std::optional<Range> ramp;
     };
 
@@ -290,7 +290,7 @@ namespace wubansia::gen
     {
         std::string kind;
         Range from; // the value at the section's start, drawn per section
-        Range to; // the value at its (planned) end: a straight ramp between
+        Range to; // the value at its end: a straight ramp between
         std::vector<std::int32_t> waveBars; // arches of one of these lengths in bars (4, 8, 16, 32), drawn per section; empty: none
         Range depth { 0, 0 }; // an arch's height at its middle, drawn per section (negative: a dip)
     };

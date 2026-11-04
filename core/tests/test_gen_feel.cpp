@@ -2,6 +2,7 @@
 // whole songs. Statistics here use doubles: they only report on what the generator wrote.
 
 #include "gen/content.h"
+#include "gen/export.h"
 #include "gen/feel.h"
 #include "gen/song.h"
 #include "util/file_io.h"
@@ -9,6 +10,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdint>
@@ -327,37 +329,34 @@ TEST_CASE ("an anchor that plays after another voice stays within the clamp of i
     }
 }
 
-TEST_CASE ("nothing leaves its section even at the feel's extremes", "[gen][feel]")
+namespace
 {
-    // The loader takes a kit swing up to 750, a lane swing up to +250 on top, a clamp up to 60, an
-    // after rule up to 30 ticks and the amount up to 2000: together far more than the 120 ticks that
-    // move a section's last 16th into the next section. The feel must keep every note inside its
-    // own section regardless (ADR 0013 §3), or the regions wouldn't tile the song.
-    const auto read = [] (const std::filesystem::path& p) {
-        const auto r = util::readBinaryFile (p);
-        REQUIRE (r.ok());
-        return std::string (r.value.begin(), r.value.end());
-    };
-    // every `"<key>": <value>` (a number or a [lo, hi] range) set to `to`
-    const auto setAll = [] (std::string text, std::string_view key, std::string_view to) {
-        const std::string tag = "\"" + std::string (key) + "\": ";
-        for (std::size_t at = text.find (tag); at != std::string::npos; at = text.find (tag, at + 1))
-        {
-            const std::size_t from = at + tag.size();
-            std::size_t end = from;
-            if (text[from] == '[')
-                end = text.find (']', from) + 1;
-            else
-                while (end < text.size() && (std::isdigit (static_cast<unsigned char> (text[end])) || text[end] == '-'))
-                    ++end;
-            text.replace (from, end - from, to);
-        }
-        return text;
-    };
-    const auto content = std::filesystem::path (WUBANSIA_SOURCE_DIR) / "content";
-    for (const auto& [kitId, style] : { std::pair { "fut01", "garage2step" }, std::pair { "fut02", "sciclub" }, std::pair { "fut03", "futurehouse" }, std::pair { "fut04", "techno" } })
+    // A kit and its style at the feel's extremes, which the loader takes: a kit swing of 750, a lane
+    // swing of +250 on top, a clamp of 60 and an after rule of 30 ticks (with the amount up to 2000).
+    util::Result<Bundle> extremeBundle (std::string_view kitId, std::string_view style)
     {
-        INFO (kitId);
+        const auto read = [] (const std::filesystem::path& p) {
+            const auto r = util::readBinaryFile (p);
+            REQUIRE (r.ok());
+            return std::string (r.value.begin(), r.value.end());
+        };
+        // every `"<key>": <value>` (a number or a [lo, hi] range) set to `to`
+        const auto setAll = [] (std::string text, std::string_view key, std::string_view to) {
+            const std::string tag = "\"" + std::string (key) + "\": ";
+            for (std::size_t at = text.find (tag); at != std::string::npos; at = text.find (tag, at + 1))
+            {
+                const std::size_t from = at + tag.size();
+                std::size_t end = from;
+                if (text[from] == '[')
+                    end = text.find (']', from) + 1;
+                else
+                    while (end < text.size() && (std::isdigit (static_cast<unsigned char> (text[end])) || text[end] == '-'))
+                        ++end;
+                text.replace (from, end - from, to);
+            }
+            return text;
+        };
+        const auto content = std::filesystem::path (WUBANSIA_SOURCE_DIR) / "content";
         std::string kitText = setAll (read (content / "kits" / (std::string (kitId) + ".json")), "swing", "750");
         std::string feelText = setAll (setAll (setAll (read (content / "feels" / (std::string (style) + ".json")), "swing", "[250, 250]"), "clamp", "60"), "by", "[30, 30]");
         auto kit = parseKit (kitText, "kit.json");
@@ -367,7 +366,24 @@ TEST_CASE ("nothing leaves its section even at the feel's extremes", "[gen][feel
         REQUIRE (sty.ok());
         INFO (feel.error);
         REQUIRE (feel.ok());
-        auto bundle = makeBundle (std::move (kit.value), std::move (sty.value), std::move (feel.value));
+        return makeBundle (std::move (kit.value), std::move (sty.value), std::move (feel.value));
+    }
+
+    constexpr std::array<std::pair<const char*, const char*>, 4> extremeKits = {
+        { { "fut01", "garage2step" }, { "fut02", "sciclub" }, { "fut03", "futurehouse" }, { "fut04", "techno" } }
+    };
+}
+
+TEST_CASE ("nothing leaves its section even at the feel's extremes", "[gen][feel]")
+{
+    // The loader takes a kit swing up to 750, a lane swing up to +250 on top, a clamp up to 60, an
+    // after rule up to 30 ticks and the amount up to 2000: together far more than the 120 ticks that
+    // move a section's last 16th into the next section. The feel must keep every note inside its
+    // own section regardless (ADR 0013 §3), or the regions wouldn't tile the song.
+    for (const auto& [kitId, style] : extremeKits)
+    {
+        INFO (kitId);
+        auto bundle = extremeBundle (kitId, style);
         INFO (bundle.error);
         REQUIRE (bundle.ok());
         std::size_t lastSixteenths = 0;
@@ -396,6 +412,65 @@ TEST_CASE ("nothing leaves its section even at the feel's extremes", "[gen][feel
         }
         CHECK (lastSixteenths > 0); // the case that matters: notes on a section's last 16th
     }
+}
+
+TEST_CASE ("a cut at the feel's extremes ends every note by it, a late one on its last tick", "[gen][feel]")
+{
+    // At the feel's extremes a note on the last 16th before an 8-bar line can play after the line.
+    // A cut there (cut.h) keeps it, since its score onset is before the cut: it plays on the cut's
+    // last tick, as a late note on a section's last 16th does. Every performed note stays inside its
+    // section and the cut, and the cut's files write.
+    std::size_t late = 0, cuts = 0;
+    for (const auto& [kitId, style] : extremeKits)
+    {
+        INFO (kitId);
+        auto bundle = extremeBundle (kitId, style);
+        INFO (bundle.error);
+        REQUIRE (bundle.ok());
+        Options o;
+        o.seed = 1;
+        o.feelAmount = 2000;
+        const auto whole = generate (bundle.value, o);
+        REQUIRE (whole.ok());
+        for (const Section& sec : whole.value.sections)
+            for (std::int32_t b = barsPerBlock; b < sec.bars; b += barsPerBlock)
+            {
+                o.bars = sec.startBar + b;
+                const std::int64_t end = static_cast<std::int64_t> (o.bars) * ticksPerBar;
+                const auto cut = generate (bundle.value, o);
+                REQUIRE (cut.ok());
+                ++cuts;
+                for (std::size_t l = 0; l < cut.value.lanes.size(); ++l)
+                {
+                    const LaneOut& w = whole.value.lanes[l];
+                    const LaneOut& c = cut.value.lanes[l];
+                    INFO (c.id << " cut at bar " << o.bars);
+                    REQUIRE (c.perf.size() == c.score.size());
+                    for (std::size_t i = 0; i < c.perf.size(); ++i)
+                    {
+                        const Note& p = c.perf[i];
+                        const Section& in = cut.value.sections[static_cast<std::size_t> (p.section)];
+                        CHECK (p.tick >= in.startTick());
+                        CHECK (p.tick + p.length <= std::min (in.endTick(), end));
+                        CHECK (p.length >= 1);
+                        if (w.perf[i].tick >= end) // the cut keeps the whole song's notes in order: a prefix
+                        {
+                            ++late;
+                            CHECK (p.tick == end - 1);
+                            CHECK (p.length == 1);
+                        }
+                    }
+                }
+                for (const Version v : { Version::feel, Version::quantized })
+                {
+                    const auto files = renderFiles (cut.value, v);
+                    INFO (files.error);
+                    CHECK (files.ok());
+                }
+            }
+    }
+    CHECK (cuts > 50);
+    CHECK (late > 0); // the case that matters: notes performed after the line they are cut at
 }
 
 TEST_CASE ("the low-end lock puts bass onsets on kick steps exactly on the kick", "[gen][feel]")

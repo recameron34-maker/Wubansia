@@ -9,6 +9,7 @@
 #include "gen/song.h"
 #include "midi/reader.h"
 #include "midi/writer.h"
+#include "util/file_io.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
@@ -244,8 +245,24 @@ TEST_CASE ("an extended mix generates in under 50 ms per 128 bars", "[gen][song]
         }
         const double per128 = best * 128.0 / static_cast<double> (bars);
         WARN (id << ": " << bars << " bars with both versions' files in " << best << " ms, " << per128 << " ms per 128 bars");
+        // and a 128-bar cut, which generates the whole song and then cuts it (cut.h)
+        double bestCut = 1e9;
+        for (int run = 0; run < 5; ++run)
+        {
+            const auto t0 = std::chrono::steady_clock::now();
+            const Song s = songOf (b, static_cast<std::uint64_t> (100 + run), 128);
+            const auto feel = renderFiles (s, Version::feel);
+            const auto quant = renderFiles (s, Version::quantized);
+            const auto t1 = std::chrono::steady_clock::now();
+            REQUIRE (s.totalBars == 128);
+            REQUIRE (feel.ok());
+            REQUIRE (quant.ok());
+            bestCut = std::min (bestCut, std::chrono::duration<double, std::milli> (t1 - t0).count());
+        }
+        WARN (id << ": a 128-bar cut with both versions' files in " << bestCut << " ms");
 #if defined(NDEBUG) && !defined(__SANITIZE_ADDRESS__) && !defined(WUBANSIA_NO_TIMING)
         CHECK (per128 < 50.0);
+        CHECK (bestCut < 50.0);
 #endif
     }
 }
@@ -615,18 +632,131 @@ TEST_CASE ("bars cuts the arrangement on an 8-bar line and refuses other lengths
     CHECK (bars == 72);
     const Song mid = songOf (b, 9, 48); // the groove cut after 16 of its 32 bars
     CHECK (mid.totalBars == 48);
+    REQUIRE (mid.sections.size() == 2);
     CHECK (mid.sections.back().bars == 16);
-    CHECK (mid.sections.back().plannedBars == 32);
+    CHECK (mid.sections.back().blocks == std::vector<std::uint64_t> (full.sections[1].blocks.begin(), full.sections[1].blocks.begin() + 2)); // its first two blocks
+    // a cut at the song's end is the whole song
+    const Song all = songOf (b, 9, full.totalBars);
+    for (const Version v : { Version::feel, Version::quantized })
+        CHECK (fullBytes (all, v) == fullBytes (full, v));
 
     Options o;
     o.seed = 9;
     o.bars = 20;
     CHECK_THAT (generate (b, o).error, ContainsSubstring ("8"));
+    o.bars = -8;
+    CHECK_FALSE (generate (b, o).ok());
     o.bars = full.totalBars + 8;
     CHECK_THAT (generate (b, o).error, ContainsSubstring (std::to_string (full.totalBars)));
     o.bars = 0;
     o.feelAmount = 2001;
     CHECK_FALSE (generate (b, o).ok());
+}
+
+TEST_CASE ("a section ends the same whatever the next one starts with", "[gen][song]")
+{
+    // Rules that look at a neighbouring note stay inside its section (ADR 0013 §3), so a region is
+    // the same whatever region follows it. The bass's hold gap is one of them: a held note runs to
+    // the next note less the gap, but only to a next note inside its own active range (lanes.cpp),
+    // so a section's last held note ends the same whether the next section starts with a bass note
+    // on that line or not. Only a bass lane without a duck shows it (a duck ends every note its gap,
+    // more than the hold gap, before its section's end), and no shipped one starts a section on its
+    // line: FUT04's rumble has a note on six section lines of every song, but its duck ends the note
+    // before at least 60 ticks short of the line either way. So this edits garage2step: the bass
+    // joins the break's first block, whose grid plays the 1 (a 100% cell), so the bass starts the
+    // break on the line where the drop ends. Every section but the break stays the same, note for
+    // note and controller for controller, in both versions.
+    const auto read = [] (const std::filesystem::path& p) {
+        const auto r = util::readBinaryFile (p);
+        REQUIRE (r.ok());
+        return std::string (r.value.begin(), r.value.end());
+    };
+    const auto content = std::filesystem::path (WUBANSIA_SOURCE_DIR) / "content";
+    std::string style = read (content / "styles" / "garage2step.json");
+    const std::string breakFrom = "{ \"kind\": \"break\", \"bars\": 24, \"blocks\": [\n      [\"hats\", \"chords\"],";
+    const auto at = style.find (breakFrom);
+    REQUIRE (at != std::string::npos);
+    style.replace (at, breakFrom.size(), "{ \"kind\": \"break\", \"bars\": 24, \"blocks\": [\n      [\"hats\", \"bass\", \"chords\"],");
+    auto kit = parseKit (read (content / "kits" / "fut01.json"), "fut01.json");
+    auto sty = parseStyle (style, "garage2step.json");
+    auto feel = parseFeel (read (content / "feels" / "garage2step.json"), "garage2step.json");
+    REQUIRE (kit.ok());
+    INFO (sty.error);
+    REQUIRE (sty.ok());
+    REQUIRE (feel.ok());
+    auto edited = makeBundle (std::move (kit.value), std::move (sty.value), std::move (feel.value));
+    INFO (edited.error);
+    REQUIRE (edited.ok());
+
+    std::size_t onTheLine = 0, toTheLine = 0, compared = 0;
+    std::vector<std::string> differences;
+    for (std::uint64_t seed = 0; seed < 16; ++seed)
+    {
+        const Song shipped = songOf (bundleFor ("FUT01"), seed);
+        const Song changed = songOf (edited.value, seed);
+        REQUIRE (changed.sections.size() == shipped.sections.size());
+        for (const Section& sec : shipped.sections)
+        {
+            if (sec.kind != "break")
+                continue;
+            const Section& drop = shipped.sections[sec.index - 1];
+            REQUIRE (drop.kind == "drop");
+            const auto& bass = laneOf (changed, "bass").score;
+            onTheLine += std::any_of (bass.begin(), bass.end(), [&] (const Note& n) { return n.tick == sec.startTick(); }) ? 1u : 0u;
+            // the case the rule is for: the drop's last note runs to the line
+            const auto& shippedBass = laneOf (shipped, "bass").score;
+            const auto last = std::find_if (shippedBass.rbegin(), shippedBass.rend(), [&] (const Note& n) { return n.section == static_cast<std::int16_t> (drop.index); });
+            REQUIRE (last != shippedBass.rend());
+            toTheLine += last->tick + last->length == drop.endTick() ? 1u : 0u;
+        }
+        for (std::size_t l = 0; l < shipped.lanes.size(); ++l)
+            for (const Section& sec : shipped.sections)
+            {
+                if (sec.kind == "break")
+                    continue;
+                const auto in = [&] (const std::vector<Note>& notes) {
+                    std::vector<Note> out;
+                    for (const Note& n : notes)
+                        if (n.section == static_cast<std::int16_t> (sec.index))
+                            out.push_back (n);
+                    return out;
+                };
+                const auto ccIn = [&] (const std::vector<ControlPoint>& points) {
+                    std::vector<ControlPoint> out;
+                    for (const ControlPoint& c : points)
+                        if (c.section == static_cast<std::int16_t> (sec.index))
+                            out.push_back (c);
+                    return out;
+                };
+                const LaneOut& a = shipped.lanes[l];
+                const LaneOut& b = changed.lanes[l];
+                for (const bool performed : { false, true })
+                {
+                    const auto want = in (performed ? a.perf : a.score);
+                    const auto got = in (performed ? b.perf : b.score);
+                    ++compared;
+                    if (got == want)
+                        continue;
+                    std::size_t i = 0;
+                    while (i < std::min (got.size(), want.size()) && got[i] == want[i])
+                        ++i;
+                    const auto shown = [] (const std::vector<Note>& v, std::size_t k) {
+                        return k < v.size() ? "tick " + std::to_string (v[k].tick) + " length " + std::to_string (v[k].length) + " key " + std::to_string (v[k].key) : std::string ("none");
+                    };
+                    differences.push_back ("seed " + std::to_string (seed) + ", the " + sec.kind + " at bar " + std::to_string (sec.startBar) + ", " + a.id + (performed ? " performed" : " score")
+                                           + ": note " + std::to_string (i) + " is " + shown (got, i) + " with the edit, " + shown (want, i) + " without");
+                }
+                if (ccIn (b.cc) != ccIn (a.cc))
+                    differences.push_back ("seed " + std::to_string (seed) + ", the " + sec.kind + " at bar " + std::to_string (sec.startBar) + ", " + a.id + ": the controllers");
+            }
+    }
+    std::string shown;
+    for (std::size_t i = 0; i < std::min<std::size_t> (differences.size(), 8); ++i)
+        shown += "\n  " + differences[i];
+    INFO (differences.size() << " of " << compared << " section lanes differ; the first:" << shown);
+    CHECK (differences.empty());
+    CHECK (onTheLine == 16); // the edit starts every break with a bass note on its line
+    CHECK (toTheLine >= 3); // and in some songs the drop's last bass note runs to that line
 }
 
 TEST_CASE ("stab patterns keep their minimum of hits in every bar of a drop", "[gen][song][style]")

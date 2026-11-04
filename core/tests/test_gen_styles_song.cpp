@@ -202,6 +202,122 @@ namespace
         FAIL ("no arp grid for " << kind);
         return arp.arp.grids.front();
     }
+
+    std::string describe (const Note& n)
+    {
+        return "tick " + std::to_string (n.tick) + " length " + std::to_string (n.length) + " key " + std::to_string (n.key) + " velocity "
+               + std::to_string (n.velocity) + " step " + std::to_string (n.step) + " flags " + std::to_string (n.flags);
+    }
+
+    // The first difference between two note lists, or "" where they are the same.
+    std::string firstDifference (const std::vector<Note>& got, const std::vector<Note>& want)
+    {
+        for (std::size_t i = 0; i < std::min (got.size(), want.size()); ++i)
+            if (!(got[i] == want[i]))
+                return "note " + std::to_string (i) + " is " + describe (got[i]) + ", the whole song's " + describe (want[i]);
+        if (got.size() != want.size())
+            return std::to_string (got.size()) + " notes, the whole song's head " + std::to_string (want.size());
+        return {};
+    }
+
+    // A --bars cut's definition, written out on its own: how `cut` differs from the head of `whole`
+    // at bar `bars` (nothing, if it is that head). The head holds the sections that start before the
+    // cut, the last one shortened with its blocks; the turnarounds, salient changes and chord spans
+    // before it (a span ended by it), and one harmony per section; and per lane every score note that
+    // starts before the cut with its performed note (perf[i] plays score[i]), both ended by the cut
+    // (a performed onset at or after it plays on its last tick, as at a section's end), and every
+    // controller before it. `crossing` counts the score notes the cut ends.
+    std::vector<std::string> headDifferences (const Song& whole, const Song& cut, std::int32_t bars, std::size_t& crossing)
+    {
+        std::vector<std::string> out;
+        const std::int64_t end = static_cast<std::int64_t> (bars) * ticksPerBar;
+        if (cut.totalBars != bars)
+            out.push_back (std::to_string (cut.totalBars) + " bars");
+        std::vector<Section> sections;
+        for (const Section& s : whole.sections)
+            if (s.startBar < bars)
+            {
+                Section h = s;
+                h.bars = std::min (s.bars, bars - s.startBar);
+                h.blocks.resize (static_cast<std::size_t> (h.bars / barsPerBlock));
+                sections.push_back (h);
+            }
+        const auto sameSection = [] (const Section& a, const Section& b) {
+            return a.index == b.index && a.kind == b.kind && a.startBar == b.startBar && a.bars == b.bars && a.blocks == b.blocks;
+        };
+        if (cut.sections.size() != sections.size() || !std::equal (sections.begin(), sections.end(), cut.sections.begin(), sameSection))
+            out.push_back (std::to_string (cut.sections.size()) + " sections, or not the whole song's (the last one shortened)");
+        std::vector<std::int32_t> turns;
+        for (const std::int32_t b : whole.turnBars)
+            if (b < bars)
+                turns.push_back (b);
+        if (cut.turnBars != turns)
+            out.push_back ("the turnaround bars");
+        const auto changeTuple = [] (const Change& c) { return std::make_tuple (c.section, c.bar, c.lane); };
+        std::vector<std::tuple<std::size_t, std::int32_t, std::size_t>> changes, gotChanges;
+        for (const Change& c : whole.changes)
+            if (c.section < sections.size() && c.bar < sections[c.section].bars)
+                changes.push_back (changeTuple (c));
+        for (const Change& c : cut.changes)
+            gotChanges.push_back (changeTuple (c));
+        if (gotChanges != changes)
+            out.push_back ("the salient changes");
+        const auto chordTuple = [] (const ChordSpan& c) { return std::make_tuple (c.start, c.end, c.degree, c.mode, c.rootPc, c.pushedBy, c.section, c.index); };
+        std::vector<decltype (chordTuple (ChordSpan {}))> chords, gotChords;
+        for (ChordSpan c : whole.chords)
+            if (c.start < end)
+            {
+                c.end = std::min (c.end, end);
+                chords.push_back (chordTuple (c));
+            }
+        for (const ChordSpan& c : cut.chords)
+            gotChords.push_back (chordTuple (c));
+        if (gotChords != chords)
+            out.push_back ("the chord spans: " + std::to_string (gotChords.size()) + ", the whole song's head " + std::to_string (chords.size()));
+        const auto harmonyTuple = [] (const SectionHarmony& h) { return std::make_tuple (h.slot, h.mode, h.degrees, h.units, h.loopBars, h.pushPermille, h.pushTicks, h.voicing); };
+        if (cut.harmony.size() != sections.size())
+            out.push_back (std::to_string (cut.harmony.size()) + " section harmonies");
+        else
+            for (std::size_t i = 0; i < sections.size(); ++i)
+                if (harmonyTuple (cut.harmony[i]) != harmonyTuple (whole.harmony[i]))
+                    out.push_back ("section " + std::to_string (i + 1) + "'s harmony");
+        if (cut.lanes.size() != whole.lanes.size())
+            out.push_back (std::to_string (cut.lanes.size()) + " lanes");
+        for (std::size_t l = 0; l < std::min (cut.lanes.size(), whole.lanes.size()); ++l)
+        {
+            const LaneOut& w = whole.lanes[l];
+            const LaneOut& c = cut.lanes[l];
+            const std::string lane = "lane " + w.id + ": ";
+            if (c.id != w.id || c.track != w.track || c.channel != w.channel || c.kind != w.kind || c.swing != w.swing)
+                out.push_back (lane + "not the whole song's lane");
+            std::vector<Note> score, perf;
+            for (std::size_t i = 0; i < w.score.size(); ++i)
+            {
+                Note s = w.score[i];
+                if (s.tick >= end)
+                    continue;
+                crossing += s.tick + s.length > end ? 1u : 0u;
+                s.length = std::min (s.length, end - s.tick);
+                Note p = w.perf[i];
+                const std::int64_t pend = std::min (p.tick + p.length, end);
+                p.tick = std::min (p.tick, end - 1);
+                p.length = std::max<std::int64_t> (1, pend - p.tick);
+                score.push_back (s);
+                perf.push_back (p);
+            }
+            if (const auto d = firstDifference (c.score, score); !d.empty())
+                out.push_back (lane + "score " + d);
+            if (const auto d = firstDifference (c.perf, perf); !d.empty())
+                out.push_back (lane + "performance " + d);
+            std::vector<ControlPoint> cc;
+            for (const ControlPoint& p : w.cc)
+                if (p.tick < end)
+                    cc.push_back (p);
+            if (c.cc != cc)
+                out.push_back (lane + std::to_string (c.cc.size()) + " controller points, the whole song's head " + std::to_string (cc.size()));
+        }
+        return out;
+    }
 }
 
 // ------------------------------------------------------------------ invariants every style keeps
@@ -298,8 +414,24 @@ TEST_CASE ("styles: an extended mix generates in under 50 ms per 128 bars", "[ge
         }
         const double per128 = best * 128.0 / static_cast<double> (bars);
         WARN (id << ": " << bars << " bars with both versions' files in " << best << " ms, " << per128 << " ms per 128 bars");
+        // and a 128-bar cut, which generates the whole song and then cuts it (cut.h)
+        double bestCut = 1e9;
+        for (int run = 0; run < 5; ++run)
+        {
+            const auto t0 = std::chrono::steady_clock::now();
+            const Song s = songOf (b, static_cast<std::uint64_t> (100 + run), 128);
+            const auto feel = renderFiles (s, Version::feel);
+            const auto quant = renderFiles (s, Version::quantized);
+            const auto t1 = std::chrono::steady_clock::now();
+            REQUIRE (s.totalBars == 128);
+            REQUIRE (feel.ok());
+            REQUIRE (quant.ok());
+            bestCut = std::min (bestCut, std::chrono::duration<double, std::milli> (t1 - t0).count());
+        }
+        WARN (id << ": a 128-bar cut with both versions' files in " << bestCut << " ms");
 #if defined(NDEBUG) && !defined(__SANITIZE_ADDRESS__) && !defined(WUBANSIA_STYLES_NO_TIMING)
         CHECK (per128 < 50.0);
+        CHECK (bestCut < 50.0);
 #endif
     }
 }
@@ -484,9 +616,9 @@ TEST_CASE ("styles: a bars cut gives exactly the whole song's first bars", "[gen
 
 TEST_CASE ("styles: a cut at every section line is exactly the head of the whole song", "[gen][styles][song]")
 {
-    // The prefix promise (duck.h, cc.h, hold.h, lanes.cpp) at every section line of all four kits,
-    // not one: every score and performed note and every controller before the cut. A bass note right
-    // before a section whose first note sits on the line keeps the same length in both.
+    // The cut's promise (cut.h) at every section line of all four kits, not one: every score and
+    // performed note and every controller before the cut. A section line is where a cut ends no
+    // note, so these notes are the whole song's as they are, lengths included.
     for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
         for (std::uint64_t seed = 0; seed < 4; ++seed)
         {
@@ -518,46 +650,40 @@ TEST_CASE ("styles: a cut at every section line is exactly the head of the whole
         }
 }
 
-TEST_CASE ("styles: a cut on any 8-bar line inside a section keeps the planned-length rules", "[gen][styles][song]")
+TEST_CASE ("styles: a cut at any 8-bar line is exactly the head of the whole song", "[gen][styles][song]")
 {
-    // Inside a section the stages, the ramp and the CC arcs run on its planned length, so a cut
-    // there changes only what touches its end: every score and performed note that ends a beat
-    // before the cut, and every controller before it, is the whole song's.
+    // A --bars cut is the whole song, generated and then cut (cut.h): at every 8-bar line of 16 seeds
+    // of every kit, inside a section or on its line, it is the whole song's head (headDifferences):
+    // every score and performed note and every controller before the cut, notes that cross it ended
+    // at it, and the sections, chords, turnarounds and changes before it.
+    std::size_t cuts = 0, inside = 0, crossing = 0, failed = 0;
+    std::vector<std::string> examples;
     for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
-        for (std::uint64_t seed = 0; seed < 4; ++seed)
+        for (std::uint64_t seed = 0; seed < 16; ++seed)
         {
-            const Song full = songFor (id, seed);
-            std::size_t cuts = 0;
-            for (const Section& sec : full.sections)
-                for (std::int32_t b = 8; b < sec.bars; b += 8)
-                {
-                    const std::int32_t cut = sec.startBar + b;
-                    const Song head = songOf (bundleFor (id), seed, cut);
-                    const std::int64_t end = static_cast<std::int64_t> (cut) * ticksPerBar;
-                    ++cuts;
-                    for (std::size_t l = 0; l < full.lanes.size(); ++l)
-                    {
-                        INFO (id << " seed " << seed << " cut at bar " << cut << " inside the " << sec.kind << ", lane " << full.lanes[l].id);
-                        for (const bool performed : { false, true })
-                        {
-                            std::vector<Note> want, got;
-                            for (const Note& n : performed ? full.lanes[l].perf : full.lanes[l].score)
-                                if (n.tick + n.length <= end - 480)
-                                    want.push_back (n);
-                            for (const Note& n : performed ? head.lanes[l].perf : head.lanes[l].score)
-                                if (n.tick + n.length <= end - 480)
-                                    got.push_back (n);
-                            CHECK (got == want);
-                        }
-                        std::vector<ControlPoint> cc;
-                        for (const ControlPoint& c : full.lanes[l].cc)
-                            if (c.tick < end)
-                                cc.push_back (c);
-                        CHECK (head.lanes[l].cc == cc);
-                    }
-                }
-            CHECK (cuts >= 12);
+            const Song whole = songFor (id, seed);
+            for (std::int32_t bars = barsPerBlock; bars < whole.totalBars; bars += barsPerBlock)
+            {
+                const Song cut = songOf (bundleFor (id), seed, bars);
+                ++cuts;
+                inside += std::none_of (whole.sections.begin(), whole.sections.end(), [&] (const Section& s) { return s.startBar == bars; }) ? 1u : 0u;
+                const auto differences = headDifferences (whole, cut, bars, crossing);
+                if (differences.empty())
+                    continue;
+                ++failed;
+                for (const auto& d : differences)
+                    if (examples.size() < 12)
+                        examples.push_back (std::string (id) + " seed " + std::to_string (seed) + " cut at bar " + std::to_string (bars) + ": " + d);
+            }
         }
+    std::string shown;
+    for (const auto& e : examples)
+        shown += "\n  " + e;
+    INFO (failed << " of " << cuts << " cuts are not the whole song's head; the first differences:" << shown);
+    CHECK (failed == 0);
+    CHECK (cuts > 1500);
+    CHECK (inside * 2 > cuts); // most 8-bar lines are inside a section
+    CHECK (crossing > 1000); // pads, held bass and long stabs cross the lines, and the cut ends them
 }
 
 TEST_CASE ("styles: the bass, chords and arp change on phrase lines", "[gen][styles][song]")

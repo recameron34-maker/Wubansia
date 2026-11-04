@@ -1,7 +1,6 @@
 #include "gen/arrange.h"
 
 #include <algorithm>
-#include <string>
 
 namespace wubansia::gen
 {
@@ -21,29 +20,18 @@ namespace wubansia::gen
         return all;
     }
 
-    util::Result<std::vector<Section>> arrange (const Style& style, std::int32_t barsLimit)
+    std::vector<Section> arrange (const Style& style)
     {
-        using R = util::Result<std::vector<Section>>;
-        std::int32_t total = 0;
-        for (const auto& f : style.form)
-            total += f.bars;
-        if (barsLimit < 0 || barsLimit % barsPerBlock != 0)
-            return R::failure ("bars must be a multiple of 8 (sections and lane changes sit on 8-bar lines), not " + std::to_string (barsLimit));
-        if (barsLimit > total)
-            return R::failure ("the form has only " + std::to_string (total) + " bars, so it can't be cut at " + std::to_string (barsLimit));
-        const std::int32_t end = barsLimit > 0 ? barsLimit : total;
-
         std::vector<Section> out;
         std::int32_t start = 0;
-        for (std::size_t i = 0; i < style.form.size() && start < end; ++i)
+        for (std::size_t i = 0; i < style.form.size(); ++i)
         {
             const FormSection& f = style.form[i];
             Section s;
             s.index = i;
             s.kind = f.kind;
             s.startBar = start;
-            s.plannedBars = f.bars;
-            s.bars = std::min (f.bars, end - start);
+            s.bars = f.bars;
             for (std::int32_t b = 0; b < s.bars / barsPerBlock; ++b)
             {
                 std::uint64_t mask = 0;
@@ -54,7 +42,7 @@ namespace wubansia::gen
             start += f.bars;
             out.push_back (std::move (s));
         }
-        return R::success (std::move (out));
+        return out;
     }
 
     void planChanges (Song& song, const Style& style, rng::Key root)
@@ -70,8 +58,6 @@ namespace wubansia::gen
         for (const Section& s : song.sections)
         {
             const auto add = [&] (std::int32_t bar) {
-                if (bar >= s.bars) // planned, but cut off by --bars
-                    return;
                 std::vector<std::size_t> candidates;
                 for (const auto lane : roster)
                     if (s.active (lane, bar))
@@ -81,9 +67,8 @@ namespace wubansia::gen
                 const auto pick = rng::pickIndex (ka.with (rng::tag ("who")).with (s.index).with (bar), candidates.size());
                 song.changes.push_back ({ s.index, bar, candidates[pick] });
             };
-            // Planned on the form's length, so a section cut short keeps the changes of its start.
             bool pending = false;
-            for (std::int32_t line = barsPerBlock; line < s.plannedBars; line += barsPerBlock)
+            for (std::int32_t line = barsPerBlock; line < s.bars; line += barsPerBlock)
             {
                 if (pending)
                 {

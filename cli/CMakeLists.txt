@@ -56,6 +56,32 @@ if(WUBANSIA_BUILD_TESTS)
             -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/snapshots.cmake")
     set_tests_properties("groovecore: gen writes the snapshot files" PROPERTIES LABELS cli TIMEOUT 600)
 
+    # A --bars cut through groovecore (cli/tests/cut.cmake): 8 bars into FUT01 seed 31's second drop,
+    # where the chord change on the line is pushed 240 ticks early and the bass approaches it, it must
+    # write the whole song's head, which groovecore_cut_check (a test tool, never installed) reads back
+    # from the files; and the cut written into the whole song's folder is refused.
+    add_executable(groovecore_cut_check tests/cut_check.cpp)
+    target_link_libraries(groovecore_cut_check PRIVATE wubansia_core wubansia_core_warnings)
+    function(_groovecore_cut_test name work)
+        add_test(NAME "${name}"
+            COMMAND ${CMAKE_COMMAND} -DGROOVECORE=$<TARGET_FILE:groovecore> -DCHECKER=$<TARGET_FILE:groovecore_cut_check> "-DCONTENT=${_content}"
+                "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/${work}" ${ARGN} -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/cut.cmake")
+        set_tests_properties("${name}" PROPERTIES LABELS cli)
+    endfunction()
+    _groovecore_cut_test("groovecore: gen --bars inside a section writes the whole song's head" cut-run -DKIT=FUT01 -DSEED=31 -DBARS=152)
+    # The checker at the feel's extremes, where the files can lose which performed note plays which
+    # score note (cut_check.cpp): it pairs them only inside the section the cut ends, so FUT01 seed 0's
+    # break, whose song merges notes on one tick elsewhere, is checked exactly; and where the files
+    # can't tell, it says so (exit 3) instead of calling a right cut wrong: seed 8's drop, whose last
+    # 16th kick plays after the downbeat it is cut at, and seed 16's, which plays two kicks on the
+    # cut's last tick.
+    _groovecore_cut_test("groovecore_cut_check: at the feel's extremes it pairs the notes of the section the cut ends" cut-extreme-section
+        -DKIT=FUT01 -DSEED=0 -DAMOUNT=1000 -DBARS=112 -DEXTREME=ON)
+    _groovecore_cut_test("groovecore_cut_check: notes played out of score order across the cut are unknown, not wrong" cut-extreme-order
+        -DKIT=FUT01 -DSEED=8 -DAMOUNT=2000 -DBARS=80 -DEXTREME=ON -DCHECK_EXIT=3 "-DCHECK_REGEX=out of score order")
+    _groovecore_cut_test("groovecore_cut_check: notes merged on one tick at the cut are unknown, not wrong" cut-extreme-merged
+        -DKIT=FUT01 -DSEED=16 -DAMOUNT=1000 -DBARS=96 -DEXTREME=ON -DCHECK_EXIT=3 "-DCHECK_REGEX=on one tick")
+
     # groovecore metrics: its options and refusals, on the audit's fixtures (tools/legacy_audit/fixtures).
     set(_fixtures "${PROJECT_SOURCE_DIR}/tools/legacy_audit/fixtures")
     _groovecore_test("metrics --help" 0 stdout "^Usage: groovecore metrics" metrics --help)

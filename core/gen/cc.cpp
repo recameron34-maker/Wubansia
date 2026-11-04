@@ -51,7 +51,7 @@ namespace wubansia::gen
                     period = row->waveBars[rng::pickIndex (ks.with (rng::tag ("wave")), row->waveBars.size())] * ticksPerBar;
                     depth = rng::between (ks.with (rng::tag ("depth")), row->depth.lo, row->depth.hi);
                 }
-                const std::int64_t length = static_cast<std::int64_t> (s.plannedBars) * ticksPerBar; // a --bars cut keeps the values
+                const std::int64_t length = static_cast<std::int64_t> (s.bars) * ticksPerBar;
                 std::int32_t last = -1; // the first point of a range is always written
                 for (std::int64_t t = r.start; t < r.end; t += spec.step)
                 {

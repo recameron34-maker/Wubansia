@@ -128,9 +128,9 @@ TEST_CASE ("builds: the loader reads a grid's stages and ramp, and refuses broke
     CHECK_THAT (refusal (staged, staged + std::string (", \"never\": [[0, 4, 8, 12]]")), ContainsSubstring ("stages"));
 }
 
-TEST_CASE ("builds: the ramp scales a build's first bar by its low end and its last planned bar by its high end", "[gen][builds]")
+TEST_CASE ("builds: the ramp scales a build's first bar by its low end and its last bar by its high end", "[gen][builds]")
 {
-    // FUT01's snare build ramps [650, 1100] over the section's planned bars; with every spread at 0
+    // FUT01's snare build ramps [650, 1100] over the section's bars; with every spread at 0
     // each hit's score velocity is its cell's, scaled by the build's 950 and then exactly by the ramp
     // (rounded half up, as the generator's roundDiv does).
     Bundle b = bundleFor ("FUT01");
@@ -165,9 +165,9 @@ TEST_CASE ("builds: the ramp scales a build's first bar by its low end and its l
                 if (n.section != static_cast<std::int16_t> (sec.index) || n.voice != 0)
                     continue;
                 const auto bar = static_cast<std::int32_t> (n.tick / ticksPerBar - sec.startBar);
-                if (bar != 0 && bar != sec.plannedBars - 1)
+                if (bar != 0 && bar != sec.bars - 1)
                     continue;
-                const DrumGrid& g = gridNamed (build.stages[static_cast<std::size_t> (bar) * build.stages.size() / static_cast<std::size_t> (sec.plannedBars)]);
+                const DrumGrid& g = gridNamed (build.stages[static_cast<std::size_t> (bar) * build.stages.size() / static_cast<std::size_t> (sec.bars)]);
                 REQUIRE (g.voices.front().voice == "snare"); // the stages' first voice
                 const auto cell = static_cast<std::size_t> ((bar % 2) * 16 + n.step % 16);
                 const std::int64_t written = g.voices.front().vel[cell];
@@ -233,7 +233,7 @@ TEST_CASE ("builds: each part of a build plays its stage, under a crescendo", "[
                 if (n.section != static_cast<std::int16_t> (sec.index) || n.flags & (noteFlag::ornament | noteFlag::turn))
                     continue;
                 const auto bar = static_cast<std::int32_t> (n.tick / ticksPerBar - sec.startBar);
-                const auto stage = static_cast<std::size_t> (bar * 4 / sec.plannedBars);
+                const auto stage = static_cast<std::size_t> (bar * 4 / sec.bars);
                 const DrumGrid& g = gridNamed (build.stages[stage]);
                 // the note is on a cell its stage's grid can play, for its voice
                 bool playable = false;

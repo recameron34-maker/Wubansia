@@ -72,8 +72,7 @@ namespace wubansia::gen
     // of a section pushes the same changes (variation stays on phrase lines): of a phrase's n
     // changes, k = n * the section's share (clamped to the style's band where n allows it) are
     // pushed early by the section's push ticks, spread evenly from a rotation drawn per section.
-    // A section's first chord is never pushed: no chord crosses a section's start. A section cut
-    // short keeps the pushes of its first phrases.
+    // A section's first chord is never pushed: no chord crosses a section's start.
     void layOutHarmony (Song& song, const Style& style, const HarmonyPlan& plan, rng::Key root);
 
     // The chord sounding at a tick (pushed boundaries), or nullptr.

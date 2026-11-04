@@ -18,6 +18,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 using namespace wubansia;
@@ -89,6 +90,82 @@ namespace
                 out.push_back (e);
         return out;
     }
+
+    // The notes a version's file holds of one lane from `from` to `to` in the whole song's head: the
+    // score's onsets in [from, to), with their performed notes in the feel version, ended by `to` (a
+    // performed onset at or after it plays on its last tick), at ticks from `from`, in the reader's order.
+    std::vector<midi::Note> headNotes (const LaneOut& lane, Version v, std::int64_t from, std::int64_t to)
+    {
+        std::vector<midi::Note> out;
+        for (std::size_t i = 0; i < lane.score.size(); ++i)
+        {
+            if (lane.score[i].tick < from || lane.score[i].tick >= to)
+                continue;
+            const Note& n = v == Version::feel ? lane.perf[i] : lane.score[i];
+            const std::int64_t tick = std::min (n.tick, to - 1);
+            midi::Note m;
+            m.tick = tick - from;
+            m.length = std::max<std::int64_t> (1, std::min (n.tick + n.length, to) - tick);
+            m.channel = lane.channel;
+            m.key = n.key;
+            m.velocity = n.velocity;
+            out.push_back (m);
+        }
+        std::stable_sort (out.begin(), out.end(), [] (const midi::Note& a, const midi::Note& b) { return std::tie (a.tick, a.channel, a.key) < std::tie (b.tick, b.channel, b.key); });
+        return out;
+    }
+
+    // The first difference between two files' note lists, or "" where they are the same.
+    std::string noteDifference (const std::vector<midi::Note>& got, const std::vector<midi::Note>& want)
+    {
+        const auto shown = [] (const midi::Note& n) {
+            return "tick " + std::to_string (n.tick) + " length " + std::to_string (n.length) + " key " + std::to_string (n.key) + " velocity " + std::to_string (n.velocity);
+        };
+        for (std::size_t i = 0; i < std::min (got.size(), want.size()); ++i)
+            if (!(got[i] == want[i]))
+                return "note " + std::to_string (i) + " is " + shown (got[i]) + ", the head's " + shown (want[i]);
+        if (got.size() != want.size())
+            return std::to_string (got.size()) + " notes, the head " + std::to_string (want.size());
+        return {};
+    }
+
+    // The path of the first difference between two JSON values ("" if none), line and column aside.
+    std::string jsonDifference (const json::Value& a, const json::Value& b, const std::string& path)
+    {
+        if (a.type != b.type || a.boolean != b.boolean || a.integer != b.integer || a.string != b.string || a.items.size() != b.items.size()
+            || a.members.size() != b.members.size())
+            return path.empty() ? "the document" : path;
+        for (std::size_t i = 0; i < a.items.size(); ++i)
+            if (auto d = jsonDifference (a.items[i], b.items[i], path + "[" + std::to_string (i) + "]"); !d.empty())
+                return d;
+        for (std::size_t i = 0; i < a.members.size(); ++i)
+        {
+            if (a.members[i].key != b.members[i].key)
+                return path + "." + a.members[i].key;
+            if (auto d = jsonDifference (a.members[i].value, b.members[i].value, path + "." + a.members[i].key); !d.empty())
+                return d;
+        }
+        return {};
+    }
+
+    json::Value& memberOf (json::Value& v, std::string_view key)
+    {
+        for (auto& m : v.members)
+            if (m.key == key)
+                return m.value;
+        FAIL ("no member " << key);
+        return v;
+    }
+
+    json::Value parsedJson (const std::vector<std::uint8_t>& bytes)
+    {
+        auto parsed = json::parse (std::string_view (reinterpret_cast<const char*> (bytes.data()), bytes.size()));
+        INFO (parsed.error);
+        REQUIRE (parsed.ok());
+        return std::move (parsed.value);
+    }
+
+    std::string twoDigits (std::size_t n) { return (n < 10 ? "0" : "") + std::to_string (n); }
 }
 
 TEST_CASE ("styles: the full file is SMF type 1 with a conductor and one named track per lane", "[gen][styles][export]")
@@ -283,6 +360,112 @@ TEST_CASE ("styles: regions.json gives the song's length and each region's ticks
             CHECK_FALSE (errors.any());
         }
     }
+}
+
+TEST_CASE ("styles: a cut's files are the whole song's regions, the last one shortened", "[gen][styles][export]")
+{
+    // What groovecore gen --bars writes for a cut 8 bars into a section (cli/tests/cut.cmake checks the
+    // same through groovecore): the whole song's regions.json and region files, but for the region
+    // the cut ends, shortened to it, and a full file and last region that hold the whole song's head.
+    std::size_t cuts = 0;
+    for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
+        for (const std::uint64_t seed : { 5ull, 31ull })
+        {
+            const Song whole = songFor (id, seed);
+            for (const Section& sec : whole.sections)
+            {
+                if (sec.bars <= 8)
+                    continue;
+                const std::int32_t bars = sec.startBar + 8;
+                const std::int64_t end = static_cast<std::int64_t> (bars) * 1920;
+                const Song cut = songFor (id, seed, bars);
+                const std::size_t kept = sec.index + 1; // the regions the cut keeps
+                const std::string oldMarker = sectionMarker (sec);
+                const std::string newMarker = sec.kind + " (" + twoDigits (kept) + ", 8 bars)";
+                const std::string lastRegion = "regions/" + twoDigits (kept) + "_" + sec.kind + "_8bars.mid";
+                ++cuts;
+                for (const Version v : { Version::feel, Version::quantized })
+                {
+                    INFO (id << " seed " << seed << " cut at bar " << bars << ", 8 bars into the " << sec.kind << ", " << versionName (v));
+                    const auto all = renderFiles (whole, v);
+                    const auto files = renderFiles (cut, v);
+                    REQUIRE (all.ok());
+                    REQUIRE (files.ok());
+                    REQUIRE (files.value.size() == kept + 2); // the full file, the regions, regions.json
+                    // the regions before the last: the whole song's, byte for byte
+                    for (std::size_t i = 0; i + 1 < kept; ++i)
+                    {
+                        const std::string path = "regions/" + regionFileName (whole.sections[i]);
+                        CHECK (fileNamed (files.value, path).bytes == fileNamed (all.value, path).bytes);
+                    }
+                    CHECK (files.value[kept].path == lastRegion);
+                    // regions.json: the whole song's, with the cut's length and its last region shortened
+                    json::Value want = parsedJson (fileNamed (all.value, "regions.json").bytes);
+                    const std::int32_t seconds = bars * 240 / whole.bpm;
+                    memberOf (want, "bars").integer = bars;
+                    memberOf (want, "length").string = std::to_string (seconds / 60) + ":" + twoDigits (static_cast<std::size_t> (seconds % 60));
+                    auto& regions = memberOf (want, "regions").items;
+                    REQUIRE (regions.size() >= kept);
+                    regions.resize (kept);
+                    memberOf (regions.back(), "file").string = lastRegion;
+                    memberOf (regions.back(), "bars").integer = 8;
+                    memberOf (regions.back(), "lengthTicks").integer = 8 * 1920;
+                    memberOf (regions.back(), "blocks").items.resize (1);
+                    auto& lanes = memberOf (regions.back(), "lanes").items; // the lanes of the block it keeps
+                    lanes.clear();
+                    for (std::size_t l = 0; l < whole.lanes.size(); ++l)
+                        if (sec.blocks[0] & (std::uint64_t (1) << l))
+                        {
+                            json::Value laneId;
+                            laneId.type = json::Value::Type::string;
+                            laneId.string = whole.lanes[l].id;
+                            lanes.push_back (laneId);
+                        }
+                    CHECK (jsonDifference (parsedJson (fileNamed (files.value, "regions.json").bytes), want, "") == "");
+                    // the full file and the last region: the whole song's head, the last marker naming
+                    // the shortened region
+                    struct Pair
+                    {
+                        std::string got, whole;
+                        std::int64_t from;
+                    };
+                    for (const Pair& p : { Pair { fullFileName (cut), fullFileName (whole), 0 }, Pair { lastRegion, "regions/" + regionFileName (sec), sec.startTick() } })
+                    {
+                        INFO (p.got);
+                        const midi::File got = read (fileNamed (files.value, p.got).bytes);
+                        const midi::File was = read (fileNamed (all.value, p.whole).bytes);
+                        REQUIRE (got.tracks.size() == was.tracks.size());
+                        for (std::size_t t = 0; t < got.tracks.size(); ++t)
+                        {
+                            INFO ("track " << t);
+                            CHECK (got.tracks[t].endTick == end - p.from);
+                            std::string name = midi::trackName (was.tracks[t]);
+                            if (const auto at = name.find (oldMarker); t == 0 && at != std::string::npos)
+                                name.replace (at, oldMarker.size(), newMarker);
+                            CHECK (midi::trackName (got.tracks[t]) == name);
+                            std::vector<midi::Controller> cc;
+                            for (const auto& c : midi::controllersOf (was.tracks[t]))
+                                if (c.tick < end - p.from)
+                                    cc.push_back (c);
+                            CHECK (midi::controllersOf (got.tracks[t]) == cc);
+                            if (t > 0)
+                                CHECK (noteDifference (midi::notesOf (got.tracks[t]), headNotes (whole.lanes[t - 1], v, p.from, end)) == "");
+                        }
+                        std::vector<midi::Marker> markers;
+                        for (const auto& m : midi::markersOf (was))
+                            if (m.tick < end - p.from)
+                                markers.push_back (m);
+                        REQUIRE_FALSE (markers.empty());
+                        CHECK (markers.back().text == oldMarker);
+                        markers.back().text = newMarker;
+                        CHECK (midi::markersOf (got) == markers);
+                        CHECK (midi::tempoMap (got) == midi::tempoMap (was));
+                        CHECK (midi::keySignaturesOf (got) == midi::keySignaturesOf (was));
+                    }
+                }
+            }
+        }
+    CHECK (cuts > 40);
 }
 
 TEST_CASE ("styles: quantized files sit on the 16th grid and feel files don't", "[gen][styles][export]")

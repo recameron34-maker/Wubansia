@@ -13,7 +13,6 @@
 #include "gen/content.h"
 #include "gen/song.h"
 #include "rng/rng.h"
-#include "util/result.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -21,9 +20,8 @@
 
 namespace wubansia::gen
 {
-    // The sections of the style's form. barsLimit > 0 keeps only the first barsLimit bars (a
-    // multiple of 8): later sections are dropped and the last one is cut, but keeps plannedBars.
-    [[nodiscard]] util::Result<std::vector<Section>> arrange (const Style& style, std::int32_t barsLimit);
+    // The sections of the style's whole form (a --bars cut comes after the whole song: cut.h).
+    std::vector<Section> arrange (const Style& style);
 
     // Fills song.changes and song.turnBars. Keys: root.with (tag ("arrange")).
     void planChanges (Song& song, const Style& style, rng::Key root);

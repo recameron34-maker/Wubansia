@@ -13,6 +13,8 @@
 //   4. pitches: the chords voiced; the bass on chord degrees, following its kick and agreeing with
 //      the voicings (lanes.h, harmony.h)
 //   5. feel: swing, offset and velocity maps, 1/f fluctuation, anchors, the low-end lock (feel.h)
+//   6. with Options::bars, the finished song cut there (cut.h): a --bars cut is exactly the whole
+//      song's head, since every stage runs on the whole form
 // Every random choice is a pure function of a key path from the seed (rng.h): no draw depends on
 // another lane's draws, so changing one lane's parameters changes only that lane and the lanes
 // that depend on it (the bass on its kick, and on the chords' voicings for its third, seventh and
@@ -75,8 +77,7 @@ namespace wubansia::gen
         std::size_t index = 0; // 0-based, in song order
         std::string kind;
         std::int32_t startBar = 0; // 0-based; a multiple of 8
-        std::int32_t bars = 0; // as written out (a --bars cut may shorten the last section)
-        std::int32_t plannedBars = 0; // as the form has it: changes are planned on these
+        std::int32_t bars = 0; // the form's (a --bars cut shortens the last section it keeps: cut.h)
         std::vector<std::uint64_t> blocks; // per 8-bar block (of `bars`): bit i = style lane i plays
 
         std::int64_t startTick() const noexcept { return startBar * ticksPerBar; }
@@ -174,10 +175,11 @@ namespace wubansia::gen
     {
         std::uint64_t seed = 0;
         std::int32_t feelAmount = -1; // permille; -1: the feel file's amount
-        std::int32_t bars = 0; // > 0: only the first `bars` bars (a multiple of 8); 0: the whole form
+        std::int32_t bars = 0; // > 0: the whole song cut at this bar, a multiple of 8 (cut.h); 0: the whole form
     };
 
-    // Generates a song. Fails only on options it can't honour (bars not a multiple of 8, a feel
-    // amount out of 0-2000); a bundle that passed makeBundle always generates.
+    // Generates a song: the whole form, then with options.bars the cut. Fails only on options it
+    // can't honour (bars not a multiple of 8 up to the form's length, a feel amount out of 0-2000);
+    // a bundle that passed makeBundle always generates.
     [[nodiscard]] util::Result<Song> generate (const Bundle& bundle, const Options& options);
 }
