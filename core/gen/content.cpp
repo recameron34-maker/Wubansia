@@ -262,6 +262,8 @@ namespace wubansia::gen
                     for (const auto& vname : pair)
                         if (!isVoice (vname))
                             excl.at (i).fail ("unknown voice \"" + vname + "\"");
+                    if (pair[0] == pair[1]) // it would find itself on its own step and silence every note
+                        excl.at (i).fail ("a voice can't be exclusive with itself");
                     d.exclusive.emplace_back (pair[0], pair[1]);
                 }
             }
@@ -738,9 +740,11 @@ namespace wubansia::gen
                 h.palette.emplace_back (kind, std::move (names));
             }
             const Node mud = n["mud"];
-            mud.only ({ "below", "gap" });
-            h.mudBelow = mud["below"].int32 (0, 127);
-            h.mudGap = mud["gap"].int32 (0, 12);
+            mud.only ({ "below", "gap", "minorSecond", "minorNinth" });
+            h.mud.below = mud["below"].int32 (0, 127);
+            h.mud.gap = mud["gap"].int32 (0, 12);
+            h.mud.minorSecond = mud["minorSecond"].int32 (0, 127);
+            h.mud.minorNinth = mud["minorNinth"].int32 (0, 127);
             h.revoice = n["revoice"].int32 (0, 100);
             h.arcs = n["arcs"].strings (1, 4);
             for (const auto& a : h.arcs)
@@ -1303,11 +1307,26 @@ namespace wubansia::gen
                 return R::failure (where + e);
         for (const auto& row : feel.rows)
             for (const auto& [id, f] : row.lanes)
+            {
                 if (const auto e = checkLane (id, f, "feel rows." + row.kind + "." + id); !e.empty())
                     return R::failure (where + e);
+                // perform() orders the lanes by their locks and takes every target from the lane's
+                // base, so the lock is the lane's, not a row's
+                if (f.lock)
+                    return R::failure (where + "feel rows." + row.kind + "." + id + ".lock: a lane's lock is set in feel lanes, not in a row");
+            }
+        // one level of locking: a lane locks to a lane that locks to nothing, so no chain or cycle
+        // keeps a lane from being performed after its target
+        for (const auto& [id, f] : feel.lanes)
+            if (f.lock)
+                for (const auto& [target, tf] : feel.lanes)
+                    if (target == *f.lock && tf.lock)
+                        return R::failure (where + "feel lanes." + id + ".lock: \"" + target + "\" locks to another lane itself");
+        // a row only overrides, so a lane's base needs everything perform() reads in every section
+        // kind (rows.drop alone would leave the other kinds without it)
         for (const auto& lane : style.lanes)
         {
-            const FeelLane f = feel.resolve (lane.id, "drop");
+            const FeelLane f = feel.resolve (lane.id, "");
             if (!f.swing || !f.sd || !f.clamp)
                 return R::failure (where + "the feel's lane \"" + lane.id + "\" needs swing, sd and clamp");
         }

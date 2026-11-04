@@ -241,6 +241,29 @@ TEST_CASE ("G7 lag-1 with a residual mean that is not 0", "[metrics][fixtures]")
     checkExact (r["per_file"][pathOf (e["file"].string())]["hats"], e["hats"]);
 }
 
+TEST_CASE ("the gating bands of G3, G5, G6 and G7 hold at every edge, as the audit's do", "[metrics][fixtures]")
+{
+    // Each bound passes at itself and fails one unit past it (expected.json "bands", which
+    // audit.test.js checks against metrics.js's bands): the gates' fixtures fail on more than one
+    // part of a band, and the generator's data sits away from the edges, so neither pins a bound.
+    const Value& b = answers()["bands"];
+    std::size_t cases = 0;
+    const auto check = [&] (std::string_view gate, auto band) {
+        for (const Value& c : b[gate].items())
+        {
+            INFO (gate << " case " << cases);
+            CHECK ((band (c) ? 1 : 0) == c.num ("pass"));
+            ++cases;
+        }
+    };
+    check ("g3", [] (const Value& c) { return bands::g3 (c.num ("drum_windows"), c.num ("drum_repeated"), c.num ("bass_windows"), c.num ("bass_repeated")); });
+    check ("g5_drums", [] (const Value& c) { return bands::g5Drums (c.num ("windows"), c.num ("median_distinct"), c.num ("median_sd_milli")); });
+    check ("g5_melodic", [] (const Value& c) { return bands::g5Melodic (c.num ("windows"), c.num ("median_distinct"), c.num ("median_sd_milli")); });
+    check ("g6", [] (const Value& c) { return bands::g6 (c.num ("stacks"), c.num ("two_velocities"), c.num ("max_spread_ticks")); });
+    check ("g7", [] (const Value& c) { return bands::g7 (c.num ("files"), c.num ("median_sd_milli"), c.num ("median_lag1_pm"), c.num ("median_alpha_milli")); });
+    CHECK (cases == 37);
+}
+
 TEST_CASE ("G8 per-lane swing in the first drop", "[metrics][fixtures]")
 {
     const Value& e = answers()["g8"];

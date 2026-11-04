@@ -377,6 +377,10 @@ TEST_CASE ("house keeps the kick on every beat of every drop bar", "[gen][song][
 TEST_CASE ("kick-bass coincident onsets are within 2 ticks in every file", "[gen][song]")
 {
     for (const char* id : { "FUT01", "FUT03" })
+    {
+        // both basslines groove against the kick, so few of their notes land on one (the 2-step
+        // line's first note under a rare skip kick, approach notes): each that does is locked to it
+        std::size_t nearAll = 0;
         for (std::uint64_t seed = 0; seed < 16; ++seed)
             for (const Version v : { Version::feel, Version::quantized })
             {
@@ -404,46 +408,95 @@ TEST_CASE ("kick-bass coincident onsets are within 2 ticks in every file", "[gen
                         CHECK (std::abs (*it - n.tick) <= 2);
                     }
                 }
-                if (std::string (id) == "FUT01")
-                    CHECK (near > 50);
+                nearAll += near;
             }
+        INFO (id << ": " << nearAll << " bass onsets near a kick in 16 seeds, both versions");
+        CHECK (nearAll > 0);
+    }
 }
 
-TEST_CASE ("the 2-step sub follows the kick and holds across the skipped beat", "[gen][song][style]")
+TEST_CASE ("the 2-step hats loop: no loud hat sits out a bar at random", "[gen][song][style]")
 {
-    std::size_t bars = 0, held = 0, kicksOnOne = 0, followed = 0;
-    for (std::uint64_t seed = 0; seed < 32; ++seed)
+    // The hats' skeleton loops with its 2-bar pattern; only ghost-level hats vary bar by bar (plan
+    // §2.3's "every bar: micro changes"). So in a groove or drop bar, a step where a pattern hat
+    // sounds at velocity 85 or more both 2 bars before and 2 bars after holds a hat too.
+    std::size_t checked = 0;
+    for (std::uint64_t seed = 0; seed < 64; ++seed)
+    {
+        const Song s = songFor ("FUT01", seed);
+        const LaneOut& hats = laneOf (s, "hats");
+        const std::size_t li = static_cast<std::size_t> (&hats - s.lanes.data());
+        std::map<std::int64_t, std::int32_t> loud; // step -> the loudest pattern hat there
+        std::set<std::int64_t> any; // steps with any hat
+        for (const Note& n : hats.score)
+        {
+            any.insert (n.step);
+            if (!(n.flags & (noteFlag::ornament | noteFlag::turn)))
+                loud[n.step] = std::max (loud[n.step], std::int32_t (n.velocity));
+        }
+        const auto loudAt = [&] (std::int64_t step) { const auto it = loud.find (step); return it != loud.end() && it->second >= 85; };
+        for (const Section& sec : s.sections)
+        {
+            if (sec.kind != "groove" && !isDrop (sec.kind))
+                continue;
+            for (std::int32_t b = 2; b + 2 < sec.bars; ++b)
+            {
+                if (!sec.active (li, b - 2) || !sec.active (li, b) || !sec.active (li, b + 2))
+                    continue;
+                for (std::int64_t j = 0; j < stepsPerBar; ++j)
+                {
+                    const std::int64_t at = (sec.startBar + b) * stepsPerBar + j;
+                    if (!loudAt (at - 2 * stepsPerBar) || !loudAt (at + 2 * stepsPerBar))
+                        continue;
+                    ++checked;
+                    INFO ("seed " << seed << " " << sec.kind << " at bar " << sec.startBar << ", bar " << b << " step " << j);
+                    CHECK (any.contains (at));
+                }
+            }
+        }
+    }
+    CHECK (checked > 10000);
+}
+
+TEST_CASE ("the 2-step sub grooves against the kick: room on its steps, answers in the gaps, beat 2 held", "[gen][song][style]")
+{
+    // Round 1's binding rule (docs/plans/S1-four-kits.md, ADR 0010): a bassline that grooves against
+    // the kick instead of following it, leaving room on the kick and answering it in the gaps, with
+    // short and held notes. The sub still sounds through beat 2 of every drop bar (round 1's hold).
+    std::size_t onsets = 0, onKick = 0, bars = 0, silent = 0, held = 0, shortNotes = 0;
+    for (std::uint64_t seed = 0; seed < 64; ++seed)
     {
         const Song s = songFor ("FUT01", seed);
         const LaneOut& bass = laneOf (s, "bass");
+        const std::size_t li = static_cast<std::size_t> (&bass - s.lanes.data());
         const auto kicks = stepsOf (laneOf (s, "kick"));
-        const auto bassSteps = stepsOf (bass);
         for (const Section& sec : s.sections)
         {
             if (!isDrop (sec.kind))
                 continue;
+            for (const Note& n : bass.score)
+                if (n.section == static_cast<std::int16_t> (sec.index))
+                {
+                    ++onsets;
+                    onKick += kicks.contains (n.step) ? 1u : 0u;
+                    (n.length >= 240 ? held : shortNotes) += 1;
+                }
             for (std::int32_t b = 0; b < sec.bars; ++b)
             {
-                const std::int64_t s0 = (sec.startBar + b) * stepsPerBar;
+                if (!sec.active (li, b))
+                    continue;
                 ++bars;
-                if (kicks.contains (s0))
-                {
-                    ++kicksOnOne;
-                    followed += bassSteps.contains (s0) ? 1u : 0u;
-                }
-                const std::int64_t skipped = (s0 + 8) * ticksPerStep;
-                for (const Note& n : bass.score)
-                    if (n.tick < skipped && n.tick + n.length > skipped && n.tick >= s0 * ticksPerStep)
-                    {
-                        ++held;
-                        break;
-                    }
+                const std::int64_t beat2 = (sec.startBar + b) * ticksPerBar + 480; // steps 4 to 7
+                const bool sounds = std::any_of (bass.score.begin(), bass.score.end(), [&] (const Note& n) { return n.tick < beat2 + 480 && n.tick + n.length > beat2; });
+                silent += sounds ? 0u : 1u;
             }
         }
     }
-    INFO ("held " << held << " of " << bars << ", followed " << followed << " of " << kicksOnOne);
-    CHECK (followed * 100 >= kicksOnOne * 85);
-    CHECK (held * 100 >= bars * 50);
+    INFO (onsets << " drop bass onsets, " << onKick << " on a kick step; " << held << " held and " << shortNotes << " short; beat 2 silent in " << silent << " of " << bars << " bars");
+    CHECK (onKick * 100 <= onsets * 10);
+    CHECK (silent == 0);
+    CHECK (held * 100 >= onsets * 20);
+    CHECK (shortNotes * 100 >= onsets * 20);
 }
 
 TEST_CASE ("the house bass bounces on the offbeats with octave jumps", "[gen][song][style]")

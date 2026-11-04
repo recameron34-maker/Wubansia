@@ -101,7 +101,7 @@
       { "name": "m9", "degrees": [0, 4, 6, 9, 8], "span": [17, 28], "top": [66, 78], "center": 60 },
       { "name": "m11", "degrees": [0, 4, 6, 9, 10], "span": [17, 29], "top": [66, 78], "center": 60, "quality": "minor" }
     ],
-    "mud": { "below": 52, "gap": 5 },
+    "mud": { "below": 52, "gap": 5, "minorSecond": 64, "minorNinth": 60 },
     "revoice": 35,
     "arcs": ["rise", "fall", "arch", "flat"]
   },

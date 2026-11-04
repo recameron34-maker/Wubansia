@@ -136,6 +136,7 @@ TEST_CASE ("styles: anchors stay within 2 ticks and nothing leaves its section",
                 }
             }
             CHECK (anchors > 500);
+            CHECK (b.feel.anchorClamp == 2); // plan §4.1: anchors within +-2 ticks
         }
 }
 

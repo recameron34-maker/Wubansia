@@ -213,6 +213,15 @@ test('G7 DFA on known series: white noise near 0.5, a random walk near 1.5', () 
   assert.equal(H.dfaAlphaMilli(Array(63).fill(1)), null); // under 64 values
 });
 
+test('the gating bands of G3, G5, G6 and G7 hold at every edge', () => {
+  const b = expected.bands, args = (c, keys) => keys.map(k => c[k]);
+  for (const c of b.g3) assert.equal(X.bands.g3(...args(c, ['drum_windows', 'drum_repeated', 'bass_windows', 'bass_repeated'])) ? 1 : 0, c.pass, JSON.stringify(c));
+  for (const c of b.g5_drums) assert.equal(X.bands.g5Drums(...args(c, ['windows', 'median_distinct', 'median_sd_milli'])) ? 1 : 0, c.pass, JSON.stringify(c));
+  for (const c of b.g5_melodic) assert.equal(X.bands.g5Melodic(...args(c, ['windows', 'median_distinct', 'median_sd_milli'])) ? 1 : 0, c.pass, JSON.stringify(c));
+  for (const c of b.g6) assert.equal(X.bands.g6(...args(c, ['stacks', 'two_velocities', 'max_spread_ticks'])) ? 1 : 0, c.pass, JSON.stringify(c));
+  for (const c of b.g7) assert.equal(X.bands.g7(...args(c, ['files', 'median_sd_milli', 'median_lag1_pm', 'median_alpha_milli'])) ? 1 : 0, c.pass, JSON.stringify(c));
+});
+
 test('G8 per-lane swing', () => {
   const e = expected.g8, s = load(e.file), r = X.g8([s]);
   assert.deepEqual(r.per_file[s.path], { lanes: e.lanes, distinct: e.distinct });

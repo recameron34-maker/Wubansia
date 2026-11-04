@@ -626,6 +626,31 @@ expected.names = {
   ]
 };
 
+/* ---------- bands: the gating bands at their edges (no file) ---------- */
+// Plan §5.1's bands for G3, G5, G6 and G7, read off the band table: each bound passes at itself and fails
+// one unit past it, with every other part of its band well inside, so each case decides on one bound.
+// audit.test.js checks them against metrics.js's bands, test_metrics_fixtures.cpp against gating.cpp's.
+{
+  const g3 = (drum_windows, drum_repeated, bass_windows, bass_repeated, pass) => ({ drum_windows, drum_repeated, bass_windows, bass_repeated, pass });
+  const g5 = (windows, median_distinct, median_sd_milli, pass) => ({ windows, median_distinct, median_sd_milli, pass });
+  const g6 = (stacks, two_velocities, max_spread_ticks, pass) => ({ stacks, two_velocities, max_spread_ticks, pass });
+  const g7 = (files, median_sd_milli, median_lag1_pm, median_alpha_milli, pass) => ({ files, median_sd_milli, median_lag1_pm, median_alpha_milli, pass });
+  expected.bands = {
+    // drum lanes repeat in at most 40% of their windows (10 x repeated <= 4 x windows), the bass in at most 30%
+    g3: [g3(10, 4, 10, 3, 1), g3(10, 5, 10, 3, 0), g3(10, 4, 10, 4, 0), g3(1000, 400, 1000, 300, 1), g3(1000, 401, 1000, 300, 0),
+      g3(1000, 400, 1000, 301, 0), g3(10, 0, 10, 0, 1), g3(0, 0, 10, 0, 0), g3(10, 0, 0, 0, 0)],
+    // a drum group: 10 or more distinct velocities in the median window, an SD of 6 to 22 (milli: 6000 to 22000)
+    g5_drums: [g5(1, 10, 6000, 1), g5(1, 10, 22000, 1), g5(1, 9, 10000, 0), g5(1, 10, 5999, 0), g5(1, 10, 22001, 0), g5(0, 10, 10000, 0)],
+    // a melodic group: 6 or more distinct velocities, an SD of 8 or more, no ceiling
+    g5_melodic: [g5(1, 6, 8000, 1), g5(1, 5, 8000, 0), g5(1, 6, 7999, 0), g5(1, 6, 99999, 1), g5(0, 6, 8000, 0)],
+    // 70% or more of the stacks with two velocities (10 x two >= 7 x stacks), the widest spread 4 ticks
+    g6: [g6(10, 7, 4, 1), g6(10, 6, 4, 0), g6(10, 7, 5, 0), g6(1000, 700, 0, 1), g6(1000, 699, 0, 0), g6(10, 10, 0, 1), g6(0, 0, 0, 0)],
+    // per lane: the median residual SD 1.5 to 6 ticks, lag 1 0.2 or more, DFA alpha 0.65 to 1.1 (-9999: undefined)
+    g7: [g7(1, 1500, 200, 650, 1), g7(1, 6000, 200, 1100, 1), g7(1, 1499, 200, 650, 0), g7(1, 6001, 200, 650, 0), g7(1, 1500, 199, 650, 0),
+      g7(1, 1500, 200, 649, 0), g7(1, 1500, 200, 1101, 0), g7(0, 1500, 200, 650, 0), g7(1, 3000, -9999, 800, 0), g7(1, 3000, 400, -9999, 0)]
+  };
+}
+
 /* ---------- write ---------- */
 function main() {
   const i = process.argv.indexOf('--out');

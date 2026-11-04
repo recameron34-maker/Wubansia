@@ -315,7 +315,7 @@ TEST_CASE ("voicing candidates keep the register span and mud rules", "[gen][har
         for (std::int32_t degree = 0; degree < 7; ++degree)
         {
             INFO (spec.name << " degree " << degree);
-            const auto cands = voicingCandidates (spec, 6, Mode::aeolian, degree, reg, h.mudBelow, h.mudGap);
+            const auto cands = voicingCandidates (spec, 6, Mode::aeolian, degree, reg, h.mud);
             if (degree == 1)
                 continue; // ii° may have no placements: it never plays
             CHECK_FALSE (cands.empty());
@@ -337,8 +337,8 @@ TEST_CASE ("voicing candidates keep the register span and mud rules", "[gen][har
                 else
                     CHECK (v.keys.size() == static_cast<std::size_t> (spec.choose));
                 for (std::size_t i = 1; i < v.keys.size(); ++i)
-                    if (v.keys[i - 1] < h.mudBelow)
-                        CHECK (v.keys[i] - v.keys[i - 1] >= h.mudGap);
+                    if (v.keys[i - 1] < h.mud.below)
+                        CHECK (v.keys[i] - v.keys[i - 1] >= h.mud.gap);
                 for (std::size_t i = 0; i < v.keys.size(); ++i)
                 {
                     const bool inKey = inMinorKey (6, pitchClass (v.keys[i]));
@@ -352,7 +352,7 @@ TEST_CASE ("voicing candidates keep the register span and mud rules", "[gen][har
     const VoicingSpec* m7 = h.voicing ("m7");
     REQUIRE (m7 != nullptr);
     bool sawBorrowed = false;
-    for (const auto& v : voicingCandidates (*m7, 6, Mode::dorian, 3, reg, h.mudBelow, h.mudGap)) // IV: B D# F# A
+    for (const auto& v : voicingCandidates (*m7, 6, Mode::dorian, 3, reg, h.mud)) // IV: B D# F# A
         for (std::size_t i = 0; i < v.keys.size(); ++i)
             if (pitchClass (v.keys[i]) == 3)
             {
@@ -360,6 +360,92 @@ TEST_CASE ("voicing candidates keep the register span and mud rules", "[gen][har
                 sawBorrowed = true;
             }
     CHECK (sawBorrowed);
+}
+
+namespace
+{
+    // The low rubs a chord voicing may not hold: two keys a semitone apart with the lower one under
+    // MIDI 64 (E4), or a minor ninth apart with the lower one under 60 (C4). Whole-step seconds are
+    // the palette's colour (m7, add9, close sus2) and stay. "" if none, else the first, as text.
+    std::string lowRub (const std::vector<std::int32_t>& keys)
+    {
+        for (std::size_t i = 0; i < keys.size(); ++i)
+            for (std::size_t j = 0; j < keys.size(); ++j)
+            {
+                const std::int32_t lo = keys[i], hi = keys[j];
+                if ((hi - lo == 1 && lo < 64) || (hi - lo == 13 && lo < 60))
+                    return std::to_string (lo) + " and " + std::to_string (hi);
+            }
+        return {};
+    }
+}
+
+TEST_CASE ("no voicing of any style rubs a minor second or ninth low in the stack", "[gen][harmony]")
+{
+    // Every placement of every voicing in each style, on every degree of every mode, in the kit's
+    // chord register: no semitone between voices with the lower under 64, no minor ninth with the
+    // lower under 60, and the mud rule's 5 semitones between neighbours below 52 still.
+    std::size_t placements = 0;
+    for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
+    {
+        const Bundle& b = bundleFor (id);
+        const HarmonySpec& h = b.style.harmony;
+        const Range reg = b.kit.lane ("chords")->range;
+        for (const auto& spec : h.voicings)
+            for (const Mode mode : { Mode::aeolian, Mode::dorian, Mode::phrygian })
+                for (std::int32_t degree = 0; degree < 7; ++degree)
+                    for (const auto& v : voicingCandidates (spec, b.kit.tonic, mode, degree, reg, h.mud))
+                    {
+                        INFO (id << " " << spec.name << " on degree " << degree << " of " << modeName (mode) << ": " << lowRub (v.keys));
+                        CHECK (lowRub (v.keys).empty());
+                        for (std::size_t i = 1; i < v.keys.size(); ++i)
+                            if (v.keys[i - 1] < 52)
+                                CHECK (v.keys[i] - v.keys[i - 1] >= 5);
+                        ++placements;
+                    }
+    }
+    CHECK (placements > 5000);
+}
+
+TEST_CASE ("no chord lane sounds a low minor second or ninth, held pads included", "[gen][harmony]")
+{
+    // On 64 seeds per kit, at every chord-lane onset, the notes sounding then (a held pad's drone
+    // included) hold no low rub.
+    for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
+    {
+        std::size_t onsets = 0, rubs = 0;
+        std::string first;
+        for (std::uint64_t seed = 0; seed < 64; ++seed)
+        {
+            const Song s = songFor (id, seed);
+            for (const auto& lane : s.lanes)
+            {
+                if (lane.kind != LaneKind::chords)
+                    continue;
+                std::vector<const Note*> active; // the notes sounding at the onset in hand (the score is in tick order)
+                for (std::size_t i = 0; i < lane.score.size();)
+                {
+                    const std::int64_t t = lane.score[i].tick;
+                    std::erase_if (active, [t] (const Note* n) { return n->tick + n->length <= t; });
+                    for (; i < lane.score.size() && lane.score[i].tick == t; ++i)
+                        active.push_back (&lane.score[i]);
+                    std::vector<std::int32_t> sounding;
+                    for (const Note* n : active)
+                        sounding.push_back (n->key);
+                    ++onsets;
+                    if (const std::string r = lowRub (sounding); !r.empty())
+                    {
+                        if (first.empty())
+                            first = "seed " + std::to_string (seed) + " tick " + std::to_string (t) + ": " + r;
+                        ++rubs;
+                    }
+                }
+            }
+        }
+        INFO (id << ": " << rubs << " of " << onsets << " chord onsets with a low rub, the first " << first);
+        CHECK (rubs == 0);
+        CHECK (onsets > 1000);
+    }
 }
 
 TEST_CASE ("voicingCost rewards smooth voice leading and the arc", "[gen][harmony]")
@@ -613,6 +699,58 @@ TEST_CASE ("bestVoicing keeps the top voice inside the voicing's top window", "[
     CHECK (bestVoicing (cands, &low, 70, narrow, 2) == 2);
     // outside any window, the re-voicing is the second cheapest of all
     CHECK (bestVoicing (cands, &low, 70, high, 0) == 1);
+}
+
+TEST_CASE ("bestVoicing's top window holds both its edges and nothing past them", "[gen][harmony]")
+{
+    VoicingSpec vs;
+    vs.top = { 65, 78 };
+    vs.center = 66;
+    const Voiced below { { 54, 59, 64 }, { 0, 0, 0 } }; // top 64: lo - 1
+    const Voiced atLo { { 55, 60, 65 }, { 0, 0, 0 } }; // top 65: lo
+    const Voiced atHi { { 68, 73, 78 }, { 0, 0, 0 } }; // top 78: hi
+    const Voiced above { { 69, 74, 79 }, { 0, 0, 0 } }; // top 79: hi + 1
+    // led from the outside candidate itself, the voice leading prefers it: the window decides
+    CHECK (voicingCost (below, &below, 70, 66) < voicingCost (atLo, &below, 70, 66));
+    CHECK (bestVoicing (std::vector<Voiced> { below, atLo }, &below, 70, vs) == 1);
+    CHECK (bestVoicing (std::vector<Voiced> { atLo, below }, &below, 70, vs) == 0);
+    CHECK (voicingCost (above, &above, 70, 66) < voicingCost (atHi, &above, 70, 66));
+    CHECK (bestVoicing (std::vector<Voiced> { above, atHi }, &above, 70, vs) == 1);
+    CHECK (bestVoicing (std::vector<Voiced> { atHi, above }, &above, 70, vs) == 0);
+}
+
+TEST_CASE ("a b9 over the root moves up to the 11th or 4th in every style's voicings", "[gen][harmony]")
+{
+    // ADR 0013 §2: a scale step a minor 9th (or 2nd) over the root moves up two steps, to the 11th
+    // (or 4th), so m9 and add9 become m11 and add11 there, and sus2 sus4. On the three chords where
+    // the 9th is flat (the Phrygian i, the Aeolian v, the Dorian ii), every placement of every
+    // voicing with a 2nd or 9th has a 4th over the root and nothing a semitone over it.
+    std::size_t checked = 0;
+    for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
+    {
+        const Bundle& b = bundleFor (id);
+        const HarmonySpec& h = b.style.harmony;
+        const KitLane& chords = *b.kit.lane ("chords");
+        for (const auto& spec : h.voicings)
+        {
+            const bool ninth = std::any_of (spec.degrees.begin(), spec.degrees.end(), [] (std::int32_t d) { return d % 7 == 1; });
+            if (!spec.shape.empty() || spec.choose != 0 || !ninth)
+                continue;
+            for (const auto& [mode, degree] : { std::pair { Mode::phrygian, 0 }, std::pair { Mode::aeolian, 4 }, std::pair { Mode::dorian, 1 } })
+            {
+                const std::int32_t rootPc = degreePc (b.kit.tonic, mode, degree);
+                REQUIRE (pitchClass (degreePc (b.kit.tonic, mode, degree + 1) - rootPc) == 1); // the flat 9th
+                for (const auto& v : voicingCandidates (spec, b.kit.tonic, mode, degree, chords.range, h.mud))
+                {
+                    INFO (id << " " << spec.name << " on degree " << degree << " of " << modeName (mode));
+                    CHECK (std::none_of (v.keys.begin(), v.keys.end(), [&] (std::int32_t k) { return pitchClass (k - rootPc) == 1; }));
+                    CHECK (std::any_of (v.keys.begin(), v.keys.end(), [&] (std::int32_t k) { return pitchClass (k - rootPc) == 5; }));
+                    ++checked;
+                }
+            }
+        }
+    }
+    CHECK (checked > 100);
 }
 
 TEST_CASE ("drop stabs stay in their register instead of drifting down with the voice leading", "[gen][harmony]")

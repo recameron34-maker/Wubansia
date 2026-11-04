@@ -231,6 +231,60 @@ TEST_CASE ("styles: regions.json lists the new lanes and every region", "[gen][s
     }
 }
 
+TEST_CASE ("styles: regions.json gives the song's length and each region's ticks and lanes, in all four kits", "[gen][styles][export]")
+{
+    // The fields a producer reads off regions.json, pinned by more than the snapshot hashes: the
+    // song's length (m:ss of its bars at the kit's tempo, the mixes ADR 0013 lists), each region's
+    // length in ticks, and its lanes, the union of its 8-bar blocks' lanes in track order.
+    for (const auto& [id, length] : { std::pair { "FUT01", "6:12" }, std::pair { "FUT02", "6:53" }, std::pair { "FUT03", "6:15" }, std::pair { "FUT04", "7:03" } })
+    {
+        INFO (id);
+        const Song s = songFor (id, 3);
+        const std::int32_t seconds = s.totalBars * 240 / s.bpm; // 4 beats a bar, rounded down
+        CHECK (std::to_string (seconds / 60) + ":" + (seconds % 60 < 10 ? "0" : "") + std::to_string (seconds % 60) == length);
+        for (const Version v : { Version::feel, Version::quantized })
+        {
+            const auto parsed = json::parse (regionsJson (s, v));
+            REQUIRE (parsed.ok());
+            json::Errors errors ("regions.json");
+            const json::Node root = json::root (parsed.value, errors);
+            CHECK (root["length"].string() == length);
+            const json::Node regions = root["regions"];
+            REQUIRE (regions.size() == s.sections.size());
+            for (std::size_t i = 0; i < s.sections.size(); ++i)
+            {
+                const Section& sec = s.sections[i];
+                const json::Node r = regions.at (i);
+                INFO ("region " << i + 1 << ", " << sec.kind);
+                CHECK (r["lengthTicks"].integer (0, 1 << 30) == static_cast<std::int64_t> (sec.bars) * 1920);
+                std::vector<std::string> lanes;
+                for (std::size_t l = 0; l < s.lanes.size(); ++l)
+                    for (const auto block : sec.blocks)
+                        if (block & (std::uint64_t (1) << l))
+                        {
+                            lanes.push_back (s.lanes[l].id);
+                            break;
+                        }
+                CHECK (r["lanes"].strings (0, 32) == lanes);
+                const json::Node blocks = r["blocks"];
+                REQUIRE (blocks.size() == sec.blocks.size());
+                std::vector<std::string> fromBlocks;
+                for (std::size_t k = 0; k < sec.blocks.size(); ++k)
+                    for (const auto& lane : blocks.at (k)["lanes"].strings (0, 32))
+                        if (std::find (fromBlocks.begin(), fromBlocks.end(), lane) == fromBlocks.end())
+                            fromBlocks.push_back (lane);
+                std::vector<std::string> ordered;
+                for (const auto& l : s.lanes)
+                    if (std::find (fromBlocks.begin(), fromBlocks.end(), l.id) != fromBlocks.end())
+                        ordered.push_back (l.id);
+                CHECK (r["lanes"].strings (0, 32) == ordered);
+            }
+            INFO (errors.first());
+            CHECK_FALSE (errors.any());
+        }
+    }
+}
+
 TEST_CASE ("styles: quantized files sit on the 16th grid and feel files don't", "[gen][styles][export]")
 {
     for (const char* id : kits)

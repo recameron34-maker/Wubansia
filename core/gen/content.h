@@ -125,7 +125,7 @@ namespace wubansia::gen
         std::int32_t n = 16; // steps per cycle: 8, 16 or 32
         Range rotation; // drawn per variant
         std::int32_t p = 100; // percent per hit, drawn per variant
-        Range vel;
+        Range vel; // drawn per variant and cell, so the cycle's accent shape repeats
         std::int32_t accent = 0; // added to the cycle's first hit
     };
 
@@ -134,8 +134,8 @@ namespace wubansia::gen
         std::int32_t every = 3; // a hit every `every` 16ths...
         std::int32_t resetBars = 8; // ...counted from the last reset, every resetBars bars
         Range phase; // drawn per variant
-        std::int32_t p = 100;
-        Range vel;
+        std::int32_t p = 100; // percent per hit, drawn per variant and position in the cycle
+        Range vel; // drawn per variant and position in the cycle, so the accents repeat
         std::int32_t accent = 0; // added to the first hit after each reset
     };
 
@@ -346,6 +346,16 @@ namespace wubansia::gen
         std::vector<std::int32_t> shape; // chord-root degrees, read cyclically
     };
 
+    // The low-interval limits every chord voicing keeps (voicingCandidates), so stacks stay clear in
+    // the low mids: wide spacing at the bottom, and no semitone or minor-ninth rub low in the stack.
+    struct MudSpec
+    {
+        std::int32_t below = 52; // below this note...
+        std::int32_t gap = 5; // ...neighbouring voices are at least this far apart
+        std::int32_t minorSecond = 0; // no two voices a semitone apart with the lower one below this note
+        std::int32_t minorNinth = 0; // no two voices a minor ninth apart with the lower one below this note
+    };
+
     struct HarmonySpec
     {
         std::vector<Weighted> modes; // value: Mode
@@ -366,8 +376,7 @@ namespace wubansia::gen
         std::vector<std::pair<std::string, std::string>> use; // section kind -> slot
         std::vector<std::pair<std::string, std::vector<std::string>>> palette; // section kind -> voicing names
         std::vector<VoicingSpec> voicings;
-        std::int32_t mudBelow = 52; // below this note...
-        std::int32_t mudGap = 5; // ...neighbouring voices are at least this far apart
+        MudSpec mud;
         std::int32_t revoice = 30; // percent: a recurring chord takes its second-best voicing
         std::vector<std::string> arcs; // rise | fall | arch | flat
 

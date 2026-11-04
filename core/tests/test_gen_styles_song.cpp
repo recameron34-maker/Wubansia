@@ -23,6 +23,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 using namespace wubansia;
@@ -479,6 +480,84 @@ TEST_CASE ("styles: a bars cut gives exactly the whole song's first bars", "[gen
         o.bars = 20;
         CHECK_THAT (generate (bundleFor (id), o).error, ContainsSubstring ("8"));
     }
+}
+
+TEST_CASE ("styles: a cut at every section line is exactly the head of the whole song", "[gen][styles][song]")
+{
+    // The prefix promise (duck.h, cc.h, hold.h, lanes.cpp) at every section line of all four kits,
+    // not one: every score and performed note and every controller before the cut. A bass note right
+    // before a section whose first note sits on the line keeps the same length in both.
+    for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
+        for (std::uint64_t seed = 0; seed < 4; ++seed)
+        {
+            const Song full = songFor (id, seed);
+            std::int32_t cut = 0;
+            for (std::size_t si = 0; si + 1 < full.sections.size(); ++si)
+            {
+                cut += full.sections[si].bars;
+                const Song head = songOf (bundleFor (id), seed, cut);
+                const std::int64_t end = static_cast<std::int64_t> (cut) * ticksPerBar;
+                for (std::size_t l = 0; l < full.lanes.size(); ++l)
+                {
+                    INFO (id << " seed " << seed << " cut at bar " << cut << ", lane " << full.lanes[l].id);
+                    for (const bool performed : { false, true })
+                    {
+                        std::vector<Note> want;
+                        for (const Note& n : performed ? full.lanes[l].perf : full.lanes[l].score)
+                            if (n.tick < end)
+                                want.push_back (n);
+                        CHECK ((performed ? head.lanes[l].perf : head.lanes[l].score) == want);
+                    }
+                    std::vector<ControlPoint> cc;
+                    for (const ControlPoint& c : full.lanes[l].cc)
+                        if (c.tick < end)
+                            cc.push_back (c);
+                    CHECK (head.lanes[l].cc == cc);
+                }
+            }
+        }
+}
+
+TEST_CASE ("styles: a cut on any 8-bar line inside a section keeps the planned-length rules", "[gen][styles][song]")
+{
+    // Inside a section the stages, the ramp and the CC arcs run on its planned length, so a cut
+    // there changes only what touches its end: every score and performed note that ends a beat
+    // before the cut, and every controller before it, is the whole song's.
+    for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
+        for (std::uint64_t seed = 0; seed < 4; ++seed)
+        {
+            const Song full = songFor (id, seed);
+            std::size_t cuts = 0;
+            for (const Section& sec : full.sections)
+                for (std::int32_t b = 8; b < sec.bars; b += 8)
+                {
+                    const std::int32_t cut = sec.startBar + b;
+                    const Song head = songOf (bundleFor (id), seed, cut);
+                    const std::int64_t end = static_cast<std::int64_t> (cut) * ticksPerBar;
+                    ++cuts;
+                    for (std::size_t l = 0; l < full.lanes.size(); ++l)
+                    {
+                        INFO (id << " seed " << seed << " cut at bar " << cut << " inside the " << sec.kind << ", lane " << full.lanes[l].id);
+                        for (const bool performed : { false, true })
+                        {
+                            std::vector<Note> want, got;
+                            for (const Note& n : performed ? full.lanes[l].perf : full.lanes[l].score)
+                                if (n.tick + n.length <= end - 480)
+                                    want.push_back (n);
+                            for (const Note& n : performed ? head.lanes[l].perf : head.lanes[l].score)
+                                if (n.tick + n.length <= end - 480)
+                                    got.push_back (n);
+                            CHECK (got == want);
+                        }
+                        std::vector<ControlPoint> cc;
+                        for (const ControlPoint& c : full.lanes[l].cc)
+                            if (c.tick < end)
+                                cc.push_back (c);
+                        CHECK (head.lanes[l].cc == cc);
+                    }
+                }
+            CHECK (cuts >= 12);
+        }
 }
 
 TEST_CASE ("styles: the bass, chords and arp change on phrase lines", "[gen][styles][song]")
@@ -1045,6 +1124,54 @@ TEST_CASE ("techno: the acid line rolls 16ths with accents, ghosts, slides and o
     CHECK (slides * 4 >= bars); // a slide every 4 bars or so
     CHECK (octaveBars * 100 >= bars * 50);
     CHECK (onKick * 100 <= onsets * 12); // it rests on the kick, but for squelch ticks
+}
+
+TEST_CASE ("styles: a Euclidean or polymeter hit keeps its velocity within a variant", "[gen][styles][song]")
+{
+    // Like a cell's fixed velocity, a cycle's accent shape repeats: the score velocity of a Euclid
+    // hit is its cell's, of a polymeter hit its position's in the reset cycle, for the whole of a
+    // pattern variant (the feel's 1/f velocity adds the life on top). FUT04's anvil 3/16 among them.
+    for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
+    {
+        const Bundle& b = bundleFor (id);
+        std::size_t hits = 0, repeats = 0;
+        for (std::uint64_t seed = 0; seed < 8; ++seed)
+        {
+            const Song s = songFor (id, seed);
+            for (std::size_t li = 0; li < s.lanes.size(); ++li)
+            {
+                const LaneSpec& lane = b.style.lanes[li];
+                if (lane.kind != LaneKind::drums)
+                    continue;
+                // (section, variant, voice, cell or cycle position) -> the velocity first seen there
+                std::map<std::tuple<std::int16_t, std::int32_t, std::uint8_t, std::int64_t>, std::uint8_t> seen;
+                for (const Note& n : s.lanes[li].score)
+                {
+                    const Section& sec = s.sections[static_cast<std::size_t> (n.section)];
+                    const std::string_view gridName = lane.gridFor (sec.kind);
+                    const auto g = std::find_if (lane.drums.grids.begin(), lane.drums.grids.end(), [&] (const DrumGrid& x) { return x.name == gridName; });
+                    if (g == lane.drums.grids.end() || !g->stages.empty() || g->ramp)
+                        continue;
+                    const std::string& voice = lane.drums.voices[n.voice].id;
+                    const auto v = std::find_if (g->voices.begin(), g->voices.end(), [&] (const DrumVoiceGrid& x) { return x.voice == voice; });
+                    if (v == g->voices.end() || !(v->euclid || v->poly) || (n.flags & (noteFlag::euclid | noteFlag::poly)) == 0)
+                        continue;
+                    const auto bar = static_cast<std::int32_t> (n.tick / ticksPerBar - sec.startBar);
+                    const std::int32_t variant = variantAt (s, b.style, li, sec.index, bar);
+                    const std::int64_t at = v->poly ? n.step % (static_cast<std::int64_t> (v->poly->resetBars) * stepsPerBar) : (bar % 2) * 16 + n.step % 16;
+                    ++hits;
+                    const auto [it, fresh] = seen.emplace (std::make_tuple (n.section, variant, n.voice, at), n.velocity);
+                    if (fresh)
+                        continue;
+                    ++repeats;
+                    INFO (id << " seed " << seed << " " << lane.id << "/" << voice << " section " << sec.index << " variant " << variant << " at " << at);
+                    CHECK (int (n.velocity) == int (it->second));
+                }
+            }
+        }
+        INFO (id << ": " << hits << " Euclid and polymeter hits, " << repeats << " of them a repeat of a place");
+        CHECK (repeats > 500);
+    }
 }
 
 TEST_CASE ("techno: the rumble follows every kick and never rings over one", "[gen][styles][techno]")

@@ -688,5 +688,258 @@
     "group": "perc"
    }
   ]
+ },
+ "bands": {
+  "g3": [
+   {
+    "drum_windows": 10,
+    "drum_repeated": 4,
+    "bass_windows": 10,
+    "bass_repeated": 3,
+    "pass": 1
+   },
+   {
+    "drum_windows": 10,
+    "drum_repeated": 5,
+    "bass_windows": 10,
+    "bass_repeated": 3,
+    "pass": 0
+   },
+   {
+    "drum_windows": 10,
+    "drum_repeated": 4,
+    "bass_windows": 10,
+    "bass_repeated": 4,
+    "pass": 0
+   },
+   {
+    "drum_windows": 1000,
+    "drum_repeated": 400,
+    "bass_windows": 1000,
+    "bass_repeated": 300,
+    "pass": 1
+   },
+   {
+    "drum_windows": 1000,
+    "drum_repeated": 401,
+    "bass_windows": 1000,
+    "bass_repeated": 300,
+    "pass": 0
+   },
+   {
+    "drum_windows": 1000,
+    "drum_repeated": 400,
+    "bass_windows": 1000,
+    "bass_repeated": 301,
+    "pass": 0
+   },
+   {
+    "drum_windows": 10,
+    "drum_repeated": 0,
+    "bass_windows": 10,
+    "bass_repeated": 0,
+    "pass": 1
+   },
+   {
+    "drum_windows": 0,
+    "drum_repeated": 0,
+    "bass_windows": 10,
+    "bass_repeated": 0,
+    "pass": 0
+   },
+   {
+    "drum_windows": 10,
+    "drum_repeated": 0,
+    "bass_windows": 0,
+    "bass_repeated": 0,
+    "pass": 0
+   }
+  ],
+  "g5_drums": [
+   {
+    "windows": 1,
+    "median_distinct": 10,
+    "median_sd_milli": 6000,
+    "pass": 1
+   },
+   {
+    "windows": 1,
+    "median_distinct": 10,
+    "median_sd_milli": 22000,
+    "pass": 1
+   },
+   {
+    "windows": 1,
+    "median_distinct": 9,
+    "median_sd_milli": 10000,
+    "pass": 0
+   },
+   {
+    "windows": 1,
+    "median_distinct": 10,
+    "median_sd_milli": 5999,
+    "pass": 0
+   },
+   {
+    "windows": 1,
+    "median_distinct": 10,
+    "median_sd_milli": 22001,
+    "pass": 0
+   },
+   {
+    "windows": 0,
+    "median_distinct": 10,
+    "median_sd_milli": 10000,
+    "pass": 0
+   }
+  ],
+  "g5_melodic": [
+   {
+    "windows": 1,
+    "median_distinct": 6,
+    "median_sd_milli": 8000,
+    "pass": 1
+   },
+   {
+    "windows": 1,
+    "median_distinct": 5,
+    "median_sd_milli": 8000,
+    "pass": 0
+   },
+   {
+    "windows": 1,
+    "median_distinct": 6,
+    "median_sd_milli": 7999,
+    "pass": 0
+   },
+   {
+    "windows": 1,
+    "median_distinct": 6,
+    "median_sd_milli": 99999,
+    "pass": 1
+   },
+   {
+    "windows": 0,
+    "median_distinct": 6,
+    "median_sd_milli": 8000,
+    "pass": 0
+   }
+  ],
+  "g6": [
+   {
+    "stacks": 10,
+    "two_velocities": 7,
+    "max_spread_ticks": 4,
+    "pass": 1
+   },
+   {
+    "stacks": 10,
+    "two_velocities": 6,
+    "max_spread_ticks": 4,
+    "pass": 0
+   },
+   {
+    "stacks": 10,
+    "two_velocities": 7,
+    "max_spread_ticks": 5,
+    "pass": 0
+   },
+   {
+    "stacks": 1000,
+    "two_velocities": 700,
+    "max_spread_ticks": 0,
+    "pass": 1
+   },
+   {
+    "stacks": 1000,
+    "two_velocities": 699,
+    "max_spread_ticks": 0,
+    "pass": 0
+   },
+   {
+    "stacks": 10,
+    "two_velocities": 10,
+    "max_spread_ticks": 0,
+    "pass": 1
+   },
+   {
+    "stacks": 0,
+    "two_velocities": 0,
+    "max_spread_ticks": 0,
+    "pass": 0
+   }
+  ],
+  "g7": [
+   {
+    "files": 1,
+    "median_sd_milli": 1500,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 650,
+    "pass": 1
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 6000,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 1100,
+    "pass": 1
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 1499,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 650,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 6001,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 650,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 1500,
+    "median_lag1_pm": 199,
+    "median_alpha_milli": 650,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 1500,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 649,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 1500,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 1101,
+    "pass": 0
+   },
+   {
+    "files": 0,
+    "median_sd_milli": 1500,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 650,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 3000,
+    "median_lag1_pm": -9999,
+    "median_alpha_milli": 800,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 3000,
+    "median_lag1_pm": 400,
+    "median_alpha_milli": -9999,
+    "pass": 0
+   }
+  ]
  }
 }

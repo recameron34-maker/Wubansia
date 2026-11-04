@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "garage2step",
-  "about": "Future garage / UK 2-step: a 2-step kick (beat 1 and a skip around the and of 3, never four on the floor), backbeat snare and clap with ghosts a 16th or two before, shuffled swung hats and data ticks, Euclidean and 3/16 polymeter perc, a sub that follows the kick and holds across the skipped beat with octave answers in the gaps, organ/reese stabs pushed early. Builds roll up from quarter notes to 16ths under a crescendo while the hats open up and the stabs' filter sweeps up into the drop. Arranged as a DJ-friendly extended mix.",
+  "about": "Future garage / UK 2-step: a 2-step kick (beat 1 and a skip around the and of 3, never four on the floor), backbeat snare and clap with ghosts a 16th or two before, shuffled swung hats and data ticks, Euclidean and 3/16 polymeter perc, a sub that leaves the kick its steps: it starts on the a of 1, holds through beat 2 and answers the kick in the gaps, organ/reese stabs pushed early. Builds roll up from quarter notes to 16ths under a crescendo while the hats open up and the stabs' filter sweeps up into the drop. Arranged as a DJ-friendly extended mix.",
   "sections": {
     "intro": { "energy": 1, "vel": 930 },
     "groove": { "energy": 2, "vel": 960 },
@@ -101,7 +101,7 @@
       { "name": "m9", "degrees": [0, 4, 6, 9, 8], "span": [17, 28], "top": [70, 81], "center": 62 },
       { "name": "m11", "degrees": [0, 4, 6, 9, 10], "span": [17, 29], "top": [69, 81], "center": 62, "quality": "minor" }
     ],
-    "mud": { "below": 52, "gap": 5 },
+    "mud": { "below": 52, "gap": 5, "minorSecond": 64, "minorNinth": 60 },
     "revoice": 30,
     "arcs": ["rise", "fall", "arch"]
   },
@@ -240,7 +240,6 @@
               "spread": 6,
               "orn": [8, 12, 0, 12,  8, 12, 0, 12,  8, 12, 0, 12,  8, 12, 0, 12],
               "ornVel": [42, 58],
-              "skip": 6,
               "turn": [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  30, 40, 0, 45],
               "turnVel": [60, 80]
             },
@@ -364,18 +363,17 @@
       "restrike": 480,
       "grids": {
         "main": {
-          "follow": [95, 0, 0, 0,   0, 0, 40, 50,  0, 0, 78, 40,  0, 0, 30, 30,
-                     92, 0, 0, 30,  0, 0, 40, 55,  0, 0, 72, 40,  0, 0, 30, 30],
-          "p":      [0, 0, 0, 0,   0, 0, 0, 8,   0, 10, 0, 30,   0, 32, 38, 28,
-                     0, 0, 0, 0,   0, 0, 0, 0,   0, 12, 0, 30,  0, 34, 40, 32],
+          "follow": [0, 0, 0, 100,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0],
+          "p":      [0, 0, 0, 100,  0, 0, 45, 60,  30, 0, 0, 0,  45, 30, 25, 0,
+                     0, 0, 0, 100,  0, 50, 0, 0,   55, 0, 0, 35,  45, 40, 0, 20],
           "orn":    [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 30, 0, 0,
                      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 40, 0, 30],
           "ornBars": 8,
-          "deg":    [0, 1, 1, 1,  0, 3, 3, 2,  0, 3, 2, 3,  0, 3, 3, 3,
-                     0, 1, 1, 1,  0, 3, 3, 2,  0, 3, 2, 3,  0, 3, 4, 3],
-          "len":    [0, 90, 90, 100,  0, 200, 200, 0,  0, 200, 0, 220,  0, 200, 200, 110],
-          "vel":    [112, 84, 84, 86,  100, 90, 94, 100,  100, 90, 104, 94,  100, 92, 96, 90,
-                     110, 84, 84, 88,  100, 90, 94, 102,  100, 90, 102, 94,  100, 92, 96, 92],
+          "deg":    [0, 0, 0, 0,  0, 0, 2, 3,  1, 0, 0, 0,  3, 2, 2, 0,
+                     0, 0, 0, 0,  0, 2, 0, 0,  4, 0, 0, 3,  4, 2, 0, 1],
+          "len":    [0, 0, 0, 0,  0, 0, 200, 190,  180, 0, 0, 0,  300, 200, 200, 0],
+          "vel":    [0, 0, 0, 114,  0, 0, 92, 96,  108, 0, 0, 0,  100, 92, 90, 0,
+                     0, 0, 0, 112,  0, 94, 0, 0,   104, 0, 0, 88,  96, 98, 0, 86],
           "spread": 5,
           "ornVel": [68, 80],
           "ornDeg": 1

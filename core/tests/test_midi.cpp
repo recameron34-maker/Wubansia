@@ -414,6 +414,14 @@ TEST_CASE ("toFile refuses specs with mistakes and says where", "[midi]")
         s.tracks[1].notes.push_back ({ 0, 60, 1, 42, 80 }); // same tick, same key
         CHECK_THAT (writeError (s), ContainsSubstring ("overlap"));
 
+        // the edge: smallSpec's bass notes {0, 480} and {480, ...} on F#2 abut and are fine; one
+        // tick longer and they overlap
+        s = smallSpec();
+        REQUIRE (s.tracks[1].notes[0].tick + s.tracks[1].notes[0].length == s.tracks[1].notes[1].tick);
+        CHECK (midi::writeSmf (s).ok());
+        s.tracks[1].notes[0].length += 1;
+        CHECK_THAT (writeError (s), ContainsSubstring ("overlap") && ContainsSubstring ("length 481"));
+
         // Another channel, another key or another track is fine.
         s = smallSpec();
         s.tracks[1].notes.push_back ({ 400, 120, 2, 42, 80 });

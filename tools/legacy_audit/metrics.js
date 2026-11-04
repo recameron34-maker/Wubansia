@@ -201,6 +201,23 @@ function barsOf(notes, bar0, nBars) {
   for (const n of between(notes, bar0 * BAR, (bar0 + nBars) * BAR)) bars[floorDiv(n.tick, BAR) - bar0].push(n);
   return bars;
 }
+/* ---------- the gating bands (plan §5.1) as pure functions of each gate's aggregate ---------- */
+// G3, G5, G6 and G7 decide pass with these. fixtures/expected.json "bands" pins every bound at its edge,
+// for this file and for core/metrics/gating.cpp's copies (core::metrics::bands), so neither drifts.
+const bands = {
+  // G3: drum lanes repeat in at most 40% of their 4-bar windows, the bass in at most 30%
+  g3: (drumWindows, drumRepeated, bassWindows, bassRepeated) =>
+    drumWindows > 0 && bassWindows > 0 && 10 * drumRepeated <= 4 * drumWindows && 10 * bassRepeated <= 3 * bassWindows,
+  // G5: a drum group's median 8-bar window has 10 or more velocities and an SD of 6 to 22; a melodic one 6 or more and 8 or more
+  g5Drums: (windows, medianDistinct, medianSdMilli) => windows > 0 && medianDistinct >= 10 && medianSdMilli >= 6000 && medianSdMilli <= 22000,
+  g5Melodic: (windows, medianDistinct, medianSdMilli) => windows > 0 && medianDistinct >= 6 && medianSdMilli >= 8000,
+  // G6: 70% or more of the chord stacks have two or more velocities, and none spreads over more than 4 ticks
+  g6: (stacks, twoVelocities, maxSpreadTicks) => stacks > 0 && 10 * twoVelocities >= 7 * stacks && maxSpreadTicks <= 4,
+  // G7, per feel lane: the median file's residual SD 1.5 to 6 ticks, lag-1 0.2 or more, DFA alpha 0.65 to 1.1
+  g7: (files, medianSdMilli, medianLag1Pm, medianAlphaMilli) => files > 0 && medianSdMilli >= 1500 && medianSdMilli <= 6000 && medianLag1Pm >= 200 &&
+    medianAlphaMilli >= 650 && medianAlphaMilli <= 1100
+};
+
 const fourOnTheFloor = bar => [0, 480, 960, 1440].every(beat => bar.some(n => Math.abs(mod(n.tick, BAR) - beat) <= 2));
 function g3Windows(song) {
   const out = { drums: [0, 0, 0], bass: [0, 0] }; // drums: windows, repeated, exempt; bass: windows, repeated
@@ -242,7 +259,7 @@ function g3(songs) {
   return {
     drum_windows: dw, drum_repeated: dr, drum_repeated_pm: permille(dr, dw), kick_4x4_exempt: de,
     bass_windows: bw, bass_repeated: br, bass_repeated_pm: permille(br, bw),
-    pass: dw > 0 && bw > 0 && 10 * dr <= 4 * dw && 10 * br <= 3 * bw ? 1 : 0,
+    pass: bands.g3(dw, dr, bw, br) ? 1 : 0,
     per_file: perFile
   };
 }
@@ -343,8 +360,8 @@ function g5(songs) {
   for (const g of Object.keys(G5_GROUPS)) {
     res[g] = { windows: all[g].length, median_distinct: lowerMedian(all[g].map(x => x.distinct)) ?? -1, median_sd_milli: lowerMedian(all[g].map(x => x.sd_milli)) ?? -1 };
   }
-  const drumOk = g => res[g].windows > 0 && res[g].median_distinct >= 10 && res[g].median_sd_milli >= 6000 && res[g].median_sd_milli <= 22000;
-  const melOk = g => res[g].windows > 0 && res[g].median_distinct >= 6 && res[g].median_sd_milli >= 8000;
+  const drumOk = g => bands.g5Drums(res[g].windows, res[g].median_distinct, res[g].median_sd_milli);
+  const melOk = g => bands.g5Melodic(res[g].windows, res[g].median_distinct, res[g].median_sd_milli);
   res.pass = drumOk('hats') && drumOk('perc') && drumOk('ghosts') && melOk('bass') && melOk('lead') ? 1 : 0;
   res.per_file = perFile;
   return res;
@@ -390,7 +407,7 @@ function g6(songs) {
   return {
     stacks, two_velocities: twoVel, two_velocities_pm: permille(twoVel, stacks), max_spread_ticks: maxSpread,
     spread_histogram: numHist(spreads),
-    pass: stacks > 0 && 10 * twoVel >= 7 * stacks && maxSpread <= 4 ? 1 : 0,
+    pass: bands.g6(stacks, twoVel, maxSpread) ? 1 : 0,
     per_file: perFile
   };
 }
@@ -489,8 +506,7 @@ function g7(songs) {
       alpha_undefined: L.filter(r => r.alpha_milli === -9999).length
     };
   }
-  const ok = l => res[l].files > 0 && res[l].median_sd_milli >= 1500 && res[l].median_sd_milli <= 6000 && res[l].median_lag1_pm >= 200 &&
-    res[l].median_alpha_milli >= 650 && res[l].median_alpha_milli <= 1100;
+  const ok = l => bands.g7(res[l].files, res[l].median_sd_milli, res[l].median_lag1_pm, res[l].median_alpha_milli);
   res.pass = ok('hats') && ok('perc') ? 1 : 0;
   res.per_file = perFile;
   return res;
@@ -939,7 +955,7 @@ function iAnchors(songs) {
 
 module.exports = {
   helpers: { popcount, pcMask, rotate, lowerMedian, permille, permilleBig, sdMilli, stacksOf, harmonyStacks, harmonySlots, between, residuals, swingDelay, distinctSwings, lag1Permille, dfaAlphaMilli, macroChanges, stepBars, fillBarsOf, sectionsOf, notesWithRole, drumNotesIn, GROUPS, sortedObject, numHist, strHist, histogram, topOf },
-  g1, g2, g3, g4, g5, partLevels, g6, g7, g8, g9, g10, progressionShape, harmonicRhythm, macroChangeBars, laneSwings, formShape,
+  bands, g1, g2, g3, g4, g5, partLevels, g6, g7, g8, g9, g10, progressionShape, harmonicRhythm, macroChangeBars, laneSwings, formShape,
   rRepetition, rLoopTiling, rHatAccent, accentPeriod, rGateRule, rChordTones, rBreath, rLeadShape, voicingType, rVoicing, rOddCycles, rDuplicates, lhl, rSyncopation,
   iInKey, iSwungGrid, iKickBass, iSections, iAnchors, fileSwing
 };

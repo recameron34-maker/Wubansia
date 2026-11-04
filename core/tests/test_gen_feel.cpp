@@ -18,6 +18,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -257,7 +258,73 @@ TEST_CASE ("anchors stay within 2 ticks and nothing leaves its section", "[gen][
                 }
             }
             CHECK (anchors > 100);
+            CHECK (bundleFor (id).feel.anchorClamp == 2); // plan §4.1: anchors within +-2 ticks
         }
+}
+
+TEST_CASE ("an anchor that plays after another voice stays within the clamp of its swung place", "[gen][feel]")
+{
+    // The shipped content never anchors an "after" voice (the garage clap is 70/92%), so this edits
+    // garage2step's main snare grid: the clap anchored with the snare, on even steps (4 and 12,
+    // unswung) and on odd ones (5 and 13, the 16th plus the lane's swing). The after rule puts the
+    // clap 4-8 ticks behind the snare; as an anchor it must stay within the clamp of its own place.
+    const auto read = [] (const std::filesystem::path& p) {
+        const auto r = util::readBinaryFile (p);
+        REQUIRE (r.ok());
+        return std::string (r.value.begin(), r.value.end());
+    };
+    const auto replaced = [] (std::string text, std::string_view from, std::string_view to) {
+        const auto at = text.find (from);
+        REQUIRE (at != std::string::npos);
+        return text.replace (at, from.size(), to);
+    };
+    const auto content = std::filesystem::path (WUBANSIA_SOURCE_DIR) / "content";
+    const std::string style = read (content / "styles" / "garage2step.json");
+    const std::string snareP = "\"p\":   [0, 0, 0, 0,  100, 0, 0, 0,  0, 0, 0, 0,  100, 0, 0, 0],\n              \"vel\": [0, 0, 0, 0,  110, 0, 0, 0,  0, 0, 0, 0,  114, 0, 0, 0],";
+    const std::string clapP = "\"p\":   [0, 0, 0, 0,  70, 0, 0, 0,  0, 0, 0, 0,  92, 0, 0, 0,\n                      0, 0, 0, 0,  66, 0, 0, 0,  0, 0, 0, 0,  94, 0, 0, 0],\n"
+                              "              \"vel\": [0, 0, 0, 0,  104, 0, 0, 0,  0, 0, 0, 0,  110, 0, 0, 0],";
+    const std::string even = replaced (style, clapP, "\"p\":   [0, 0, 0, 0,  100, 0, 0, 0,  0, 0, 0, 0,  100, 0, 0, 0],\n              \"vel\": [0, 0, 0, 0,  104, 0, 0, 0,  0, 0, 0, 0,  110, 0, 0, 0],");
+    const std::string odd = replaced (replaced (style, snareP, "\"p\":   [0, 0, 0, 0,  0, 100, 0, 0,  0, 0, 0, 0,  0, 100, 0, 0],\n              \"vel\": [0, 0, 0, 0,  0, 110, 0, 0,  0, 0, 0, 0,  0, 114, 0, 0],"),
+        clapP, "\"p\":   [0, 0, 0, 0,  0, 100, 0, 0,  0, 0, 0, 0,  0, 100, 0, 0],\n              \"vel\": [0, 0, 0, 0,  0, 104, 0, 0,  0, 0, 0, 0,  0, 110, 0, 0],");
+    for (const auto& [name, text, steps] : { std::tuple { "even", even, std::pair { 4, 12 } }, std::tuple { "odd", odd, std::pair { 5, 13 } } })
+    {
+        INFO (name << " steps");
+        auto kit = parseKit (read (content / "kits" / "fut01.json"), "kit.json");
+        auto sty = parseStyle (text, "style.json");
+        auto feel = parseFeel (read (content / "feels" / "garage2step.json"), "feel.json");
+        REQUIRE (kit.ok());
+        INFO (sty.error);
+        REQUIRE (sty.ok());
+        REQUIRE (feel.ok());
+        auto bundle = makeBundle (std::move (kit.value), std::move (sty.value), std::move (feel.value));
+        REQUIRE (bundle.ok());
+        const Bundle& b = bundle.value;
+        const std::size_t clap = 1; // the snare lane's voices: snare, clap, ghost
+        REQUIRE (b.style.lanes[*b.style.laneIndex ("snare")].drums.voices[clap].id == "clap");
+        std::size_t checked = 0;
+        for (std::uint64_t seed = 1; seed <= 8; ++seed)
+        {
+            Options o;
+            o.seed = seed;
+            const auto s = generate (b, o);
+            REQUIRE (s.ok());
+            const LaneOut& lane = laneOf (s.value, "snare");
+            for (std::size_t i = 0; i < lane.score.size(); ++i)
+            {
+                const Note& n = lane.score[i];
+                const Section& sec = s.value.sections[static_cast<std::size_t> (n.section)];
+                const FeelLane f = b.feel.resolve ("snare", sec.kind);
+                const std::int64_t j = n.step % stepsPerBar;
+                if (n.voice != clap || !(n.flags & noteFlag::anchor) || !f.anchor.value_or (false) || (j != steps.first && j != steps.second))
+                    continue;
+                ++checked;
+                const std::int64_t place = n.tick + (n.step % 2 != 0 ? swingDelay (b.kit.swing + f.swing->lo) : 0);
+                INFO ("seed " << seed << " clap at score tick " << n.tick << ", performed " << lane.perf[i].tick << ", its place " << place);
+                CHECK (std::abs (lane.perf[i].tick - place) <= b.feel.anchorClamp);
+            }
+        }
+        CHECK (checked > 50);
+    }
 }
 
 TEST_CASE ("nothing leaves its section even at the feel's extremes", "[gen][feel]")
@@ -334,6 +401,8 @@ TEST_CASE ("nothing leaves its section even at the feel's extremes", "[gen][feel
 TEST_CASE ("the low-end lock puts bass onsets on kick steps exactly on the kick", "[gen][feel]")
 {
     for (const char* id : { "FUT01", "FUT03" })
+    {
+        std::size_t coincident = 0;
         for (std::uint64_t seed = 1; seed <= 16; ++seed)
         {
             INFO (id << " seed " << seed);
@@ -341,7 +410,6 @@ TEST_CASE ("the low-end lock puts bass onsets on kick steps exactly on the kick"
             std::map<std::int64_t, std::int64_t> kickAt; // step -> performed tick
             for (const Note& n : laneOf (s, "kick").perf)
                 kickAt.emplace (n.step, n.tick);
-            std::size_t coincident = 0;
             for (const Note& n : laneOf (s, "bass").perf)
             {
                 const auto it = kickAt.find (n.step);
@@ -350,9 +418,13 @@ TEST_CASE ("the low-end lock puts bass onsets on kick steps exactly on the kick"
                 ++coincident;
                 CHECK (n.tick == it->second);
             }
-            if (std::string (id) == "FUT01")
-                CHECK (coincident > 50); // the garage sub follows the kick
         }
+        // the garage sub leaves the kick its steps now, but for its first note under a rare skip
+        // kick and approach notes: enough to check the lock on
+        INFO (id << ": " << coincident << " bass onsets on a kick step");
+        if (std::string (id) == "FUT01")
+            CHECK (coincident > 50);
+    }
 }
 
 TEST_CASE ("the clap plays 4-8 ticks behind the snare in 2-step", "[gen][feel]")

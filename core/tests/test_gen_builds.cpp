@@ -123,6 +123,89 @@ TEST_CASE ("builds: the loader reads a grid's stages and ramp, and refuses broke
         ContainsSubstring ("voices"));
     // a stage plays under the staged grid's ramp, so it can't ramp on its own
     CHECK_THAT (refusal ("\"build4\": {", "\"build4\": { \"ramp\": [800, 900],"), ContainsSubstring ("ramp"));
+    // and a ladder has no "sync" or "never" of its own either: its stages' patterns hold them
+    CHECK_THAT (refusal (staged, staged + std::string (", \"sync\": [11, 24]")), ContainsSubstring ("stages"));
+    CHECK_THAT (refusal (staged, staged + std::string (", \"never\": [[0, 4, 8, 12]]")), ContainsSubstring ("stages"));
+}
+
+TEST_CASE ("builds: the ramp scales a build's first bar by its low end and its last planned bar by its high end", "[gen][builds]")
+{
+    // FUT01's snare build ramps [650, 1100] over the section's planned bars; with every spread at 0
+    // each hit's score velocity is its cell's, scaled by the build's 950 and then exactly by the ramp
+    // (rounded half up, as the generator's roundDiv does).
+    Bundle b = bundleFor ("FUT01");
+    LaneSpec& spec = b.style.lanes[*b.style.laneIndex ("snare")];
+    for (auto& g : spec.drums.grids)
+        for (auto& v : g.voices)
+            v.spread = 0;
+    const auto gridNamed = [&] (std::string_view name) -> const DrumGrid& {
+        return *std::find_if (spec.drums.grids.begin(), spec.drums.grids.end(), [&] (const DrumGrid& g) { return g.name == name; });
+    };
+    const DrumGrid& build = gridNamed (spec.gridFor ("build"));
+    REQUIRE (build.ramp.has_value());
+    REQUIRE (build.ramp->lo == 650);
+    REQUIRE (build.ramp->hi == 1100);
+    const std::int64_t sectionVel = b.style.section ("build")->vel;
+    REQUIRE (sectionVel == 950);
+    const auto scaled = [] (std::int64_t v, std::int64_t permille) { return (2 * v * permille + 1000) / 2000; };
+    std::size_t firstBars = 0, lastBars = 0;
+    for (std::uint64_t seed = 0; seed < 4; ++seed)
+    {
+        Options o;
+        o.seed = seed;
+        const auto s = generate (b, o);
+        REQUIRE (s.ok());
+        const LaneOut& snare = laneOf (s.value, "snare");
+        for (const Section& sec : s.value.sections)
+        {
+            if (sec.kind != "build")
+                continue;
+            for (const Note& n : snare.score)
+            {
+                if (n.section != static_cast<std::int16_t> (sec.index) || n.voice != 0)
+                    continue;
+                const auto bar = static_cast<std::int32_t> (n.tick / ticksPerBar - sec.startBar);
+                if (bar != 0 && bar != sec.plannedBars - 1)
+                    continue;
+                const DrumGrid& g = gridNamed (build.stages[static_cast<std::size_t> (bar) * build.stages.size() / static_cast<std::size_t> (sec.plannedBars)]);
+                REQUIRE (g.voices.front().voice == "snare"); // the stages' first voice
+                const auto cell = static_cast<std::size_t> ((bar % 2) * 16 + n.step % 16);
+                const std::int64_t written = g.voices.front().vel[cell];
+                const std::int64_t ramp = bar == 0 ? 650 : 1100;
+                INFO ("seed " << seed << " build at bar " << sec.startBar << ", bar " << bar << " step " << n.step % 16 << ": written " << written);
+                CHECK (n.velocity == scaled (scaled (written, sectionVel), ramp));
+                ++(bar == 0 ? firstBars : lastBars);
+            }
+        }
+    }
+    CHECK (firstBars >= 16);
+    CHECK (lastBars >= 16);
+}
+
+TEST_CASE ("builds: in every style's data a drop starts at least as open as the build before it can end", "[gen][builds][styles]")
+{
+    // The sampled check below can't see a margin of 0: each CC lane's drop and drop2 rows start no
+    // lower than the build row's highest end, and a build row has no arches that could lift it past
+    // its "to" (round 1's defect was the filter closing at the drop).
+    std::size_t pairs = 0;
+    for (const char* id : kits)
+        for (const LaneSpec& lane : bundleFor (id).style.lanes)
+            for (const CcSpec& cc : lane.cc)
+            {
+                const CcRow* build = cc.row ("build");
+                if (build == nullptr)
+                    continue;
+                INFO (id << " " << lane.id << " CC" << cc.number);
+                CHECK (build->waveBars.empty());
+                for (const char* kind : { "drop", "drop2" })
+                    if (const CcRow* drop = cc.row (kind); drop != nullptr)
+                    {
+                        INFO (kind << " from " << drop->from.lo << "-" << drop->from.hi << ", the build to " << build->to.lo << "-" << build->to.hi);
+                        CHECK (drop->from.lo >= build->to.hi);
+                        ++pairs;
+                    }
+            }
+    CHECK (pairs >= 5);
 }
 
 TEST_CASE ("builds: each part of a build plays its stage, under a crescendo", "[gen][builds]")

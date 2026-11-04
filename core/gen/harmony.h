@@ -88,12 +88,13 @@ namespace wubansia::gen
     };
 
     // Every placement of a voicing type on a chord within the register [range.lo, range.hi]: each
-    // tone in some octave, all keys distinct, the span in spec.span, neighbours below mudBelow at
-    // least mudGap apart, the first tone lowest unless spec.inversions; with `choose`, every subset of
-    // that many tones. A scale-step tone a minor 9th or 2nd over the root takes the step two above
-    // (the 11th or 4th): no b9 on the chord's own root. In a fixed order (by the tones' octaves,
-    // lowest first).
-    std::vector<Voiced> voicingCandidates (const VoicingSpec& spec, std::int32_t tonicPc, Mode mode, std::int32_t degree, Range range, std::int32_t mudBelow, std::int32_t mudGap);
+    // tone in some octave, all keys distinct, the span in spec.span, the first tone lowest unless
+    // spec.inversions; with `choose`, every subset of that many tones. The mud rules (MudSpec):
+    // neighbours below mud.below at least mud.gap apart, no two keys a semitone apart with the lower
+    // one below mud.minorSecond, none a minor ninth apart with the lower one below mud.minorNinth. A
+    // scale-step tone a minor 9th or 2nd over the root takes the step two above (the 11th or 4th): no
+    // b9 on the chord's own root. In a fixed order (by the tones' octaves, lowest first).
+    std::vector<Voiced> voicingCandidates (const VoicingSpec& spec, std::int32_t tonicPc, Mode mode, std::int32_t degree, Range range, const MudSpec& mud);
 
     // The cost of a voicing after prev (nullptr for the first): voice-leading (each voice to the
     // previous voicing's voice at the same relative height) times 4, less 3 per common tone, plus

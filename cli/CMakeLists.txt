@@ -79,7 +79,8 @@ endif()
 # golden_check's last step (cmake/WubansiaGolden.cmake; plan sections 4.3 and 5.1): after the fresh
 # legacy export matches its manifest, the generator metrics score it. The step passes only if legacy
 # fails every gating band on its primary set (--expect-fail) and every one of the 5,842 values equals
-# the committed core/tests/legacy_expected.json (--check, never regenerated to make this pass).
+# the committed core/tests/legacy_expected.json, but for DFA alpha's tolerance of +-1 in thousandths
+# (--check, never regenerated to make this pass).
 if(COMMAND wubansia_golden_check_add_step)
     wubansia_golden_check_add_step(NAME metrics DEPENDS groovecore
         COMMAND groovecore metrics --legacy --expect-fail --check "${PROJECT_SOURCE_DIR}/core/tests/legacy_expected.json" "${WUBANSIA_GOLDEN_DIR}")

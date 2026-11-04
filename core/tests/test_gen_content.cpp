@@ -293,6 +293,8 @@ TEST_CASE ("the style loader refuses broken styles and says where", "[gen][conte
     CHECK_THAT (withStyle ("\"units\": [3, 1]", "\"units\": [3, 2]"), ContainsSubstring ("add up to 4"));
     // the bass follows a lane that doesn't exist
     CHECK_THAT (withStyle ("\"follow\": \"kick\",", "\"follow\": \"kik\","), ContainsSubstring ("kik"));
+    // a voice exclusive with itself would silence itself on every step it plays
+    CHECK_THAT (withStyle ("\"exclusive\": [[\"snare\", \"ghost\"]],", "\"exclusive\": [[\"snare\", \"snare\"]],"), ContainsSubstring ("exclusive with itself"));
 }
 
 TEST_CASE ("the style loader keeps every form a DJ-friendly extended mix", "[gen][content]")
@@ -340,6 +342,23 @@ TEST_CASE ("the style loader keeps every form a DJ-friendly extended mix", "[gen
     // a 24-bar mix-out
     CHECK_THAT (withStyle (outro, "{ \"kind\": \"outro\", \"bars\": 24, \"blocks\": [\n      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"],\n      [\"kick\", \"hats\", \"shaker\"],\n      [\"kick\", \"hats\"] ] }"),
         ContainsSubstring ("32 bars"));
+    // a mix-out whose last block keeps the bass: in every block, so lanes still only leave
+    const std::string bassStays = "{ \"kind\": \"outro\", \"bars\": 32, \"blocks\": [\n"
+                                  "      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"],\n"
+                                  "      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"],\n"
+                                  "      [\"kick\", \"hats\", \"shaker\", \"perc\", \"bass\"],\n"
+                                  "      [\"kick\", \"hats\", \"bass\"] ] }";
+    CHECK_THAT (withStyle (outro, bassStays), ContainsSubstring ("form[7].blocks[3]"));
+    CHECK_THAT (withStyle (outro, bassStays), ContainsSubstring ("drums only"));
+    // a form that doesn't start with an intro, or doesn't end with an outro
+    CHECK_THAT (withStyle (intro, replaced (intro, "\"kind\": \"intro\"", "\"kind\": \"groove\"")), ContainsSubstring ("form[0].kind"));
+    CHECK_THAT (withStyle (intro, replaced (intro, "\"kind\": \"intro\"", "\"kind\": \"groove\"")), ContainsSubstring ("starts with an intro"));
+    CHECK_THAT (withStyle (outro, replaced (outro, "\"kind\": \"outro\"", "\"kind\": \"groove\"")), ContainsSubstring ("form[7].kind"));
+    CHECK_THAT (withStyle (outro, replaced (outro, "\"kind\": \"outro\"", "\"kind\": \"groove\"")), ContainsSubstring ("ends with an outro"));
+    // a 40-bar mix-in: longer than 32 is refused too, not only shorter
+    const std::string longer = replaced (replaced (intro, "\"bars\": 32", "\"bars\": 40"), "\"bass\"] ] },", "\"bass\"],\n      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"] ] },");
+    CHECK_THAT (withStyle (intro, longer), ContainsSubstring ("form[0].bars"));
+    CHECK_THAT (withStyle (intro, longer), ContainsSubstring ("32 bars long, not 40"));
     // the shipped forms keep every rule, in all four styles
     for (const auto& [kit, style] : { std::pair { "fut01", "garage2step" }, std::pair { "fut02", "sciclub" }, std::pair { "fut03", "futurehouse" }, std::pair { "fut04", "techno" } })
     {
@@ -367,6 +386,52 @@ TEST_CASE ("the feel loader refuses broken feels and says where", "[gen][content
     CHECK_THAT (withFeel ("\"swing\": [10, 60]", "\"swing\": [60, 10]"), ContainsSubstring ("swing"));
     // every section kind needs a row
     CHECK_THAT (withFeel (",\n    \"outro\": {}", ""), ContainsSubstring ("outro"));
+}
+
+TEST_CASE ("the feel loader needs swing, sd and clamp at a lane's base, not only in a row", "[gen][content]")
+{
+    // A row only overrides: perform() reads all three for every section kind (and the lane's
+    // reported swing from its base), so a lane that sets one only in rows.drop has none elsewhere.
+    const Texts t = texts ("fut01", "garage2step");
+    REQUIRE (bundleError (t).empty());
+    const auto moved = [&t] (std::string_view base, std::string_view drop) {
+        Texts u = t;
+        u.feel = replaced (u.feel, "\"kick\": { \"swing\": [0, 0], \"sd\": [8, 12], \"clamp\": 4,", base);
+        u.feel = replaced (u.feel, "\"drop\": {},", "\"drop\": { \"kick\": { " + std::string (drop) + " } },");
+        return bundleError (u);
+    };
+    for (const auto& [base, drop] : { std::pair { "\"kick\": { \"sd\": [8, 12], \"clamp\": 4,", "\"swing\": [0, 0]" },
+             std::pair { "\"kick\": { \"swing\": [0, 0], \"clamp\": 4,", "\"sd\": [8, 12]" },
+             std::pair { "\"kick\": { \"swing\": [0, 0], \"sd\": [8, 12],", "\"clamp\": 4" } })
+    {
+        INFO (drop);
+        const std::string e = moved (base, drop);
+        CHECK_THAT (e, ContainsSubstring ("needs swing, sd and clamp"));
+        CHECK_THAT (e, ContainsSubstring ("\"kick\""));
+    }
+}
+
+TEST_CASE ("the feel loader allows one lock per lane, at its base, to a lane that locks to nothing", "[gen][content]")
+{
+    // perform() orders the lanes and takes every lock's target from the lane's base: a row's lock
+    // would be read in one place and not the other, and a chain or a cycle can't be ordered.
+    const Texts t = texts ("fut01", "garage2step");
+    REQUIRE (bundleError (t).empty());
+    const auto withFeel = [&t] (std::string_view from, std::string_view to) {
+        Texts u = t;
+        u.feel = replaced (u.feel, from, to);
+        return bundleError (u);
+    };
+    // a lock in a row: the drop's (which ordered the lanes) or any other
+    CHECK_THAT (withFeel ("\"drop\": {},", "\"drop\": { \"bass\": { \"lock\": \"snare\" } },"), ContainsSubstring ("rows.drop.bass.lock"));
+    CHECK_THAT (withFeel ("\"groove\": {},", "\"groove\": { \"bass\": { \"lock\": \"kick\" } },"), ContainsSubstring ("rows.groove.bass.lock"));
+    // a cycle of two lanes, and a chain
+    Texts cycle = t;
+    cycle.feel = replaced (cycle.feel, "\"snare\": {\n      \"swing\": [0, 0],", "\"snare\": {\n      \"lock\": \"hats\", \"swing\": [0, 0],");
+    cycle.feel = replaced (cycle.feel, "\"hats\": {\n      \"swing\": [10, 60],", "\"hats\": {\n      \"lock\": \"snare\", \"swing\": [10, 60],");
+    CHECK_THAT (bundleError (cycle), ContainsSubstring ("locks to another lane itself"));
+    CHECK_THAT (withFeel ("\"kick\": { \"swing\": [0, 0],", "\"kick\": { \"lock\": \"snare\", \"swing\": [0, 0],"),
+        ContainsSubstring ("lanes.bass.lock: \"kick\" locks to another lane itself"));
 }
 
 TEST_CASE ("Feel::resolve lays a section row over the lane defaults", "[gen][content]")

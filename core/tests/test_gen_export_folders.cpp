@@ -167,4 +167,46 @@ TEST_CASE ("writeFiles counts only MIDI files in a regions folder", "[gen][expor
     const auto refused = writeFiles (songOf (1, 16), out, true, false);
     REQUIRE_FALSE (refused.ok());
     CHECK_THAT (refused.error, ContainsSubstring ("mine.MID"));
+
+    // and a .midi one
+    const auto midi = freshFolder ("export_folders_midi");
+    std::filesystem::create_directories (midi / "feel" / "regions", ec);
+    REQUIRE_FALSE (ec);
+    REQUIRE (util::writeBinaryFile (midi / "feel" / "regions" / "x.midi", std::vector<std::uint8_t> (text.begin(), text.end())).ok());
+    const auto byMidi = writeFiles (songOf (1, 16), midi, true, false);
+    REQUIRE_FALSE (byMidi.ok());
+    CHECK_THAT (byMidi.error, ContainsSubstring ("x.midi"));
+}
+
+TEST_CASE ("writeFiles finds another song's full file by any spelling, and another kit's regions.json", "[gen][export][folders]")
+{
+    const std::string text = "not a song\n";
+    const Song one = songOf (1, 0);
+    // a full file in upper case, or with .midi: still another song's full arrangement
+    for (const char* name : { "FUT01_seed9_134bpm_11A_full.midi", "FUT01_SEED9_134BPM_11A_FULL.MID" })
+    {
+        INFO (name);
+        const auto out = freshFolder ("export_folders_spelling");
+        std::error_code ec;
+        std::filesystem::create_directories (out / "feel", ec);
+        REQUIRE_FALSE (ec);
+        REQUIRE (util::writeBinaryFile (out / "feel" / name, std::vector<std::uint8_t> (text.begin(), text.end())).ok());
+        const auto refused = writeFiles (one, out, true, true);
+        REQUIRE_FALSE (refused.ok());
+        CHECK_THAT (refused.error, ContainsSubstring (name));
+        CHECK_FALSE (std::filesystem::exists (out / "feel" / "regions.json"));
+    }
+    // a regions.json of this seed but another kit, its full file gone: only the kit tells them apart
+    const auto out = freshFolder ("export_folders_kit");
+    REQUIRE (writeFiles (one, out, true, false).ok());
+    std::filesystem::remove (out / "feel" / "FUT01_seed1_134bpm_11A_full.mid");
+    auto json = bytesOf (out / "feel" / "regions.json");
+    std::string listing (json.begin(), json.end());
+    const auto at = listing.find ("\"kit\": \"FUT01\"");
+    REQUIRE (at != std::string::npos);
+    listing.replace (at, 14, "\"kit\": \"FUT02\"");
+    REQUIRE (util::writeBinaryFile (out / "feel" / "regions.json", std::vector<std::uint8_t> (listing.begin(), listing.end())).ok());
+    const auto refused = writeFiles (one, out, true, false);
+    REQUIRE_FALSE (refused.ok());
+    CHECK_THAT (refused.error, ContainsSubstring ("belongs to another song: FUT02 seed 1"));
 }

@@ -41,6 +41,23 @@ namespace wubansia::metrics
     Value g9 (Songs songs); // fills and boundary gestures
     Value g10 (Songs songs); // form diversity and the intervals between salient changes
 
+    // The gating bands (plan §5.1) of G3, G5, G6 and G7 as pure functions of each gate's aggregate:
+    // the gates decide "pass" with them, and tools/legacy_audit/fixtures/expected.json ("bands")
+    // pins every bound at its edge, here and in the audit's metrics.js (its "bands"), alike.
+    namespace bands
+    {
+        // drum lanes repeat in at most 40% of their 4-bar windows, the bass in at most 30%
+        bool g3 (std::int64_t drumWindows, std::int64_t drumRepeated, std::int64_t bassWindows, std::int64_t bassRepeated) noexcept;
+        // a drum group's median 8-bar window: 10 or more velocities, an SD of 6 to 22 (milli)
+        bool g5Drums (std::int64_t windows, std::int64_t medianDistinct, std::int64_t medianSdMilli) noexcept;
+        // a melodic group's: 6 or more velocities, an SD of 8 or more
+        bool g5Melodic (std::int64_t windows, std::int64_t medianDistinct, std::int64_t medianSdMilli) noexcept;
+        // 70% or more of the chord stacks with two velocities or more, none spread over more than 4 ticks
+        bool g6 (std::int64_t stacks, std::int64_t twoVelocities, std::int64_t maxSpreadTicks) noexcept;
+        // a feel lane's median file: residual SD 1.5 to 6 ticks, lag-1 0.2 or more, DFA alpha 0.65 to 1.1
+        bool g7 (std::int64_t files, std::int64_t medianSdMilli, std::int64_t medianLag1Pm, std::int64_t medianAlphaMilli) noexcept;
+    }
+
     // The velocity values each lane group uses across a set of parts (G5's legacy figure).
     Value partLevels (Songs songs);
 

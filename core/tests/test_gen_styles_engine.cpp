@@ -317,6 +317,31 @@ TEST_CASE ("styles: ladderKey climbs the chord's tones in its mode and stays in 
     CHECK (ladderKey (g, i, 62, 5, Range { 48, 96 }) == 76); // E5, the ninth
 }
 
+TEST_CASE ("styles: ladderKey folds any ladder index the loader allows into the range", "[gen][styles][arp]")
+{
+    // The loader allows a cell index of 15 plus a shift of 15 and an octave of +-24. On a one-tone
+    // ladder index 30 is 30 octaves up: the fold must bring any distance into the range, with the
+    // pitch class kept (a uint8_t cast of a key above 255 would wrap to a wrong note instead).
+    ArpGrid g;
+    g.tones = { 0 };
+    ChordSpan i;
+    i.degree = 0;
+    i.mode = Mode::aeolian;
+    i.rootPc = 2; // D minor
+    for (const std::int32_t octave : { -24, 0, 24 })
+        for (const std::int32_t index : { 0, 1, 15, 29, 30 })
+            for (const Range range : { Range { 62, 86 }, Range { 100, 127 }, Range { 0, 12 } })
+                for (const std::int32_t center : { range.lo, range.hi })
+                {
+                    g.octave = octave;
+                    INFO ("octave " << octave << " index " << index << " range " << range.lo << "-" << range.hi << " center " << center);
+                    const std::int32_t k = ladderKey (g, i, center, index, range);
+                    CHECK (k >= range.lo);
+                    CHECK (k <= range.hi);
+                    CHECK (pitchClass (k) == 2);
+                }
+}
+
 // ------------------------------------------------------------------ CC arcs
 
 TEST_CASE ("styles: arcValue ramps from its start to its end and adds arches", "[gen][styles][cc]")

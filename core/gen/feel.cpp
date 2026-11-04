@@ -4,6 +4,7 @@
 #include "util/ints.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <map>
 #include <string>
@@ -63,7 +64,8 @@ namespace wubansia::gen
         const std::int32_t amount = song.feelAmount;
         const rng::Key root = songRoot (song.kitId, song.seed).with (rng::tag ("feel"));
 
-        // lanes that lock to another come after it
+        // lanes that lock to another come after it: the lock of the lane's base, as lockAt below reads
+        // it (makeBundle allows no lock in a row, and no lock to a lane that locks itself)
         std::vector<std::size_t> order;
         std::vector<bool> done (style.lanes.size(), false);
         for (std::size_t pass = 0; pass <= style.lanes.size() && order.size() < style.lanes.size(); ++pass)
@@ -71,13 +73,14 @@ namespace wubansia::gen
             {
                 if (done[li])
                     continue;
-                const FeelLane f = feel.resolve (style.lanes[li].id, "drop");
+                const FeelLane f = feel.resolve (style.lanes[li].id, "");
                 const auto target = f.lock ? style.laneIndex (*f.lock) : std::nullopt;
                 if (target && !done[*target])
                     continue;
                 done[li] = true;
                 order.push_back (li);
             }
+        assert (order.size() == style.lanes.size()); // every lane is performed
 
         for (const std::size_t li : order)
         {

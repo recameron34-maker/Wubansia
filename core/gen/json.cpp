@@ -102,6 +102,11 @@ namespace wubansia::gen::json
                 if (text_.size() >= 3 && static_cast<unsigned char> (text_[0]) == 0xEF && static_cast<unsigned char> (text_[1]) == 0xBB
                     && static_cast<unsigned char> (text_[2]) == 0xBF)
                     return fail ("the text starts with a UTF-8 byte order mark; save it without one");
+                // UTF-16, as Windows PowerShell 5.1's > and Out-File or Notepad's "Unicode" save it: a
+                // byte order mark (FF FE or FE FF), or a NUL in the first two bytes, which JSON never holds
+                const auto at = [this] (std::size_t i) { return i < text_.size() ? static_cast<unsigned char> (text_[i]) : 1u; };
+                if ((at (0) == 0xFF && at (1) == 0xFE) || (at (0) == 0xFE && at (1) == 0xFF) || at (0) == 0 || at (1) == 0)
+                    return fail ("the text is UTF-16, not UTF-8; save it as UTF-8 without a byte order mark");
                 skipSpace();
                 if (atEnd())
                     return fail ("the text is empty: a JSON value was expected");

@@ -304,7 +304,10 @@ namespace wubansia::gen
                                 bool first = true;
                                 for (std::size_t c = (cell / n) * n; c < cell; ++c)
                                     first = first && ((pattern.hits[gi] >> c) & 1u) == 0;
-                                vel = rng::between (kb.with (rng::tag ("vel")), v.euclid->vel.lo, v.euclid->vel.hi) + (first ? v.euclid->accent : 0);
+                                // the hit's velocity belongs to its cell, per variant like the hits: the
+                                // cycle's accent shape repeats (the feel's 1/f velocity adds the life)
+                                const rng::Key kc = kv.with (rng::tag (gridName)).with (variant).with (static_cast<std::int64_t> (cell));
+                                vel = rng::between (kc.with (rng::tag ("evel")), v.euclid->vel.lo, v.euclid->vel.hi) + (first ? v.euclid->accent : 0);
                                 flags = noteFlag::euclid;
                             }
                         }
@@ -319,7 +322,8 @@ namespace wubansia::gen
                             {
                                 hit = true;
                                 flags = noteFlag::poly;
-                                vel = rng::between (kb.with (rng::tag ("vel")), c.vel.lo, c.vel.hi) + (pos - phase < c.every ? c.accent : 0);
+                                // per position in the reset cycle and variant, like the keep: the accents repeat
+                                vel = rng::between (kp.with (rng::tag ("pvel")).with (pos), c.vel.lo, c.vel.hi) + (pos - phase < c.every ? c.accent : 0);
                             }
                         }
                         if (!hit)
@@ -496,7 +500,10 @@ namespace wubansia::gen
         {
             Note& n = line[i].note;
             const std::int64_t next = endOf (i);
-            const bool toNext = i + 1 < line.size() && line[i + 1].note.tick == next;
+            // the gap is before a next note in the note's own range only: one starting on the range's
+            // end (the next section's first, on its line) isn't there in a --bars cut at that line
+            const TickRange* own = rangeAt (ranges, n.tick);
+            const bool toNext = i + 1 < line.size() && line[i + 1].note.tick == next && own != nullptr && next < own->end;
             if (line[i].hold)
                 n.length = std::min<std::int64_t> (next - n.tick - (toNext ? b.holdGap : 0), b.holdMax);
             else
@@ -640,7 +647,7 @@ namespace wubansia::gen
             const auto key = std::make_tuple (degree, mode, vs.name);
             auto it = cache.find (key);
             if (it == cache.end())
-                it = cache.emplace (key, voicingCandidates (vs, song.tonic, mode, degree, kit.range, spec.mudBelow, spec.mudGap)).first;
+                it = cache.emplace (key, voicingCandidates (vs, song.tonic, mode, degree, kit.range, spec.mud)).first;
             return it->second;
         };
         Voiced prev;

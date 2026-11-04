@@ -1,6 +1,7 @@
 // Tests for core/gen/json: the strict, integer-only JSON reader the content loaders use.
 
 #include "gen/json.h"
+#include "util/utf8.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
@@ -9,6 +10,7 @@
 #include <limits>
 #include <string>
 #include <string_view>
+#include <vector>
 
 using namespace wubansia::gen;
 using Catch::Matchers::ContainsSubstring;
@@ -114,12 +116,55 @@ TEST_CASE ("json refuses what RFC 8259 refuses and the strict extras", "[gen][js
 
 TEST_CASE ("json limits nesting depth", "[gen][json]")
 {
-    std::string ok (json::maxDepth, '[');
-    ok += std::string (json::maxDepth, ']');
+    // ADR 0013 documents 64 levels: the literal, not json::maxDepth, so a change to the limit shows
+    CHECK (json::maxDepth == 64);
+    std::string ok (64, '[');
+    ok += std::string (64, ']');
     CHECK (json::parse (ok).ok());
-    std::string deep (json::maxDepth + 1, '[');
-    deep += std::string (json::maxDepth + 1, ']');
+    std::string deep (65, '[');
+    deep += std::string (65, ']');
     CHECK_THAT (errorOf (deep), ContainsSubstring ("deep"));
+}
+
+TEST_CASE ("json refuses ill-formed UTF-8 in strings as RFC 3629 does", "[gen][json]")
+{
+    // RFC 3629's ill-formed sequences: overlong leads, overlong 3- and 4-byte forms, surrogates and
+    // beyond U+10FFFF, each inside an otherwise good string
+    for (const std::string_view bad : { std::string_view ("\xC0\xAF"), std::string_view ("\xC1\xBF"), std::string_view ("\xE0\x80\xAF"),
+             std::string_view ("\xE0\x9F\xBF"), std::string_view ("\xED\xA0\x80"), std::string_view ("\xED\xBF\xBF"), std::string_view ("\xF0\x8F\xBF\xBF"),
+             std::string_view ("\xF4\x90\x80\x80"), std::string_view ("\xF5\x80\x80\x80"), std::string_view ("\x80"), std::string_view ("\xE2\x28\xA1") })
+    {
+        INFO ("bytes of length " << bad.size());
+        CHECK_THAT (errorOf ("\"a" + std::string (bad) + "b\""), ContainsSubstring ("UTF-8"));
+    }
+    // and agrees with util::isValidUtf8 (the MIDI writer's check) on every case of its table
+    // (test_util.cpp) but NUL, which a JSON string may not hold raw
+    const std::vector<std::string_view> table = { "", "drop 2 (16 bars)", "\xC2\x80", "\xDF\xBF", "\xE0\xA0\x80", "\xED\x9F\xBF", "\xEE\x80\x80", "\xEF\xBF\xBF",
+        "\xF0\x90\x80\x80", "\xF4\x8F\xBF\xBF", "\x80", "\xC3", "\xE2\x99", "\xC0\xAF", "\xC1\xBF", "\xE0\x9F\xBF", "\xF0\x8F\xBF\xBF", "\xED\xA0\x80",
+        "\xED\xBF\xBF", "\xF4\x90\x80\x80", "\xF5\x80\x80\x80", "\xFF", "caf\xE9", "\xE2\x28\xA1", "\xE2\x99\x28" };
+    for (std::size_t i = 0; i < table.size(); ++i)
+    {
+        const std::string_view bytes = table[i];
+        INFO ("case " << i);
+        const auto r = json::parse ("\"" + std::string (bytes) + "\"");
+        CHECK (r.ok() == wubansia::util::isValidUtf8 (bytes));
+        if (r.ok())
+            CHECK (r.value.string == bytes);
+    }
+}
+
+TEST_CASE ("json names UTF-16 text instead of failing on its first byte", "[gen][json]")
+{
+    // What Windows PowerShell 5.1's > and Out-File, and Notepad's "Unicode", write: with or without
+    // a byte order mark, either byte order. A NUL is never valid JSON, so the check can't misfire.
+    using namespace std::string_view_literals;
+    for (const std::string_view text : { "\xFF\xFE{\0}\0"sv, "\xFE\xFF\0{\0}"sv, "{\0}\0"sv, "\0{\0}"sv })
+    {
+        INFO ("bytes " << text.size() << ", first " << int (static_cast<unsigned char> (text[0])));
+        CHECK_THAT (errorOf (text), ContainsSubstring ("UTF-16"));
+        CHECK_THAT (errorOf (text), ContainsSubstring ("save it as UTF-8"));
+    }
+    CHECK_THAT (errorOf ("\xEF\xBB\xBF{}"), ContainsSubstring ("UTF-8 byte order mark"));
 }
 
 TEST_CASE ("json errors give the line and column of the problem", "[gen][json]")

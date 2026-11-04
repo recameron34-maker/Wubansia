@@ -36,13 +36,14 @@ namespace
     //   ghost windows: its sparse snare plays no ghosts.
     // - G7 on FUT01 and FUT03: the metric's hats group merges the hats track with the shaker (GM 54),
     //   two independent 1/f series: a decision for the S1b2 gating ADR, not a feature.
-    // - G8 on FUT01: 63 of 64 seeds; in seed 23 the sub, locked to the 2-step kick, lands within 2 ticks
-    //   of the snare and the stabs, and the perc of the hats: the swing tiers versus round 1's "every
-    //   lane uses the kit's one swing" is the same decision.
+    // - G8 passes on all four: FUT01's failing seed (the sub locked to the 2-step kick landing within 2
+    //   ticks of the snare and the stabs) went with the line that followed the kick (round 1's rule:
+    //   the bass grooves against the kick). The swing tiers versus round 1's "every lane uses the kit's
+    //   one swing" stay open for the S1b2 gating ADR.
     // - G1, G2 on FUT04: a one-chord pedal by design (an exemption or another measure, the same ADR).
     // - G9, G10: no fills or transition gestures yet, one form per style (S1b2's fills and form grammar).
     const Expected expected[] = {
-        { "FUT01", { "G4", "G5", "G7", "G8", "G9", "G10" } },
+        { "FUT01", { "G4", "G5", "G7", "G9", "G10" } },
         { "FUT02", { "G9", "G10" } },
         { "FUT03", { "G4", "G5", "G7", "G9", "G10" } },
         { "FUT04", { "G1", "G2", "G4", "G5", "G9", "G10" } },

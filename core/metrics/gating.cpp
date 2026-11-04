@@ -24,6 +24,36 @@ namespace wubansia::metrics
     using util::floorDiv;
     using util::floorMod;
 
+    // ---------------- the bands of G3, G5, G6 and G7 (metrics.h) ----------------
+
+    namespace bands
+    {
+        bool g3 (std::int64_t drumWindows, std::int64_t drumRepeated, std::int64_t bassWindows, std::int64_t bassRepeated) noexcept
+        {
+            return drumWindows > 0 && bassWindows > 0 && 10 * drumRepeated <= 4 * drumWindows && 10 * bassRepeated <= 3 * bassWindows;
+        }
+
+        bool g5Drums (std::int64_t windows, std::int64_t medianDistinct, std::int64_t medianSdMilli) noexcept
+        {
+            return windows > 0 && medianDistinct >= 10 && medianSdMilli >= 6000 && medianSdMilli <= 22000;
+        }
+
+        bool g5Melodic (std::int64_t windows, std::int64_t medianDistinct, std::int64_t medianSdMilli) noexcept
+        {
+            return windows > 0 && medianDistinct >= 6 && medianSdMilli >= 8000;
+        }
+
+        bool g6 (std::int64_t stacks, std::int64_t twoVelocities, std::int64_t maxSpreadTicks) noexcept
+        {
+            return stacks > 0 && 10 * twoVelocities >= 7 * stacks && maxSpreadTicks <= 4;
+        }
+
+        bool g7 (std::int64_t files, std::int64_t medianSdMilli, std::int64_t medianLag1Pm, std::int64_t medianAlphaMilli) noexcept
+        {
+            return files > 0 && medianSdMilli >= 1500 && medianSdMilli <= 6000 && medianLag1Pm >= 200 && medianAlphaMilli >= 650 && medianAlphaMilli <= 1100;
+        }
+    }
+
     namespace
     {
         // diversity () of metrics.js: how many of the values are measured, distinct, and the most common.
@@ -500,7 +530,7 @@ namespace wubansia::metrics
         res.set ("bass_windows", total.bassWindows);
         res.set ("bass_repeated", total.bassRepeated);
         res.set ("bass_repeated_pm", permille (total.bassRepeated, total.bassWindows));
-        res.set ("pass", total.drumWindows > 0 && total.bassWindows > 0 && 10 * total.drumRepeated <= 4 * total.drumWindows && 10 * total.bassRepeated <= 3 * total.bassWindows);
+        res.set ("pass", bands::g3 (total.drumWindows, total.drumRepeated, total.bassWindows, total.bassRepeated));
         res.set ("per_file", std::move (perFile));
         return res;
     }
@@ -600,11 +630,11 @@ namespace wubansia::metrics
             res.set (g5Groups[g].name, medians (all[g]));
         const auto drumOk = [&res] (std::string_view g) {
             const Value& v = res[g];
-            return v.num ("windows") > 0 && v.num ("median_distinct") >= 10 && v.num ("median_sd_milli") >= 6000 && v.num ("median_sd_milli") <= 22000;
+            return bands::g5Drums (v.num ("windows"), v.num ("median_distinct"), v.num ("median_sd_milli"));
         };
         const auto melodicOk = [&res] (std::string_view g) {
             const Value& v = res[g];
-            return v.num ("windows") > 0 && v.num ("median_distinct") >= 6 && v.num ("median_sd_milli") >= 8000;
+            return bands::g5Melodic (v.num ("windows"), v.num ("median_distinct"), v.num ("median_sd_milli"));
         };
         res.set ("pass", drumOk ("hats") && drumOk ("perc") && drumOk ("ghosts") && melodicOk ("bass") && melodicOk ("lead"));
         res.set ("per_file", std::move (perFile));
@@ -693,7 +723,7 @@ namespace wubansia::metrics
         res.set ("two_velocities_pm", permille (twoVelocities, stacks));
         res.set ("max_spread_ticks", maxSpread);
         res.set ("spread_histogram", numberHistogram (spreads));
-        res.set ("pass", stacks > 0 && 10 * twoVelocities >= 7 * stacks && maxSpread <= 4);
+        res.set ("pass", bands::g6 (stacks, twoVelocities, maxSpread));
         res.set ("per_file", std::move (perFile));
         return res;
     }
@@ -749,8 +779,7 @@ namespace wubansia::metrics
             v.set ("median_lag1_pm", lowerMedian (lag1).value_or (undefinedValue));
             v.set ("median_alpha_milli", lowerMedian (alpha).value_or (undefinedValue));
             v.set ("alpha_undefined", alphaUndefined);
-            pass = pass && v.num ("files") > 0 && v.num ("median_sd_milli") >= 1500 && v.num ("median_sd_milli") <= 6000 && v.num ("median_lag1_pm") >= 200
-                   && v.num ("median_alpha_milli") >= 650 && v.num ("median_alpha_milli") <= 1100;
+            pass = pass && bands::g7 (v.num ("files"), v.num ("median_sd_milli"), v.num ("median_lag1_pm"), v.num ("median_alpha_milli"));
             res.set (lanes[l].name, std::move (v));
         }
         res.set ("pass", pass);

@@ -31,11 +31,12 @@ namespace wubansia::gen
             const std::int32_t steps = grid.tones[static_cast<std::size_t> (util::floorMod (index, n))] + 7 * util::floorDiv (index, n);
             key += chordInterval (chord.mode, chord.degree, steps);
         }
-        // into the range by octaves: a range spans an octave or more (makeBundle), so one direction does
-        for (std::int32_t guard = 0; guard < 16 && key > range.hi; ++guard)
-            key -= 12;
-        for (std::int32_t guard = 0; guard < 16 && key < range.lo; ++guard)
-            key += 12;
+        // into the range by octaves, however far outside (the loader allows ladder indices up to 30
+        // and an octave of +-24): a range spans an octave or more (makeBundle), so one direction does
+        if (key > range.hi)
+            key -= 12 * util::ceilDiv (key - range.hi, 12);
+        if (key < range.lo)
+            key += 12 * util::ceilDiv (range.lo - key, 12);
         return key;
     }
 

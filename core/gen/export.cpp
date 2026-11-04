@@ -172,8 +172,11 @@ namespace wubansia::gen
             j += "      \"lanes\": " + laneList (s.lanesAnywhere()) + ",\n";
             j += "      \"blocks\": [\n";
             for (std::size_t k = 0; k < s.blocks.size(); ++k)
-                j += "        { \"startBar\": " + std::to_string (s.startBar + static_cast<std::int32_t> (k) * barsPerBlock) + ", \"bars\": "
+            {
+                const std::int32_t blockBar = s.startBar + static_cast<std::int32_t> (k) * barsPerBlock;
+                j += "        { \"startBar\": " + std::to_string (blockBar) + ", \"dawBar\": " + std::to_string (blockBar + 1) + ", \"bars\": "
                      + std::to_string (barsPerBlock) + ", \"lanes\": " + laneList (s.blocks[k]) + " }" + (k + 1 < s.blocks.size() ? "," : "") + "\n";
+            }
             j += "      ]\n";
             j += std::string ("    }") + (i + 1 < song.sections.size() ? "," : "") + "\n";
         }

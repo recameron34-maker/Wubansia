@@ -239,10 +239,14 @@ TEST_CASE ("regions.json lists each region's file start length kind and lanes", 
         CHECK (r["startTick"].integer (0, 1 << 30) == sec.startTick());
         const json::Node blocks = r["blocks"];
         REQUIRE (blocks.size() == sec.blocks.size());
+        std::int32_t tiled = 0; // the blocks tile the region, each with its bar as the DAW counts it
         for (std::size_t k = 0; k < sec.blocks.size(); ++k)
         {
             CHECK (blocks.at (k)["startBar"].int32 (0, 9999) == sec.startBar + static_cast<std::int32_t> (k) * 8);
+            CHECK (blocks.at (k)["startBar"].int32 (0, 9999) == sec.startBar + tiled);
+            CHECK (blocks.at (k)["dawBar"].int32 (1, 9999) == blocks.at (k)["startBar"].int32 (0, 9999) + 1);
             CHECK (blocks.at (k)["bars"].int32 (1, 8) == 8);
+            tiled += blocks.at (k)["bars"].int32 (1, 8);
             const auto active = blocks.at (k)["lanes"].strings (0, 16);
             std::vector<std::string> expected;
             for (std::size_t l = 0; l < s.lanes.size(); ++l)
@@ -250,6 +254,7 @@ TEST_CASE ("regions.json lists each region's file start length kind and lanes", 
                     expected.push_back (s.lanes[l].id);
             CHECK (active == expected);
         }
+        CHECK (tiled == sec.bars);
         const auto anywhere = r["lanes"].strings (0, 16);
         CHECK_FALSE (anywhere.empty());
     }

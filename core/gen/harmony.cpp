@@ -285,7 +285,7 @@ namespace wubansia::gen
         return tick < c.end ? &c : nullptr;
     }
 
-    std::vector<Voiced> voicingCandidates (const VoicingSpec& spec, std::int32_t tonicPc, Mode mode, std::int32_t degree, Range range, std::int32_t mudBelow, std::int32_t mudGap)
+    std::vector<Voiced> voicingCandidates (const VoicingSpec& spec, std::int32_t tonicPc, Mode mode, std::int32_t degree, Range range, const MudSpec& mud)
     {
         const std::int32_t rootPc = degreePc (tonicPc, mode, degree);
         // each tone: its pitch class and tag, in the order given
@@ -362,7 +362,15 @@ namespace wubansia::gen
                         ok = ok && keys[i].first > keys[0].first;
                 std::stable_sort (keys.begin(), keys.end()); // (key, tag): equal keys have equal tags, so this is a total order
                 for (std::size_t i = 1; i < keys.size() && ok; ++i)
-                    ok = keys[i].first != keys[i - 1].first && (keys[i - 1].first >= mudBelow || keys[i].first - keys[i - 1].first >= mudGap);
+                {
+                    const std::int32_t lo = keys[i - 1].first, gap = keys[i].first - lo;
+                    // distinct keys, wide neighbours at the bottom, and no semitone rub in the low mids
+                    ok = gap != 0 && (lo >= mud.below || gap >= mud.gap) && (gap != 1 || lo >= mud.minorSecond);
+                }
+                // nor a minor ninth there (13 semitones between any two voices, not only neighbours)
+                for (std::size_t i = 0; i < keys.size() && ok; ++i)
+                    for (std::size_t j = i + 1; j < keys.size() && ok; ++j)
+                        ok = keys[j].first - keys[i].first != 13 || keys[i].first >= mud.minorNinth;
                 const std::int32_t span = keys.back().first - keys.front().first;
                 if (spec.choose <= 0)
                     ok = ok && span >= spec.span.lo && span <= spec.span.hi;
