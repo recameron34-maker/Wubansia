@@ -1,0 +1,416 @@
+{
+  "format": 1,
+  "id": "futurehouse",
+  "about": "Hyper-clean future house: four on the floor, claps on 2 and 4 with a snare layer, offbeat open hats choked by the closed, 16th shakers, sparse metallic plings, a bouncy offbeat bass with octave pops that stays off the kick, pumping chord stabs on the offbeats (a 3-3-2 syncopation in drop 2). Builds roll up from claps on the beat to a 16th snare roll under a crescendo while the hats fill in and the stabs' filter sweeps up into the drop. Arranged as a DJ-friendly extended mix.",
+  "sections": {
+    "intro": { "energy": 1, "vel": 940 },
+    "groove": { "energy": 2, "vel": 970 },
+    "build": { "energy": 3, "vel": 960 },
+    "drop": { "energy": 4, "vel": 1000, "variant": 4 },
+    "break": { "energy": 1, "vel": 880 },
+    "drop2": { "energy": 4, "vel": 1000, "variant": 8 },
+    "outro": { "energy": 1, "vel": 950 }
+  },
+  "form": [
+    { "kind": "intro", "bars": 32, "blocks": [
+      ["kick", "hats"],
+      ["kick", "hats", "shaker"],
+      ["kick", "snare", "hats", "shaker", "perc"],
+      ["kick", "snare", "hats", "shaker", "perc", "bass"] ] },
+    { "kind": "groove", "bars": 16, "blocks": [
+      ["kick", "snare", "hats", "shaker", "perc", "bass"],
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"] ] },
+    { "kind": "build", "bars": 8, "blocks": [
+      ["kick", "snare", "hats", "shaker", "chords"] ] },
+    { "kind": "drop", "bars": 32, "blocks": [
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"] ] },
+    { "kind": "groove", "bars": 16, "blocks": [
+      ["kick", "snare", "hats", "shaker", "perc", "bass"],
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"] ] },
+    { "kind": "break", "bars": 24, "blocks": [
+      ["shaker", "chords"],
+      ["hats", "perc", "chords"],
+      ["hats", "perc", "bass", "chords"] ] },
+    { "kind": "build", "bars": 8, "blocks": [
+      ["kick", "snare", "hats", "shaker", "chords"] ] },
+    { "kind": "drop2", "bars": 32, "blocks": [
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"] ] },
+    { "kind": "outro", "bars": 32, "blocks": [
+      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
+      ["kick", "snare", "hats", "shaker", "perc", "bass"],
+      ["kick", "snare", "hats", "shaker", "perc"],
+      ["kick", "hats"] ] }
+  ],
+  "changes": { "turn": 50, "change": 72, "early": 50, "roster": ["hats", "snare", "bass", "perc", "shaker", "chords"] },
+  "attempts": 16,
+  "harmony": {
+    "modes": [ { "mode": "aeolian", "w": 60 }, { "mode": "dorian", "w": 40 } ],
+    "colour": { "dorian": [1, 3], "phrygian": [1] },
+    "loops": [ { "bars": 2, "w": 55 }, { "bars": 4, "w": 45 } ],
+    "rhythms": [ { "units": [2, 2], "w": 30 }, { "units": [3, 1], "w": 30 }, { "units": [1, 1, 2], "w": 40 } ],
+    "push": { "permille": [400, 600], "by": [ { "ticks": 120, "w": 45 }, { "ticks": 240, "w": 55 } ] },
+    "degrees": {
+      "aeolian": [100, 0, 80, 85, 65, 85, 75],
+      "dorian": [100, 55, 60, 95, 50, 0, 80],
+      "phrygian": [100, 95, 60, 70, 0, 70, 50]
+    },
+    "move": [
+      [0, 25, 75, 70, 60, 75, 65],
+      [75, 0, 45, 40, 55, 30, 50],
+      [70, 25, 0, 65, 40, 60, 80],
+      [70, 25, 55, 0, 60, 55, 75],
+      [80, 10, 45, 55, 0, 65, 50],
+      [70, 15, 60, 70, 50, 0, 85],
+      [70, 20, 60, 70, 40, 55, 0]
+    ],
+    "memory": [
+      { "name": "i-bVI-iv-v, the legacy main family", "shape": [0, 5, 3, 4] },
+      { "name": "bVI-bVII-v-i, the legacy breakdown shape", "shape": [5, 6, 4, 0] }
+    ],
+    "penalty": { "whole": 1000, "three": 900, "two": 300 },
+    "slots": [
+      { "name": "main", "start": [60, 0, 8, 10, 4, 10, 8], "tonic": "present" },
+      { "name": "break", "start": [0, 0, 30, 30, 0, 25, 15], "tonic": "emergent", "phrygian": 40 }
+    ],
+    "use": { "intro": "main", "groove": "main", "build": "main", "drop": "main", "break": "break", "drop2": "main", "outro": "main" },
+    "palette": {
+      "intro": ["sus2", "fifths"],
+      "groove": ["m7", "add9"],
+      "build": ["m7", "sus2"],
+      "drop": ["planed7", "quartal", "dyad37", "single"],
+      "break": ["m9", "m11"],
+      "drop2": ["quartal", "planed7", "dyad5", "single"],
+      "outro": ["m7", "fifths"]
+    },
+    "voicings": [
+      { "name": "sus2", "degrees": [0, 1, 4], "span": [7, 14], "top": [62, 74], "center": 63 },
+      { "name": "fifths", "degrees": [0, 4, 7], "span": [12, 19], "top": [59, 71], "center": 57 },
+      { "name": "m7", "degrees": [0, 2, 4, 6], "inversions": 1, "span": [7, 14], "top": [64, 77], "center": 64 },
+      { "name": "add9", "degrees": [0, 2, 4, 8], "inversions": 1, "span": [9, 16], "top": [65, 78], "center": 65 },
+      { "name": "dyad5", "degrees": [0, 4], "span": [7, 7], "top": [64, 76], "center": 66 },
+      { "name": "dyad37", "degrees": [2, 6], "inversions": 1, "span": [5, 7], "top": [65, 77], "center": 67 },
+      { "name": "quartal", "degrees": [0, 3, 6], "span": [9, 12], "top": [66, 79], "center": 67 },
+      { "name": "single", "degrees": [0, 2, 4, 7], "choose": 1, "top": [67, 79], "center": 72 },
+      { "name": "planed7", "shape": [0, 3, 7, 10], "inversions": 1, "span": [7, 14], "top": [65, 77], "center": 65 },
+      { "name": "m9", "degrees": [0, 4, 6, 9, 8], "span": [17, 28], "top": [70, 82], "center": 63 },
+      { "name": "m11", "degrees": [0, 4, 6, 9, 10], "span": [17, 29], "top": [70, 82], "center": 63, "quality": "minor" }
+    ],
+    "mud": { "below": 52, "gap": 5 },
+    "revoice": 30,
+    "arcs": ["rise", "fall", "arch"]
+  },
+  "lanes": [
+    {
+      "id": "kick", "kind": "drums",
+      "voices": [ { "id": "kick", "length": 120 } ],
+      "use": { "intro": "main", "groove": "main", "build": "main", "drop": "main", "drop2": "main", "outro": "main" },
+      "grids": {
+        "main": {
+          "voices": {
+            "kick": {
+              "p":   [100, 0, 0, 0,  100, 0, 0, 0,  100, 0, 0, 0,  100, 0, 0, 0],
+              "vel": [122, 0, 0, 0,  116, 0, 0, 0,  118, 0, 0, 0,  116, 0, 0, 0,
+                      120, 0, 0, 0,  114, 0, 0, 0,  118, 0, 0, 0,  116, 0, 0, 0],
+              "spread": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "snare", "kind": "drums",
+      "voices": [ { "id": "clap", "length": 120 }, { "id": "snare", "length": 120 }, { "id": "ghost", "length": 60 } ],
+      "exclusive": [["clap", "ghost"]],
+      "use": { "intro": "main", "groove": "main", "build": "build", "drop": "main", "drop2": "main", "outro": "main" },
+      "grids": {
+        "main": {
+          "voices": {
+            "clap": {
+              "p":   [0, 0, 0, 0,  100, 0, 0, 0,  0, 0, 0, 0,  100, 0, 0, 0],
+              "vel": [0, 0, 0, 0,  112, 0, 0, 0,  0, 0, 0, 0,  116, 0, 0, 0],
+              "spread": 3
+            },
+            "snare": {
+              "p":   [0, 0, 0, 0,  55, 0, 0, 0,  0, 0, 0, 0,  60, 0, 0, 0,
+                      0, 0, 0, 0,  55, 0, 0, 0,  0, 0, 0, 0,  65, 0, 0, 0],
+              "vel": [0, 0, 0, 0,  94, 0, 0, 0,  0, 0, 0, 0,  98, 0, 0, 0],
+              "spread": 4
+            },
+            "ghost": {
+              "p":   [0, 0, 0, 10,  0, 0, 0, 22,  0, 0, 0, 12,  0, 0, 18, 42,
+                      0, 0, 0, 12,  0, 0, 0, 26,  0, 0, 0, 14,  0, 0, 22, 52],
+              "vel": [0, 0, 0, 40,  0, 0, 0, 46,  0, 0, 0, 42,  0, 0, 44, 56],
+              "spread": 9,
+              "orn": [0, 6, 0, 0,  0, 8, 0, 0,  0, 6, 0, 0,  0, 8, 0, 10],
+              "ornVel": [30, 50],
+              "turn": [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 30, 45],
+              "turnVel": [46, 64]
+            }
+          }
+        },
+        "build": { "stages": ["build4", "build4", "build8", "build16"], "ramp": [650, 1100] },
+        "build4": {
+          "voices": {
+            "clap": {
+              "p":   [100, 0, 0, 0,  100, 0, 0, 0,  100, 0, 0, 0,  100, 0, 0, 0],
+              "vel": [94, 0, 0, 0,  104, 0, 0, 0,  96, 0, 0, 0,  108, 0, 0, 0],
+              "spread": 4
+            }
+          }
+        },
+        "build8": {
+          "voices": {
+            "clap": {
+              "p":   [100, 0, 0, 0,  100, 0, 0, 0,  100, 0, 0, 0,  100, 0, 0, 0],
+              "vel": [96, 0, 0, 0,  106, 0, 0, 0,  98, 0, 0, 0,  110, 0, 0, 0],
+              "spread": 4
+            },
+            "snare": {
+              "p":   [0, 0, 100, 0,  0, 0, 100, 0,  0, 0, 100, 0,  0, 0, 100, 0],
+              "vel": [0, 0, 82, 0,  0, 0, 84, 0,  0, 0, 86, 0,  0, 0, 90, 0],
+              "spread": 4
+            }
+          }
+        },
+        "build16": {
+          "voices": {
+            "clap": {
+              "p":   [100, 0, 0, 0,  100, 0, 0, 0,  100, 0, 0, 0,  100, 0, 0, 0],
+              "vel": [98, 0, 0, 0,  108, 0, 0, 0,  100, 0, 0, 0,  112, 0, 0, 0],
+              "spread": 4
+            },
+            "snare": {
+              "p":   [0, 100, 100, 100,  0, 100, 100, 100,  0, 100, 100, 100,  0, 100, 100, 100],
+              "vel": [0, 74, 86, 78,  0, 76, 88, 80,  0, 78, 90, 82,  0, 82, 94, 88],
+              "spread": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "hats", "kind": "drums",
+      "voices": [ { "id": "closed", "length": 60 }, { "id": "open", "length": 400 } ],
+      "choke": [ { "voice": "open", "by": ["closed"] } ],
+      "exclusive": [["open", "closed"]],
+      "use": { "intro": "main", "groove": "main", "build": "rise", "drop": "main", "break": "break", "drop2": "main", "outro": "main" },
+      "grids": {
+        "rise": { "stages": ["build", "build", "build", "full"], "ramp": [850, 1060] },
+        "main": {
+          "sync": [5, 22],
+          "voices": {
+            "closed": {
+              "p":   [45, 22, 0, 70,  40, 22, 0, 70,  45, 22, 0, 70,  40, 22, 0, 36,
+                      45, 22, 0, 70,  40, 22, 0, 72,  45, 22, 0, 70,  40, 24, 0, 40],
+              "vel": [56, 42, 0, 76,  52, 42, 0, 74,  56, 42, 0, 76,  52, 42, 0, 70],
+              "spread": 5,
+              "orn": [0, 10, 0, 0,  0, 10, 0, 0,  0, 10, 0, 0,  0, 10, 0, 0],
+              "ornVel": [36, 48],
+              "skip": 4,
+              "turn": [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 30, 0, 40],
+              "turnVel": [60, 76]
+            },
+            "open": {
+              "p":   [0, 0, 100, 0,  0, 0, 100, 0,  0, 0, 100, 0,  0, 0, 100, 0],
+              "vel": [0, 0, 98, 0,  0, 0, 94, 0,  0, 0, 98, 0,  0, 0, 96, 0],
+              "spread": 4
+            }
+          }
+        },
+        "break": {
+          "voices": {
+            "closed": {
+              "p":   [0, 0, 70, 20,  0, 0, 70, 24,  0, 0, 70, 20,  0, 0, 70, 30],
+              "vel": [0, 0, 80, 58,  0, 0, 78, 58,  0, 0, 80, 58,  0, 0, 78, 62],
+              "spread": 5,
+              "skip": 6
+            },
+            "open": {
+              "p":   [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 30, 0],
+              "vel": [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 84, 0],
+              "spread": 4
+            }
+          }
+        },
+        "build": {
+          "voices": {
+            "closed": {
+              "p":   [70, 60, 0, 85,  70, 62, 0, 85,  72, 64, 0, 88,  74, 66, 0, 90],
+              "vel": [58, 50, 0, 76,  58, 50, 0, 76,  60, 52, 0, 78,  62, 54, 0, 80],
+              "spread": 5
+            },
+            "open": {
+              "p":   [0, 0, 100, 0,  0, 0, 100, 0,  0, 0, 100, 0,  0, 0, 100, 0],
+              "vel": [0, 0, 96, 0,  0, 0, 92, 0,  0, 0, 96, 0,  0, 0, 94, 0],
+              "spread": 4
+            }
+          }
+        },
+        "full": {
+          "voices": {
+            "closed": {
+              "p":   [100, 100, 0, 100,  100, 100, 0, 100,  100, 100, 0, 100,  100, 100, 0, 100],
+              "vel": [62, 54, 0, 80,  62, 56, 0, 80,  64, 56, 0, 82,  66, 58, 0, 86],
+              "spread": 5
+            },
+            "open": {
+              "p":   [0, 0, 100, 0,  0, 0, 100, 0,  0, 0, 100, 0,  0, 0, 100, 0],
+              "vel": [0, 0, 98, 0,  0, 0, 96, 0,  0, 0, 98, 0,  0, 0, 100, 0],
+              "spread": 4
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "shaker", "kind": "drums",
+      "voices": [ { "id": "shaker", "length": 60 } ],
+      "use": { "intro": "main", "groove": "main", "build": "main", "drop": "main", "break": "break", "drop2": "main", "outro": "main" },
+      "grids": {
+        "main": {
+          "voices": {
+            "shaker": {
+              "p":   [96, 94, 100, 96,  96, 94, 100, 96,  96, 94, 100, 96,  96, 95, 100, 97],
+              "vel": [62, 54, 86, 70,  60, 54, 84, 70,  62, 54, 86, 70,  60, 54, 84, 72],
+              "spread": 5,
+              "skip": 5
+            }
+          }
+        },
+        "break": {
+          "voices": {
+            "shaker": {
+              "p":   [60, 0, 86, 30,  56, 0, 86, 34,  60, 0, 86, 30,  56, 0, 86, 40],
+              "vel": [54, 0, 74, 58,  52, 0, 72, 58,  54, 0, 74, 58,  52, 0, 72, 60],
+              "spread": 5,
+              "skip": 6
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "perc", "kind": "drums",
+      "voices": [ { "id": "pling", "length": 120 }, { "id": "pling2", "length": 120 } ],
+      "use": { "intro": "main", "groove": "main", "drop": "drop", "break": "break", "drop2": "drop", "outro": "main" },
+      "grids": {
+        "main": {
+          "voices": {
+            "pling": {
+              "p":   [0, 0, 0, 0,  0, 0, 0, 10,  0, 0, 70, 0,  0, 0, 0, 0,
+                      0, 0, 0, 0,  0, 0, 0, 0,   0, 0, 62, 0,  0, 0, 22, 0],
+              "vel": [0, 0, 0, 0,  0, 0, 0, 72,  0, 0, 86, 0,  0, 0, 74, 0],
+              "spread": 6
+            },
+            "pling2": { "euclid": { "k": 3, "n": 16, "rotation": [0, 15], "p": 45, "vel": [60, 78], "accent": 6 } }
+          }
+        },
+        "drop": {
+          "voices": {
+            "pling": {
+              "p":   [0, 0, 0, 0,  0, 0, 0, 14,  0, 0, 76, 0,  0, 0, 0, 0,
+                      0, 0, 0, 0,  0, 0, 0, 0,   0, 0, 68, 0,  0, 0, 30, 0],
+              "vel": [0, 0, 0, 0,  0, 0, 0, 74,  0, 0, 88, 0,  0, 0, 76, 0],
+              "spread": 6
+            },
+            "pling2": { "euclid": { "k": 5, "n": 16, "rotation": [0, 15], "p": 60, "vel": [60, 80], "accent": 6 } }
+          }
+        },
+        "break": {
+          "voices": {
+            "pling": {
+              "p":   [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 100, 0,  0, 0, 0, 0,
+                      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 40, 0,  0, 0, 0, 0],
+              "vel": [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 76, 0,  0, 0, 0, 0],
+              "spread": 6
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "bass", "kind": "bass",
+      "follow": "kick",
+      "use": { "intro": "main", "groove": "main", "drop": "main", "break": "break", "drop2": "main", "outro": "main" },
+      "degreeSets": [
+        [100, 0, 0, 0, 0],
+        [5, 85, 10, 0, 0],
+        [60, 0, 20, 10, 10],
+        [25, 35, 25, 15, 0],
+        [30, 0, 30, 20, 20]
+      ],
+      "hold": { "gap": 25, "max": 960 },
+      "approach": { "p": 50, "by": [ { "ticks": 120, "w": 70 }, { "ticks": 240, "w": 30 } ], "below": 55, "vel": [78, 92] },
+      "slide": { "p": 12, "overlap": 24, "maxJump": 12 },
+      "restrike": 360,
+      "grids": {
+        "main": {
+          "follow": [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0],
+          "p":   [0, 0, 100, 40,  0, 0, 92, 34,  0, 0, 96, 44,  0, 0, 84, 40,
+                  0, 0, 100, 42,  0, 0, 90, 38,  0, 0, 94, 50,  0, 0, 78, 54],
+          "orn": [0, 30, 0, 0,  0, 30, 0, 0,  0, 0, 0, 0,  0, 35, 0, 0],
+          "ornBars": 8,
+          "deg": [0, 1, 0, 1,  0, 1, 2, 1,  0, 0, 4, 1,  0, 1, 2, 3,
+                  0, 1, 0, 1,  0, 1, 2, 1,  0, 0, 4, 3,  0, 1, 2, 3],
+          "len": [0, 70, 170, 70,  0, 70, 170, 70,  0, 0, 190, 70,  0, 70, 170, 80],
+          "vel": [0, 76, 108, 86,  0, 76, 104, 84,  0, 0, 106, 88,  0, 74, 102, 90],
+          "spread": 5,
+          "ornVel": [64, 76],
+          "ornDeg": 1
+        },
+        "break": {
+          "follow": [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0],
+          "p":   [90, 0, 0, 0,  0, 0, 0, 0,  40, 0, 0, 0,  0, 0, 0, 0,
+                  70, 0, 0, 0,  0, 0, 0, 0,  40, 0, 0, 0,  0, 0, 0, 0],
+          "deg": [0, 0, 0, 0,  0, 0, 0, 0,  4, 0, 0, 0,  0, 0, 0, 0],
+          "len": [0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0],
+          "vel": [94, 0, 0, 0,  0, 0, 0, 0,  84, 0, 0, 0,  0, 0, 0, 0],
+          "spread": 4
+        }
+      }
+    },
+    {
+      "id": "chords", "kind": "chords",
+      "use": { "intro": "pad", "groove": "stab", "build": "pad", "drop": "stab", "break": "pad", "drop2": "synco", "outro": "stab" },
+      "top": [4, 8],
+      "voice": [-2, 1],
+      "cc": [ { "number": 74, "step": 240, "rows": {
+        "groove": { "from": [54, 64], "to": [66, 76], "wave": [16], "depth": [4, 8] },
+        "build": { "from": [46, 56], "to": [102, 114] },
+        "drop": { "from": [114, 124], "to": [96, 108], "wave": [16, 32], "depth": [-10, -4] },
+        "break": { "from": [36, 46], "to": [68, 82] },
+        "drop2": { "from": [114, 124], "to": [100, 110], "wave": [8, 16], "depth": [6, 10] },
+        "outro": { "from": [86, 96], "to": [48, 58] }
+      } } ],
+      "grids": {
+        "pad": { "pad": { "vel": 64, "gap": 40 } },
+        "stab": {
+          "p":   [0, 0, 85, 0,  0, 0, 80, 0,  0, 0, 85, 0,  0, 0, 75, 0,
+                  0, 0, 85, 0,  0, 0, 70, 0,  0, 0, 85, 0,  0, 0, 65, 10],
+          "len": [0, 0, 150, 120,  0, 0, 150, 0,  0, 0, 150, 120,  0, 0, 150, 110],
+          "vel": [0, 0, 100, 86,  0, 0, 96, 0,  0, 0, 100, 86,  0, 0, 94, 88],
+          "orn": [0, 0, 0, 30,  0, 0, 0, 0,  0, 0, 0, 30,  0, 0, 0, 0],
+          "ornBars": 8,
+          "spread": 4,
+          "min": 2,
+          "anticipate": 1
+        },
+        "synco": {
+          "p":   [60, 0, 0, 80,  0, 0, 75, 0,  0, 0, 70, 0,  0, 55, 0, 0,
+                  55, 0, 0, 80,  0, 0, 70, 0,  30, 0, 0, 75,  0, 0, 60, 0],
+          "len": [140, 0, 0, 160,  0, 0, 160, 0,  130, 0, 150, 150,  0, 140, 140, 0],
+          "vel": [98, 0, 0, 102,  0, 0, 98, 0,  88, 0, 96, 98,  0, 92, 94, 0],
+          "spread": 4,
+          "min": 2,
+          "anticipate": 1
+        }
+      }
+    }
+  ]
+}

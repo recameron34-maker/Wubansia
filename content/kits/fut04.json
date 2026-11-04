@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "id": "FUT04",
+  "name": "Furnace Code",
+  "direction": "dark industrial / techno",
+  "bpm": 136,
+  "key": { "tonic": 4, "mode": "minor", "name": "E minor", "camelot": "9A" },
+  "swing": 540,
+  "style": "techno",
+  "feel": "techno",
+  "lanes": {
+    "kick": { "track": "Kick", "channel": 9, "notes": { "kick": 36 } },
+    "rumble": { "track": "Rumble", "channel": 3, "range": [28, 40], "root": 28 },
+    "snare": { "track": "Snare + Clap", "channel": 9, "notes": { "snare": 38, "clap": 39, "ghost": 38 } },
+    "hats": { "track": "Hats + Ride", "channel": 9, "notes": { "closed": 42, "open": 46, "ride": 51 } },
+    "perc": { "track": "Anvil Perc", "channel": 9, "notes": { "anvil": 47, "anvil2": 50 } },
+    "bass": { "track": "Acid Bass", "channel": 1, "range": [28, 52], "root": 28 },
+    "chords": { "track": "Pad Drone", "channel": 2, "range": [43, 84] }
+  }
+}

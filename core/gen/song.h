@@ -1,0 +1,183 @@
+#pragma once
+
+// A generated song: its arrangement (sections on 8-bar lines), its harmony, and per lane the score
+// (quantized, as composed) and the performance (the score after the feel pass). Score and
+// performance are kept apart (plan §4.1), so the quantized and the with-feel files come from one
+// score, and tests can check both.
+//
+// Pipeline (generator.cpp), feel always last:
+//   1. arrangement: the style's default form (an extended mix), its 8-bar blocks of active lanes,
+//      the salient-change schedule and the turnaround bars (arrange.h)
+//   2. harmony: mode, one progression per slot, chord spans with pushed changes (harmony.h)
+//   3. rhythm: each drum lane's patterns from its grids, in dependency order (lanes.h, rhythm.h)
+//   4. pitches: the chords voiced; the bass on chord degrees, following its kick and agreeing with
+//      the voicings (lanes.h, harmony.h)
+//   5. feel: swing, offset and velocity maps, 1/f fluctuation, anchors, the low-end lock (feel.h)
+// Every random choice is a pure function of a key path from the seed (rng.h): no draw depends on
+// another lane's draws, so changing one lane's parameters changes only that lane and the lanes
+// that depend on it (the bass on its kick, and on the chords' voicings for its third, seventh and
+// fifth).
+
+#include "gen/content.h"
+#include "gen/theory.h"
+#include "rng/rng.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace wubansia::gen
+{
+    inline constexpr std::int64_t ticksPerStep = 120; // a 16th at 480 PPQ
+    inline constexpr std::int64_t stepsPerBar = 16;
+    inline constexpr std::int64_t ticksPerBar = ticksPerStep * stepsPerBar; // 1920
+    inline constexpr std::int32_t barsPerBlock = 8; // sections, lane entries and exits: on 8-bar lines
+
+    namespace noteFlag
+    {
+        inline constexpr std::uint16_t anchor = 1 << 0; // a 100% cell of an anchor lane: kept within +-2 ticks
+        inline constexpr std::uint16_t ornament = 1 << 1; // drawn per bar
+        inline constexpr std::uint16_t turn = 1 << 2; // a turnaround hit
+        inline constexpr std::uint16_t follow = 1 << 3; // bass on a kick of its follow lane
+        inline constexpr std::uint16_t approach = 1 << 4; // bass approach note into a chord change
+        inline constexpr std::uint16_t slide = 1 << 5; // slides (legato) into the next note: overlaps it
+        inline constexpr std::uint16_t pushed = 1 << 6; // chord or bass on a pushed chord change
+        inline constexpr std::uint16_t top = 1 << 7; // a chord's top voice
+        inline constexpr std::uint16_t poly = 1 << 8; // a polymeter cell
+        inline constexpr std::uint16_t euclid = 1 << 9; // a Euclidean cell
+    }
+
+    namespace noteTag
+    {
+        inline constexpr std::uint8_t borrowed = 1 << 0; // outside the kit's natural minor, from the mode (Dorian 6, Phrygian b2)
+        inline constexpr std::uint8_t planed = 1 << 1; // outside it from a planed (parallel) voicing
+    }
+
+    struct Note
+    {
+        std::int64_t tick = 0; // onset
+        std::int64_t length = 0; // ticks, at least 1
+        std::int64_t step = 0; // the score's 16th (absolute): the score onset is step * 120
+        std::uint8_t key = 0;
+        std::uint8_t velocity = 0; // 1-127
+        std::uint8_t voice = 0; // drums: the lane's voice index; chords: the stack position (0 lowest)
+        std::uint8_t tags = 0; // noteTag
+        std::uint16_t flags = 0; // noteFlag
+        std::int16_t section = 0;
+
+        friend bool operator== (const Note&, const Note&) = default;
+    };
+
+    struct Section
+    {
+        std::size_t index = 0; // 0-based, in song order
+        std::string kind;
+        std::int32_t startBar = 0; // 0-based; a multiple of 8
+        std::int32_t bars = 0; // as written out (a --bars cut may shorten the last section)
+        std::int32_t plannedBars = 0; // as the form has it: changes are planned on these
+        std::vector<std::uint64_t> blocks; // per 8-bar block (of `bars`): bit i = style lane i plays
+
+        std::int64_t startTick() const noexcept { return startBar * ticksPerBar; }
+        std::int64_t endTick() const noexcept { return (startBar + bars) * ticksPerBar; }
+        bool active (std::size_t lane, std::int32_t barInSection) const noexcept;
+        std::uint64_t lanesAnywhere() const noexcept; // bit i: lane i plays in some block
+    };
+
+    // A salient change (plan §2.3, "8-bar line"): from this bar on, the lane plays its next variant.
+    struct Change
+    {
+        std::size_t section = 0;
+        std::int32_t bar = 0; // within the section
+        std::size_t lane = 0;
+    };
+
+    struct ChordSpan
+    {
+        std::int64_t start = 0; // ticks (pushed changes start early)
+        std::int64_t end = 0;
+        std::int32_t degree = 0; // the root's scale degree in `mode`, 0-6
+        Mode mode = Mode::aeolian;
+        std::int32_t rootPc = 0;
+        std::int32_t pushedBy = 0; // ticks, 0 if not pushed
+        std::int16_t section = 0;
+        std::int32_t index = 0; // its position in the progression
+    };
+
+    // The harmony a section plays: one progression looping from the section's start.
+    struct SectionHarmony
+    {
+        std::string slot;
+        Mode mode = Mode::aeolian;
+        std::vector<std::int32_t> degrees; // the progression's chord roots
+        std::vector<std::int32_t> units; // its harmonic rhythm: units summing to 4
+        std::int32_t loopBars = 2; // a unit is loopBars / 4 bars
+        std::int32_t pushPermille = 500; // the share of changes pushed early
+        std::int32_t pushTicks = 120;
+        std::string voicing; // the texture the section starts with
+    };
+
+    // A controller value of a lane's CC lane (cc.h). Automation, not performance: both versions,
+    // with feel and quantized, write the same points.
+    struct ControlPoint
+    {
+        std::int64_t tick = 0;
+        std::uint8_t number = 0; // the controller, e.g. 74
+        std::uint8_t value = 0; // 0-127
+        std::int16_t section = 0;
+
+        friend bool operator== (const ControlPoint&, const ControlPoint&) = default;
+    };
+
+    struct LaneOut
+    {
+        std::string id;
+        std::string track;
+        std::uint8_t channel = 0;
+        LaneKind kind = LaneKind::drums;
+        std::vector<Note> score; // sorted by (tick, key, voice, length, velocity)
+        std::vector<Note> perf; // the same notes after the feel pass, index for index: perf[i] plays score[i]
+        std::int32_t swing = 500; // the swing the feel drew for the lane's default row (permille)
+        std::vector<ControlPoint> cc; // sorted by (tick, number); one value per controller and tick
+    };
+
+    struct Song
+    {
+        std::string kitId;
+        std::string kitName;
+        std::string keyName;
+        std::string camelot;
+        std::int32_t bpm = 0;
+        std::int32_t tonic = 0;
+        bool minor = true;
+        std::uint64_t seed = 0;
+        std::int32_t feelAmount = 1000;
+        std::int32_t totalBars = 0;
+        Mode mode = Mode::aeolian; // the song's mode
+        std::vector<Section> sections;
+        std::vector<Change> changes;
+        std::vector<std::int32_t> turnBars; // absolute bars that carry a turnaround
+        std::vector<SectionHarmony> harmony; // one per section
+        std::vector<ChordSpan> chords; // every chord of the song, in order
+        std::vector<LaneOut> lanes; // the style's lanes, in track order
+
+        std::int64_t endTick() const noexcept { return totalBars * ticksPerBar; }
+    };
+
+    // The root of a song's key tree: the seed, then the kit's id (rng::seedKey (seed).with (tag (kitId))),
+    // so one seed gives unrelated songs in different kits. Every draw of the generator and the feel
+    // hangs below it.
+    inline rng::Key songRoot (std::string_view kitId, std::uint64_t seed) noexcept { return rng::seedKey (seed).with (rng::tag (kitId)); }
+
+    struct Options
+    {
+        std::uint64_t seed = 0;
+        std::int32_t feelAmount = -1; // permille; -1: the feel file's amount
+        std::int32_t bars = 0; // > 0: only the first `bars` bars (a multiple of 8); 0: the whole form
+    };
+
+    // Generates a song. Fails only on options it can't honour (bars not a multiple of 8, a feel
+    // amount out of 0-2000); a bundle that passed makeBundle always generates.
+    [[nodiscard]] util::Result<Song> generate (const Bundle& bundle, const Options& options);
+}
