@@ -7,7 +7,7 @@
 #   deterministic  the loop rendered twice: the same bytes
 #   blocks         the loop at blocks of 64, 512 and 4096 samples: the same bytes
 #   taps           a tapped render's mix equals the plain render's, bit for bit; --solo writes its channel's tap;
-#                  --taps-of writes only the channels it names
+#                  --taps-of writes only the channels it names, a lane's name each of its channels
 #   latency        --keep-latency is the aligned render, the sidecar's latency later
 #   master         --master exact (master.py's two-sided limiter hold) at 48 kHz: 3280 samples of latency against
 #                  the look-back master's 424, a sounding render, and other bytes than the look-back one's
@@ -104,6 +104,13 @@ elseif(CHECK STREQUAL "taps")
         message(FATAL_ERROR "--taps-of ${_first} wrote: ${_some}")
     endif()
     _same("${WORK}/some/${_first}.wav" "${WORK}/taps/${_first}.wav" "a tap with --taps-of and without")
+    # a lane's name takes each of its channels, even where a channel has the lane's name (SYN01's lead and lead_stem)
+    _render(${_syn} --taps "${WORK}/lane" --taps-of "lead" --out "${WORK}/lane.wav")
+    file(GLOB _lane RELATIVE "${WORK}/lane" "${WORK}/lane/*.wav")
+    list(SORT _lane)
+    if(NOT _lane STREQUAL "lead.wav;lead_stem.wav")
+        message(FATAL_ERROR "--taps-of lead wrote: ${_lane}")
+    endif()
 
 elseif(CHECK STREQUAL "latency")
     _fixture()

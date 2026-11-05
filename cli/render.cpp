@@ -79,12 +79,13 @@ namespace wubansia::cli
                   "  --master lookback|exact\n"
                   "                         the limiter's hold: lookback (the plugin's, default) or exact (master.py's\n"
                   "                         two-sided hold, for verification only; the latency follows it)\n"
-                  "  --solo <LANE|CHANNEL>  write instead what the voices play into a lane's mix channels (kick ... fx) or\n"
-                  "                         one mix channel (its mix.json id), before any insert: the dry bus, in aligned time\n"
+                  "  --solo <CHANNEL|LANE>  write instead what the voices play into one mix channel (its mix.json id) or,\n"
+                  "                         for a name no channel has, a lane's channels (kick ... fx), before any insert:\n"
+                  "                         the dry bus, in aligned time\n"
                   "  --taps <DIR>           also write every mix channel's dry bus to DIR/<channel>.wav and the voices'\n"
                   "                         throws to DIR/send_space.wav, send_echo.wav (at most 64 bars)\n"
-                  "  --taps-of <LIST>       with --taps, only these: lanes or mix channel ids, comma-separated (and\n"
-                  "                         \"sends\" for the throws)\n"
+                  "  --taps-of <LIST>       with --taps, only these: lanes (each of their channels) and mix channel ids,\n"
+                  "                         comma-separated, and \"sends\" for the throws\n"
                   "\n"
                   "The host:\n"
                   "  --rate <HZ>            the sample rate, 11025 to 192000 (default 48000)\n"
@@ -642,11 +643,12 @@ namespace wubansia::cli
                 tapSends = true;
                 continue;
             }
+            // a lane's channels and a channel by its id, both (FUT02's channel "bass" is one of lane bass's two)
             const int channel = kit.mix.channelIndex (item);
             const int lane = engine::laneIndex (item);
             bool any = false;
             for (std::size_t c = 0; c < mixChannels.size(); ++c)
-                if (static_cast<int> (c) == channel || (channel < 0 && static_cast<int> (mixChannels[c].lane) == lane))
+                if (static_cast<int> (c) == channel || static_cast<int> (mixChannels[c].lane) == lane)
                     any = tapChannel[c] = true;
             if (! any && lane < 0)
             {
