@@ -400,6 +400,8 @@ TEST_CASE ("parseKitManifest reads every field", "[manifest]")
     CHECK (p.cycle16ths == 32);
     CHECK (p.tolerancePm == 20);
     CHECK (p.fadeUs == 5000);
+    CHECK (p.throwMode == PhraseThrow::live);
+    CHECK (p.fadeInUs == 750);
     CHECK (p.ride74.empty());
     CHECK (p.ride71.empty());
     REQUIRE (p.slices.size() == 4);
@@ -595,17 +597,43 @@ TEST_CASE ("parseKitManifest refuses what the contract doesn't allow, naming the
         { "a step past the cycle", [] (Doc& d) { d.set ("phrases[0].slices[3].step", integer (32)); }, "kit.json: phrases[0].slices[3].step: 32 is out of range (0 to 31)" },
         { "steps out of order", [] (Doc& d) { d.set ("phrases[0].slices[2].step", integer (2)); }, "kit.json: phrases[0].slices[2].step: ", "ascending" },
         { "a step and key twice", [] (Doc& d) { d.set ("phrases[0].slices[1]", slice (0, 60, 21500, 44000, 43000, 500, ints ({}))); }, "kit.json: phrases[0].slices[1]: ", "slices[0]" },
-        { "an end past the shorter stem", [] (Doc& d) { d.set ("phrases[0].slices[3].end", integer (190001)); }, "kit.json: phrases[0].slices[3].end: 190001 is out of range (66001 to 190000)" },
+        { "a slice longer than its stem", [] (Doc& d) { d.set ("phrases[0].slices[3].end", integer (66000 + 190000 + 1)); }, "kit.json: phrases[0].slices[3].end: 256001 is out of range (66001 to 256000): a slice is at most its stem's 190000 frames long" },
         { "an end at its start", [] (Doc& d) { d.set ("phrases[0].slices[3].end", integer (66000)); }, "kit.json: phrases[0].slices[3].end: " },
         { "a fade past the end", [] (Doc& d) { d.set ("phrases[0].slices[3].fade", integer (90001)); }, "kit.json: phrases[0].slices[3].fade: 90001 is out of range (66000 to 90000)" },
         { "a fade before the start", [] (Doc& d) { d.set ("phrases[0].slices[3].fade", integer (65999)); }, "kit.json: phrases[0].slices[3].fade: " },
         { "a negative start", [] (Doc& d) { d.set ("phrases[0].slices[0].start", integer (-1)); }, "kit.json: phrases[0].slices[0].start: " },
+        { "a start at the stem's end", [] (Doc& d) { d.set ("phrases[0].slices[0].start", integer (190000)); }, "kit.json: phrases[0].slices[0].start: 190000 is out of range (0 to 189999)" },
         { "a lead", [] (Doc& d) { d.set ("phrases[0].slices[1].lead", integer (48001)); }, "kit.json: phrases[0].slices[1].lead: " },
         { "9 holds", [] (Doc& d) { d.set ("phrases[0].slices[1].holds", ints ({ 1, 2, 3, 4, 5, 6, 7, 8, 9 })); }, "kit.json: phrases[0].slices[1].holds: ", "0 to 8" },
         { "a hold past 127", [] (Doc& d) { d.set ("phrases[0].slices[1].holds", ints ({ 128 })); }, "kit.json: phrases[0].slices[1].holds[0]: 128 is out of range (0 to 127)" },
         { "a hold that isn't a key", [] (Doc& d) { d.set ("phrases[0].slices[1].holds", strs ({ "C4" })); }, "kit.json: phrases[0].slices[1].holds[0]: an integer was expected, not a string" },
         { "a slice key past 127", [] (Doc& d) { d.set ("phrases[0].slices[1].key", integer (128)); }, "kit.json: phrases[0].slices[1].key: " },
         { "a phrase's switch the kit hasn't", [] (Doc& d) { d.set ("phrases[0].ab", str ("stab")); }, "kit.json: phrases[0].ab: ", "kit.ab.stab" },
+        // throw: live or baked, always written.
+        { "no throw", [] (Doc& d) { d.erase ("phrases[0].throw"); }, "kit.json: phrases[0]: missing \"throw\"" },
+        { "a bad throw", [] (Doc& d) { d.set ("phrases[0].throw", str ("both")); }, "kit.json: phrases[0].throw: \"both\" isn't one of live, baked" },
+        { "a throw that isn't a string", [] (Doc& d) { d.set ("phrases[0].throw", flag (true)); }, "kit.json: phrases[0].throw: a string was expected, not a boolean" },
+        // fade_in_us: 0-100 000, always written.
+        { "no fade-in", [] (Doc& d) { d.erase ("phrases[0].fade_in_us"); }, "kit.json: phrases[0]: missing \"fade_in_us\"" },
+        { "a negative fade-in", [] (Doc& d) { d.set ("phrases[0].fade_in_us", integer (-1)); }, "kit.json: phrases[0].fade_in_us: -1 is out of range (0 to 100000)" },
+        { "a fade-in too long", [] (Doc& d) { d.set ("phrases[0].fade_in_us", integer (100001)); }, "kit.json: phrases[0].fade_in_us: 100001 is out of range (0 to 100000)" },
+        { "a fade-in that isn't a number", [] (Doc& d) { d.set ("phrases[0].fade_in_us", str ("500")); }, "kit.json: phrases[0].fade_in_us: an integer was expected, not a string" },
+        // Any slice may wrap through its stem's end, but it is at most one stem long (the shorter stem's 190000 frames).
+        { "a wrapping slice 0 longer than its stem", [] (Doc& d) {
+             d.set ("phrases[0].slices[0].start", integer (190000 - 2400));
+             d.set ("phrases[0].slices[0].end", integer (190000 - 2400 + 190000 + 1));
+         }, "kit.json: phrases[0].slices[0].end: 377601 is out of range (187601 to 377600)" },
+        { "a slice longer than stem A alone", [] (Doc& d) { // without stem B, the stem is A's 192000 frames
+             d.set ("phrases[0].stems.b", integer (-1));
+             d.set ("phrases[0].ab", str (""));
+             d.set ("phrases[0].slices[3].end", integer (66000 + 192000 + 1));
+         }, "kit.json: phrases[0].slices[3].end: 258001 is out of range (66001 to 258000)" },
+        { "a slice in the middle longer than its stem", [] (Doc& d) { d.set ("phrases[0].slices[2].end", integer (44000 + 190000 + 1)); },
+            "kit.json: phrases[0].slices[2].end: 234001 is out of range (44001 to 234000)" },
+        { "a fade past a wrapping end", [] (Doc& d) {
+             d.set ("phrases[0].slices[3].end", integer (195000));
+             d.set ("phrases[0].slices[3].fade", integer (195001));
+         }, "kit.json: phrases[0].slices[3].fade: 195001 is out of range (66000 to 195000)" },
         // ride: [] or cycle_16ths x 4 values 0-127 each.
         { "no ride", [] (Doc& d) { d.erase ("phrases[0].ride"); }, "kit.json: phrases[0]: missing \"ride\"" },
         { "a ride that isn't an object", [] (Doc& d) { d.set ("phrases[0].ride", ints ({})); }, "kit.json: phrases[0].ride: an object was expected, not an array" },
@@ -680,6 +708,60 @@ TEST_CASE ("parseKitManifest reads rides, and phrases that share a channel and i
     REQUIRE (four.error.empty());
     CHECK (four.value.phrases[0].ride74.empty());
     CHECK (four.value.phrases[0].ride71.size() == 256);
+}
+
+TEST_CASE ("parseKitManifest: slices wrap through a looped stem's end; throw and fade_in_us", "[manifest]")
+{
+    // The stems are 192000 and 190000 frames: a slice starts inside the shorter one and is at most 190000 long.
+    SECTION ("a wrapping last slice that continues into slice 0, a baked throw, a fade-in")
+    {
+        // Slice 0 starts 5000 frames in, at its pre-roll; the last slice runs through the stem's end on to frame 5000.
+        Doc doc (test::kKitJson);
+        doc.set ("phrases[0].throw", str ("baked"));
+        doc.set ("phrases[0].fade_in_us", integer (3000));
+        doc.set ("phrases[0].slices[0].start", integer (5000));
+        doc.set ("phrases[0].slices[3].end", integer (190000 + 5000));
+        doc.set ("phrases[0].slices[3].fade", integer (190000 + 4000));
+        const auto parsed = parseKitManifest (doc.text());
+        REQUIRE (parsed.error.empty());
+        const auto& p = parsed.value.phrases[0];
+        CHECK (p.throwMode == PhraseThrow::baked);
+        CHECK (p.fadeInUs == 3000);
+        CHECK (p.slices[3].end == 195000);
+        CHECK (p.slices[3].fade == 194000);
+        CHECK (p.slices[3].end % 190000 == p.slices[0].start); // it continues into the next cycle's slice 0
+    }
+
+    SECTION ("a wrapping slice 0: it starts before its cycle, at frames less its lead (FUT02's riff twice)")
+    {
+        Doc doc (test::kKitJson);
+        doc.set ("phrases[0].slices[0].lead", integer (2400));
+        doc.set ("phrases[0].slices[0].start", integer (190000 - 2400));
+        doc.set ("phrases[0].slices[0].end", integer (190000 - 2400 + 16837)); // through the stem's end, 14437 frames on
+        doc.set ("phrases[0].slices[0].fade", integer (190000 - 2400 + 16000));
+        const auto parsed = parseKitManifest (doc.text());
+        REQUIRE (parsed.error.empty());
+        const auto& s0 = parsed.value.phrases[0].slices[0];
+        CHECK (s0.start == 187600);
+        CHECK (s0.end == 204437);
+        CHECK (s0.end - 190000 == 14437);
+    }
+
+    SECTION ("a slice exactly one stem long, and a single slice wrapping to its own start")
+    {
+        Doc doc (test::kKitJson);
+        doc.set ("phrases[0].slices[2].end", integer (44000 + 190000));
+        REQUIRE (parseKitManifest (doc.text()).error.empty());
+
+        Doc one (test::kKitJson);
+        one.at ("phrases[0].slices").items.resize (1);
+        one.set ("phrases[0].slices[0].start", integer (5000));
+        one.set ("phrases[0].slices[0].end", integer (195000));
+        one.set ("phrases[0].slices[0].holds", ints ({}));
+        REQUIRE (parseKitManifest (one.text()).error.empty());
+        one.set ("phrases[0].slices[0].end", integer (195001));
+        CHECK (parseKitManifest (one.text()).error.starts_with ("kit.json: phrases[0].slices[0].end: 195001 is out of range (5001 to 195000)"));
+    }
 }
 
 TEST_CASE ("parseKitManifest's syntax errors carry the JSON path", "[manifest]")
@@ -1099,8 +1181,9 @@ TEST_CASE ("both parsers accept the committed manifests", "[manifest]")
         const auto kitBytes = util::readBinaryFile (kitPath);
         REQUIRE (kitBytes.ok());
         const auto kit = parseKitManifest (std::string_view (reinterpret_cast<const char*> (kitBytes.value.data()), kitBytes.value.size()));
-        CHECK (kit.error.empty());
-        CHECK (kit.value.kit.id == upper);
+        CHECK (kit.error == ""); // shows the refusal, with its JSON path
+        if (kit.ok())
+            CHECK (kit.value.kit.id == upper);
         ++kits;
 
         const auto mixPath = folder.path() / (upper + "_mix.json");
@@ -1110,7 +1193,7 @@ TEST_CASE ("both parsers accept the committed manifests", "[manifest]")
         const auto mixBytes = util::readBinaryFile (mixPath);
         REQUIRE (mixBytes.ok());
         const auto mix = parseMixManifest (std::string_view (reinterpret_cast<const char*> (mixBytes.value.data()), mixBytes.value.size()), kit.value);
-        CHECK (mix.error.empty());
+        CHECK (mix.error == "");
         ++mixes;
     }
     if (kits == 0)

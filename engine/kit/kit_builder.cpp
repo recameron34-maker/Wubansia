@@ -210,17 +210,28 @@ namespace wubansia::engine
                 p.ab = static_cast<std::int8_t> (e.stemB >= 0 ? e.ab : -1);
                 p.mixChannel = static_cast<std::uint8_t> (mixChannel);
                 p.gainMdb = e.gainMdb;
+                p.throwMode = e.throwMode;
                 p.stem = { static_cast<std::uint16_t> (e.stemA), static_cast<std::uint16_t> (e.stemB >= 0 ? e.stemB : e.stemA) };
                 p.cycle16ths = e.cycle16ths;
                 p.tolerancePm = e.tolerancePm;
                 p.fadeUs = e.fadeUs;
+                p.fadeInUs = e.fadeInUs;
                 p.firstSlice = static_cast<std::uint16_t> (kit.slices.size());
                 p.sliceCount = static_cast<std::uint16_t> (e.slices.size());
+                // The voice reads a slice modulo its stem's length: it starts inside the shorter stem and is at most
+                // that long, so it wraps at most once (docs/plugin/manifest.md 2.6).
+                auto frames = m.files[static_cast<std::size_t> (e.stemA)].frames;
+                if (e.stemB >= 0)
+                    frames = std::min (frames, m.files[static_cast<std::size_t> (e.stemB)].frames);
                 for (std::size_t si = 0; si < e.slices.size(); ++si)
                 {
                     const auto& s = e.slices[si];
                     if (s.holdCount < 0 || s.holdCount > kMaxHolds || s.key < 0 || s.key > 127)
                         return refuse (where + "." + at ("slices", si) + ".holds: more than " + std::to_string (kMaxHolds) + " holds, or a key out of 0-127");
+                    if (s.start < 0 || s.start >= frames || s.end <= s.start || s.end > s.start + frames || s.fade < s.start || s.fade > s.end)
+                        return refuse (where + "." + at ("slices", si) + ": frames " + std::to_string (s.start) + " to " + std::to_string (s.end) + " (fade "
+                                       + std::to_string (s.fade) + ") don't fit its " + std::to_string (frames)
+                                       + "-frame stem: a slice starts inside it and is at most that long");
                     PhraseSlice slice; // holds past holdCount stay 0
                     slice.step = s.step;
                     slice.key = static_cast<std::uint8_t> (s.key);
