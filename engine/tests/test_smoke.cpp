@@ -191,8 +191,11 @@ TEST_CASE ("the engine stub renders silence at every rate, block size and output
 
     Engine engine;
     engine.prepare (rate, 512, outputs);
-    CHECK (engine.latencySamples() == 0);
-    CHECK (same (engine.tailSeconds(), 0.0));
+    Mixer mixer; // P8's: the engine reports the mix's latency and tail, fixed per rate whatever the kit
+    mixer.prepare (rate, 512, outputs);
+    CHECK (engine.latencySamples() == mixer.latencySamples());
+    CHECK (engine.latencySamples() > 0);
+    CHECK (engine.tailSeconds() >= 6.0);
 
     const Controls controls;
     const auto transport = playingAt (128.0);
@@ -286,64 +289,8 @@ TEST_CASE ("the engine stub neither allocates nor frees while processing", "[smo
     CHECK (counts.frees == 0);
 }
 
-TEST_CASE ("the pass-through mixer sums the channel buses at their lane's gain", "[smoke]")
-{
-    Mixer mixer;
-    mixer.prepare (48000.0, 4, 2);
-    auto& bus = mixer.bus();
-    REQUIRE (bus.numChannels() == kMaxMixChannels);
-    REQUIRE (bus.maxBlock() == 4);
-
-    auto fill = [&bus] (int channel, std::array<float, 4> l, std::array<float, 4> r) {
-        std::copy (l.begin(), l.end(), bus.left (channel));
-        std::copy (r.begin(), r.end(), bus.right (channel));
-    };
-    bus.clear (4);
-    fill (0, { 1.0f, 2.0f, 3.0f, 4.0f }, { -1.0f, -2.0f, -3.0f, -4.0f });
-    fill (1, { 8.0f, 8.0f, 8.0f, 8.0f }, { 4.0f, 4.0f, 4.0f, 4.0f });
-    fill (5, { 64.0f, 64.0f, 64.0f, 64.0f }, { 64.0f, 64.0f, 64.0f, 64.0f }); // in no config below
-
-    MixConfig config;
-    config.channels.resize (2);
-    config.channels[0].lane = static_cast<std::uint8_t> (Lane::kick);
-    config.channels[1].lane = static_cast<std::uint8_t> (Lane::bass);
-    Controls controls;
-    controls.laneGain[static_cast<std::size_t> (Lane::kick)] = 0.5f;
-    controls.laneGain[static_cast<std::size_t> (Lane::bass)] = 0.25f;
-
-    SECTION ("stereo, with a config")
-    {
-        mixer.setConfig (&config);
-        Output out (4);
-        mixer.process (out.channels, 2, 4, controls, 128.0);
-        CHECK (out.left == std::vector<float> { 2.5f, 3.0f, 3.5f, 4.0f });
-        CHECK (out.right == std::vector<float> { 0.5f, 0.0f, -0.5f, -1.0f });
-    }
-
-    SECTION ("mono folds to (L + R) / 2")
-    {
-        mixer.setConfig (&config);
-        Output out (4);
-        mixer.process (out.channels, 1, 4, controls, 128.0);
-        CHECK (out.left == std::vector<float> { 1.5f, 1.5f, 1.5f, 1.5f });
-        CHECK (std::isnan (out.right[0])); // the second output isn't there to write
-    }
-
-    SECTION ("without a config every bus plays at unity")
-    {
-        mixer.setConfig (nullptr);
-        Output out (4);
-        mixer.process (out.channels, 2, 4, controls, 128.0);
-        CHECK (out.left == std::vector<float> { 73.0f, 74.0f, 75.0f, 76.0f });
-        CHECK (out.right == std::vector<float> { 67.0f, 66.0f, 65.0f, 64.0f });
-    }
-
-    CHECK (mixer.latencySamples() == 0);
-    CHECK (same (mixer.tailSeconds(), 0.0));
-    for (const float peak : mixer.meters().lanePeak)
-        CHECK (peak <= 0.0f); // the pass-through mixer measures nothing
-    CHECK (mixer.meters().gainReduction <= 0.0f);
-}
+// P0's pass-through mixer is gone (P8's mix/mixer.cpp replaces it): its unity sum, lane gains and mono fold are
+// test_mixer.cpp's.
 
 TEST_CASE ("the phrase matcher stub leaves every note on the multisample", "[smoke]")
 {
