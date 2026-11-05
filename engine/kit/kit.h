@@ -247,6 +247,7 @@ namespace wubansia::engine
         std::uint8_t channel = 0; // 0-15: the MIDI channel whose notes it covers
         std::int8_t ab = -1; // an AbSwitch value choosing the stem, or -1
         std::uint8_t mixChannel = 0;
+        std::int32_t gainMdb = 0; // the stem's own gain, before its mix channel
         std::array<std::uint16_t, 2> stem {}; // file index per character (A, B); B == A without an alternative
         std::int32_t cycle16ths = 32; // 32 or 64, aligned to the song grid
         std::int32_t tolerancePm = 20; // slices play while |host BPM / kit BPM - 1| <= tolerancePm / 1000

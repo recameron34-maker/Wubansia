@@ -148,6 +148,7 @@ namespace wubansia::engine
         std::int32_t ch = 2; // 1-16
         std::int32_t ab = -1; // an AbSwitch value choosing the stem, or -1
         std::string mixChannel; // a mix.json channel id
+        std::int32_t gainMdb = 0;
         std::int32_t stemA = -1; // file index
         std::int32_t stemB = -1; // file index, or -1 without an alternative
         std::int32_t cycle16ths = 32;
