@@ -39,7 +39,7 @@ Line by line (bars of the whole mix):
 - 33-40: kick, clap, hats, perc, bass (Bounce); a turnaround in its last bar
 - 41-48: kick, clap, hats, perc, bass (Bounce), chords, accents, fx; the fill in its last bar
 - 49-56: kick, clap, hats, perc, bass (Bounce), the lead's call, chords, accents; a turnaround in its last bar
-- 57-64: kick, clap, hats, perc, bass (Bounce), the lead's call, chords, vox (call), accents, fx; the fill in its last bar
+- 57-64: kick, clap, hats, perc, bass (Bounce), the lead's call, chords, vox (call), thrown, accents, fx; the fill in its last bar
 
 **3. Break** (bars 65-80)
 - 65-72: the lead's call, chords, vox (riff)

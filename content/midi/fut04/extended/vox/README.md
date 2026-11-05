@@ -48,7 +48,7 @@ Line by line (bars of the whole mix):
 - 105-112: off-beat hats, lead, chords, vox (riff), accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **4. Build** (bars 113-128)
-- 113-120: kick, hats, perc, bass (AcidLine1); a turnaround in its last bar
+- 113-120: kick, off-beat hats, full in its second half, perc, bass (AcidLine1); a turnaround in its last bar
 - 121-128: kick, snare, 16th hats, perc, bass (AcidLine1), fx; the snare rolls over the line's last 2 bars up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 129-160)
