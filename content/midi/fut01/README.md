@@ -96,7 +96,7 @@ it), so a gated pad plays the whole file; an end-aligned sound's note ends on th
 Filter rides, every 60 ticks while they move (CC74 cutoff, CC71 resonance):
 - CC74 on channel 1 (Bass): the warp bass's wobble: the lane filter over 450 Hz opening once an 8th, deeper in bars 2 and 4; logarithmic, 0 = 650 Hz to 127 = 2210 Hz.
 
-Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 at its note-off (the GS send controllers).
+Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 at its note-off, or sooner at the next note-on on its track that isn't thrown, so no other note takes the throw (the GS send controllers).
 
 ## Lanes Wubansia plays from recorded phrases
 
