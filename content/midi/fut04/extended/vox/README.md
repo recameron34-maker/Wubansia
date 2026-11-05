@@ -48,7 +48,7 @@ Line by line (bars of the whole mix):
 - 105-112: off-beat hats, lead, chords, vox (riff), accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **4. Build** (bars 113-128)
-- 113-120: kick, hats, perc, bass (AcidLine1); a turnaround in its last bar
+- 113-120: kick, off-beat hats, full in its second half, perc, bass (AcidLine1); a turnaround in its last bar
 - 121-128: kick, snare, 16th hats, perc, bass (AcidLine1), fx; the snare rolls over the line's last 2 bars up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 129-160)
@@ -118,8 +118,9 @@ Set the project to 136 BPM in 4/4 first: every file carries the tempo, but a DAW
 dropped file.
 - **The whole mix:** drop `FUT04_ExtendedMix_Vox_224bars.mid` on bar 1: a track per instrument, in the order above.
 - **Your own order:** drop the region files on bar lines, each where you want its section. A region starts on its first
-  downbeat and ends on its last bar line, so regions laid end to end play exactly like the whole mix. Every region has
-  the same tracks; if a DAW leaves an empty one out, move the clips under it onto the tracks of the same name.
+  downbeat and ends on its last bar line, so regions laid end to end play like the whole mix, except that a note held
+  over a section line there (a vox throw into a break, a long one-shot) stops on the line. Every region has the same
+  tracks; if a DAW leaves an empty one out, move the clips under it onto the tracks of the same name.
 - **Ableton Live:** drag the files into the Arrangement view: a file's tracks come in as clips on consecutive MIDI
   tracks. Clips keep the notes, not their channels: route each track to its instrument (`docs/midi-map.md`).
 - **Logic Pro:** File > Open on the whole-mix file brings its tempo, key and section markers with it (an import

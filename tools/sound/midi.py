@@ -37,6 +37,7 @@ modes, accent and FX placement, rolls and rises, turnarounds, rides). The genres
 declares its own arrangement as data, PARTS['form'], built from section() and line().
 """
 import argparse
+import bisect
 import importlib
 import json
 import math
@@ -708,20 +709,28 @@ class Kit:
 
     def events(self, track, notes, ccs, end):
         """A track's MIDI events (tick, order, message): its gated notes, their throws, and its controllers ((tick,
-        controller, value), on the 60-tick grid)."""
+        controller, value), on the 60-tick grid). A throw's CC91 and CC94 go to 127 on its note's tick and back to 0 at
+        its note-off or at the track's next note-on that isn't thrown (on its tick, before it), whichever comes first:
+        Wubansia latches the sends at each note-on, so a throw held over a later note would throw that note too (FUT04's
+        no-vox metal chord over the accents after it). A note on a thrown note's tick is thrown with it."""
         ch = self.channel(track)
         out = []
         mono = CH.track_lane(self.kit, track) in ('bass', 'vox') and track != 'Vox chops'
-        for on, off, key, v, _, _, _, throw in self.gated(notes, end, mono):
+        rows = self.gated(notes, end, mono)
+        thrown = {r[0] for r in rows if r[7]}
+        plain = sorted({r[0] for r in rows if not r[7]} - thrown)       # the ticks of the notes that aren't thrown
+        for on, off, key, v, _, _, _, throw in rows:
             vel = self.velocity(ch, key, v)
             if ch == CH.CHANNELS['drums'] and key not in self.drum_map:
                 raise ValueError(f'{self.kit}: drum note {key} on {track} is not on the drum map')
             out.append((on, 2, bytes([CH.status(0x90, ch), key, vel])))
             out.append((off, 0, bytes([CH.status(0x80, ch), key, 0])))
             if throw:
+                i = bisect.bisect_right(plain, on)
+                back = min(off, plain[i]) if i < len(plain) else off
                 for cc in (SPACE, ECHO):
                     out.append((on, 1, bytes([CH.status(0xB0, ch), cc, 127])))
-                    out.append((off, 1, bytes([CH.status(0xB0, ch), cc, 0])))
+                    out.append((back, 1, bytes([CH.status(0xB0, ch), cc, 0])))
         for tick, cc, value in ccs:
             if not 0 <= value <= 127 or tick > end:
                 raise ValueError(f'{self.kit}: controller {cc} = {value} at {tick} on {track}')
@@ -1634,16 +1643,19 @@ def extended_of(k, variant):
     used = [t for t in k.tracks() if any(s['notes'].get(t) or s['ccs'].get(t) for s in secs)]
     title = k.title(f'extended mix, {VARIANT_NAME[variant]}')
     whole_name = f'{kit}_ExtendedMix_{VARIANT_NAME[variant]}_{total}bars.mid'
-    out, whole, marks = {}, {t: [] for t in used}, []
+    out, notes, ccs, marks = {}, {t: [] for t in used}, {t: [] for t in used}, []
     for s in secs:
-        tracks = section_tracks(k, s, s['bars'] * bar, used)
         sm = section_marks(s)
-        out[s['file']] = smf(k.conductor(f'{title}: {s["name"]}', sm), tracks, s['bars'] * bar)
+        out[s['file']] = smf(k.conductor(f'{title}: {s["name"]}', sm), section_tracks(k, s, s['bars'] * bar, used),
+                             s['bars'] * bar)            # a region: its notes stop on its last bar line
         off = (s['start_bar'] - 1) * bar
-        for name, events in tracks:
-            whole[name] += [(t + off, order, m) for t, order, m in events]
+        for name in used:
+            notes[name] += shifted(s['notes'].get(name, []), (s['start_bar'] - 1) * BAR)
+            ccs[name] += [(t + off, c, v) for t, c, v in s['ccs'].get(name, [])]
         marks += [(t + off, m) for t, m in sm]
-    out[whole_name] = smf(k.conductor(title, marks), list(whole.items()), total * bar)
+    # the whole mix from the plan's notes over all of it: a note held over a section line keeps its length
+    whole = [(name, k.events(name, notes[name], ccs[name], total * bar)) for name in used]
+    out[whole_name] = smf(k.conductor(title, marks), whole, total * bar)
     R = dict(kit=kit, title=K.TITLE, variant=variant, bpm=int(K.BPM), tempo_us=tempo_us(K.BPM), key=K.KEY,
              camelot=K.CAMELOT, swing_pm=round(K.SWING * 1000), ppq=PPQ, bars=total,
              length_ms=round(total * 240_000 / K.BPM), length=length(total, K.BPM), file=whole_name,
@@ -2029,8 +2041,9 @@ Set the project to {K.BPM:g} BPM in 4/4 first: every file carries the tempo, but
 dropped file.
 - **The whole mix:** drop `{R['file']}` on bar 1: a track per instrument, in the order above.
 - **Your own order:** drop the region files on bar lines, each where you want its section. A region starts on its first
-  downbeat and ends on its last bar line, so regions laid end to end play exactly like the whole mix. Every region has
-  the same tracks; if a DAW leaves an empty one out, move the clips under it onto the tracks of the same name.
+  downbeat and ends on its last bar line, so regions laid end to end play like the whole mix, except that a note held
+  over a section line there (a vox throw into a break, a long one-shot) stops on the line. Every region has the same
+  tracks; if a DAW leaves an empty one out, move the clips under it onto the tracks of the same name.
 - **Ableton Live:** drag the files into the Arrangement view: a file's tracks come in as clips on consecutive MIDI
   tracks. Clips keep the notes, not their channels: route each track to its instrument (`docs/midi-map.md`).
 - **Logic Pro:** File > Open on the whole-mix file brings its tempo, key and section markers with it (an import
