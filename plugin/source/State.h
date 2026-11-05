@@ -45,7 +45,11 @@ namespace wubansia
         engine::Lane midiInLane = engine::Lane::kick; // for MidiInMode::lane
         engine::PhraseMode phrases = engine::PhraseMode::automatic;
 
-        friend bool operator== (const StateOnly&, const StateOnly&) = default;
+        friend bool operator== (const StateOnly& a, const StateOnly& b)
+        {
+            return a.kit == b.kit && a.kitContent == b.kitContent && juce::exactlyEqual (a.standaloneBpm, b.standaloneBpm) && a.midiIn == b.midiIn
+                   && a.midiInLane == b.midiInLane && a.phrases == b.phrases;
+        }
     };
 
     namespace State
