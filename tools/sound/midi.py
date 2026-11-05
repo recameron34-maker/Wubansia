@@ -1205,7 +1205,8 @@ def chord_block(k, name, kind, variant):
 
 
 def rest_from(k, notes, step):
-    """The notes that start before `step` (a 16th), a note held over it cut there, to the tick."""
+    """The notes that start before `step` (a 16th), a note held over it cut there, to the tick: where the drums rest
+    (a roll's fill, a drum drop, a line's own fill) nothing sounds past the rest (FUT04's 2-bar rumble notes)."""
     out = []
     for n in notes:
         if n.step < step:
@@ -1399,7 +1400,7 @@ def line_notes(k, ln, ctx, variant):
             for part in DRUM_PARTS:
                 t = k.part_track(part)
                 if t in out:
-                    out[t] = [n for n in out[t] if n.step < until]
+                    out[t] = rest_from(k, out[t], until)
     if ln.get('end') == 'turn':
         pickup = pickup_lane(k, lanes, out, last_bar)
         for part in DRUM_PARTS:
@@ -1415,7 +1416,7 @@ def line_notes(k, ln, ctx, variant):
         for part in DRUM_PARTS:
             t = k.part_track(part)
             if t in out:
-                out[t] = [n for n in out[t] if n.step < last_bar]
+                out[t] = rest_from(k, out[t], last_bar)
     # the rides
     ccs = {}
     for ride in k.rides:
