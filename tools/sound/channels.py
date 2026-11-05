@@ -21,7 +21,11 @@ Channels count from 1, as DAWs and docs/midi-map.md count them; a MIDI status by
 - 11-16: the kit's extras, EXTRAS[kit]: instruments one kit adds, each on its own channel.
 
 Every track of every file plays one of these, and resolves to one of the plugin's LANES (track_lane()).
+
+The controllers (docs/midi-map.md): CC74 and CC71 ride a channel's filter, its cutoff on a logarithmic law between two
+frequencies (cc_value(), cc_hz()) and its resonance on a linear one (cc_linear()); CC91 and CC94 throw a note.
 """
+import math
 
 CHANNELS = {
     'bass': 1,
@@ -78,6 +82,29 @@ TRACKS = {
     'Accents': ('accents', 'accents'),
     'FX': ('fx', 'fx'),
 }
+
+
+CUTOFF_CC, RESONANCE_CC = 74, 71   # the filter rides, every RIDE_TICKS while they move
+SPACE_CC, ECHO_CC = 91, 94          # the throws: 127 on a thrown note's tick, before its note-on; 0 at its note-off
+RIDE_TICKS = 60                     # a ride's points sit on this grid, straight (unswung) ticks from the clip's start
+
+
+def cc_value(f, lo, hi):
+    """A cutoff ride's controller value for a frequency f on a channel whose ride spans lo-hi Hz (logarithmic): round
+    (127 ln(f / lo) / ln(hi / lo)), held to 0-127. midi.py writes it from the recipes' own curves; the mix manifest
+    (plugin_mix) reads it back with cc_hz(). One law on both sides."""
+    v = round(127 * math.log(f / lo) / math.log(hi / lo))
+    return max(0, min(127, v))
+
+
+def cc_hz(v, lo, hi):
+    """The frequency a cutoff ride's value stands for: lo x (hi / lo)^(v / 127)."""
+    return lo * (hi / lo) ** (v / 127)
+
+
+def cc_linear(x, lo, hi):
+    """A linear ride's value (a resonance) for x between lo and hi: round(127 (x - lo) / (hi - lo)), held to 0-127."""
+    return max(0, min(127, round(127 * (x - lo) / (hi - lo))))
 
 
 def channel(role):
