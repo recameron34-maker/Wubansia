@@ -255,6 +255,8 @@ def line(lanes, **opt):
       last bar: PARTS['drums']['turn'], else a pickup roll on the last beat of the snare, the perc or the hats, the
       first with room for it) or 'drop' (the drums sit out the last bar); turn: a named turnaround,
       PARTS['drums']['turns'][name], in place of PARTS['drums']['turn'];
+    - hits: one-shots placed by hand on channels 6 and 7, Hits on whole 16ths from the line's start (or end-aligned
+      on them), a tuple for both variants or {'vox': hits, 'novox': hits};
     - cue: 'Riser' (the kit's riser, end-aligned on the line's end: put it on a section's last line) or 'Vox' (a
       label: the vox notes play);
     - ride: {track: 'loop' (the default) | ('hold', value) | ('ramp', from, to)}: the filter rides."""
@@ -1246,6 +1248,20 @@ def variant_block(k, variant, part, kind):
     return sorted([n for n in src if n.step < last] + bar)
 
 
+def line_hits(k, ln, variant):
+    """A line's own one-shots in a variant (ln['hits']: Hits, or {'vox': ..., 'novox': ...}), checked: accents or FX
+    (channels 6 and 7) on whole 16ths."""
+    got = ln.get('hits', ())
+    hits_ = got.get(variant, ()) if isinstance(got, dict) else got
+    for h in hits_:
+        role = k.sound(h.sound)[0]
+        if role not in ('accents', 'fx'):
+            raise ValueError(f'{k.kit}: a line hit plays accents or FX (channels 6 and 7), not {h.sound!r} ({role})')
+        if float(h.step) != int(h.step):
+            raise ValueError(f'{k.kit}: a line hit sits on a 16th, not {h.step}')
+    return tuple(hits_)
+
+
 def line_notes(k, ln, ctx, variant):
     """One line as ({track: notes, 16ths from its start}, {track: [(tick from its start, controller, value)]})."""
     P = k.P
@@ -1352,6 +1368,9 @@ def line_notes(k, ln, ctx, variant):
         for h in fill_hits(k, ln):
             role, n = k.hit_note(h)
             add(track_of_role(role), [n._replace(step=n.step + (LINE - BLOCK) * BAR)])
+    for h in line_hits(k, ln, variant):
+        role, n = k.hit_note(h)
+        add(track_of_role(role), [n])
     if ln.get('cue') == 'Riser':
         for s in cue_hits(k, 'riser'):
             role, n = k.hit_note(Hit(LINE * BAR, s, align='end'))
@@ -1508,6 +1527,8 @@ def line_info(k, ln, got, start, variant='vox'):
         info['fill'] = ln['fill']
     if ln.get('turn') and ln.get('end') == 'turn':
         info['turn'] = ln['turn']
+    if line_hits(k, ln, variant):
+        info['hits'] = [[int(h.step), h.sound] for h in line_hits(k, ln, variant)]
     return info
 
 
