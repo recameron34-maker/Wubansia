@@ -260,7 +260,9 @@ def line(lanes, **opt):
       on them), a tuple for both variants or {'vox': hits, 'novox': hits};
     - cue: 'Riser' (the kit's riser, end-aligned on the line's end: put it on a section's last line) or 'Vox' (a
       label: the vox notes play);
-    - ride: {track: 'loop' (the default) | ('hold', value) | ('ramp', from, to)}: the filter rides."""
+    - ride: {track: 'loop' (the default) | ('hold', value) | ('ramp', from, to) | ('points', ((bar, value), ...))}:
+      the filter rides on the track (every one of its controllers): the loop's curve, held, ramped over the line, or
+      breakpoints on whole bars 0-8 joined linearly, held before the first and after the last."""
     return Line(lanes=tuple(lanes.split()), **opt)
 
 
@@ -1434,11 +1436,43 @@ def line_notes(k, ln, ctx, variant):
                 v = mode[1]
             elif mode[0] == 'ramp':
                 v = round(mode[1] + (mode[2] - mode[1]) * i / (LINE * BAR * S16 // CC_STEP - 1))
+            elif mode[0] == 'points':
+                v = ride_point(mode[1], i * CC_STEP / (BAR * S16))
             else:
                 raise ValueError(f'ride mode {mode!r}')
             pts.append((i * CC_STEP, v))
         ccs.setdefault(track, []).extend((t, ride['cc'], v) for t, v in pts)
     return out, ccs
+
+
+def ride_point(points, x):
+    """A 'points' ride's value x bars into its line: (bar, value) breakpoints joined linearly, held before the first
+    and after the last."""
+    if x <= points[0][0]:
+        return points[0][1]
+    for (x0, v0), (x1, v1) in zip(points, points[1:]):
+        if x <= x1:
+            return round(v0 + (v1 - v0) * (x - x0) / (x1 - x0))
+    return points[-1][1]
+
+
+def ride_mode(k, mode):
+    """A line's ride mode, checked, as regions.json records it: 'loop', or a list of integers and strings: ['hold',
+    v], ['ramp', a, b], ['points', [[bar, v], ...]] (whole bars 0-8, ascending; values 0-127)."""
+    if mode == 'loop':
+        return mode
+    kind, *rest = mode
+    if kind == 'points':
+        pts = [list(p) for p in rest[0]]
+        bars_ = [b for b, _ in pts]
+        ok = (pts and all(isinstance(b, int) and isinstance(v, int) and 0 <= b <= LINE and 0 <= v <= 127
+                          for b, v in pts) and bars_ == sorted(set(bars_)))
+        if not ok:
+            raise ValueError(f'{k.kit}: a points ride is ((whole bar 0-8, value 0-127), ...), ascending: {rest[0]!r}')
+        return [kind, pts]
+    if kind not in ('hold', 'ramp') or not all(isinstance(v, int) and 0 <= v <= 127 for v in rest):
+        raise ValueError(f'{k.kit}: ride mode {mode!r}')
+    return [kind, *rest]
 
 
 def track_of_role(role):
@@ -1532,6 +1566,8 @@ def line_info(k, ln, got, start, variant='vox'):
         info['turn'] = ln['turn']
     if line_hits(k, ln, variant):
         info['hits'] = [[int(h.step), h.sound] for h in line_hits(k, ln, variant)]
+    if ln.get('ride'):
+        info['ride'] = {t: ride_mode(k, m) for t, m in ln['ride'].items()}
     return info
 
 
@@ -1851,6 +1887,16 @@ def describe_line(k, ln):
     words_ = [', '.join(parts) or 'nothing']
     if ln.get('drums'):
         words_.append(f"the drums' {ln['drums']} variant")
+    for track, m in ln.get('ride', {}).items():
+        if m == 'loop':
+            how = "as the loop's"
+        elif m[0] == 'hold':
+            how = f'held at {m[1]}'
+        elif m[0] == 'ramp':
+            how = f'from {m[1]} to {m[2]}'
+        else:
+            how = ' then '.join(f'{v} at bar {b}' for b, v in m[1])
+        words_.append(f'the {track} filter ride {how}')
     if ln.get('phrases_rest') and ln.get('end') == 'fill' and phrases:
         words_.append('the phrases rest from the fill')
     if ln.get('roll'):
