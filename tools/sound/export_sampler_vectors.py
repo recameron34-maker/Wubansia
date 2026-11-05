@@ -32,7 +32,9 @@ each file's SHA-256 (sha256sum's format), which the C++ tests check before they 
   (phrase.hits_lane: the nearest layer to velocity / 127, the louder on a tie, in floating point).
 """
 import argparse
+import functools
 import hashlib
+import importlib
 import math
 import sys
 from pathlib import Path
@@ -43,12 +45,17 @@ from tools.sound import dsp48 as D
 from tools.sound import kits
 from tools.sound import parts as P
 from tools.sound.item import Out
-from tools.sound.recipes.fut01 import basslines as B
-from tools.sound.recipes.fut01 import context4 as C4
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'engine' / 'tests' / 'vectors' / 'sampler'
 SR = D.SR
+VOICE_KIT = 'FUT01'                          # the kit whose recipes define the sampler voice: basslines, context4
+
+
+@functools.lru_cache(maxsize=None)
+def recipe(module):
+    """VOICE_KIT's recipe module, read through the kit's RECIPES (shared code never imports a kit, ADR 0008)."""
+    return importlib.import_module(f'{kits.module(VOICE_KIT).RECIPES}.{module}')
 
 SOURCE_FRAMES = 4096
 LOOP_A = (1024, 3584)
@@ -59,11 +66,12 @@ HERMITE_SWEEP_N = 3000
 LAYER_VELS = (76, 127)                       # round(0.6 x 127), round(1.0 x 127): FUT01's reese layers (basslines.LAYERS)
 V89 = 89 / 127                               # round(0.7 x 127): a plain note (basslines.NOTE)
 V127 = 127 / 127
-# (offset from the voice's onset, MIDI note, velocity, glide seconds): F#2 dips to C#2 and back (the warp line's dip
-# pair, context4.WARP_LINE steps 5-7, at one velocity), held to N_ON; A1 slides up to C#2 and accents (gain glides).
-GLIDE_DIP = ((0, 42, V89, 0.0), (3600, 37, V89, C4.GLIDES['dip']), (5200, 42, V89, C4.GLIDES['dip']))
+# (offset from the voice's onset, MIDI note, velocity, glide): F#2 dips to C#2 and back (the warp line's dip pair,
+# context4.WARP_LINE steps 5-7, at one velocity), held to N_ON; A1 slides up to C#2 and accents (gain glides). The
+# glide is context4.GLIDES' key: 'dip' (30 ms) or 'slide' (70 ms).
+GLIDE_DIP = ((0, 42, V89, None), (3600, 37, V89, 'dip'), (5200, 42, V89, 'dip'))
 GLIDE_DIP_N_ON = 7000
-GLIDE_SLIDE = ((0, 33, V89, 0.0), (2000, 37, V127, C4.GLIDES['slide']))
+GLIDE_SLIDE = ((0, 33, V89, None), (2000, 37, V127, 'slide'))
 GLIDE_SLIDE_N_ON = 6000
 CHOKE_S = 0.004                              # FUT02-04's choke (fut02/drums.CHOKE['fade_s'])
 
@@ -88,6 +96,7 @@ def running(ratios):
 
 
 def hermite_vectors(a, b):
+    B = recipe('basslines')
     up = 2.0 ** (4 / 12)
     down = 0.5 * 2.0 ** (-3 / 12)
     semis = 7.0 * np.arange(HERMITE_SWEEP_N) / (HERMITE_SWEEP_N - 1)
@@ -100,19 +109,22 @@ def hermite_vectors(a, b):
 
 def glide_vectors(a, b):
     """context4.bass_voice on the two sources, with the manifest's integer layers (see the module's note)."""
+    B, C4 = recipe('basslines'), recipe('context4')
     files = {(zone, layer): Out(a[:, None], loop=LOOP_A) for zone in B.ZONES for layer in (1, 2)}
     files[(33, 1)] = Out(b[:, None], loop=LOOP_B)
+    notes = lambda run: [(off, note, vel, C4.GLIDES[g] if g else 0.0) for off, note, vel, g in run]
     saved = B.LAYERS
     B.LAYERS = tuple(v / 127 for v in LAYER_VELS)
     try:
-        dip = C4.bass_voice(files, list(GLIDE_DIP), GLIDE_DIP_N_ON)[:, 0]
-        slide = C4.bass_voice(files, list(GLIDE_SLIDE), GLIDE_SLIDE_N_ON)[:, 0]
+        dip = C4.bass_voice(files, notes(GLIDE_DIP), GLIDE_DIP_N_ON)[:, 0]
+        slide = C4.bass_voice(files, notes(GLIDE_SLIDE), GLIDE_SLIDE_N_ON)[:, 0]
     finally:
         B.LAYERS = saved
     return {'glide_dip': dip, 'glide_slide': slide}
 
 
 def envelope_vector():
+    B = recipe('basslines')
     attack = P.raised(100, B.ATTACK)
     release = D.taper(1500, 0.0, B.RELEASE)
     n = int(CHOKE_S * SR)
