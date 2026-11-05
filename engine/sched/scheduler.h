@@ -21,16 +21,23 @@
 // The sounding table holds every sequenced note that started, with its note-off position (in H,
 // unwrapped), so note-offs come from it, not from the timeline: switching mode, variant or timeline
 // mid-note never loses one, and a loop's notes end in the next cycle. Starts, jumps and wraps chase:
-// the notes Timeline::chase lists that sound at the position start part-way in, and each cc_filter
-// ride gets its value there.
+// each cc_filter ride gets its value there, then the notes Timeline::chase lists that sound there start
+// part-way in, in onset order (the cycle before first). A note before 0 is chased even when its start
+// rounds onto the chase's sample, since the stream never plays negative positions; but at a host loop
+// wrap whose region is a whole number of loops, the notes just before its start are the ones the pass
+// before just played (its tail), so neither the chase nor the stream plays them again.
+// epoch () counts the discontinuities (starts, jumps, wraps, restarts), for decisions that must not carry
+// across one.
 //
 // At one sample the Sink hears note-offs first, then controllers, then duck keys, then note-ons.
 //
 // The Sink (any type with these members, all noexcept):
-//   int  noteOn (const Note& note, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples);
+//   int  noteOn (const Note& note, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples,
+//               std::int64_t startH);
 //        A note starts at offset. lengthSamples: host samples from offset to its end at the current
-//        tempo; chaseSamples: host samples since its own start (0 unless chased). Returns a tag that
-//        comes back with its note-off, or -1 if nothing played it (it then gets no note-off).
+//        tempo; chaseSamples: host samples since its own start (0 unless chased); startH: its start as
+//        a host position (a loop's pass x length + pos). Returns a tag that comes back with its note-off,
+//        or -1 if it needs none (nothing played, or a phrase slice).
 //   void noteOff (std::uint8_t channel, std::uint8_t key, int tag, int offset);
 //   void cc (std::uint8_t channel, std::uint8_t controller, std::uint8_t value, int offset, int rampSamples);
 //        A controller moves to value over rampSamples from offset (0: at once), from where it is.
@@ -112,6 +119,8 @@ namespace wubansia::engine
         double bpm() const noexcept { return bpm_; }
         std::int64_t sampleIndex() const noexcept { return now_; } // the next sample, from prepare () or reset ()
         int sounding() const noexcept { return count_; }
+        std::uint32_t epoch() const noexcept { return epoch_; } // bumped at every start, jump, wrap and restart
+        const Timeline* timeline() const noexcept { return current_; } // the one its events come from
         Position position() const noexcept;
 
         // The position of a sample and the sample of a position, under the current anchor.
@@ -154,7 +163,19 @@ namespace wubansia::engine
         void setTempo (double bpm) noexcept;
         void anchor (std::int64_t sample, double h) noexcept;
         void armLoop (const TransportInfo& transport) noexcept;
-        void seek (const Timeline* timeline, std::int64_t fromSample) noexcept;
+        void seek (const Timeline* timeline, std::int64_t fromSample, double minH = 0.0) noexcept;
+
+        // A host loop wrap whose region is a whole number of loops: the pass before ended on the notes
+        // the new pass would begin with (see the top).
+        bool continuationWrap() const noexcept
+        {
+            if (! loops() || current_->length <= 0)
+                return false;
+            const auto length = static_cast<double> (current_->length);
+            const double span = loopEndH_ - loopStartH_;
+            const double whole = std::floor (span / length + 0.5);
+            return whole >= 1.0 && std::abs (span - whole * length) < 0.5 * mps_;
+        }
         void clearSounding() noexcept { count_ = 0; }
         int earliestOff() const noexcept;
 
@@ -183,14 +204,16 @@ namespace wubansia::engine
             }
         }
 
-        // The first event with H >= 0 whose sample is fromSample or later.
+        // The first event with H >= minH (0 or more) whose sample is fromSample or later.
         template <class Event>
-        Cursor seekStream (const std::vector<Event>& events, std::int64_t fromSample) const noexcept
+        Cursor seekStream (const std::vector<Event>& events, std::int64_t fromSample, double minH) const noexcept
         {
             Cursor c;
             if (current_ == nullptr || events.empty())
                 return c;
-            auto due = [this, fromSample] (std::int64_t h) { return h >= 0 && sampleAt (static_cast<double> (h)) >= fromSample; };
+            auto due = [this, fromSample, minH] (std::int64_t h) {
+                return h >= 0 && static_cast<double> (h) >= minH && sampleAt (static_cast<double> (h)) >= fromSample;
+            };
             if (! loops())
             {
                 const auto it = std::partition_point (events.begin(), events.end(), [&] (const Event& e) { return ! due (e.pos); });
@@ -248,9 +271,10 @@ namespace wubansia::engine
         }
 
         // Chases the current timeline at sample `at` (position h): each cc_filter ride's value there, then
-        // the chase-listed notes sounding there, part-way in. Before 0 it waits for 0 instead.
+        // the chase-listed notes sounding there, part-way in, in onset order. Before 0 it waits for 0
+        // instead. continuation: a whole-loops host wrap (the notes rounding onto `at` were just played).
         template <class Sink>
-        void chase (double h, std::int64_t at, Sink& sink) noexcept;
+        void chase (double h, std::int64_t at, Sink& sink, bool continuation = false) noexcept;
 
         double rate_ = 48000.0;
         double bpm_ = 120.0;
@@ -274,6 +298,7 @@ namespace wubansia::engine
 
         std::array<Sounding, kSoundingSlots> slots_ {};
         int count_ = 0;
+        std::uint32_t epoch_ = 0;
     };
 
     // ---- the templates -------------------------------------------------------------------------------
@@ -313,6 +338,7 @@ namespace wubansia::engine
             const double h = hasPosition ? hostH() : 0.0;
             anchor (now_, h);
             armLoop (transport);
+            ++epoch_;
             seek (timeline, now_);
             chase (h, now_, sink);
             return SyncEvent::started;
@@ -343,14 +369,27 @@ namespace wubansia::engine
                 }
                 // A wrap the host made on this block's first sample lands where an in-block wrap would have
                 // (the loop's start on the end's sample), not on the host's rounding of it.
-                if (wrap && std::abs (previousWrap - now_) <= 1)
+                const bool exact = wrap && std::abs (previousWrap - now_) <= 1;
+                if (exact)
                     anchor (previousWrap, loopStart);
                 else
                     anchor (now_, host);
+                ++epoch_;
+                if (! wrap)
+                {
+                    armLoop (transport);
+                    seek (timeline, now_);
+                    chase (host, now_, sink);
+                    return SyncEvent::jumped;
+                }
+                current_ = timeline; // the wrap's continuation test looks at the timeline playing on
+                loopStartH_ = loopStart;
+                loopEndH_ = previousLoopEnd;
+                const bool continuation = exact && continuationWrap();
                 armLoop (transport);
-                seek (timeline, now_);
-                chase (host, now_, sink);
-                return wrap ? SyncEvent::wrapped : SyncEvent::jumped;
+                seek (timeline, now_, continuation ? loopStart : 0.0);
+                chase (positionAt (now_), now_, sink, continuation);
+                return SyncEvent::wrapped;
             }
             if (tempoChanged)
                 anchor (now_, host);
@@ -423,8 +462,10 @@ namespace wubansia::engine
                 const int offset = static_cast<int> (std::max<std::int64_t> (wrapAt, now_) - chunkStart_);
                 endSounding (offset, sink);
                 anchor (std::max<std::int64_t> (wrapAt, now_), loopStartH_);
-                seek (current_, anchorSample_);
-                chase (loopStartH_, anchorSample_, sink);
+                ++epoch_;
+                const bool continuation = continuationWrap();
+                seek (current_, anchorSample_, continuation ? loopStartH_ : 0.0);
+                chase (loopStartH_, anchorSample_, sink, continuation);
                 continue;
             }
 
@@ -470,7 +511,7 @@ namespace wubansia::engine
                     const Note& n = current_->notes[notes_.index];
                     const std::int64_t offH = onH + n.len;
                     const std::int64_t length = std::max<std::int64_t> (1, sampleAt (static_cast<double> (offH)) - sample);
-                    const int tag = sink.noteOn (n, offset, length, 0);
+                    const int tag = sink.noteOn (n, offset, length, 0, onH);
                     if (tag >= 0)
                         insertSounding (offH, tag, n.channel, n.key, offset, sink);
                     step (current_->notes, notes_);
@@ -489,6 +530,7 @@ namespace wubansia::engine
         chunkStart_ = now_;
         clearSounding();
         current_ = nullptr;
+        ++epoch_;
         if (! playing_)
             return;
         seek (timeline, now_);
@@ -496,7 +538,7 @@ namespace wubansia::engine
     }
 
     template <class Sink>
-    void Scheduler::chase (double h, std::int64_t at, Sink& sink) noexcept
+    void Scheduler::chase (double h, std::int64_t at, Sink& sink, bool continuation) noexcept
     {
         pendingZero_ = h < 0.0;
         if (pendingZero_)
@@ -560,24 +602,26 @@ namespace wubansia::engine
             }
         }
 
-        // The notes sounding at h that a plain start would miss.
-        for (const std::uint32_t index : t.chase)
-        {
-            if (index >= t.notes.size())
-                continue;
-            const Note& n = t.notes[index];
-            for (std::int64_t c = cycle - (loop ? 1 : 0); c <= cycle; ++c)
+        // The notes sounding at h that a plain start would miss, in onset order: the cycle before first.
+        for (std::int64_t c = cycle - (loop ? 1 : 0); c <= cycle; ++c)
+            for (const std::uint32_t index : t.chase)
             {
-                const std::int64_t onH = c * length * (loop ? 1 : 0) + n.pos;
+                if (index >= t.notes.size())
+                    continue;
+                const Note& n = t.notes[index];
+                const std::int64_t onH = (loop ? c * length : 0) + n.pos;
                 const std::int64_t offH = onH + n.len;
                 const std::int64_t onSample = sampleAt (static_cast<double> (onH));
                 const std::int64_t offSample = sampleAt (static_cast<double> (offH));
-                if (onSample >= at || offSample <= at)
-                    continue; // not sounding there, or a plain note-on still to come
-                const int tag = sink.noteOn (n, offset, offSample - at, at - onSample);
+                if (offSample <= at)
+                    continue; // over by then
+                // Rounding onto `at` or later: the stream plays it, unless it is before 0 (the stream
+                // never plays those), and a continuing wrap's pass before just played it.
+                if (onSample >= at && (onH >= 0 || continuation))
+                    continue;
+                const int tag = sink.noteOn (n, offset, offSample - at, std::max<std::int64_t> (0, at - onSample), onH);
                 if (tag >= 0)
                     insertSounding (offH, tag, n.channel, n.key, offset, sink);
             }
-        }
     }
 }

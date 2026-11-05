@@ -264,9 +264,9 @@ TP_REACH = MS.TP_REACH            # 24: os_fir(4)'s reach each way at 1x
 
 def limit_db(x, ceiling_db, lookahead_s=0.005, hold_s=0.060, release_s=0.080, hold='lookback'):
     """The true-peak limiter's gain reduction (dB) on a stream: master.limit_gain_db's need, hold, ramp and release,
-    the hold reaching both ways ('two_sided', master.limit) or looking back only ('lookback'), whose minimum then
-    reaches the lookahead plus the true-peak FIR's 24 samples ahead, so the gain is flat across the FIR round each
-    peak."""
+    the hold reaching both ways ('two_sided', master.limit) or looking back ('lookback'), whose minimum then runs from
+    twice the hold back to the lookahead plus the true-peak FIR's 24 samples ahead: the gain is flat across the FIR
+    round each peak, and the window is as long as the two-sided one, so a held low note doesn't step it."""
     x = D.st(f64(x))
     n = len(x)
     c = float(D.undb(ceiling_db))
@@ -277,8 +277,9 @@ def limit_db(x, ceiling_db, lookahead_s=0.005, hold_s=0.060, release_s=0.080, ho
     need = np.minimum(1.0, c / (pk + 1e-30))
     w = 2 * int(round(lookahead_s * SR / 2))
     h = int(round(hold_s * SR))
-    after = w + h if hold == 'two_sided' else w + TP_REACH      # ADR 0021: look-back reaches the TP FIR's 24 too
-    g = _mean_back(_sliding_min(need, h, after), w)
+    # ADR 0021: looking back, the window reaches the TP FIR's 24 past the lookahead, and twice the hold back
+    before, after = (h, w + h) if hold == 'two_sided' else (2 * h, w + TP_REACH)
+    g = _mean_back(_sliding_min(need, before, after), w)
     return _release(-20 * np.log10(np.minimum(g, 1.0)), release_s)
 
 

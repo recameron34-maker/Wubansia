@@ -3,12 +3,15 @@
 // The club master's true-peak limiter (ADR 0021): master.limit on a stream, as rt_ref.limit_db runs it.
 // Stereo-linked:
 // - need[n] = min (1, ceiling / the peak of the 4x signal within a sample of n) (os_fir(4), ExactUpsampler4);
-// - the lowest need held from `hold` before n to lookahead + 24 after it (Hold::lookBack, the real-time master), or
-//   to lookahead + hold after it (Hold::twoSided, master.py's, for groovecore render's verification renders);
+// - the lowest need held from twice the hold before n to lookahead + 24 after it (Hold::lookBack, the real-time
+//   master), or from the hold before n to lookahead + hold after it (Hold::twoSided, master.py's, for groovecore
+//   render's verification renders);
 // - ramped down by a moving average over the lookahead (never over the need), released exponentially in dB.
-// The look-back hold reaches 24 samples (the true-peak FIR's reach) past the lookahead, so the gain is already flat
-// across the interpolation kernel round each peak and the 4x peaks stay at the ceiling; without it they overshot it
-// by up to 0.013 dB (ADR 0021). The two-sided hold reaches further anyway.
+// Looking back (ADR 0021): the window reaches 24 samples (the true-peak FIR's reach) past the lookahead, so the gain is
+// flat across the interpolation kernel round each peak (without it the 4x peaks overshot the ceiling by up to
+// 0.013 dB); and it reaches back twice the hold, so it is as long as the two-sided window: a held low note's cycles,
+// whose 4x peaks drift with the sample grid, always keep their lowest need in it, and the gain doesn't step (a 60 ms
+// look-back window failed master.py's alias test on a driven 55 and 110 Hz saw).
 // The audio is late by the lookahead (2 round (lookahead fs / 2)), the hold's forward reach, the sample the detector
 // reads ahead and the FIR's 24: 289 samples at 48 kHz looking back, 3145 two-sided (master.limit_latency).
 
@@ -62,7 +65,8 @@ namespace wubansia::engine::fx
         Hold mode = Hold::lookBack;
         int lookahead = 240; // w
         int holdSamples = 2880; // h
-        int after = 240; // how far the hold's window reaches forward: w, or w + h
+        int before = 5760; // how far the hold's window reaches back: 2h looking back, h two-sided
+        int after = 264; // and forward: w + 24 looking back, w + h two-sided
         double ceiling = 1.0;
         double releaseCoeff = 0.0;
 

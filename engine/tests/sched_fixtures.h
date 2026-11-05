@@ -225,6 +225,16 @@ namespace p7
         return mix;
     }
 
+    // The same mix with no inserts at all. With the club master off it is, in P8's mixer, a plain delay of
+    // the channel buses' sum (latencySamples () long): what the tests that read the output use.
+    inline MixConfig cleanMix()
+    {
+        auto mix = synMix();
+        for (auto& channel : mix.channels)
+            channel.inserts.clear();
+        return mix;
+    }
+
     // ---- SMFs ----------------------------------------------------------------------------------
 
     // A file in the content's shape: a conductor (name, tempo, 4/4, markers) and the given tracks, every
@@ -433,11 +443,11 @@ namespace p7
         return kit;
     }
 
-    // The synthetic kit with its loop as all four timelines, or the given ones.
-    inline Kit synKit (int index = 0)
+    // The synthetic kit with its loop as all four timelines; clean: on cleanMix ().
+    inline Kit synKit (int index = 0, bool clean = false)
     {
         const auto m = synManifest();
-        const auto mix = synMix();
+        const auto mix = clean ? cleanMix() : synMix();
         const auto loop = build (synLoopSmf(), m, mix, 15360);
         return assemble (m, mix, { loop, loop, loop, loop }, index);
     }
@@ -462,6 +472,7 @@ namespace p7
         std::int64_t length = 0; // a note-on's lengthSamples; a cc's ramp
         std::int64_t chase = 0; // a note-on's chaseSamples
         std::int64_t pos = 0; // a note-on's timeline position
+        std::int64_t startH = 0; // a note-on's start as a host position
         int tag = -1;
 
         friend bool operator== (const Event&, const Event&) = default;
@@ -477,9 +488,10 @@ namespace p7
         int sounding = 0; // note-ons less note-offs since the last stopSequenced
         bool playNothing = false; // noteOn returns -1
 
-        int noteOn (const Note& n, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples) noexcept
+        int noteOn (const Note& n, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples, std::int64_t startH) noexcept
         {
             Event e;
+            e.startH = startH;
             e.kind = Event::Kind::on;
             e.sample = base + offset;
             e.channel = n.channel;
@@ -629,6 +641,7 @@ namespace p7
         int dropped = 0;
         std::array<std::pair<const Kit*, std::int64_t>, kHeld> held {};
         std::array<float, kLanes> laneGains {};
+        std::array<std::int64_t, kLanes> phraseUntil {}; // a slice note-on makes its lane "recorded" for 2000 samples
         int renders = 0;
         int longestRender = 0;
 
@@ -641,6 +654,7 @@ namespace p7
             now = 0;
             queued = 0;
             held.fill ({ nullptr, 0 });
+            phraseUntil.fill (0);
         }
 
         void push (const Item& item) noexcept
@@ -713,6 +727,14 @@ namespace p7
 
         void setLaneGains (const std::array<float, kLanes>& gains) noexcept { laneGains = gains; }
 
+        double tempo = 0.0; // the last setTempo ()
+        int tempoCalls = 0;
+        void setTempo (double bpm) noexcept
+        {
+            tempo = bpm;
+            ++tempoCalls;
+        }
+
         static float impulse (const NoteOn& n) noexcept
         {
             return 0.01f * static_cast<float> (n.instrument + 1) + 0.0001f * static_cast<float> (n.key)
@@ -736,6 +758,8 @@ namespace p7
                         channel = kit.phrases[static_cast<std::size_t> (item.note.phrase)].mixChannel;
                     bus.left (channel)[offset] += impulse (item.note);
                     bus.right (channel)[offset] += 0.5f * impulse (item.note);
+                    if (item.note.slice >= 0)
+                        phraseUntil[static_cast<std::size_t> (kit.phrases[static_cast<std::size_t> (item.note.phrase)].lane)] = item.sample + 2000;
                     for (auto& h : held)
                         if (h.second <= item.sample)
                         {
@@ -769,6 +793,15 @@ namespace p7
         }
 
         int droppedEvents() const noexcept { return dropped; }
+
+        std::uint32_t phraseLanes() const noexcept
+        {
+            std::uint32_t lanes = 0;
+            for (int lane = 0; lane < kLanes; ++lane)
+                if (phraseUntil[static_cast<std::size_t> (lane)] > now)
+                    lanes |= 1u << lane;
+            return lanes;
+        }
 
         std::vector<Item> only (Item::Kind kind) const
         {

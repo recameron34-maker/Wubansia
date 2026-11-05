@@ -40,7 +40,8 @@ namespace wubansia::engine::mix
     class MixGraph
     {
     public:
-        void prepare (double sampleRate, int maxBlock); // allocates every line and buffer
+        // Allocates every line and buffer. hold: the club master limiter's (twoSided only for verification renders).
+        void prepare (double sampleRate, int maxBlock, fx::Limiter::Hold hold = fx::Limiter::Hold::lookBack);
 
         // The Kit's mix (nullptr: the channel buses summed at unity, as late as a mix). Builds the plan in place and
         // resets every tail.

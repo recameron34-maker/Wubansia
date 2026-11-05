@@ -3,6 +3,7 @@
 
 #include "mix_harness.h"
 
+#include "kit/manifest.h"
 #include "mix/club_master.h"
 #include "mix/graph.h"
 #include "mix/inserts.h"
@@ -12,8 +13,12 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <fstream>
 #include <functional>
+#include <iterator>
+#include <string>
 #include <vector>
 
 using namespace wubansia::engine;
@@ -65,6 +70,28 @@ TEST_CASE ("latency: fixed per rate, whatever the kit: 64 + the club master's", 
         CHECK (mixer.tailSeconds() >= 6.0);
     }
     CHECK (mix::ClubMaster::latencyFor (48000.0) == 23 + 48 + 289);
+}
+
+TEST_CASE ("latency: the master's hold sets the total: 424 looking back, 3280 two-sided at 48 kHz", "[latency]")
+{
+    // MasterHold::twoSided is master.py's hold, for groovecore render's verification renders: 64 + 23 + 48 + 3145
+    Mixer live;
+    live.prepare (48000.0, 256, 2);
+    CHECK (live.latencySamples() == 424);
+    Mixer exact;
+    exact.prepare (48000.0, 256, 2, MasterHold::twoSided);
+    CHECK (exact.latencySamples() == 3280);
+    const auto busy = busyMix();
+    exact.setConfig (&busy);
+    CHECK (exact.latencySamples() == 3280);
+
+    // and an impulse comes out exactly that late through the two-sided master
+    const auto cfg = makeMix ({ channel ("pad", Lane::chords) });
+    Mixer mixer;
+    mixer.prepare (48000.0, 512, 2, MasterHold::twoSided);
+    mixer.setConfig (&cfg);
+    const auto out = run (mixer, 8192, 512, 2, impulse (1000, 0.25f), 1);
+    CHECK (static_cast<int> (peakAt (out)) == 1000 + 3280);
 }
 
 TEST_CASE ("latency: the reported latency is the measured impulse delay, the club master on and off", "[latency]")
@@ -176,4 +203,88 @@ TEST_CASE ("latency: a return meets the dry paths: the echo's first repeat lands
             repeat = i;
     // the wow and flutter move the repeat by under 0.06 % of the delay: within 11 samples of 18000
     CHECK (std::abs (static_cast<double> (repeat) - (1000.0 + latency + 18000.0)) <= 11.0);
+}
+
+namespace
+{
+    std::string readText (const std::string& path)
+    {
+        std::ifstream in (path, std::ios::binary);
+        if (! in)
+            return {};
+        return { std::istreambuf_iterator<char> (in), std::istreambuf_iterator<char>() };
+    }
+}
+
+TEST_CASE ("latency: every embedded mix builds in the mixer and fits the 64-sample budget", "[latency][content]")
+{
+    // P3's content/plugin/<kit>/<KIT>_mix.json against P2's _kit.json, through P4's parser: where the branch has
+    // them all (the integration), each must parse, plan within the budget and the slot pool, and play
+    int checked = 0;
+    for (const std::string kit : { "FUT01", "FUT02", "FUT03", "FUT04" })
+    {
+        CAPTURE (kit);
+        std::string folder = kit;
+        for (auto& ch : folder)
+            ch = static_cast<char> (std::tolower (static_cast<unsigned char> (ch)));
+        const std::string dir = std::string (WUBANSIA_SOURCE_DIR) + "/content/plugin/" + folder + "/";
+        const auto kitJson = readText (dir + kit + "_kit.json");
+        const auto mixJson = readText (dir + kit + "_mix.json");
+        if (kitJson.empty() || mixJson.empty())
+            continue;
+        const auto km = parseKitManifest (kitJson);
+        if (! km.ok() && km.error.find ("isn't built yet") != std::string::npos)
+            continue; // P0's parser stub: the integration runs this
+        REQUIRE (km.ok());
+        const auto mc = parseMixManifest (mixJson, km.value);
+        INFO (mc.error);
+        REQUIRE (mc.ok());
+        const auto& cfg = mc.value;
+
+        const int need = mix::MixGraph::requiredLatency (cfg);
+        INFO ("the longest path " << need << " samples");
+        CHECK (need <= mix::kMixLatency);
+        for (const double rate : { 44100.0, 48000.0, 96000.0 })
+        {
+            CAPTURE (rate);
+            mix::MixGraph graph;
+            graph.prepare (rate, 256);
+            Controls controls;
+            graph.setConfig (&cfg, controls);
+            CHECK (! graph.overBudget());
+            CHECK (! graph.overCapacity());
+            CHECK (graph.pathLatency() == need);
+            MixBus bus;
+            SendBus sends;
+            bus.prepare (kMaxMixChannels, 256);
+            sends.prepare (256);
+            std::vector<float> l (256), r (256);
+            bool finite = true;
+            float peak = 0.0f;
+            for (int block = 0; block < 200; ++block)
+            {
+                bus.clear (256);
+                sends.clear (256);
+                for (int c = 0; c < static_cast<int> (cfg.channels.size()); ++c)
+                    for (int i = 0; i < 256; ++i)
+                        bus.left (c)[i] = bus.right (c)[i] = 0.2f * static_cast<float> (std::sin (0.01 * (block * 256 + i) * (c + 1)));
+                if (block % 20 == 0)
+                    for (std::uint8_t lane = 0; lane < kLanes; ++lane)
+                        graph.keyHit (lane, 120, 0);
+                controls.variant = block >= 100 ? Variant::novox : Variant::vox;
+                graph.process (bus, sends, l.data(), r.data(), 256, controls, 134.0);
+                for (int i = 0; i < 256; ++i)
+                {
+                    finite = finite && std::isfinite (l[static_cast<std::size_t> (i)]) && std::isfinite (r[static_cast<std::size_t> (i)]);
+                    peak = std::max (peak, std::abs (l[static_cast<std::size_t> (i)]));
+                }
+            }
+            CHECK (finite);
+            CHECK (peak > 0.01f);
+            CHECK (peak < 1.0f); // the club master's ceiling
+        }
+        ++checked;
+    }
+    if (checked == 0)
+        WARN ("no kit's manifests and parser on this branch: checked in the integration");
 }

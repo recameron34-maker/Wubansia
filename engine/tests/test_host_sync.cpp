@@ -14,6 +14,7 @@
 #include <cmath>
 #include <map>
 #include <set>
+#include <tuple>
 #include <vector>
 
 using namespace p7;
@@ -198,7 +199,10 @@ TEST_CASE ("the loop wraps at 15360 from ppq 0, its note-offs first", "[sched][l
         auto shifted = first[i];
         shifted.sample += 384000;
         if (shifted.kind == Event::Kind::on)
+        {
             shifted.tag = second[i].tag;
+            shifted.startH += kLoopLength;
+        }
         CHECK (shifted == second[i]);
     }
 
@@ -684,4 +688,149 @@ TEST_CASE ("the sounding table never strands a note: when it is full, the note d
     REQUIRE (early != run.events.end());
     CHECK (early->sample == on257->sample);
     checkPairs (run.events);
+}
+
+namespace
+{
+    // One chase-listed note in a 4-bar loop, as a phrase slice whose long lead starts it `before`
+    // milliticks before the loop's start (FUT01's vox slice 0 starts 9 milliticks early, FUT04's acid 16).
+    Timeline earlyNote (std::int64_t before, std::int64_t len)
+    {
+        Timeline t;
+        t.length = kLoopLength;
+        t.loops = true;
+        Note n;
+        n.pos = kLoopLength - before;
+        n.len = len;
+        n.channel = 4;
+        n.key = 66;
+        n.velocity = 100;
+        n.flags = NoteFlag::chase;
+        n.phrase = 0;
+        n.slice = 0;
+        t.notes.push_back (n);
+        t.chase.push_back (0);
+        return t;
+    }
+
+    std::vector<std::int64_t> onSamples (const std::vector<Event>& events)
+    {
+        std::vector<std::int64_t> out;
+        for (const auto& e : events)
+            if (e.kind == Event::Kind::on)
+                out.push_back (e.sample);
+        return out;
+    }
+}
+
+TEST_CASE ("a start at ppq 0 chases a note that starts just before 0, though its start rounds onto sample 0", "[sched][chase]")
+{
+    for (const auto& [before, bpm, rate] : { std::tuple { std::int64_t { 9 }, 134.0, 48000.0 }, std::tuple { std::int64_t { 9 }, 134.0, 44100.0 },
+             std::tuple { std::int64_t { 16 }, 136.0, 48000.0 } })
+    {
+        CAPTURE (before, bpm, rate);
+        const auto t = earlyNote (before, framesToMilliticks (40000, static_cast<std::int32_t> (bpm)));
+        const auto loop = static_cast<std::int64_t> (std::floor (16.0 * 60.0 / bpm * rate + 0.5));
+        const auto run = play (&t, rate, bpm, 0.0, loop + 1000);
+        const auto ons = onSamples (run.events);
+        REQUIRE (ons.size() == 2u);
+        CHECK (ons[0] == 0); // chased: the stream never plays a negative position
+        CHECK (run.events.front().chase == 0);
+        CHECK (std::abs (ons[1] - (loop - 0)) <= 1); // the next pass's, from the stream, just before its start
+        CHECK (run.events.front().startH == -before);
+    }
+
+    // From a count-in: played when play reaches 0 (21492.5 samples at 134 BPM: the sample 21493).
+    const auto t = earlyNote (9, framesToMilliticks (40000, 134));
+    const auto counted = play (&t, 48000.0, 134.0, -1.0, 40000);
+    CHECK (onSamples (counted.events) == std::vector<std::int64_t> { 21493 });
+}
+
+TEST_CASE ("a host loop region of whole loops plays a note just before its start once per pass, never twice at the wrap", "[sched][chase][loop]")
+{
+    const auto t = earlyNote (9, framesToMilliticks (40000, 134));
+    for (const double start : { 0.0, 16.0 })
+    {
+        CAPTURE (start);
+        FakeHost host (48000.0, 512);
+        SchedulerHarness h;
+        h.timeline = &t;
+        host.prepare (h);
+        host.setTempo (134.0);
+        host.setLoop (start, start + 16.0);
+        host.play (start);
+        FakeHost::Output out;
+        host.render (h, Controls {}, 1075200, out);
+        // The start's chase, then each pass's own just before its wrap: 343880.6 samples a pass.
+        CHECK (onSamples (h.sink.events) == std::vector<std::int64_t> { 0, 343880, 687761, 1031642 });
+    }
+
+    // A region that isn't whole loops: the note just before the region's start wasn't the pass before's,
+    // so each wrap chases it.
+    FakeHost host (48000.0, 512);
+    SchedulerHarness h;
+    h.timeline = &t;
+    host.prepare (h);
+    host.setTempo (134.0);
+    host.setLoop (0.0, 12.0);
+    host.play (0.0);
+    FakeHost::Output out;
+    host.render (h, Controls {}, 3 * 257911 + 1000, out); // 12 quarters: 257910.4 samples, each pass from its wrap
+    CHECK (onSamples (h.sink.events) == std::vector<std::int64_t> { 0, 257910, 515820, 773730 });
+}
+
+TEST_CASE ("chased notes arrive in onset order, the cycle before first", "[sched][chase]")
+{
+    // A (100 ticks into the loop, 2000 long) and B (the loop's tail, 500 ticks before its end, playing 4000
+    // ticks on, like FUT03's throw slice); a start 600 ticks into the second pass finds both sounding.
+    Timeline t;
+    t.length = kLoopLength;
+    t.loops = true;
+    Note a;
+    a.pos = 100 * kMilliticksPerTick;
+    a.len = 2000 * kMilliticksPerTick;
+    a.channel = 4;
+    a.key = 60;
+    a.velocity = 100;
+    a.flags = NoteFlag::chase;
+    Note b = a;
+    b.pos = kLoopLength - 500 * kMilliticksPerTick;
+    b.len = 4000 * kMilliticksPerTick;
+    b.key = 62;
+    t.notes = { a, b };
+    t.chase = { 0, 1 };
+    const auto run = play (&t, 48000.0, 128.0, 16.0 + 600.0 / 960.0, 512);
+    std::vector<int> keys;
+    for (const auto& e : run.events)
+        if (e.kind == Event::Kind::on)
+        {
+            keys.push_back (e.key);
+            CHECK (e.sample == 0);
+        }
+    CHECK (keys == std::vector<int> { 62, 60 }); // B started 1100 ticks ago, A 500
+}
+
+TEST_CASE ("the epoch moves at starts, jumps, wraps and restarts, not at tempo changes", "[sched]")
+{
+    FakeHost host (48000.0, 512);
+    SchedulerHarness h;
+    h.timeline = &synLoop();
+    host.prepare (h);
+    host.setTempo (120.0);
+    FakeHost::Output out;
+    const auto e0 = h.scheduler.epoch();
+    host.play (0.0);
+    host.render (h, Controls {}, 512, out);
+    const auto started = h.scheduler.epoch();
+    CHECK (started != e0);
+    host.setTempo (125.0);
+    host.render (h, Controls {}, 512, out);
+    CHECK (h.scheduler.epoch() == started);
+    host.seek (8.0);
+    host.render (h, Controls {}, 512, out);
+    const auto jumped = h.scheduler.epoch();
+    CHECK (jumped != started);
+    host.setLoop (8.0, 8.5);
+    host.render (h, Controls {}, 48000, out);
+    CHECK (h.scheduler.epoch() != jumped);
 }

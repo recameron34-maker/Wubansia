@@ -33,7 +33,7 @@ namespace wubansia::engine::fx
         fs = sampleRate;
         const int w = lookaheadSamples (maxLookaheadS, fs);
         const int h = holdSamplesFor (maxHoldS, fs);
-        const auto window = static_cast<std::size_t> (2 * h + w + 2);
+        const auto window = static_cast<std::size_t> (2 * h + w + kTpReach + 2); // the longest: look-back, 2h + w + 24 + 1
         const std::size_t cap = ceilPow2 (window + 1);
         dqIndex.assign (cap, 0);
         dqValue.assign (cap, 1.0);
@@ -51,9 +51,10 @@ namespace wubansia::engine::fx
         mode = hold;
         const int maxW = std::max (static_cast<int> (meanRing.size()) - 1, 0);
         lookahead = std::clamp (lookaheadSamples (s.lookaheadS, fs), 0, maxW);
-        // the deque spans need[k - h .. k + after]: h + after + 1 entries at most
+        // the deque spans need[k - before .. k + after]: before + after + 1 entries at most
         const int cap = static_cast<int> (dqMask + 1);
-        holdSamples = std::clamp (holdSamplesFor (s.holdS, fs), 0, std::max ((cap - lookahead - 2) / 2, 0));
+        holdSamples = std::clamp (holdSamplesFor (s.holdS, fs), 0, std::max ((cap - lookahead - kTpReach - 2) / 2, 0));
+        before = mode == Hold::twoSided ? holdSamples : 2 * holdSamples;
         after = lookahead + (mode == Hold::twoSided ? holdSamples : kTpReach);
         meanSize = static_cast<std::size_t> (lookahead + 1);
         ceiling = std::pow (10.0, s.ceilingDb / 20.0);
@@ -78,7 +79,7 @@ namespace wubansia::engine::fx
         audioR.reset();
     }
 
-    // need[n] joins the window; the minimum over need[k - h .. k + after], k = n - after, then leaves at the front.
+    // need[n] joins the window; the minimum over need[k - before .. k + after], k = n - after, then leaves at the front.
     // The ramp at k averages the minima at k - w .. k, so it starts w samples before the stream: before the stream the
     // need is 1 (silence), but those minima already see what follows, as master.limit's does from silence round its
     // loop.
@@ -91,7 +92,7 @@ namespace wubansia::engine::fx
         dqValue[dqTail & dqMask] = need;
         ++dqTail;
         const std::int64_t k = n - after;
-        while (dqIndex[dqHead & dqMask] < k - holdSamples)
+        while (dqIndex[dqHead & dqMask] < k - before)
             ++dqHead;
         if (k < -static_cast<std::int64_t> (lookahead))
             return;
@@ -129,8 +130,8 @@ namespace wubansia::engine::fx
             for (std::size_t j = 0; j < 4; ++j)
             {
                 // aligned 4x index 4 (t - 24) + j; before the stream rt_ref pads with silence
-                const bool before = 4 * (t - kTpReach) + static_cast<std::int64_t> (j) < 0;
-                peaks4x.push (before ? 0.0 : std::max (std::abs (ul[j]), std::abs (ur[j])));
+                const bool preStream = 4 * (t - kTpReach) + static_cast<std::int64_t> (j) < 0;
+                peaks4x.push (preStream ? 0.0 : std::max (std::abs (ul[j]), std::abs (ur[j])));
                 if (j == 0 && t >= kTpReach + 1)
                 {
                     // need[t - 25]: the 4x peak over aligned 4 (t - 25) - 4 .. 4 (t - 25) + 4, the last 9 pushed

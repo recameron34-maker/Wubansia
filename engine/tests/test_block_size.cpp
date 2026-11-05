@@ -193,7 +193,10 @@ TEST_CASE ("the engine's output and its voices' events are bit-identical for eve
 
 TEST_CASE ("a render started at bar 3 equals a render from bar 1 from bar 3 on", "[block][seek]")
 {
-    // The loop without the notes that cross bar 3 (the pad, the vox, the riser) and without its ride.
+    // The loop without the notes that cross bar 3 (the pad, the vox, the riser) and without its ride, on a mix
+    // with no inserts and the club master off: P8's mixer is then a plain delay with no state but the delay
+    // itself, so from latencySamples () after bar 3 the two renders hold the same samples. (A real mix's
+    // reverb, echo, ducks and limiter carry what came before bar 3 on: that is a tail crossing bar 3.)
     std::vector<midi::Note> kick, clap, hats, bass;
     for (int beat = 0; beat < 16; ++beat)
         kick.push_back (note (beat * 960, 120, 10, 36, 127));
@@ -203,36 +206,49 @@ TEST_CASE ("a render started at bar 3 equals a render from bar 1 from bar 3 on",
         hats.push_back (note (e * 480, 120, 10, 42, 90));
     for (int i = 0; i < 32; ++i)
         bass.push_back (note (i * 480 + (i % 2 == 1 ? 269 : 0), 200, 1, 36 + i % 7, 100));
-    const auto t = build (smf ({ track ("Kick", kick), track ("Clap", clap), track ("Hats", hats), track ("Bass", bass) }, 15360), synManifest(), synMix(), 15360);
-    const Kit kit = assemble (synManifest(), synMix(), { t, t, t, t });
+    const auto mix = cleanMix();
+    const auto t = build (smf ({ track ("Kick", kick), track ("Clap", clap), track ("Hats", hats), track ("Bass", bass) }, 15360), synManifest(), mix, 15360);
+    const Kit kit = assemble (synManifest(), mix, { t, t, t, t });
 
-    auto render = [&kit] (double fromPpq, std::int64_t samples, int block) {
+    // Each render: one kit-less block with the club off (the mixer takes the club's state at an adoption
+    // from its last block), then the kit, from fromPpq.
+    auto render = [&kit] (double fromPpq, std::int64_t samples, int block, int& latency) {
         LoopHarness<RecordingVoices> h;
         FakeHost host (48000.0, block);
         host.prepare (h);
+        Controls controls;
+        controls.club = false;
+        Render r;
+        host.render (h, controls, 64, r.out);
         h.pending.publish (&kit);
         host.setTempo (120.0);
         host.play (fromPpq);
-        Render r;
-        host.render (h, Controls {}, samples, r.out);
+        host.render (h, controls, samples, r.out);
         r.log = h.loop.voices().log;
+        latency = h.loop.latencySamples();
         return r;
     };
 
-    // At 120 BPM and 48 kHz bar 3 starts on sample 192000.
+    // At 120 BPM and 48 kHz bar 3 starts 192000 samples after the play.
     for (const int block : { 512, 77 })
     {
         CAPTURE (block);
-        const auto whole = render (0.0, 384000, block);
-        const auto fromBar3 = render (8.0, 192000, block);
-        const std::vector<float> tailLeft (whole.out.left.begin() + 192000, whole.out.left.end());
-        const std::vector<float> tailRight (whole.out.right.begin() + 192000, whole.out.right.end());
-        CHECK (sameBits (tailLeft, fromBar3.out.left));
-        CHECK (sameBits (tailRight, fromBar3.out.right));
+        int latency = 0;
+        const auto whole = render (0.0, 384000, block, latency);
+        const auto fromBar3 = render (8.0, 192000, block, latency);
+        REQUIRE (latency > 0);
+        const auto from = static_cast<std::ptrdiff_t> (64 + latency);
+        const std::vector<float> tailLeft (whole.out.left.begin() + 192000 + from, whole.out.left.end());
+        const std::vector<float> tailRight (whole.out.right.begin() + 192000 + from, whole.out.right.end());
+        const std::vector<float> barLeft (fromBar3.out.left.begin() + from, fromBar3.out.left.end());
+        const std::vector<float> barRight (fromBar3.out.right.begin() + from, fromBar3.out.right.end());
+        CHECK (sameBits (tailLeft, barLeft));
+        CHECK (sameBits (tailRight, barRight));
+        CHECK (std::any_of (barLeft.begin(), barLeft.end(), [] (float x) { return x > 0.0f; }));
 
         std::vector<std::pair<std::int64_t, int>> a, b;
         for (const auto& i : whole.log)
-            if (i.kind == Item::Kind::on && i.sample >= 192000)
+            if (i.kind == Item::Kind::on && i.sample >= 64 + 192000)
                 a.emplace_back (i.sample - 192000, i.note.instrument * 128 + i.note.key);
         for (const auto& i : fromBar3.log)
             if (i.kind == Item::Kind::on)
