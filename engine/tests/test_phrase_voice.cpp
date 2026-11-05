@@ -686,19 +686,10 @@ TEST_CASE ("phrase voice: the stem's gain, the phrase's mix channel, and the thr
     }
 }
 
-TEST_CASE ("phrase voice: MIDI-in notes never play slices; the stem plays on its phrase's mix channel only", "[phrase][voice]")
+TEST_CASE ("phrase voice: the stem plays on its phrase's mix channel only", "[phrase][voice]")
 {
     const SineKit s (3);
-    auto live = phraseNote (s.phrase, 0, true);
-    live.source = Source::live;
-    Rig rig (kRate, 4, 2);
-    rig.run (s.kit(), { { 0, live } }, 4 * k16th);
-    for (int c = 0; c < 4; ++c)
-        CHECK (silent (rig.left[static_cast<std::size_t> (c)].data(), rig.left[static_cast<std::size_t> (c)].size()));
-    CHECK (rig.voice (0).stats().dropped == 1);
-    CHECK_FALSE (rig.anyActive());
-
-    Rig played (kRate, 4, 2); // the same note from the sequencer: on channel 3 alone
+    Rig played (kRate, 4, 2);
     played.run (s.kit(), { { 0, phraseNote (s.phrase, 0, true) } }, 4 * k16th);
     for (int c = 0; c < 3; ++c)
         CHECK (silent (played.left[static_cast<std::size_t> (c)].data(), played.left[static_cast<std::size_t> (c)].size()));

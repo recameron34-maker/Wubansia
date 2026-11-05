@@ -347,8 +347,7 @@ namespace wubansia::engine
     void PhraseVoice::take (const NoteOn& note) noexcept
     {
         const int j = note.slice - static_cast<int> (setup.phrase != nullptr ? setup.phrase->firstSlice : 0);
-        // MIDI in never plays slices (the router never asks); a live note here plays nothing.
-        if (setup.phrase == nullptr || note.phrase != phrase_ || j < 0 || j >= setup.count || note.source == Source::live)
+        if (setup.phrase == nullptr || note.phrase != phrase_ || j < 0 || j >= setup.count)
         {
             ++stats_.dropped;
             return;
