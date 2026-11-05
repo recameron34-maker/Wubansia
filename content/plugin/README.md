@@ -47,7 +47,7 @@ exporter falls back to the checkout for them. A content folder for the plugin ne
 
 | Kit | `kit.json` | Instruments | Keymap entries | Files | WAV listed | Phrase lanes (slices) |
 |---|---|---|---|---|---|---|
-| FUT01 | 98,168 bytes | 33 | 30 | 188 | 66.7 MB | 2 (20) |
+| FUT01 | 99,540 bytes | 34 | 31 | 189 | 68.3 MB | 2 (20) |
 | FUT02 | 91,402 bytes | 31 | 29 | 137 | 51.1 MB | 4 (81) |
 | FUT03 | 91,207 bytes | 31 | 32 | 163 | 36.9 MB | 3 (44) |
 | FUT04 | 99,786 bytes | 28 | 27 | 130 | 43.5 MB | 4 (130) |
@@ -158,7 +158,7 @@ The channel ids `kit.json` names, P3's (`MIX_CHANNELS` in `plugin_kit.py`):
 | FUT04 | kick, rumble, bass, bass_stem, snare, hat, ride, perc, fill, pad, lead, vox, accent |
 
 Instruments with no lane of their own in the loops take their lane's nearest channel: FUT01's Organ Lead `pluck`, its
-vox chops `vsynth`, its FX keys `fill`, its other accents `acc_hit`; FUT02's Laser Chord Stab `pad`, its other accents
+Air Pad (channel 13) `stab`, its vox chops `vsynth`, its FX keys `fill`, its other accents `acc_hit`; FUT02's Laser Chord Stab `pad`, its other accents
 `acc_arpstab` (the uplifter `acc_sweep`); FUT04's Metal Chord `pad`, its Acid and Rave Stabs `accent`.
 
 ## Not verified

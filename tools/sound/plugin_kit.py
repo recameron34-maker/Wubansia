@@ -142,7 +142,7 @@ MIX_CHANNELS = {
 MIX = {
     'FUT01': dict(drums={'KickGarage': 'kick', 'KickSplit': 'kick', 'ClapGarage': 'clap', 'RimShot': 'rim',
                          'HatClosed': 'hat_c', 'HatOpen': 'hat_o', 'Tambourine': 'tamb', 'AlloyHit': 'perc'},
-                  channels={1: 'bass', 2: 'pluck', 4: 'stab', 5: 'vsynth', 11: 'bass_organ', 12: 'pluck'},
+                  channels={1: 'bass', 2: 'pluck', 4: 'stab', 5: 'vsynth', 11: 'bass_organ', 12: 'pluck', 13: 'stab'},
                   accents={'ReverseStab': 'acc_rev', 'NoiseUplifter': 'acc_up', 'OrganHit': 'acc_hit',
                            'WarpStab': 'acc_warp', None: 'acc_hit'},
                   fx='fill', chops='vsynth'),
@@ -277,7 +277,7 @@ def rules(kit, kind, item, it, key=None):
         r.update(mode='gated', release_us=iround(C2.GLIDE_RELEASE * 1e6))
     elif kind == 'Laser Chord Stab':   # fut02/accents.stab_riff: gated, 30 ms, (v / layer) ^ 1.5
         r.update(mode='gated', release_us=30000, velocity_law='pow15')
-    elif kind == 'Pad Warm':
+    elif kind in ('Pad Warm', 'Air Pad'):
         r.update(pad)
     elif kind in ('Glass Ping', 'Acid Stab', 'Metal Chord', 'Rave Stab'):   # one-shots played as melodies, at
         r.update(velocity_law='pow15', gain_mdb=accent_gain_mdb(kit, item))  # their accent level (the same file)
@@ -606,6 +606,15 @@ def report(kit):
         else:
             lines.append(f'{kit} {variant} ch {ch}: every cycle resolves')
     return lines
+
+
+def summary_row(kit):
+    """The kit's row in content/plugin/README.md's table, off its committed manifest."""
+    p = manifest_path(kit)
+    m = json.loads(p.read_text(encoding='utf-8'))
+    wav = sum(44 + f['frames'] * f['channels'] * 3 for f in m['files'])   # a PCM_24 WAV's header and data
+    return (f"| {kit} | {p.stat().st_size:,} bytes | {len(m['instruments'])} | {len(m['keymap'])} | {len(m['files'])} "
+            f"| {wav / 1e6:.1f} MB | {len(m['phrases'])} ({sum(len(x['slices']) for x in m['phrases'])}) |")
 
 
 def main(argv=None):
