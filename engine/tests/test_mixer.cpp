@@ -5,8 +5,12 @@
 #include "alloc_counter.h"
 #include "mix_harness.h"
 
+#include "fx/limiter.h"
+#include "fx/oversampled.h"
+#include "fx/space.h"
 #include "kit/manifest.h"
 #include "mix/channel.h"
+#include "mix/club_master.h"
 #include "mix/graph.h"
 #include "mix/inserts.h"
 #include "mix/mixer.h"
@@ -15,6 +19,7 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -503,6 +508,7 @@ TEST_CASE ("mixer: the whole chain against engine_ref's render of a kit's loop",
     std::vector<float> l (512), r (512);
     float* outs[2] { l.data(), r.data() };
     std::size_t next = 0;
+    double processNs = 0.0;
     for (int start = 0; start < total; start += 512)
     {
         const int n = std::min (512, total - start);
@@ -531,7 +537,9 @@ TEST_CASE ("mixer: the whole chain against engine_ref's render of a kit's loop",
             else
                 mixer.cc (e.a, e.b, e.c, offset, e.d);
         }
+        const auto t0 = std::chrono::steady_clock::now();
         mixer.process (outs, 2, n, controls, bpm);
+        processNs += std::chrono::duration<double, std::nano> (std::chrono::steady_clock::now() - t0).count();
         for (int i = 0; i < n; ++i)
         {
             out[static_cast<std::size_t> (2 * (start + i))] = l[static_cast<std::size_t> (i)];
@@ -551,7 +559,89 @@ TEST_CASE ("mixer: the whole chain against engine_ref's render of a kit's loop",
             worst = std::max (worst, std::abs (got - want));
         }
     const double residualDb = 10.0 * std::log10 (diff / energy);
+    WARN ("the mix took " << processNs / total << " ns/sample (" << 100.0 * processNs / total * 48000.0 * 1e-9 << " % of a core at 48 kHz)");
     WARN ("whole chain, last pass: residual " << residualDb << " dB under the loop, largest difference " << worst << " ("
                                               << 20.0 * std::log10 (worst) << " dBFS)");
     CHECK (residualDb <= -80.0);
+}
+
+// ------------------------------------------------------------------ CPU (P12's gate reads these)
+
+// Hidden: ns per sample at 48 kHz (best of 5) for the costly blocks and a whole busy mix. Run it on a quiet machine.
+TEST_CASE ("mixer: CPU of the lane clip, the FDN, the limiter, the club master and a busy mix", "[.][cpu]")
+{
+    using clock = std::chrono::steady_clock;
+    constexpr int n = 48000 * 2, block = 256;
+    std::vector<float> l (n), r (n), ol (block), orr (block);
+    for (int i = 0; i < n; ++i)
+    {
+        l[static_cast<std::size_t> (i)] = static_cast<float> (0.5 * std::sin (0.01 * i) + 0.2 * std::sin (0.37 * i));
+        r[static_cast<std::size_t> (i)] = static_cast<float> (0.5 * std::sin (0.011 * i) + 0.2 * std::sin (0.29 * i));
+    }
+    auto best = [&] (const std::function<void()>& run) {
+        double ns = 1e30;
+        for (int rep = 0; rep < 5; ++rep)
+        {
+            const auto t0 = clock::now();
+            run();
+            ns = std::min (ns, std::chrono::duration<double, std::nano> (clock::now() - t0).count() / n);
+        }
+        return ns;
+    };
+    auto report = [] (const char* what, double ns) {
+        WARN (what << ": " << ns << " ns/sample, " << 100.0 * ns * 48000.0 * 1e-9 << " % of a core at 48 kHz");
+    };
+    {
+        fx::LaneClip clip;
+        clip.setCurve (-3.0, 1.5);
+        auto x = l, y = r;
+        report ("lane clip (stereo, half-band 4x)", best ([&] { for (int s = 0; s < n; s += block) clip.process (x.data() + s, y.data() + s, block); }));
+    }
+    {
+        fx::Space space;
+        space.prepare (48000.0);
+        fx::SpaceSettings s;
+        s.delaysFrames = { 520, 597, 685, 783, 899, 1033, 1167, 1329 };
+        s.signs = { 1, -1, 1, -1, -1, 1, 1, -1 };
+        s.t60S = 1.1;
+        s.t60LowS = 0.4;
+        s.shimmer = 0.03;
+        space.setup (s);
+        report ("Space (FDN, low band, shimmer, mono under 150)", best ([&] { for (int s0 = 0; s0 < n; s0 += block) space.process (l.data() + s0, ol.data(), orr.data(), block); }));
+    }
+    {
+        fx::Limiter lim;
+        lim.prepare (48000.0);
+        lim.setup ({}, fx::Limiter::Hold::lookBack);
+        auto x = l, y = r;
+        report ("limiter (stereo, 4x true peak, look-back)", best ([&] { for (int s = 0; s < n; s += block) lim.process (x.data() + s, y.data() + s, block); }));
+    }
+    {
+        mix::ClubMaster master;
+        master.prepare (48000.0, block);
+        MasterConfig m;
+        m.glueThresholdMdb = -20000;
+        m.driveMdb = 3000;
+        master.setup ({ m, m }, Controls {}, 64);
+        auto x = l, y = r;
+        report ("club master (all of it)", best ([&] { for (int s = 0; s < n; s += block) master.process (x.data() + s, y.data() + s, block, Controls {}); }));
+    }
+    {
+        const auto cfg = busyMix();
+        Mixer mixer;
+        mixer.prepare (48000.0, block, 2);
+        mixer.setConfig (&cfg);
+        float* outs[2] { ol.data(), orr.data() };
+        report ("a busy mix (5 channels, clips, ducks, comp, cc_filter, all returns, club master)", best ([&] {
+            for (int s = 0; s < n; s += block)
+            {
+                for (int c = 0; c < 5; ++c)
+                {
+                    std::copy_n (l.data() + s, block, mixer.bus().left (c));
+                    std::copy_n (r.data() + s, block, mixer.bus().right (c));
+                }
+                mixer.process (outs, 2, block, Controls {}, 134.0);
+            }
+        }));
+    }
 }
