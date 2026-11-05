@@ -24,7 +24,7 @@ from tools.sound.item import Item, Out
 from tools.sound.kits import fut03 as K
 
 SR = D.SR
-SETS = ('r4',)
+SETS = ('r4', 'r5')
 CHORD = (K.ROOT + 12, K.ROOT + 19, K.ROOT + 22, K.ROOT + 26, K.ROOT + 27)   # G3 D4 F4 A4 Bb4: Gm9, open
 # (the deep-house voicing: root, fifth, seventh, ninth and the minor third on top, the ninth rubbing against it;
 # nothing within a fourth of the root, so the tuning reads G3 alone)

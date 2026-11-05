@@ -37,7 +37,7 @@ from tools.sound.kits import fut03 as K
 from tools.sound.recipes.fut03 import chords, rubber
 
 SR = D.SR
-SETS = ('r4',)
+SETS = ('r4', 'r5')
 RATIOS = np.array(K.RATIOS)
 GM9 = chords.CHORD                               # G3 D4 F4 A4 Bb4
 CM9 = tuple(n + 5 for n in GM9)                  # C4 G4 Bb4 D5 Eb5: the same open voicing on the iv chord

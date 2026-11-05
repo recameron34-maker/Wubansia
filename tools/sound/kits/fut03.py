@@ -5,7 +5,9 @@ tools/sound/recipes/fut03/. Rounds 1-3 were hyper-clean future house (docs/plans
 kit to warm, organic garage-house and rolling deep tech house: a deep round kick, a clap and snare in a short room,
 shuffled hats and shakers, congas and rims with swung ghosts, a rubbery rolling bassline over a deep sub, dubby minor 9
 chords on an electric piano with delay and reverb tails, a warm pad bed and a filtered, chopped vocal hook. The glass
-bell (RATIOS) stays only as a subtle colour in the perc and the accents.
+bell (RATIOS) stays only as a subtle colour in the perc and the accents. Round 5 (--set r5) keeps every round 4 sound
+and drops the text-to-speech vocals for a wordless vox synth and its riff (recipes/fut03/voxsynth.py), with the accents
+in the loops (recipes/fut03/context5.py); VOICE now serves only rounds 2-4.
 
 The name was title-checked on 2026-10-29 as a song, an album, lyrics and a label: no release uses it. The nearest hit,
 "Glass Currents", is an art exhibition.

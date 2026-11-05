@@ -36,7 +36,7 @@ SR = D.SR
 LAYERS = (0.2, 0.4, 0.6, 0.8, 1.0)
 RATIOS = np.array(K.RATIOS)
 F_KICK = float(D.midi_hz(K.KICK_NOTE))            # G1, 49.0 Hz
-SETS = ('r4',)
+SETS = ('r4', 'r5')
 
 # ------------------------------------------------------------------ the deep kick: split, round, warm
 XOVER = 110.0                # sub / knock crossover (LR4, sums flat)

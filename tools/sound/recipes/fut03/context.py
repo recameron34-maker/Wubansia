@@ -33,7 +33,8 @@ in the second half.
   "cur-" stutter on beat 4 of bar 2 into the hook, the reversed "me" swelling into the loop's downbeat.
 Everything loops: hits and tails wrap, the pump is circular and the sends run over two passes, keeping the second.
 
-Rendering needs the vocal models (the hook and the candy): see tools/sound/README.md.
+Rendering needs the vocal models (the hook and the candy): see tools/sound/README.md. Round 5's loops, without them,
+are recipes/fut03/context5.py; the low-end loops, the drum loop and the fill preview carry on into round 5 as they are.
 """
 import functools
 
@@ -443,6 +444,7 @@ FULL_MIX = {'mud': 'off', 'why': 'the full mix: the clap, the congas, the stab, 
                                  '150-400 Hz; its low end is gated as ContextLoopLow (A) and ContextLoopLowWarm (B), and '
                                  'every other lane passed its own low cut'}
 LOOP = dict(loop=True, hp_hz=None, sets=SETS)
+LOOP5 = dict(LOOP, sets=SETS + ('r5',))   # round 5 keeps these: no vocals in them (recipes/fut03/context5.py)
 CLUB = dict(loop=True, hp_hz=None, sets=('r3', 'r4'))
 DRY_A_LUFS = -13.05                 # dry A and B at one loudness, so the A/B is the character alone: at their own
                                     # peaks A read 0.57 LU over B (-12.48 against -13.05 LUFS-I), so A comes down to
@@ -462,19 +464,19 @@ ITEMS = [
     Item('Loops', 'ContextLoopWet', 'loop', context_wet, tags=('wet',), qa=FULL_MIX, **LOOP,
          about=f'{ABOUT}, wet, bass B (the pick): a 1.8 s plate and a 3/16 dub ping-pong, unmastered; the engine\'s '
                f'target'),
-    Item('Loops', 'ContextLoopLow', 'loop', context_low_clean, tags=('with_kick',), **LOOP,
+    Item('Loops', 'ContextLoopLow', 'loop', context_low_clean, tags=('with_kick',), **LOOP5,
          qa={'mud': 'gate', 'why': 'the kick and bass A as mixed: gated over the loop and in every gap'},
          about=f'{ABOUT}: the kick and bass A (clean) alone, mud-gated in every gap between kicks'),
-    Item('Loops', 'ContextLoopLowWarm', 'loop', context_low_warm, tags=('with_kick',), **LOOP,
+    Item('Loops', 'ContextLoopLowWarm', 'loop', context_low_warm, tags=('with_kick',), **LOOP5,
          qa={'mud': 'bass-body', 'why': "B, warm: the wet loop's low end (the kick and bass B) under the proposed "
                                         'bass-body rule (ADR 0011), in every gap'},
          about=f'{ABOUT}: the kick and bass B (warm) alone, under the bass-body rule in every gap'),
-    Item('Loops', 'DrumLoop', 'loop', drum_loop, tags=('preview',), **LOOP,
+    Item('Loops', 'DrumLoop', 'loop', drum_loop, tags=('preview',), **LOOP5,
          qa={'mud': 'off', 'why': "a drum preview: the clap's body and the congas belong in 150-400 Hz; the kick "
                                   'passed its own gate and groove loop, the rest their low cut'},
          about='2-bar drum preview at 128 BPM on the kit swing, through the drum bus: the deep kick, the clap and '
                'snare on 2 and 4, shuffled hats round the open offbeat hat, the shaker on the 16ths, congas and rims'),
-    Item('Loops', 'FillPreview', 'loop', fill_preview, tags=('preview',), **LOOP,
+    Item('Loops', 'FillPreview', 'loop', fill_preview, tags=('preview',), **LOOP5,
          qa={'mud': 'off', 'why': "a fill preview: the clap's body and the toms belong in 150-400 Hz; the kick passed "
                                   'its own gate, the fill, hats and shaker their low cut'},
          about='2-bar fill preview at 128 BPM: a bar of the groove, then the build fill under the drums on beats 1-3'),

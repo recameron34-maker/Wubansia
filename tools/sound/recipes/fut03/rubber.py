@@ -38,7 +38,7 @@ from tools.sound.item import Item, Out
 from tools.sound.kits import fut03 as K
 
 SR = D.SR
-SETS = ('r4',)
+SETS = ('r4', 'r5')
 CLEAN, WARM = 'clean', 'warm'
 MID_HP = 480.0                      # A: the voice starts here, steep
 WARM_XO = 120.0                     # B: the body from here

@@ -13,6 +13,7 @@ kit's recipes (`tools/sound/recipes/fut03/midi.py`); a test keeps these files eq
 - `FUT03_Phrase_DubStabGm9_4bars.mid`
 - `FUT03_Phrase_KeysEP_4bars.mid`
 - `FUT03_Phrase_RubberBassClean_2bars.mid`
+- `FUT03_Phrase_VoxSynth_2bars.mid`
 
 **Drums** (channel 10): a drum rack with the kit's samples on these notes (C1 = 36).
 
@@ -49,6 +50,7 @@ play a sample at its own pitch.
 - `FUT03_Phrase_RubberBassClean_2bars.mid`: Rubber riff (2 bars), on Rubber Bass Clean, rooted at G1, D2, G2 (MIDI 31, 38, 43)
 - `FUT03_Phrase_DubStabGm9_4bars.mid`: Dub chords, Gm9 Gm9 Cm9 Gm9 (4 bars), on Dub Stab Gm9, rooted at G3 (C4 plays it a fourth up: Cm9) (MIDI 55, 60)
 - `FUT03_Phrase_KeysEP_4bars.mid`: Keys arp (4 bars), on Keys EP, rooted at G3, D4, G4, D5, G5 (MIDI 55, 62, 67, 74, 79)
+- `FUT03_Phrase_VoxSynth_2bars.mid`: Vox synth riff, Gm9 to Cm9 (2 bars), on Vox Synth, rooted at G3, D4, G4, D5 (MIDI 55, 62, 67, 74)
 
 **Extended mix** (`extended/`): these parts arranged as a DJ-friendly extended mix, 224 bars
 (7:00 at 128 BPM), as one file and one region per section, with `regions.json` and a README on

@@ -1,9 +1,10 @@
-"""FUT03's written loop for the MIDI export (tools/sound/midi.py), round 4: the context loop's drums and perc (the deep
-kick, the clap and snare, the shuffled hats, the shaker's 16ths, the congas, bongos and rims), the two rubber basslines,
-the keys riff as the lead, the dub stab's Gm9 hits as the chords, and the synth phrases (recipes/fut03/accents.py).
+"""FUT03's written loop for the MIDI export (tools/sound/midi.py), rounds 4 and 5: the context loop's drums and perc
+(the deep kick, the clap and snare, the shuffled hats, the shaker's 16ths, the congas, bongos and rims), the two rubber
+basslines, the keys riff as the lead, the dub stab's Gm9 hits as the chords, and the synth phrases
+(recipes/fut03/accents.py, and round 5's vox synth riff, recipes/fut03/voxsynth.py).
 Notes are (16th, MIDI note, length in 16ths, velocity 0-1, slide)."""
 from tools.sound.midi import hits
-from tools.sound.recipes.fut03 import accents as A, context as C, rubber as B
+from tools.sound.recipes.fut03 import accents as A, context as C, rubber as B, voxsynth as VS
 
 SHAKER = 54                         # GM's tambourine: GM has no shaker inside 35-59, where the plan keeps every
                                     # drum and perc note (plan section 2.6), as the generator's shaker lanes do
@@ -42,5 +43,7 @@ PARTS = dict(
              notes=[(16 * b + s, CHORD_ROOT[chord], 1.5, v, False) for b, chord in enumerate(A.DUB_BARS)
                     for s, v in A.DUB_RHYTHM], bars=4),
         dict(name='Keys arp', sample='Keys EP', zones=KEYS_ZONES, notes=notes(A.ARP), bars=4),
+        dict(name='Vox synth riff, Gm9 to Cm9', sample='Vox Synth', zones='G3, D4, G4, D5', notes=notes(VS.VOX_RIFF),
+             bars=2),
     ],
 )
