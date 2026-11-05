@@ -890,7 +890,7 @@ def report_md(checks, kits):
         known_rows = [c for c in ks if c.known]
         if known_rows:
             lines += ['Known gaps (accepted for now):', '']
-            lines += [f'- {c.group}: {c.name}: {c.note}. {c.known}' for c in known_rows]
+            lines += [f"- {c.group}: {c.name}: {c.note.split(': likely ')[0]}: {c.known}" for c in known_rows]
             lines.append('')
     return '\n'.join(lines) + '\n'
 
