@@ -17,8 +17,11 @@
 #   no_content     FUT01 with no content folder anywhere ($WUBANSIA_CONTENT_DIR unset, HOME moved to an empty
 #                  folder): exit 1 and the locator's message; the committed manifests and MIDI still parse and build
 #   matrix         with $WUBANSIA_CONTENT_DIR: every kit's Loop (3 passes) and 8 bars of every Song section, in both
-#                  variants, with bass A and B, at the kit's tempo, into WORK/<kit>/; each one finite and not silent.
+#                  variants, with bass A and B, at the kit's tempo, into WORK/<kit>/; each one finite and not silent
+#                  (the WAVs are deleted once checked; their sidecars stay).
 #                  Without content it prints "SKIP" (the ctest entry's SKIP_REGULAR_EXPRESSION).
+
+cmake_minimum_required(VERSION 3.25) # this script's policies (while (TRUE), if () on constants)
 
 foreach(_v GROOVECORE WORK CHECK)
     if(NOT DEFINED ${_v})
@@ -216,6 +219,7 @@ elseif(CHECK STREQUAL "matrix")
                 if(_peak STREQUAL "null")
                     message(FATAL_ERROR "${_wav} is silent")
                 endif()
+                file(REMOVE "${_wav}") # the sidecar stays: 160 renders would hold about 1 GB
                 math(EXPR _count "${_count} + 1")
                 # 8 bars of every section the Song's markers name (its sidecar lists none: take them from a render)
                 set(_section 1)
@@ -233,6 +237,7 @@ elseif(CHECK STREQUAL "matrix")
                     if(_peak STREQUAL "null" AND NOT _name MATCHES "^(Intro|Outro)")
                         message(FATAL_ERROR "${_wav} (${_name}) is silent")
                     endif()
+                    file(REMOVE "${_wav}")
                     math(EXPR _section "${_section} + 1")
                     math(EXPR _count "${_count} + 1")
                 endwhile()
