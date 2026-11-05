@@ -3487,6 +3487,7 @@
       "ab": "bass",
       "mix_channel": "bass",
       "gain_mdb": 0,
+      "throw": "live",
       "stems": {
         "a": 158,
         "b": 159
@@ -3494,6 +3495,7 @@
       "cycle_16ths": 32,
       "tolerance_pm": 20,
       "fade_us": 5000,
+      "fade_in_us": 500,
       "ride": {
         "cc74": [],
         "cc71": []
@@ -3642,6 +3644,7 @@
       "ab": "bass",
       "mix_channel": "bass",
       "gain_mdb": 0,
+      "throw": "live",
       "stems": {
         "a": 160,
         "b": 161
@@ -3649,6 +3652,7 @@
       "cycle_16ths": 32,
       "tolerance_pm": 20,
       "fade_us": 5000,
+      "fade_in_us": 500,
       "ride": {
         "cc74": [],
         "cc71": []
@@ -3851,6 +3855,7 @@
       "ab": "",
       "mix_channel": "vox",
       "gain_mdb": 0,
+      "throw": "baked",
       "stems": {
         "a": 162,
         "b": -1
@@ -3858,6 +3863,7 @@
       "cycle_16ths": 64,
       "tolerance_pm": 20,
       "fade_us": 5000,
+      "fade_in_us": 500,
       "ride": {
         "cc74": [],
         "cc71": []
@@ -3943,6 +3949,7 @@
       "ab": "",
       "mix_channel": "vox",
       "gain_mdb": 1000,
+      "throw": "baked",
       "stems": {
         "a": 163,
         "b": -1
@@ -3950,6 +3957,7 @@
       "cycle_16ths": 64,
       "tolerance_pm": 20,
       "fade_us": 5000,
+      "fade_in_us": 500,
       "ride": {
         "cc74": [],
         "cc71": []

@@ -124,7 +124,7 @@ class TestInTheKey(unittest.TestCase):
 
     def test_the_riff_is_off_beat_chord_tones_on_the_kits_grid(self):
         """2 bars: Gm9 tones in bar 1, Cm9 tones in bar 2, every chop off the beat (no 16th on a kick), the throw on the
-        last; the MIDI export carries the same notes on the phrase channel."""
+        last; the MIDI export carries the same notes as a phrase on the vox synth (channel 5)."""
         self.assertEqual(32, VS.RIFF_STEPS)
         self.assertEqual(('Gm9', 'Cm9'), VS.RIFF_CHORDS)
         for s, m, ln, v in VS.VOX_RIFF:
@@ -133,7 +133,7 @@ class TestInTheKey(unittest.TestCase):
             self.assertTrue(s % 4, s)
             self.assertTrue(55 <= m <= 79, m)
         self.assertEqual(30, VS.VOX_RIFF[-1][0])                    # the throw: the "and" of 4 in bar 2
-        ph = [p for p in M.PARTS['phrases'] if p['sample'] == 'Vox Synth']
+        ph = [p for p in M.PARTS['phrases'] if p['item'] == 'VoxSynth']
         self.assertEqual(1, len(ph))
         self.assertEqual([(s, m, ln, v, False) for s, m, ln, v in VS.VOX_RIFF], ph[0]['notes'])
         self.assertEqual(2, ph[0]['bars'])
