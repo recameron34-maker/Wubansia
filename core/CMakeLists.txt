@@ -39,6 +39,11 @@ list(TRANSFORM WUBANSIA_CORE_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 add_library(wubansia_core STATIC ${WUBANSIA_CORE_SOURCES})
 target_include_directories(wubansia_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_features(wubansia_core PUBLIC cxx_std_20)
+# The plugin links core (through wubansia_engine) into its VST3 and CLAP, which are shared objects. On
+# Linux, Clang's default -fPIE code reaches inline constexpr tables (gen::sectionKinds...) through
+# PC-relative relocations, which lld refuses in a shared object ("recompile with -fPIC") (ADR 0017).
+# PIC changes no result: the generator snapshots stay byte-identical.
+set_target_properties(wubansia_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # PUBLIC: code that includes core's headers compiles them with the same floating-point rules (ADR 0003).
 target_link_libraries(wubansia_core PUBLIC wubansia_build_defaults PRIVATE wubansia_core_warnings)
 

@@ -43,7 +43,8 @@ target_link_libraries(WubansiaPluginCode INTERFACE
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags
-    wubansia_build_defaults)
+    wubansia_build_defaults
+    wubansia_engine) # the engine and, through it, the groove core (ADR 0017); both are built PIC for the .so
 
 target_link_libraries(Wubansia PRIVATE WubansiaPluginCode)
 
