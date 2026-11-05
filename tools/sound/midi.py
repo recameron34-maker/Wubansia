@@ -228,8 +228,9 @@ def line(lanes, **opt):
       that lane (which leaves room for the kit's fill); nothing is cut, except under the line's own fill (fill=);
     - bass: a line of PARTS['bass']['lines'], or 'main' (the pick, the default), 'switch' or 'drop2' (the kit's picks
       for those sections, PARTS['bass']['switch'] and ['drop2']);
-    - lead: 'phrase' (the default), 'call' (its first bar), 'skeleton' (PARTS['lead']['skeleton']); on a fill line
-      the call and the skeleton rest from the fill bar where the loop's own lead rests there (FUT02's arp);
+    - lead: 'phrase' (the default), 'call' (its first bar), 'answer' (its second bar), 'skeleton'
+      (PARTS['lead']['skeleton']); on a fill line the call, the answer and the skeleton rest from the fill bar where
+      the loop's own lead rests there (FUT02's arp);
     - chords: a chord block, PARTS['chords']['blocks'] (the default 'main', the loop's): harmony that moves;
     - vox: 'off' (the default), 'loop' (the loop's 4-bar vox pattern), 'riff' (the riff every 2 bars), 'call' (its
       first bar), 'answer' (its second bar); throw=True adds the riff's last note on the line's last 'and' of 4,
@@ -1307,6 +1308,8 @@ def line_notes(k, ln, ctx, variant):
                 notes = k.block('lead', kind)
             elif mode == 'call':
                 notes = twice([n for n in as_notes(P['lead']['notes']) if n.step < BAR])
+            elif mode == 'answer':
+                notes = twice([n for n in as_notes(P['lead']['notes']) if BAR <= n.step < 2 * BAR])
             elif mode == 'skeleton':
                 notes = twice(P['lead'].get('skeleton') or [n for n in as_notes(P['lead']['notes']) if n.step < BAR])
             else:
@@ -1834,7 +1837,8 @@ def describe_line(k, ln):
         elif lane == 'bass':
             parts.append(f"bass ({ln.get('bass', '')})" if ln.get('bass') else 'bass')
         elif lane == 'lead':
-            parts.append({'call': "the lead's call", 'skeleton': "the lead's skeleton"}.get(ln.get('lead'), 'lead'))
+            parts.append({'call': "the lead's call", 'answer': "the lead's answer",
+                          'skeleton': "the lead's skeleton"}.get(ln.get('lead'), 'lead'))
         elif lane == 'vox':
             parts.append(f"vox ({ln.get('vox', 'loop')})")
         elif lane == 'chords' and ln.get('chords'):
