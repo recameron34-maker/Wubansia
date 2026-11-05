@@ -13,7 +13,11 @@ match. A stage with latency 0 is causal as it stands.
 - level_duck_db: sends.duck with a fixed top (the key's loudest block in the reference loop), its gain 1.5 blocks
   later than sends.duck's centred interpolation, which needs the next block.
 - glue_db: master.glue at a fixed threshold (no solve): the same blocks, detector and envelopes, latency 23.
-- soft_clip, drive: master.soft_clip and dsp48.tanh_adaa at 4x on os_fir(4)'s taps, latency 48 (24 each way).
+- soft_clip: master.soft_clip at 4x on os_fir(4)'s taps, latency 48 (24 each way): the club master's clip.
+- lane_soft_clip, lane_drive: master.soft_clip's curve and dsp48.tanh_adaa at 4x on a half-band cascade (halfband,
+  HB1 for 1x<->2x, HB2 for 2x<->4x; hb_up4, hb_down4), latency 27: every clip and drive insert (channels, groups,
+  returns, bus EQ, parallel chains). P8 measured aliases at -94 dB, and -69 dB under 16 kHz against
+  master.soft_clip on drum material, at about a fifth of os_fir(4)'s cost.
 - limit_db: master.limit's gain on a stream, its 60 ms hold two-sided (master.py's, latency 3145) or looking back
   only (the real-time master's, latency 265).
 - dc_block: the real-time master's causal DC blocker, in place of master.dc_clean's zero-phase one.
@@ -29,8 +33,10 @@ from tools.sound import master as MS
 SR = D.SR
 OS_REACH = (len(D.os_fir(4)) - 1) // 8          # samples os_fir(4) reaches each way at 1x: 24
 LATENCY = {
-    'soft_clip': 2 * OS_REACH,                    # up and down through os_fir(4)
+    'soft_clip': 2 * OS_REACH,                    # up and down through os_fir(4): the club master's clip
     'drive': 2 * OS_REACH,
+    'lane_clip': 27,                              # the half-band cascade: (23 / 2 + 7 / 4) x 2 = 26.5, delayed 27
+    'lane_drive': 27,
     'glue': MS.BLOCK + MS.BLOCK // 2 - 1,         # the gain between two block centres needs the next block: 23
     'limit_lookback': None,                       # limit_latency(): set below from the settings
 }
@@ -125,7 +131,7 @@ def level_duck_db(key, depth_db, range_db, top_db, attack_s, release_s, block=LE
         sm[i] = s
     gr = -depth_db * np.clip((sm - (top_db - range_db)) / range_db, 0.0, 1.0)
     lag = block + block // 2
-    return np.interp(np.arange(n) - lag, (np.arange(nb) + 0.5) * block - 0.5, gr)
+    return np.interp(np.arange(n) - lag, (np.arange(nb) + 0.5) * block - 0.5, gr, left=0.0)
 
 
 def loudest_block_db(key, block=LEVEL_BLOCK):
@@ -173,9 +179,9 @@ def glue(x, threshold_db, ratio=2.0, knee_db=6.0, attack_s=0.030, release_s=(0.1
 
 
 # ------------------------------------------------------------------ nonlinear stages at 4x
-def soft_clip(x, ceiling_db, knee_db=1.5):
-    """master.soft_clip on a stream (no wrap): os_fir(4) up, first-order ADAA on the excess over the knee, down.
-    Latency LATENCY['soft_clip']."""
+def clip_curves(ceiling_db, knee_db=1.5):
+    """master.soft_clip's curve as (excess, its antiderivative): linear up to knee_db under the ceiling (dBFS), then
+    a tanh toward it; first-order ADAA runs on the excess only."""
     C = float(D.undb(ceiling_db))
     T = C * float(D.undb(-knee_db))
     k = C - T
@@ -190,6 +196,13 @@ def soft_clip(x, ceiling_db, knee_db=1.5):
         logcosh = v + np.log1p(np.exp(-2 * v)) - math.log(2.0)
         return np.where(a <= T, 0.0, T * a + k * k * logcosh - 0.5 * a * a - 0.5 * T * T)
 
+    return excess, excess_int
+
+
+def soft_clip(x, ceiling_db, knee_db=1.5):
+    """master.soft_clip on a stream (no wrap): os_fir(4) up, first-order ADAA on the excess over the knee, down: the
+    club master's clip. Latency LATENCY['soft_clip']."""
+    excess, excess_int = clip_curves(ceiling_db, knee_db)
     uu = D.up(np.asarray(x, dtype=float), 4)
     return D.down(uu + D._adaa(uu, excess, excess_int), 4)
 
@@ -197,6 +210,60 @@ def soft_clip(x, ceiling_db, knee_db=1.5):
 def drive(x, drive_amount, bias=0.0):
     """dsp48.tanh_adaa at 4x on os_fir(4): (tanh(d x + b) - tanh(b)) / tanh(d). Latency LATENCY['drive']."""
     return D.oversampled(lambda u: D.tanh_adaa(u, drive_amount, bias), np.asarray(x, dtype=float), 4)
+
+
+# the lanes' 4x oversampling: a half-band cascade (P8's, ADR 0021 draft). Names as P8's vector export imports them.
+def halfband(N, beta):            # N = 4k + 3
+    """A half-band low-pass of N taps (N = 4k + 3): a Kaiser-windowed sinc at a quarter of the rate, its even taps
+    zero but the centre, 0.5; the odd taps scaled to sum to 0.5 (unity at DC)."""
+    c = (N - 1) // 2
+    n = np.arange(N) - c
+    h = np.zeros(N)
+    w = np.kaiser(N, beta)
+    odd = n % 2 != 0
+    h[odd] = np.sin(np.pi * n[odd] / 2) / (np.pi * n[odd]) * w[odd]
+    h[odd] *= 0.5 / h[odd].sum()
+    h[c] = 0.5
+    return h
+
+
+HB1, HB2 = halfband(47, 7.0), halfband(15, 7.0)      # 1x<->2x, 2x<->4x
+
+
+def _up2(x, h):    # zero-stuff, 2h, centred
+    c = (len(h) - 1) // 2
+    y = np.zeros((2 * len(x),) + x.shape[1:])
+    y[0::2] = x
+    return signal.lfilter(2 * h, [1.0], np.concatenate([y, np.zeros((c,) + y.shape[1:])]), axis=0)[c:c + len(y)]
+
+
+def _down2(y, h):  # h, centred, keep the even samples
+    c = (len(h) - 1) // 2
+    return signal.lfilter(h, [1.0], np.concatenate([y, np.zeros((c,) + y.shape[1:])]), axis=0)[c:c + len(y)][0::2]
+
+
+def hb_up4(x):
+    """1x to 4x through the half-band cascade (centred: aligned time)."""
+    return _up2(_up2(np.asarray(x, dtype=float), HB1), HB2)
+
+
+def hb_down4(u):
+    """4x to 1x through the half-band cascade (centred)."""
+    return _down2(_down2(u, HB2), HB1)
+
+
+def lane_soft_clip(x, ceiling_db, knee_db=1.5):
+    """A clip insert: master.soft_clip's curve and ADAA at 4x on the half-band cascade, at an absolute ceiling
+    (dBFS). Latency LATENCY['lane_clip']."""
+    excess, excess_int = clip_curves(ceiling_db, knee_db)
+    u = hb_up4(x)
+    return hb_down4(u + D._adaa(u, excess, excess_int))
+
+
+def lane_drive(x, drive_amount, bias=0.0, output_db=0.0):
+    """A drive insert: dsp48.tanh_adaa at 4x on the half-band cascade, then output_db. Latency
+    LATENCY['lane_drive']."""
+    return hb_down4(D.tanh_adaa(hb_up4(x), drive_amount, bias)) * float(D.undb(output_db))
 
 
 # ------------------------------------------------------------------ the limiter

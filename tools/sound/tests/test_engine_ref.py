@@ -57,11 +57,14 @@ class Bands(unittest.TestCase):
         self.assertLess(20 * np.log10(np.abs(h[np.argmin(np.abs(f - 150))])), -30)
 
 
-def _response(fn, n=1 << 16):
+def _response(fn, n=1 << 16, at=0):
+    """fn's frequency response from an impulse at sample `at` (mid-buffer for a centred filter, whose response
+    reaches before the impulse): (frequencies, the complex response, delay removed)."""
     imp = np.zeros(n)
-    imp[0] = 1.0
+    imp[at] = 1.0
     y = fn(imp)
-    return np.fft.rfftfreq(n, 1 / SR), np.fft.rfft(y)
+    f = np.fft.rfftfreq(n, 1 / SR)
+    return f, np.fft.rfft(y) * np.exp(2j * np.pi * f * at / SR)
 
 
 class Ducks(unittest.TestCase):
@@ -89,6 +92,11 @@ class Ducks(unittest.TestCase):
         got = R.level_duck_db(np.tile(key, (3, 1)), 6.0, 18.0, top, 0.010, 0.300)
         lag = R.LEVEL_LAG
         self.assertLess(float(np.max(np.abs(got[L + lag:2 * L] - want[L:2 * L - lag]))), 1e-9)
+
+    def test_level_duck_starts_at_0_db(self):
+        key = np.concatenate([np.zeros(500), _loop(64 * 100, seed=16, peak=0.5)])
+        g = R.level_duck_db(key, 6.0, 18.0, R.loudest_block_db(key), 0.010, 0.300)
+        self.assertTrue(np.all(g[:R.LEVEL_LAG + 32] == 0.0))
 
     def test_level_duck_is_causal(self):
         key = _loop(64 * 300, seed=5, peak=0.5)
@@ -137,6 +145,49 @@ class Clip(unittest.TestCase):
         d = R.LATENCY['soft_clip']
         self.assertEqual(48, d)
         self.assertLess(float(np.max(np.abs(y[:5000 - d] - y2[:5000 - d]))), 1e-12)
+
+
+class HalfBand(unittest.TestCase):
+    def test_taps(self):
+        for h, n in ((R.HB1, 47), (R.HB2, 15)):
+            c = (n - 1) // 2
+            self.assertEqual(n, len(h))
+            self.assertEqual(0.5, h[c])
+            self.assertTrue(np.allclose(h, h[::-1]))
+            even = (np.arange(n) - c) % 2 == 0
+            even[c] = False
+            self.assertFalse(np.any(h[even]))
+            self.assertAlmostEqual(1.0, float(h.sum()), places=12)
+
+    def test_round_trip_is_flat_to_16_khz(self):
+        f, hh = _response(lambda u: R.hb_down4(R.hb_up4(u)), at=1 << 15)
+        band = (f >= 20) & (f <= 16000)
+        self.assertLess(float(np.max(np.abs(20 * np.log10(np.abs(hh[band]))))), 0.05)
+
+    def test_lane_clip_against_master_soft_clip(self):
+        L = 24000
+        x = _loop(L, seed=14, peak=1.4)
+        want, _ = MS.soft_clip(x, -1.0, 1.5)
+        got = R.lane_soft_clip(np.tile(x, (3, 1)), -1.0, 1.5)[L:2 * L]
+        lo = D.bfilt(got - want, 16000.0, 'lowpass', order=8)
+        self.assertLess(20 * np.log10(np.sqrt(np.mean(lo ** 2)) / np.sqrt(np.mean(want ** 2))), -60.0)
+
+    def test_lane_latency_27(self):
+        self.assertEqual(27, R.LATENCY['lane_clip'])
+        self.assertEqual(27, R.LATENCY['lane_drive'])
+        x = _loop(8000, seed=15, peak=1.2)
+        for fn in (lambda u: R.lane_soft_clip(u, -1.0), lambda u: R.lane_drive(u, 2.5, 0.0, -3.0)):
+            y = fn(x)
+            x2 = x.copy()
+            x2[5000:] *= 2.0
+            y2 = fn(x2)
+            self.assertLess(float(np.max(np.abs(y[:5000 - 27] - y2[:5000 - 27]))), 1e-12)
+
+    def test_lane_drive_is_tanh_adaa_at_4x(self):
+        x = 0.3 * np.sin(2 * np.pi * 220.0 * np.arange(4800) / SR)
+        want = D.oversampled(lambda u: D.tanh_adaa(u, 2.5), x, 4) * D.undb(-2.0)
+        got = R.lane_drive(x, 2.5, 0.0, -2.0)
+        self.assertLess(float(np.max(np.abs(got - want)[200:-200])), 1e-3)
 
 
 class Limiter(unittest.TestCase):
