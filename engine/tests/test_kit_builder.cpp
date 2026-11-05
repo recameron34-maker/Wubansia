@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
+#include <functional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -301,6 +302,65 @@ TEST_CASE ("buildKit: a phrase without an alternative plays stem A on both sides
     REQUIRE (built.result.error.empty());
     CHECK (built.result.value->phrases[0].stem == std::array<std::uint16_t, 2> { 15, 15 });
     CHECK (built.result.value->phrases[0].ab == -1);
+}
+
+TEST_CASE ("buildKit carries a baked throw and a looped stem's wrapping last slice", "[kit_builder]")
+{
+    auto manifest = testKit();
+    const auto mix = testMix (testKit());
+    auto& phrase = manifest.phrases[0];
+    phrase.throwMode = PhraseThrow::baked;
+    phrase.slices[0].start = 5000; // slice 0 starts at its own pre-roll
+    phrase.slices[3].end = 190000 + 5000; // the shorter stem's frames + slice 0's start: it continues into slice 0
+    phrase.slices[3].fade = 190000 + 4000;
+    const std::atomic<bool> cancel { false };
+
+    {
+        test::MemorySource source;
+        addFiles (source, manifest);
+        const auto built = build (manifest, mix, source, cancel);
+        REQUIRE (built.result.error.empty());
+        const Kit& kit = *built.result.value;
+        const auto& p = kit.phrases[0];
+        CHECK (p.throwMode == PhraseThrow::baked);
+        const auto& first = kit.slices[p.firstSlice];
+        const auto& last = kit.slices[static_cast<std::size_t> (p.firstSlice + p.sliceCount - 1)];
+        CHECK (first.start == 5000);
+        CHECK (last.end == 195000);
+        CHECK (last.fade == 194000);
+        // Read modulo each stem's own length, the wrapped tail ends at or before slice 0's start: on stem B (the
+        // shorter, 190000 frames) exactly there, on stem A (192000) 2000 frames short of it.
+        CHECK (last.end - kit.view (p.stem[1]).frames == first.start);
+        CHECK (last.end - kit.view (p.stem[0]).frames == first.start - 2000);
+    }
+
+    // Structs made in code that the voice couldn't read safely are refused before any file is read.
+    struct Case
+    {
+        std::string_view what;
+        std::function<void (PhraseEntry&)> edit;
+        std::string_view starts;
+    };
+    const Case cases[] {
+        { "a last slice wrapping past slice 0's start", [] (PhraseEntry& p) { p.slices[3].end = 195001; }, "manifest: kit.json: phrases[0].slices[3]: " },
+        { "a slice before the last wrapping", [] (PhraseEntry& p) { p.slices[2].end = 190001; }, "manifest: kit.json: phrases[0].slices[2]: " },
+        { "a fade past its end", [] (PhraseEntry& p) { p.slices[1].fade = p.slices[1].end + 1; }, "manifest: kit.json: phrases[0].slices[1]: " },
+        { "a start past the stem", [] (PhraseEntry& p) { p.slices[3].start = 190000; }, "manifest: kit.json: phrases[0].slices[3]: " },
+        { "an empty slice", [] (PhraseEntry& p) { p.slices[1].end = p.slices[1].start; }, "manifest: kit.json: phrases[0].slices[1]: " },
+    };
+    for (const auto& c : cases)
+    {
+        CAPTURE (c.what);
+        auto broken = manifest;
+        c.edit (broken.phrases[0]);
+        test::MemorySource source;
+        addFiles (source, broken);
+        const auto refused = build (broken, mix, source, cancel);
+        REQUIRE_FALSE (refused.result.ok());
+        CAPTURE (refused.result.error);
+        CHECK (refused.result.error.starts_with (c.starts));
+        CHECK (source.reads.empty());
+    }
 }
 
 TEST_CASE ("buildKit checks every file against its manifest entry, naming it", "[kit_builder]")

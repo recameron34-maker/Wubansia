@@ -400,6 +400,7 @@ TEST_CASE ("parseKitManifest reads every field", "[manifest]")
     CHECK (p.cycle16ths == 32);
     CHECK (p.tolerancePm == 20);
     CHECK (p.fadeUs == 5000);
+    CHECK (p.throwMode == PhraseThrow::live);
     CHECK (p.ride74.empty());
     CHECK (p.ride71.empty());
     REQUIRE (p.slices.size() == 4);
@@ -606,6 +607,30 @@ TEST_CASE ("parseKitManifest refuses what the contract doesn't allow, naming the
         { "a hold that isn't a key", [] (Doc& d) { d.set ("phrases[0].slices[1].holds", strs ({ "C4" })); }, "kit.json: phrases[0].slices[1].holds[0]: an integer was expected, not a string" },
         { "a slice key past 127", [] (Doc& d) { d.set ("phrases[0].slices[1].key", integer (128)); }, "kit.json: phrases[0].slices[1].key: " },
         { "a phrase's switch the kit hasn't", [] (Doc& d) { d.set ("phrases[0].ab", str ("stab")); }, "kit.json: phrases[0].ab: ", "kit.ab.stab" },
+        // throw: live or baked, always written.
+        { "no throw", [] (Doc& d) { d.erase ("phrases[0].throw"); }, "kit.json: phrases[0]: missing \"throw\"" },
+        { "a bad throw", [] (Doc& d) { d.set ("phrases[0].throw", str ("both")); }, "kit.json: phrases[0].throw: \"both\" isn't one of live, baked" },
+        { "a throw that isn't a string", [] (Doc& d) { d.set ("phrases[0].throw", flag (true)); }, "kit.json: phrases[0].throw: a string was expected, not a boolean" },
+        // A looped stem's last slice wraps at most to the stem's frames (the shorter stem's, 190000) + slice 0's start.
+        { "a last slice wrapping past slice 0's start", [] (Doc& d) {
+             d.set ("phrases[0].slices[0].start", integer (5000));
+             d.set ("phrases[0].slices[3].end", integer (195001));
+         }, "kit.json: phrases[0].slices[3].end: 195001 is out of range (66001 to 195000): the last slice of a looped stem may wrap" },
+        { "a wrap past stem A alone", [] (Doc& d) { // without stem B, the stem is A's 192000 frames
+             d.set ("phrases[0].slices[0].start", integer (5000));
+             d.set ("phrases[0].stems.b", integer (-1));
+             d.set ("phrases[0].ab", str (""));
+             d.set ("phrases[0].slices[3].end", integer (192000 + 5000 + 1));
+         }, "kit.json: phrases[0].slices[3].end: 197001 is out of range (66001 to 197000)" },
+        { "a slice before the last wrapping", [] (Doc& d) {
+             d.set ("phrases[0].slices[0].start", integer (5000));
+             d.set ("phrases[0].slices[2].end", integer (190001));
+         }, "kit.json: phrases[0].slices[2].end: 190001 is out of range (44001 to 190000): only the last slice may wrap" },
+        { "a fade past a wrapping end", [] (Doc& d) {
+             d.set ("phrases[0].slices[0].start", integer (5000));
+             d.set ("phrases[0].slices[3].end", integer (195000));
+             d.set ("phrases[0].slices[3].fade", integer (195001));
+         }, "kit.json: phrases[0].slices[3].fade: 195001 is out of range (66000 to 195000)" },
         // ride: [] or cycle_16ths x 4 values 0-127 each.
         { "no ride", [] (Doc& d) { d.erase ("phrases[0].ride"); }, "kit.json: phrases[0]: missing \"ride\"" },
         { "a ride that isn't an object", [] (Doc& d) { d.set ("phrases[0].ride", ints ({})); }, "kit.json: phrases[0].ride: an object was expected, not an array" },
@@ -680,6 +705,36 @@ TEST_CASE ("parseKitManifest reads rides, and phrases that share a channel and i
     REQUIRE (four.error.empty());
     CHECK (four.value.phrases[0].ride74.empty());
     CHECK (four.value.phrases[0].ride71.size() == 256);
+}
+
+TEST_CASE ("parseKitManifest: a looped stem's last slice wraps to slice 0's start; a throw is live or baked", "[manifest]")
+{
+    // Slice 0 starts 5000 frames in (its pre-roll); the last slice runs through the stem's end and on to frame 5000,
+    // where slice 0 begins: it continues into the next cycle's slice 0.
+    Doc doc (test::kKitJson);
+    doc.set ("phrases[0].throw", str ("baked"));
+    doc.set ("phrases[0].slices[0].start", integer (5000));
+    doc.set ("phrases[0].slices[3].end", integer (190000 + 5000));
+    doc.set ("phrases[0].slices[3].fade", integer (190000 + 4000));
+    const auto parsed = parseKitManifest (doc.text());
+    REQUIRE (parsed.error.empty());
+    const auto& p = parsed.value.phrases[0];
+    CHECK (p.throwMode == PhraseThrow::baked);
+    CHECK (p.slices[0].start == 5000);
+    CHECK (p.slices[3].end == 195000);
+    CHECK (p.slices[3].fade == 194000);
+    CHECK (p.slices[3].end - 190000 == p.slices[0].start); // it continues into slice 0
+
+    // A single-slice phrase is its own last slice: it may wrap to its own start.
+    Doc one (test::kKitJson);
+    auto& slices = one.at ("phrases[0].slices").items;
+    slices.resize (1);
+    one.set ("phrases[0].slices[0].start", integer (5000));
+    one.set ("phrases[0].slices[0].end", integer (195000));
+    one.set ("phrases[0].slices[0].holds", ints ({}));
+    REQUIRE (parseKitManifest (one.text()).error.empty());
+    one.set ("phrases[0].slices[0].end", integer (195001));
+    CHECK (parseKitManifest (one.text()).error.starts_with ("kit.json: phrases[0].slices[0].end: 195001 is out of range (5001 to 195000)"));
 }
 
 TEST_CASE ("parseKitManifest's syntax errors carry the JSON path", "[manifest]")
@@ -1099,8 +1154,9 @@ TEST_CASE ("both parsers accept the committed manifests", "[manifest]")
         const auto kitBytes = util::readBinaryFile (kitPath);
         REQUIRE (kitBytes.ok());
         const auto kit = parseKitManifest (std::string_view (reinterpret_cast<const char*> (kitBytes.value.data()), kitBytes.value.size()));
-        CHECK (kit.error.empty());
-        CHECK (kit.value.kit.id == upper);
+        CHECK (kit.error == ""); // shows the refusal, with its JSON path
+        if (kit.ok())
+            CHECK (kit.value.kit.id == upper);
         ++kits;
 
         const auto mixPath = folder.path() / (upper + "_mix.json");
@@ -1110,7 +1166,7 @@ TEST_CASE ("both parsers accept the committed manifests", "[manifest]")
         const auto mixBytes = util::readBinaryFile (mixPath);
         REQUIRE (mixBytes.ok());
         const auto mix = parseMixManifest (std::string_view (reinterpret_cast<const char*> (mixBytes.value.data()), mixBytes.value.size()), kit.value);
-        CHECK (mix.error.empty());
+        CHECK (mix.error == "");
         ++mixes;
     }
     if (kits == 0)
