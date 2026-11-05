@@ -17,13 +17,13 @@ namespace
     thread_local int numAllocations = 0;
     thread_local int numFrees = 0;
 
-    void countAllocation() noexcept
+    [[maybe_unused]] void countAllocation() noexcept // unused where a sanitizer owns the allocators
     {
         if (counting)
             ++numAllocations;
     }
 
-    void countFree() noexcept
+    [[maybe_unused]] void countFree() noexcept
     {
         if (counting)
             ++numFrees;

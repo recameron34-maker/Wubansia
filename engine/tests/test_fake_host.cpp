@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
+#include <functional>
 #include <vector>
 
 using namespace wubansia::engine;
@@ -15,6 +16,13 @@ using namespace wubansia::engine::testing;
 
 namespace
 {
+    // Exact comparison, as these tests mean it; std::equal_to keeps -Wfloat-equal quiet and NaN unequal.
+    template <class T>
+    bool same (T a, T b)
+    {
+        return std::equal_to<T> {}(a, b);
+    }
+
     // Stands in for the Engine and records each block.
     struct Recorder
     {
@@ -53,7 +61,7 @@ TEST_CASE ("the fake host moves its transport on by the samples rendered", "[fak
     FakeHost host (48000.0, 512);
     Recorder engine;
     host.prepare (engine);
-    CHECK (engine.preparedRate == 48000.0);
+    CHECK (same (engine.preparedRate, 48000.0));
     CHECK (engine.preparedBlock == 512);
     CHECK (engine.preparedOutputs == 2);
 
@@ -67,12 +75,12 @@ TEST_CASE ("the fake host moves its transport on by the samples rendered", "[fak
     CHECK (host.samplePosition() == 48000);
     REQUIRE (engine.blocks.size() == 94); // 93 blocks of 512 and one of 384
     CHECK (engine.blocks.back().numSamples == 384);
-    CHECK (engine.blocks.front().transport.ppq == 4.0);
+    CHECK (same (engine.blocks.front().transport.ppq, 4.0));
     CHECK (engine.blocks[1].transport.ppq == Catch::Approx (4.0 + 512.0 * 2.0 / 48000.0));
     CHECK (out.left.size() == 48000);
     CHECK (out.right.size() == 48000);
-    CHECK (out.left[47999] == 1.0f);
-    CHECK (out.right[0] == 2.0f);
+    CHECK (same (out.left[47999], 1.0f));
+    CHECK (same (out.right[0], 2.0f));
 
     host.stop();
     host.render (engine, controls, 1000, out);
@@ -144,7 +152,7 @@ TEST_CASE ("the fake host's transport can say nothing, or go offline", "[fake_ho
     host.setNonRealtime (true);
     const auto t = host.transport();
     CHECK_FALSE (t.hasPosition);
-    CHECK (t.bpm == 0.0);
+    CHECK (same (t.bpm, 0.0));
     CHECK (t.nonRealtime);
     CHECK_FALSE (t.playing);
 }
