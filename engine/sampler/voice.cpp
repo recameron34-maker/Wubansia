@@ -13,9 +13,16 @@ namespace wubansia::engine
         // end. Until then it runs on as the recipes' running sums do, so the vectors match bit for bit.
         constexpr double kWrapSpan = 1048576.0; // 2^20 frames, about 22 s at 48 kHz
 
-        // The sinc read of one or two channels at pos >= 0 through map (silence outside the file).
+#if defined(__GNUC__) || defined(__clang__)
+    #define WUBANSIA_INLINE [[gnu::always_inline]] inline
+#else
+    #define WUBANSIA_INLINE inline
+#endif
+
+        // The sinc read of one or two channels at pos >= 0 through map (silence outside the file). Inlined
+        // into the voice's loops: as a call it costs a third of the read.
         template <bool stereo>
-        void sincRead2 (const float* table, const FrameMap& map, const float* dl, const float* dr, double pos, double& l,
+        WUBANSIA_INLINE void sincRead2 (const float* table, const FrameMap& map, const float* dl, const float* dr, double pos, double& l,
             double& r) noexcept
         {
             const auto i = static_cast<std::int64_t> (pos);

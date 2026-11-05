@@ -11,7 +11,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
-#include <chrono>
+#include <ctime>
 #include <cmath>
 #include <cstdint>
 #include <limits>
@@ -426,9 +426,11 @@ TEST_CASE ("no NaN, infinity or subnormal after 10 s of tails", "[sampler][rt]")
 
 TEST_CASE ("the CPU a voice costs", "[.cpu]")
 {
-    // Hidden ([.cpu]): run it by hand, in a release build. 64 voices on 2-second stereo files, held, at a
-    // 44.1 kHz host, each a different key (every one through the sinc or Hermite at its own ratio).
+    // Hidden ([.cpu]): run it by hand, in a release build. 64 voices held on one 2-second stereo file at a
+    // 44.1 kHz host, through the sinc or Hermite: on 64 keys (64 ratios and banks, reads spread over the
+    // file: the caches' worst case) or 2.
     const auto interp = GENERATE (Interp::sinc, Interp::hermite);
+    const int keys = GENERATE (64, 2);
     TestKit t;
     const int file = t.addFile (sine (96000, 110.0, 0.2), sine (96000, 111.0, 0.2), 48000, 96000);
     auto in = instrument (SampleMode::sustainLoop);
@@ -443,18 +445,19 @@ TEST_CASE ("the CPU a voice costs", "[.cpu]")
     SendBus sends;
     sends.prepare (512);
     for (int v = 0; v < 64; ++v)
-        sampler.noteOn (t.kit, note (i, 36 + v, 100, v % 32));
+        sampler.noteOn (t.kit, note (i, 36 + v % keys, 100, v % 32));
     const int blocks = 44100 * 10 / 512;
-    const auto start = std::chrono::steady_clock::now();
+    const std::clock_t start = std::clock(); // CPU time, so a busy machine slows it less than wall time
     for (int b = 0; b < blocks; ++b)
     {
         bus.clear (512);
         sampler.render (bus, sends, 512);
     }
-    const auto seconds = std::chrono::duration<double> (std::chrono::steady_clock::now() - start).count();
+    const double seconds = static_cast<double> (std::clock() - start) / CLOCKS_PER_SEC;
     const double nsPerVoiceSample = seconds * 1.0e9 / (64.0 * blocks * 512.0);
     const double percentPerVoice = 100.0 * seconds / (blocks * 512.0 / 44100.0) / 64.0;
-    WARN ((interp == Interp::sinc ? "sinc" : "hermite") << ": " << nsPerVoiceSample << " ns per voice-sample, "
-                                                         << percentPerVoice << " % of one core per voice at 44.1 kHz");
+    WARN ((interp == Interp::sinc ? "sinc" : "hermite") << ", " << keys << " keys: " << nsPerVoiceSample
+                                                         << " ns per voice-sample, " << percentPerVoice
+                                                         << " % of one core per voice at 44.1 kHz");
     CHECK (sampler.activeVoices() == 64);
 }
