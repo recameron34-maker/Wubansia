@@ -37,6 +37,7 @@ modes, accent and FX placement, rolls and rises, turnarounds, rides). The genres
 declares its own arrangement as data, PARTS['form'], built from section() and line().
 """
 import argparse
+import bisect
 import importlib
 import json
 import math
@@ -708,20 +709,28 @@ class Kit:
 
     def events(self, track, notes, ccs, end):
         """A track's MIDI events (tick, order, message): its gated notes, their throws, and its controllers ((tick,
-        controller, value), on the 60-tick grid)."""
+        controller, value), on the 60-tick grid). A throw's CC91 and CC94 go to 127 on its note's tick and back to 0 at
+        its note-off or at the track's next note-on that isn't thrown (on its tick, before it), whichever comes first:
+        Wubansia latches the sends at each note-on, so a throw held over a later note would throw that note too (FUT04's
+        no-vox metal chord over the accents after it). A note on a thrown note's tick is thrown with it."""
         ch = self.channel(track)
         out = []
         mono = CH.track_lane(self.kit, track) in ('bass', 'vox') and track != 'Vox chops'
-        for on, off, key, v, _, _, _, throw in self.gated(notes, end, mono):
+        rows = self.gated(notes, end, mono)
+        thrown = {r[0] for r in rows if r[7]}
+        plain = sorted({r[0] for r in rows if not r[7]} - thrown)       # the ticks of the notes that aren't thrown
+        for on, off, key, v, _, _, _, throw in rows:
             vel = self.velocity(ch, key, v)
             if ch == CH.CHANNELS['drums'] and key not in self.drum_map:
                 raise ValueError(f'{self.kit}: drum note {key} on {track} is not on the drum map')
             out.append((on, 2, bytes([CH.status(0x90, ch), key, vel])))
             out.append((off, 0, bytes([CH.status(0x80, ch), key, 0])))
             if throw:
+                i = bisect.bisect_right(plain, on)
+                back = min(off, plain[i]) if i < len(plain) else off
                 for cc in (SPACE, ECHO):
                     out.append((on, 1, bytes([CH.status(0xB0, ch), cc, 127])))
-                    out.append((off, 1, bytes([CH.status(0xB0, ch), cc, 0])))
+                    out.append((back, 1, bytes([CH.status(0xB0, ch), cc, 0])))
         for tick, cc, value in ccs:
             if not 0 <= value <= 127 or tick > end:
                 raise ValueError(f'{self.kit}: controller {cc} = {value} at {tick} on {track}')
