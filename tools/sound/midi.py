@@ -26,9 +26,9 @@ note-offs come first, then controllers, then note-ons; no note overlaps its own 
 are note lengths, and swing never runs a note into the next one on its track unless it was written to: where a note
 slides (a written glide), the note before is held SLIDE_TICKS into it, so a mono synth set to legato glides there.
 Velocities are round(v x 127), moved to the nearest integer that plays the recipe's layer where that would not
-(written_velocity: the engine plays the layer whose round(layer x 127) is nearest, the louder on a tie). End-aligned sounds end on their target, starting the sample's length (PARTS['frames']) before it. Filter
-rides are CC74/CC71 every CC_STEP ticks while they move; a thrown note has CC91 and CC94 at 127 on its tick and back
-to 0 at its end.
+(written_velocity: the engine plays the layer whose round(layer x 127) is nearest, the louder on a tie). End-aligned
+sounds end on their target, starting the sample's length (PARTS['frames']) before it. Filter rides are CC74/CC71 every
+CC_STEP ticks while they move; a thrown note has CC91 and CC94 at 127 on its tick and back to 0 at its end.
 
 The extended mix is built line by line (8 bars each) from the kit's material: each lane plays the loop's 4-bar block,
 its fill bar where a line ends on a fill and its groove block (by default bar 2 again in place of bar 4) elsewhere;
