@@ -20,6 +20,7 @@
 // The mix has one channel per lane in use; the bass channel ducks on the kick lane with pre_us 5000
 // and has a cc_filter, so CC74 on channel 1 reaches it.
 
+#include "engine_loop.h"
 #include "kit/kit.h"
 #include "kit/manifest.h"
 #include "mix/mix_config.h"
@@ -584,6 +585,216 @@ namespace p7
                 scheduler.advance (timeline, k, sink);
                 done += k;
             }
+        }
+    };
+    // ---- voices that record what the engine tells them -----------------------------------------
+
+    // P5's Sampler interface. Each note-on sounds as a one-sample impulse in its mix channel (its
+    // phrase's for a phrase note), so the output shows when every note started; `drone` adds a constant
+    // to mix channel 0 on every sample, so the output shows its gain. A note-on holds its Kit for 2000
+    // samples, cut to 240 by fadeKit. The log (absolute samples) is reserved: with record = false
+    // nothing allocates.
+    struct RecordingVoices
+    {
+        struct Item
+        {
+            enum class Kind : std::uint8_t {
+                on,
+                off,
+                releaseAll,
+                fadeOut,
+                fadeKit
+            };
+
+            Kind kind = Kind::on;
+            std::int64_t sample = 0;
+            NoteOn note;
+            int instrument = -1;
+            int key = 0;
+            int offset = 0;
+            int fade = 0;
+            Source source = Source::sequencer;
+            const Kit* kit = nullptr;
+        };
+
+        static constexpr int kQueue = 2048;
+        static constexpr int kHeld = 512;
+
+        bool record = true;
+        float drone = 0.0f;
+        std::vector<Item> log;
+        std::int64_t now = 0;
+        std::array<Item, kQueue> queue {};
+        int queued = 0;
+        int dropped = 0;
+        std::array<std::pair<const Kit*, std::int64_t>, kHeld> held {};
+        std::array<float, kLanes> laneGains {};
+        int renders = 0;
+        int longestRender = 0;
+
+        RecordingVoices() { log.reserve (1u << 18); }
+
+        void prepare (double, int) { reset(); }
+
+        void reset() noexcept
+        {
+            now = 0;
+            queued = 0;
+            held.fill ({ nullptr, 0 });
+        }
+
+        void push (const Item& item) noexcept
+        {
+            if (queued < kQueue)
+                queue[static_cast<std::size_t> (queued++)] = item;
+            else
+                ++dropped;
+        }
+
+        void noteOn (const Kit& kit, const NoteOn& n) noexcept
+        {
+            Item item;
+            item.kind = Item::Kind::on;
+            item.note = n;
+            item.offset = n.offset;
+            item.kit = &kit;
+            push (item);
+        }
+
+        void noteOff (int instrument, int key, int offset, Source source) noexcept
+        {
+            Item item;
+            item.kind = Item::Kind::off;
+            item.instrument = instrument;
+            item.key = key;
+            item.offset = offset;
+            item.source = source;
+            push (item);
+        }
+
+        void releaseAll (Source source, int offset) noexcept
+        {
+            Item item;
+            item.kind = Item::Kind::releaseAll;
+            item.offset = offset;
+            item.source = source;
+            push (item);
+        }
+
+        void fadeOut (Source source, int offset, int fadeSamples) noexcept
+        {
+            Item item;
+            item.kind = Item::Kind::fadeOut;
+            item.offset = offset;
+            item.source = source;
+            item.fade = fadeSamples;
+            push (item);
+        }
+
+        void fadeKit (const Kit* kit, int offset) noexcept
+        {
+            Item item;
+            item.kind = Item::Kind::fadeKit;
+            item.offset = offset;
+            item.kit = kit;
+            push (item);
+        }
+
+        bool holdsKit (const Kit* kit) const noexcept
+        {
+            for (int i = 0; i < queued; ++i)
+                if (queue[static_cast<std::size_t> (i)].kit == kit)
+                    return true;
+            for (const auto& h : held)
+                if (h.first == kit && h.second > now)
+                    return true;
+            return false;
+        }
+
+        void setLaneGains (const std::array<float, kLanes>& gains) noexcept { laneGains = gains; }
+
+        static float impulse (const NoteOn& n) noexcept
+        {
+            return 0.01f * static_cast<float> (n.instrument + 1) + 0.0001f * static_cast<float> (n.key)
+                   + 0.000001f * static_cast<float> (n.velocity);
+        }
+
+        void render (MixBus& bus, SendBus&, int numSamples) noexcept
+        {
+            ++renders;
+            longestRender = std::max (longestRender, numSamples);
+            for (int i = 0; i < queued; ++i)
+            {
+                Item item = queue[static_cast<std::size_t> (i)];
+                const int offset = std::clamp (item.offset, 0, numSamples - 1);
+                item.sample = now + offset;
+                if (item.kind == Item::Kind::on && item.kit != nullptr)
+                {
+                    const Kit& kit = *item.kit;
+                    int channel = kit.instruments[static_cast<std::size_t> (item.note.instrument)].mixChannel;
+                    if (item.note.phrase >= 0)
+                        channel = kit.phrases[static_cast<std::size_t> (item.note.phrase)].mixChannel;
+                    bus.left (channel)[offset] += impulse (item.note);
+                    bus.right (channel)[offset] += 0.5f * impulse (item.note);
+                    for (auto& h : held)
+                        if (h.second <= item.sample)
+                        {
+                            h = { item.kit, item.sample + 2000 };
+                            break;
+                        }
+                }
+                if (item.kind == Item::Kind::fadeKit)
+                    for (auto& h : held)
+                        if (h.first == item.kit)
+                            h.second = std::min (h.second, item.sample + 240);
+                if (record)
+                    log.push_back (item);
+            }
+            queued = 0;
+            if (drone > 0.0f || drone < 0.0f)
+                for (int i = 0; i < numSamples; ++i)
+                {
+                    bus.left (0)[i] += drone;
+                    bus.right (0)[i] += drone;
+                }
+            now += numSamples;
+        }
+
+        int activeVoices() const noexcept
+        {
+            int n = 0;
+            for (const auto& h : held)
+                n += (h.first != nullptr && h.second > now) ? 1 : 0;
+            return n;
+        }
+
+        int droppedEvents() const noexcept { return dropped; }
+
+        std::vector<Item> only (Item::Kind kind) const
+        {
+            std::vector<Item> out;
+            for (const auto& i : log)
+                if (i.kind == kind)
+                    out.push_back (i);
+            return out;
+        }
+    };
+
+    // A BlockLoop with its hand-off and telemetry, as an engine-like type for P0's FakeHost.
+    template <class Voices>
+    struct LoopHarness
+    {
+        BlockLoop<Voices> loop;
+        PendingSlot<Kit> pending;
+        RetireFifo<Kit, 16> retired;
+        Telemetry telemetry;
+
+        void prepare (double rate, int block, int outputs) { loop.prepare (rate, block, outputs); }
+
+        void process (float* const* out, int numOutputs, int n, const TransportInfo& transport, const Controls& controls,
+            const MidiEvent* midi, int numMidi) noexcept
+        {
+            loop.process (out, numOutputs, n, transport, controls, midi, numMidi, pending, retired, telemetry);
         }
     };
 }
