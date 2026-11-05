@@ -44,6 +44,12 @@
 //   new note starts at once.
 // - Reads never leave the file: frames before 0 or past the end read as silence (Hermite: the
 //   recipe's edge, the first frame, before 0). Mono files feed both sides at unity.
+// - Phrase notes (slice >= 0) go to the phrase voices (P6): a voice playing the note's kit, phrase and
+//   source, and not stopping, reads on (continueWith); else a free voice starts it. fadeOut () and
+//   fadeKit () stop phrase voices too, and a stopping voice takes no more notes, so after a jump the chased
+//   note starts afresh while the old one fades. With all 12 busy, a stopping one (the least fade left),
+//   else the oldest, is stolen: it fades over 2 ms in a slot of its own while the new note starts; the
+//   steal counts in droppedEvents (). Note-offs never reach them: a stem has its own lengths.
 // - Interpolation: a copy where the voice's ratio is exactly 1; the 16-tap polyphase sinc
 //   (sinc_bank.h), or 4-point Hermite (hermite.h) where the instrument asks for it. The ratio is
 //   48000 / rate x 2 ^ (semitones / 12).
@@ -83,8 +89,11 @@ namespace wubansia::engine
         bool continues = false; // NoteFlag::continues (phrase notes)
         Source source = Source::sequencer;
         std::int32_t offset = 0; // the sample within the next render () call
-        // align end only: host samples from offset to the note's end at the current tempo (what remains
-        // of it when chased); 0 otherwise.
+        // Host samples from offset to a note's end at the current tempo (what remains of it when chased):
+        // - align end instruments: the end the file's end lands on;
+        // - a phrase slice note with a live throw: the end of the note it slices (its twin's end), for which
+        //   the phrase voice keeps the throw send, across the slices after it.
+        // 0 otherwise.
         std::int64_t lengthSamples = 0;
         // Chase: the time since the note's start, in 48 kHz frames before pitch (elapsed host samples x
         // 48000 / rate, rounded); the voice scales it by its own pitch. 0: from the start.
@@ -104,7 +113,8 @@ namespace wubansia::engine
     public:
         static constexpr int kVoices = 64; // multisample voices sounding at once
         static constexpr int kFadeSlots = 16; // where stolen voices fade out
-        static constexpr int kPhraseVoices = 8;
+        static constexpr int kPhraseVoices = 12; // phrase voices sounding at once (P6's are about 2 KB each)
+        static constexpr int kPhraseFadeSlots = 4; // where stolen phrase voices fade out
         static constexpr int kMaxEvents = 1024; // queued events per render () call; more are dropped
         static constexpr std::int32_t kStealFadeUs = 2000;
         static constexpr std::int32_t kKitFadeUs = 5000; // fadeKit ()
@@ -143,6 +153,11 @@ namespace wubansia::engine
         // Whether a voice, or a queued event, still refers to kit.
         bool holdsKit (const Kit* kit) const noexcept;
 
+        // The host's tempo for the phrase voices' notes from now on (0 or less: the kit's own), forwarded to
+        // every phrase voice (PhraseVoice::setTempo): off the kit's tempo they play each slice as its own
+        // run. The engine calls it once per block, before render ().
+        void setTempo (double hostBpm) noexcept;
+
         // The lane levels (linear, 0 muted) that scale the voices' direct sends, as the mixer scales the
         // channels' sends. Each moves towards its new value at kLaneRampUs per unit. Default 1.
         void setLaneGains (const std::array<float, kLanes>& gains) noexcept;
@@ -154,8 +169,13 @@ namespace wubansia::engine
         // Sounding voices after the last render (): multisample voices, fading slots and phrase voices.
         int activeVoices() const noexcept;
 
-        // Events dropped because the queue was full, since prepare ().
+        // Events dropped because the queue was full, and phrase voices stolen with every phrase slot busy,
+        // since prepare ().
         int droppedEvents() const noexcept;
+
+        // A bit per Lane (laneBit) for each phrase lane playing its recording now: a busy phrase voice that
+        // isn't stopping (Telemetry::phraseRecorded). After the last render ().
+        std::uint32_t phraseLanes() const noexcept;
 
     private:
         struct Impl;

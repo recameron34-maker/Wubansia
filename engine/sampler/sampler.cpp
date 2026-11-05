@@ -169,7 +169,7 @@ namespace wubansia::engine
         {
             if (note.slice >= 0 && note.phrase >= 0)
             {
-                pool.phraseNoteOn (kit, note, offset);
+                pool.phraseNoteOn (kit, note, offset, static_cast<int> (std::lround (samples (kStealFadeUs))));
                 return;
             }
             const auto count = static_cast<int> (kit.instruments.size());
@@ -315,8 +315,8 @@ namespace wubansia::engine
         m.laneTarget.fill (1.0f);
         m.laneGain.fill (1.0f);
         m.laneStep = 1.0 / samplesOf (kLaneRampUs, m.rate);
-        (void) SincBank::instance(); // built here, off the audio thread
-        m.pool.prepare (m.rate);
+        (void) SincBank::instance(); // built here, off the audio thread, before the phrase voices ask for it
+        m.pool.prepare (m.rate); // so PhraseVoice::prepare never allocates
         m.now = 0;
         m.order = 0;
         m.dropped = 0;
@@ -392,6 +392,11 @@ namespace wubansia::engine
         return held;
     }
 
+    void Sampler::setTempo (double hostBpm) noexcept
+    {
+        impl->pool.setPhraseTempo (hostBpm);
+    }
+
     void Sampler::setLaneGains (const std::array<float, kLanes>& gains) noexcept
     {
         for (std::size_t i = 0; i < gains.size(); ++i)
@@ -427,6 +432,11 @@ namespace wubansia::engine
 
     int Sampler::droppedEvents() const noexcept
     {
-        return impl->dropped;
+        return impl->dropped + impl->pool.phraseSteals;
+    }
+
+    std::uint32_t Sampler::phraseLanes() const noexcept
+    {
+        return impl->pool.phraseLanes();
     }
 }
