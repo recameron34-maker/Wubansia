@@ -33,8 +33,8 @@ from tools.sound import midi as Mi
 from tools.sound import qa as Q
 from tools.sound.item import Item
 from tools.sound.tests.midi_testlib import (BAR, CUE, KEYSIG, KITS, MARKER, METER, NAME, REPO, TEMPO, VARIANTS, at,
-                                            bars, ext, kit_files, lane_ons, lane_tracks, late, loop, mids, ons, parse,
-                                            parsed, whole)
+                                            bars, ext, int_layer, kit_files, lane_ons, lane_tracks, late, loop, mids,
+                                            nearest, ons, parse, parsed, whole)
 
 MINOR = ('A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#')      # the minor keys with 0-7 sharps
 MINOR_FLATS = ('A', 'D', 'G', 'C', 'F', 'Bb', 'Eb', 'Ab')  # ... and with 0-7 flats
@@ -112,6 +112,36 @@ class TestChannels(unittest.TestCase):
                             elif ch != 3:
                                 zones = k.zones(ch)
                                 self.assertTrue(min(zones) - 12 <= key <= max(zones) + 12, zones)
+
+    def test_every_velocity_plays_one_layer_under_both_rules(self):
+        """Every layered note in every kit's files (both loops, the parts, the phrases and both extended mixes) sits on
+        a velocity where the engine's integer rule (the layer whose round(layer x 127) is nearest, the louder on a tie)
+        and the float rule on velocity / 127 play the same layer: no velocity on the boundary between two layers (P5
+        found FUT01's and FUT03's 0.3 ghost claps written 38, which the integer rule plays on the 0.4 layer)."""
+        for kit in KITS:
+            k = Mi.kit_of(kit)
+            for path in mids(kit):
+                for t in parsed(kit, path)[2][1:]:
+                    for on, _, ch, key, vel in t['notes']:
+                        layers = k.layers(ch, key)
+                        if layers and len(layers) > 1:
+                            with self.subTest(kit=kit, file=path, track=t['name'], on=on, key=key):
+                                self.assertEqual(nearest(layers, vel / 127), int_layer(layers, vel))
+
+    def test_any_recipe_velocity_is_written_on_its_layer(self):
+        """For every layered instrument of every kit and every recipe velocity (0.001 apart), the written velocity
+        plays the recipe's layer under both rules, within 1 of round(v x 127) where it moves: the extended mixes'
+        rolls, rises and ghosts compute their own velocities."""
+        sets = {it.layers for kit in KITS for it in Mi.kit_of(kit).items.values() if len(it.layers) > 1}
+        self.assertGreaterEqual(len(sets), 8)
+        for layers in sorted(sets):
+            for i in range(1, 1001):
+                v = i / 1000
+                c = Mi.written_velocity(layers, v)
+                with self.subTest(layers=layers, v=v):
+                    self.assertEqual(nearest(layers, v), int_layer(layers, c))
+                    self.assertEqual(nearest(layers, v), nearest(layers, c / 127))
+                    self.assertLessEqual(abs(c - max(1, min(127, round(v * 127)))), 1)
 
     def test_every_sound_is_one_of_the_kits_items(self):
         for kit in KITS:
@@ -865,14 +895,16 @@ class TestSchema(unittest.TestCase):
         self.assertEqual({1}, {ch for _, _, ch, _, _ in loop_['Bass']['notes']})
 
     def test_a_velocity_picks_the_recipes_layer(self):
-        """round(v x 127), unless it would pick another layer than v: 0.751 is nearer the 1.0 layer of (0.5, 1.0) but
-        round(0.751 x 127) = 95 is nearer 0.5, so it is written 96; FUT01's 0.9 kicks, halfway between 0.8 and 1.0
-        (the recipe plays the louder), 115."""
+        """round(v x 127), unless it would play another layer than v: 0.751 is nearer the 1.0 layer of (0.5, 1.0) but
+        95 is nearer 64 than 127, so it is written 96; FUT01's 0.9 kicks, halfway between 0.8 and 1.0 (the recipe plays
+        the louder), 115; the 0.3 ghost claps, which the recipe plays on 0.2, 37 (38 is as near 25 as 51, and the
+        engine takes the louder)."""
         k = self.kit()
         self.assertEqual(96, k.velocity(10, 36, 0.751))
         self.assertEqual(64, k.velocity(10, 36, 0.5))
         self.assertEqual(127, k.velocity(10, 36, 1.0))
         self.assertEqual(115, Mi.written_velocity((0.2, 0.4, 0.6, 0.8, 1.0), 0.9))
+        self.assertEqual(37, Mi.written_velocity((0.2, 0.4, 0.6, 0.8, 1.0), 0.3))   # 38 ties 25 and 51: 0.4's
         self.assertEqual(89, Mi.written_velocity(None, 0.7))
 
     def test_a_note_off_the_map_is_refused(self):
