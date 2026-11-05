@@ -633,19 +633,17 @@ def multisample_checks(kit, renders, root=None):
         out.append(Check(kit, 'multisample', f'club mix with phrases off vs {club_item}', r['diff'], None,
                          'the phrase lanes on their multisamples at the kit tempo'))
     lanes = {c['id']: c['lane'] for c in m['channels']}
-    for ph in sorted(phrases):
-        lane = lanes.get(ph)
-        want = lane_reference(cap, ph, 'b')
-        if want is None:
+    for lane in sorted({lanes[ph] for ph in phrases if ph in lanes}):
+        # the lane's channels together, the engine's and the recipe's: the multisample may sit on a sibling channel
+        got = lane_sum(renders, kit, name, m, lane)
+        want = None
+        for ch, ln in lanes.items():
+            r = lane_reference(cap, ch, 'b') if ln == lane else None
+            if r is not None:
+                want = r if want is None else want + r
+        if got is None or want is None:
             continue
-        got = None
-        for ch, ln in lanes.items():          # the lane's channels together: the multisample may use a sibling channel
-            if ln == lane:
-                t = load(taps_dir(renders, kit, name) / f'{ch}.wav')
-                if t is not None:
-                    got = t[0] if got is None else got + t[0]
-        if got is None:
-            continue
+        ph = '+'.join(sorted(c for c in phrases if lanes.get(c) == lane))
         worst, judged = band_diff(pass_slice(got, L, 1), want)
         values = {'null_pass2_db': null_db(pass_slice(got, L, 1), want), 'worst_band': worst, 'bands_judged': judged,
                   'level_db': rms_db(pass_slice(got, L, 1)) - rms_db(want)}
