@@ -12,6 +12,8 @@ core/tests/snapshots/** -text
 *.wav binary
 *.flac binary
 *.zip binary
+# The engine's test vectors (engine/tests/vectors/): raw float32, pinned by SHA-256.
+*.f32 binary
 
 # The kits' samples are in the repo through Git LFS (ADR 0012): install git-lfs before cloning, or run
 # `git lfs pull` after. CI checks out without them.

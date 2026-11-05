@@ -1,7 +1,8 @@
 #pragma once
 
 // The sampler's voices: 64 multisample voices, 16 slots where stolen voices fade out, and the phrase
-// voices (P6's PhraseVoice). Fixed arrays: nothing here allocates.
+// voices (P6's PhraseVoice): 12 slots, and 4 where stolen phrase voices fade out. Fixed arrays: nothing
+// here allocates.
 //
 // Stealing (a note-on with no voice free): the oldest released voice (by start; key up, or fading
 // out), else the quietest (by its gain now, a rising attack counting as its end; the older on a tie, so
@@ -28,13 +29,17 @@ namespace wubansia::engine
         Source source = Source::sequencer;
         bool busy = false; // started, and not yet seen silent after a render
         bool stopping = false; // fading out after a stop: no note routes to it any more
+        std::uint64_t order = 0; // start order: with every slot busy, the oldest is stolen
+        std::int64_t fadeLeft = 0; // stopping: samples until its fade ends, from the next piece's start
     };
 
     class VoicePool
     {
     public:
-        // Every voice silent at once; the phrase voices learn the rate.
-        void prepare (double sampleRate) noexcept;
+        // Every voice silent at once; the phrase voices learn the rate. Not noexcept: PhraseVoice::prepare
+        // may build the shared sinc bank. The sampler builds it first, so here nothing allocates.
+        void prepare (double sampleRate);
+        // Every voice silent at once (PhraseVoice::reset), every slot free.
         void reset() noexcept;
 
         // A voice for a new note: a free one, else a stolen one (the old note fading in a slot of its own
@@ -66,16 +71,25 @@ namespace wubansia::engine
 
         int countActive() const noexcept;
 
-        // The phrase voices. Every call into PhraseVoice is in these four (and prepare and reset), so a
-        // change to its interface is an edit here.
+        // The phrase voices. Every call into PhraseVoice is in these (and prepare and reset), so a change to
+        // its interface is an edit here.
         // A phrase note: a busy slot playing the same kit, phrase and source, and not stopping, reads on
-        // (continueWith), else a free slot starts it (the first slot, stopped, when none is free).
-        void phraseNoteOn (const Kit& kit, const NoteOn& note, int offset) noexcept;
-        // Fades the phrase voices of a source, or of a kit, over fadeSamples from offset.
+        // (continueWith); else a free slot starts it (start). With every slot busy one is stolen: a stopping
+        // slot first (the one with the least fade left), else the oldest started. Its voice is copied into
+        // a fading slot of its own and fades there over stealFadeSamples (a sooner end stays) while the
+        // slot, reset, starts the new note at once; the steal is counted (phraseSteals). So after a jump
+        // the chased note starts in a fresh slot while the old one fades, and a stop then a start within
+        // the fade never cut it.
+        void phraseNoteOn (const Kit& kit, const NoteOn& note, int offset, int stealFadeSamples) noexcept;
+        // The host's tempo for every phrase voice's notes from now on (0 or less: the kit's own): each slot's
+        // PhraseVoice::setTempo, kept across resets and steals.
+        void setPhraseTempo (double hostBpm) noexcept;
+        // Fades the phrase voices of a source, or of a kit, over fadeSamples from offset (stop). They are
+        // stopping from then on.
         void stopPhrases (Source source, int offset, int fadeSamples) noexcept;
         void stopPhrasesOf (const Kit* kit, int offset, int fadeSamples) noexcept;
-        // Renders the busy phrase voices over the whole piece; laneSends: per lane, the piece's send gains
-        // (stride floats apart).
+        // Renders the busy phrase voices over the whole piece. laneSends: per lane, the piece's send gains
+        // (stride floats apart); each voice gets its phrase's lane's.
         void renderPhrases (MixBus& bus, SendBus& sends, int numSamples, const float* laneSends, std::size_t stride) noexcept;
         bool phrasesHold (const Kit* kit) const noexcept;
         // A bit per Lane for each busy phrase voice that isn't stopping: the lanes playing their recordings.
@@ -84,5 +98,20 @@ namespace wubansia::engine
         std::array<Voice, Sampler::kVoices> voices {};
         std::array<Voice, Sampler::kFadeSlots> fading {};
         std::array<PhraseSlot, Sampler::kPhraseVoices> phrases {};
+        std::array<PhraseSlot, Sampler::kPhraseFadeSlots> phraseFading {}; // stolen phrase voices fading out
+        int phraseSteals = 0; // since prepare ()
+
+    private:
+        template <class F>
+        void forEachPhraseSlot (F&& f) noexcept
+        {
+            for (auto& p : phrases)
+                f (p);
+            for (auto& p : phraseFading)
+                f (p);
+        }
+
+        std::uint64_t phraseOrder = 0;
+        double phraseTempo = 0.0; // the last setPhraseTempo ()
     };
 }
