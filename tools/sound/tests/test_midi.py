@@ -72,6 +72,9 @@ def parse(data):
     return fmt, ppq, tracks
 
 
+HOUSE_GENRES = ('hyper-clean future house', 'garage-house / deep tech house')   # the house form: the kick stays in the build
+
+
 def bars(name):
     return int(re.search(r'_(\d+)bars\.mid$', name).group(1))
 
@@ -281,6 +284,8 @@ class TestExtendedMix(unittest.TestCase):
     FORM_KINDS = {
         'default': ['intro', 'groove', 'break', 'build', 'drop', 'switch', 'break', 'drop2', 'outro'],
         'hyper-clean future house': ['intro', 'groove', 'break', 'build', 'drop', 'switch', 'break', 'drop2', 'outro'],
+        'garage-house / deep tech house': ['intro', 'groove', 'break', 'build', 'drop', 'switch', 'break', 'drop2',
+                                           'outro'],
         'dark industrial / techno': ['intro', 'groove', 'break', 'build', 'drop', 'drop2', 'outro'],
         'future garage / 2-step': ['intro', 'groove', 'break', 'build', 'drop', 'switch', 'break', 'drop2', 'outro']}
 
@@ -474,7 +479,7 @@ class TestExtendedMix(unittest.TestCase):
             bar = 4 * Mi.PPQ
             ln = s['lines'][-1]
             lo = (ln['start_bar'] - s['start_bar']) * bar
-            house = K.DIRECTION == 'hyper-clean future house'
+            house = K.DIRECTION in HOUSE_GENRES
             snare = lane_notes(R, tracks, 'snare', lo, lo + Mi.LINE * bar)
             steps = [sorted({(t - lo) % bar // Mi.S16 for t, _, _ in snare if (t - lo) // bar == b})
                      for b in range(Mi.LINE)]
@@ -605,8 +610,9 @@ class TestExtendedMix(unittest.TestCase):
                     self.assertGreaterEqual(d[0]['bars'] + d[1]['bars'], 48)
                 elif K.DIRECTION == 'future garage / 2-step':
                     self.assertEqual(16, secs[0]['bars'])
-                elif K.DIRECTION == 'hyper-clean future house':
-                    house, club = Mi.FORMS['hyper-clean future house'], Mi.FORMS['default']
+                elif K.DIRECTION in HOUSE_GENRES:
+                    house, club = Mi.FORMS[K.DIRECTION], Mi.FORMS['default']
+                    self.assertIs(Mi.FORMS['hyper-clean future house'], house)
                     self.assertEqual([s[:2] for s in club], [s[:2] for s in house])
                     self.assertEqual([s for s in club if s[1] != 'build'], [s for s in house if s[1] != 'build'])
                     self.assertIn('kick', next(s for s in house if s[1] == 'build')[2][-1]['lanes'])
@@ -624,7 +630,7 @@ class TestExtendedMix(unittest.TestCase):
             allowed['bass'] = {n for line in P['lines'].values() for _, n, *_ in line}
             allowed['lead'] = {n for _, n, *_ in P['lead']['notes']}
             allowed['Chords'] = {n for _, n, *_ in P['chords']['notes']}
-            allowed['Chord trigger'] = {Mi.TRIGGER_NOTE}
+            allowed['Chord trigger'] = {n for _, n, *_ in Mi.chord_trigger(P)}
             lanes = lane_of(R)
             for tr in tracks[1:]:
                 key = tr['name'] if tr['name'] in ('Chords', 'Chord trigger') else lanes[tr['name']]
@@ -716,6 +722,85 @@ class TestExtendedMix(unittest.TestCase):
         self.assertEqual(['44', '50', '51'], list(tracks['hats']['notes']))
         self.assertEqual({}, tracks['perc']['notes'])
         self.assertEqual({'main': 'Two', 'switch': 'One', 'drop2': 'Three'}, R['basslines'])
+
+    def test_synth_phrases_export_as_their_own_files(self):
+        """PARTS['phrases'] (optional): each synth phrase is its own file, `<kit>_Phrase_<sample>_<bars>bars.mid`, on
+        MIDI channel 4, ending on its last bar line, its notes as written (the kit's swing on the odd 16ths). The
+        README lists each one with its sample and roots. A kit without phrases exports as before."""
+        K = types.SimpleNamespace(KIT='FUT99', TITLE='Test Kit', BPM=132.0, KEY='A minor', CAMELOT='8A', SWING=0.5,
+                                  RECIPES='tools.sound.recipes.fut99')
+        P = dict(drums=[(0, 36, 0.5, 1.0, False)], drum_map={36: 'Kick'}, drum_note='', lines={'One': [(2, 33, 1.0, 0.8, False)]},
+                 pick='One', bass_samples='Bass', bass_zones='A1',
+                 lead=dict(name='Lead', sample='Lead', zones='A4', notes=[(0, 69, 2, 1.0, False)]),
+                 chords=dict(name='Pad', sample='Pad', notes=[(0, n, 64, 0.7, False) for n in (57, 60, 64)]))
+        plain = Mi.files_from('FUT99', K, P)
+        self.assertFalse([n for n in plain if '_Phrase_' in n])
+        riff = [(0, 57, 1, 1.0, False), (3, 60, 2, 0.8, False), (6, 64, 1, 0.9, True), (60, 62, 4, 0.7, False)]
+        P2 = {**P, 'phrases': [dict(name='Organ riff', sample='Organ Riff', zones='A3', notes=riff, bars=4),
+                               dict(name='Stab rhythm', sample='Stab A', zones='A4', notes=riff[:2], bars=2)]}
+        out = Mi.files_from('FUT99', K, P2)
+        self.assertEqual(set(plain) | {'FUT99_Phrase_OrganRiff_4bars.mid', 'FUT99_Phrase_StabA_2bars.mid'}, set(out))
+        for name, n_bars, want in (('FUT99_Phrase_OrganRiff_4bars.mid', 4, riff),
+                                   ('FUT99_Phrase_StabA_2bars.mid', 2, riff[:2])):
+            self.assertEqual(n_bars, bars(name))
+            _, _, tracks = parse(out[name])
+            on = [(st, n) for tr in tracks for _, st, n, v in tr['notes'] if st & 0xF0 == 0x90 and v > 0]
+            self.assertEqual(sorted(n for _, n, *_ in want), sorted(n for _, n in on), name)
+            self.assertEqual({0x93}, {st for st, _ in on}, name)                     # note-ons on channel 4
+            self.assertEqual({n_bars * 16 * Mi.S16}, {tr['end'] for tr in tracks}, name)  # every track ends on the bar
+        text = out['README.md'].decode()
+        self.assertIn('**Synth phrases**', text)
+        self.assertIn('Organ Riff, rooted at A3 (MIDI 57)', text)
+        self.assertNotIn('**Synth phrases**', plain['README.md'].decode())
+
+    def test_a_chord_sample_with_a_file_per_chord_triggers_each_stab_on_its_file(self):
+        """P['chords']['trigger'] (optional, with its 'zones'): a chord sample with one file per chord, each file the
+        whole chord rooted at its note, plays from the kit's own trigger notes, one per stab on its chord's file, in
+        the sample trigger file and in the extended mix's trigger track, and both READMEs and regions.json say which
+        file each note plays. Without it, every stab plays the one file on TRIGGER_NOTE, as before. A trigger without
+        its zones is refused."""
+        K = types.SimpleNamespace(KIT='FUT99', TITLE='Test Kit', BPM=132.0, KEY='A minor', CAMELOT='8A', SWING=0.5,
+                                  RECIPES='tools.sound.recipes.fut99', DIRECTION='sci-fi club')
+        stabs = [(0, 57, 0.9), (6, 57, 0.7), (32, 62, 1.0), (38, 62, 0.8)]       # Am9 on A3, then Dm9 on D4
+        shape = (0, 3, 7, 10, 14)
+        P = dict(drums=[(0, 36, 0.5, 1.0, False)], drum_map={36: 'Kick'}, drum_note='',
+                 lines={'One': [(2, 33, 1.0, 0.8, False)]}, pick='One', bass_samples='Bass', bass_zones='A1',
+                 lead=dict(name='Lead', sample='Lead', zones='A4', notes=[(0, 69, 2, 1.0, False)]),
+                 chords=dict(name='Stabs, Am9 and Dm9', sample='Stab',
+                             notes=[(s, z + d, 1, v, False) for s, z, v in stabs for d in shape]))
+        trigger = [(s, z, 1, v, False) for s, z, v in stabs]
+        zoned = {**P, 'chords': {**P['chords'], 'trigger': trigger, 'zones': 'A3, D4'}}
+        name = 'FUT99_Chords_Stab_SampleTrigger_4bars.mid'
+        for parts, want in ((P, [Mi.TRIGGER_NOTE] * 4), (zoned, [57, 57, 62, 62])):
+            out = Mi.files_from('FUT99', K, parts)
+            _, ppq, tracks = parse(out[name])
+            on = sorted((t, st, n) for tr in tracks for t, st, n, v in tr['notes'] if st & 0xF0 == 0x90 and v > 0)
+            self.assertEqual(want, [n for _, _, n in on])
+            self.assertEqual([s * ppq // 4 for s, _, _ in stabs], [t for t, _, _ in on])   # one note per stab
+            self.assertEqual({0x92}, {st for _, st, _ in on})                            # on the chords' channel 3
+            self.assertEqual(sorted(trigger) if parts is zoned else sorted({(s, Mi.TRIGGER_NOTE, 1, v, False)
+                                                                           for s, _, v in stabs}),
+                             Mi.material(K, parts)['trigger'])
+        plain, files = Mi.files_from('FUT99', K, P)['README.md'].decode(), Mi.files_from('FUT99', K, zoned)
+        text = files['README.md'].decode()
+        self.assertIn(f'one note on {Mi.note_name(Mi.TRIGGER_NOTE)}', plain)
+        self.assertNotIn('one file per chord', plain)
+        self.assertIn('one file per chord', text)
+        self.assertIn('A3, D4 (MIDI 57, 62)', text)
+        self.assertNotIn(f'one note on {Mi.note_name(Mi.TRIGGER_NOTE)}', text)
+        made = Mi.extended_from('FUT99', K, zoned)
+        R = json.loads(made['regions.json'])
+        self.assertEqual({'57': 'Stab A3', '62': 'Stab D4'},
+                         next(t for t in R['tracks'] if t['track'] == 'Chord trigger')['notes'])
+        self.assertIn('one file per chord', made['README.md'].decode())
+        R = json.loads(Mi.extended_from('FUT99', K, P)['regions.json'])
+        self.assertEqual({str(Mi.TRIGGER_NOTE): 'Stab'},
+                         next(t for t in R['tracks'] if t['track'] == 'Chord trigger')['notes'])
+        no_zones = {**P, 'chords': {**P['chords'], 'trigger': trigger}}
+        with self.assertRaises(ValueError):
+            Mi.files_from('FUT99', K, no_zones)
+        with self.assertRaises(ValueError):
+            Mi.material(K, no_zones)
 
     def test_the_fill_bar_plays_as_written_and_other_blocks_swap_it(self):
         """The written 4-bar drums leave their last bar to the kit's fill. Where no fill is due, bar 2 plays again in

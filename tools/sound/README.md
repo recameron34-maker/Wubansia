@@ -28,7 +28,7 @@ Wubansia's sound pipeline: 48 kHz DSP helpers, the kits and their recipes, the r
 | `item.py` | `Item` (one instrument), `Take` (one file), `Out` (a render plus what QA needs to know) |
 | `render.py` | The CLI: render, one gain per instrument, write FLAC, QA, reports, sheets |
 | `sheet.py` | One PNG per instrument: waveform, spectrogram, band envelopes |
-| `midi.py` | Exports a kit's written loop as MIDI (drums, basslines, lead, chords, the full loop) at its tempo and swing, from the `midi` module of its recipe package, into `content/midi/<kit>/` with a README of the drum map, and the same parts as a DJ-friendly extended mix in its genre's form (`FORMS`: 224 bars, every drop after a break reached through its build) in `extended/`, one file, one region per section and `regions.json`; a test keeps the committed files equal to a fresh export |
+| `midi.py` | Exports a kit's written loop as MIDI (drums, basslines, lead, chords, the full loop, and any synth phrases its `PARTS['phrases']` lists, each on channel 4) at its tempo and swing, from the `midi` module of its recipe package, into `content/midi/<kit>/` with a README of the drum map, and the same parts as a DJ-friendly extended mix in its genre's form (`FORMS`: 224 bars, every drop after a break reached through its build) in `extended/`, one file, one region per section and `regions.json`; a test keeps the committed files equal to a fresh export |
 | `listen.py` | Copies any kit's render to WAV (the same samples) in plain-named `Drums/`, `Bass/`, `Music/`, `Vox/`, `FX/` and `Loops/` folders, for listening |
 | `denylist.py`, `denylists/` | Artist-name, slur and profanity lists, stored as SHA-256 digests |
 | `models.py` | Kokoro TTS and Whisper ASR through sherpa-onnx, from `WUBANSIA_MODELS_DIR` |

@@ -134,6 +134,7 @@ The 31.5 and 63 Hz bands depend on the key: E1–F#1 (41–46 Hz) straddles the 
   - sci-fi club −2.0 ± 0.5
   - future house −1.75 ± 0.5 (bright)
   - techno −2.5 ± 0.6 (darker allowed)
+  - garage-house / deep tech house −2.0 ± 0.5 (round 4)
 - **Sub hump:** the louder of the 31.5 and 63 Hz bands minus the 500 Hz band, +6 to +12 dB. Report only. *C · L.*
 
 ### 1.3 Low end
@@ -618,6 +619,8 @@ Keep as they are:
 - **S3. Sends per kit.** The `sends.py` defaults stay, and each kit's context loop passes its own Space and Echo (T60, damping, pre-delay in note values).
 - **S4. Measured references replace the conventions.** Take 3–5 released tracks per genre that you own, and measure each one's loudest 16 s: `.venv/bin/python -m tools.sound.mixmeter --reference <file> ...` (44.1, 48 or 96 kHz WAV or FLAC, resampled to 48 kHz for measuring only; `--json` for the numbers). Then record the numbers here. The audio itself never goes in the repo.
 - **S5. The meter into the repo: done** as `tools/sound/mixmeter.py` (round 3), with its validation cases as unit tests (`tools/sound/tests/test_mixmeter.py`), the reference measurement included.
+
+**Round 4: a fifth genre, garage-house / deep tech house.** FUT03 moves from hyper-clean future house to today's garage-house and rolling deep tech house, on your request (round 4 moves FUT01 and FUT03 toward current UK garage and garage-house; FUT02 and FUT04 stay). Its club windows are conventions like the others, set warmer and less bright than future house: LUFS-I −8.5 ± 1, PLR ≥ 7.0, the octaves sub +6 to +12, 125 Hz +1 to +6, 250 Hz 0 to +4, 500 Hz 0 to +3, 2 kHz −3 to 0, 4 kHz −5 to −2, 8 kHz −8 to −4, 16 kHz −14 to −8 (`qa.CLUB`, pinned in `test_qa.py`). Its extended mix plays the house form, the kick staying in the build. Future house's windows and form stay valid for a kit that takes that direction up again.
 
 **Proposed for round 4, not gated yet: genre targets that separate the kits.** The A&R review of round 3 found the near-identical windows pulling the kits toward one sound: FUT02 and FUT03 read within 1.8 dB of each other in every octave, and FUT02 is as wide as FUT04 from 500 Hz up. It proposed sci-fi club width −7 to −3 dB at 2–8 kHz from real decorrelation, techno drums −12 to −8 with wide returns, future house the brightest top slope (−1.5 ± 0.3 dB/oct) and techno the darkest (−2.5 ± 0.4). These are conventions too, and gating them now would change the mixes after their round 3 fix pass; S4's measurements decide them, and your round 3 notes on how alike the kits sound.
 

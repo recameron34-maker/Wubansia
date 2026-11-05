@@ -179,12 +179,51 @@ def kit_parts(kit):
     return K, P
 
 
+PHRASE_CHANNEL = 3                  # channel 4: the synth phrases, apart from the bass (1), lead (2) and chords (3)
+
+
 def files(kit):
     """{file name: bytes} for every clip of the kit, plus its README.md."""
     K, P = kit_parts(kit)
+    return files_from(kit, K, P)
+
+
+def phrase_file(kit, ph):
+    """A synth phrase's file name: `<kit>_Phrase_<sample>_<bars>bars.mid`."""
+    return f'{kit}_Phrase_{ph["sample"].replace(" ", "").replace("#", "s")}_{ph.get("bars", 2)}bars.mid'
+
+
+def chord_trigger(P):
+    """The chords' sample trigger notes. A chord sample with one file per chord, each the whole chord rooted at its
+    note, gives its own (P['chords']['trigger'], one note per stab on its chord's file, with the 'zones' its files
+    are rooted at); a one-file chord sample plays every stab on TRIGGER_NOTE, at the file's own pitch."""
+    ch = P['chords']
+    if 'trigger' not in ch:
+        return sorted({(s, TRIGGER_NOTE, ln, v, False) for s, _, ln, v, _ in ch['notes']})
+    if not ch.get('zones'):
+        raise ValueError(f"{ch['name']}: a trigger per chord file needs the zones its files are rooted at")
+    return sorted(tuple(n) for n in ch['trigger'])
+
+
+def chords_text(P):
+    """The README's paragraph on the chords: the voicing for a synth, and how the chord sample's trigger plays it."""
+    ch = P['chords']
+    if 'trigger' in ch:
+        return (f"**Chords:** the voicing file is for your own synth. The {ch['sample']} sample is one file per chord, "
+                'each the whole chord: load them into a sampler as a\nmultisample, each file rooted at its note: '
+                f"{zone_notes(ch['zones'])}. The sample trigger file plays one note per stab, on its chord's file.")
+    return (f"**Chords:** the voicing file is for your own synth. The {ch['sample']} sample is the whole chord, so play it\n"
+            f'with the sample trigger file: one note on {note_name(TRIGGER_NOTE)} (MIDI {TRIGGER_NOTE}), where '
+            "Ableton's Simpler and most samplers\nplay a sample at its own pitch.")
+
+
+def files_from(kit, K, P):
+    """files() for a kit module K and its PARTS P. P['phrases'] is optional: a list of synth phrases, each
+    dict(name, sample, zones, notes, bars), every one written to its own file on channel 4. P['chords'] may carry a
+    trigger of its own (chord_trigger)."""
     title = f'{kit} {K.TITLE}, {K.BPM:g} BPM, {K.KEY}'
     lead, chords = P['lead'], P['chords']
-    trigger = sorted({(s, TRIGGER_NOTE, ln, v, False) for s, _, ln, v, _ in chords['notes']})
+    trigger = chord_trigger(P)
     out = {f'{kit}_Drums_4bars.mid': smf(K.BPM, title, [('Drums', P['drums'], DRUM_CHANNEL, 1, 64)], K.SWING)}
     for name, line_ in P['lines'].items():
         tag = '_InTheLoop' if name == P['pick'] else ''
@@ -199,6 +238,9 @@ def files(kit):
     out[f'{kit}_FullLoop_4bars.mid'] = smf(K.BPM, title, [
         ('Drums', P['drums'], DRUM_CHANNEL, 1, 64), (f'Bass {P["pick"]}', P['lines'][P['pick']], 0, 2, 32),
         (lead['name'], lead['notes'], 1, 2, 32), (chords['name'], chords['notes'], 2, 1, 64)], K.SWING)
+    for ph in P.get('phrases', ()):
+        out[phrase_file(kit, ph)] = smf(K.BPM, title, [(ph['name'], ph['notes'], PHRASE_CHANNEL, 1,
+                                                         16 * ph.get('bars', 2))], K.SWING)
     out['README.md'] = readme(kit, K, P, sorted(out)).encode()
     return out
 
@@ -217,6 +259,15 @@ def slide_text(P, swing):
     within = (f'{who}{"s" if many else ""} glide{"" if many else "s"} inside one note, which a MIDI note can\'t carry: '
               f'{"they play" if many else "it plays"} as written.')
     return ' '.join(([held] if joined else []) + ([within] if inside else []))
+
+
+def phrases_text(kit, P):
+    """The README's paragraph on the synth phrases, or nothing for a kit without them."""
+    if not P.get('phrases'):
+        return ''
+    rows = '\n'.join(f'- `{phrase_file(kit, ph)}`: {ph["name"]} ({ph.get("bars", 2)} bars), on {ph["sample"]}, rooted '
+                     f'at {zone_notes(ph["zones"])}' for ph in P['phrases'])
+    return (f'\n**Synth phrases** (channel 4): the kit\'s synth riffs as MIDI, each on its own sample:\n\n{rows}\n')
 
 
 def readme(kit, K, P, names):
@@ -244,12 +295,10 @@ Ableton and Logic call C3, so root each file by its MIDI number. A is clean, B i
 
 **Lead** (2 bars): {P['lead']['sample']}, rooted at {zone_notes(P['lead']['zones'])}.
 
-**Chords:** the voicing file is for your own synth. The {P['chords']['sample']} sample is the whole chord, so play it
-with the sample trigger file: one note on {note_name(TRIGGER_NOTE)} (MIDI {TRIGGER_NOTE}), where Ableton's Simpler and most samplers
-play a sample at its own pitch.
+{chords_text(P)}
 
 **Full loop** (4 bars): all of the above in one file, the bassline and lead played twice.
-
+{phrases_text(kit, P)}
 **Extended mix** (`{EXTENDED}/`): these parts arranged as a DJ-friendly extended mix, {total} bars
 ({length(total, K.BPM)} at {K.BPM:g} BPM), as one file and one region per section, with `regions.json` and a README on
 laying the regions out on a timeline.
@@ -394,7 +443,7 @@ UKG_FORM = (                      # UK garage / 2-step: a 16-bar intro of drums,
         line(EVERYTHING, lead='call', end='fill'))),
 ) + CLUB_FORM[2:-1] + (UKG_OUTRO,)
 FORMS = {'default': CLUB_FORM, 'hyper-clean future house': HOUSE_FORM, 'dark industrial / techno': TECHNO_FORM,
-         'future garage / 2-step': UKG_FORM}
+         'future garage / 2-step': UKG_FORM, 'garage-house / deep tech house': HOUSE_FORM}
 ARRANGEMENT = CLUB_FORM           # the default form
 
 
@@ -448,7 +497,7 @@ def material(K, P):
     chords = sorted(tuple(n) for n in P['chords']['notes'])
     return dict(
         drums=drums, lines=P['lines'], bass=bass, lead=sorted(tuple(n) for n in P['lead']['notes']), chords=chords,
-        trigger=sorted({(s, TRIGGER_NOTE, ln, v, False) for s, _, ln, v, _ in chords}), ghost=ghost,
+        trigger=chord_trigger(P), ghost=ghost,
         fill_bar=P.get('fill_bar', BLOCK), swap=P.get('fill_swap', 2), snare=snare,
         tracks=(('Kick', 'kick', 'kick', DRUM_CHANNEL), (snare, 'snare', 'snare', DRUM_CHANNEL),
                 ('Hats', 'hats', 'hats', DRUM_CHANNEL), ('Perc', 'perc', 'perc', DRUM_CHANNEL),
@@ -600,11 +649,12 @@ def section_marks(sec):
 
 
 def track_notes(M, P, secs, key, lane):
-    """regions.json's {MIDI note: name} of what a track plays in the mix: the drums and the chord trigger by sample,
-    the rest by note (C4 = 60)."""
+    """regions.json's {MIDI note: name} of what a track plays in the mix: the drums and the chord trigger by sample
+    (a chord sample with one file per chord by its file, as the sample names write it), the rest by note (C4 = 60)."""
     got = sorted({n for s in secs for _, n, *_ in s['notes'][key]})
     if key == 'trigger':
-        return {str(n): P['chords']['sample'] for n in got}
+        ch = P['chords']
+        return {str(n): f"{ch['sample']} {sample_name(n)}" if 'trigger' in ch else ch['sample'] for n in got}
     return {str(n): P['drum_map'].get(n, note_name(n)) if lane in DRUM_LANES else sample_name(n) for n in got}
 
 
@@ -756,6 +806,9 @@ def extended_readme(kit, K, P, M, secs, R):
             return f'{P["lead"]["sample"]}, rooted at {zone_notes(P["lead"]["zones"])}'
         if key == 'chords':
             return f'{P["chords"]["name"]}: the voicing, for your own synth'
+        if 'trigger' in P['chords']:
+            return (f'the {P["chords"]["sample"]} sample, one file per chord, each the whole chord, rooted at '
+                    f'{zone_notes(P["chords"]["zones"])}: one note per stab, on its chord\'s file')
         return (f'the {P["chords"]["sample"]} sample, the whole chord: one note on {note_name(TRIGGER_NOTE)} '
                 f'(MIDI {TRIGGER_NOTE}) per chord, where samplers play a sample at its own pitch')
     tracks = '\n'.join(f'| {name} | {channel + 1} | {plays(name, key, lane)} |'

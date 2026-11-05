@@ -96,6 +96,11 @@ CLUB = {
     'dark industrial / techno': dict(lufs=(-8.0, 1.0), plr_min=6.5, bands={
         'sub': (4.0, 12.0), '125': (1.0, 6.0), '250': (0.0, 4.0), '500': (0.0, 3.0), '2k': (-3.0, 0.0),
         '4k': (-6.0, -2.0), '8k': (-10.0, -5.0), '16k': (-17.0, -10.0)}),
+    # round 4 (FUT03's move to garage-house and rolling deep tech house): warmer and less bright than future house,
+    # a little quieter, fuller low mids; conventions, like the others, until measured references replace them
+    'garage-house / deep tech house': dict(lufs=(-8.5, 1.0), plr_min=7.0, bands={
+        'sub': (6.0, 12.0), '125': (1.0, 6.0), '250': (0.0, 4.0), '500': (0.0, 3.0), '2k': (-3.0, 0.0),
+        '4k': (-5.0, -2.0), '8k': (-8.0, -4.0), '16k': (-14.0, -8.0)}),
 }
 CLUB_LOW_WIDTH_MAX_DB = -10.0  # side over mid in the 125 and 250 Hz octaves (under 120 Hz is the low_side check)
 CLUB_MAX_REDUCTION_DB = 4.0    # the master's peak reduction, clipper and limiter together (the standard's cap, C): a
