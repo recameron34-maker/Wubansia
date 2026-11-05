@@ -332,6 +332,9 @@ TEST_CASE ("the pass-through mixer sums the channel buses at their lane's gain",
 
     CHECK (mixer.latencySamples() == 0);
     CHECK (mixer.tailSeconds() == 0.0);
+    for (const float peak : mixer.meters().lanePeak)
+        CHECK (peak <= 0.0f); // the pass-through mixer measures nothing
+    CHECK (mixer.meters().gainReduction <= 0.0f);
 }
 
 TEST_CASE ("the phrase matcher stub leaves every note on the multisample", "[smoke]")

@@ -161,7 +161,8 @@ at least one instrument or phrase. Every file one instrument plays has the same 
 
 A glide needs `mono`. A legato note (one that starts while the voice still holds the last) glides instead of
 starting a voice, and keeps the first note's zone and layer. It is a *dip* when the next legato note returns to the
-pitch before it (FUT01's pitch dips), and glides over `dip_us`; every other legato note is a *slide*, over `us`.
+pitch before it (FUT01's pitch dips): the dip and that returning note glide over `dip_us` (the timeline marks both,
+`NoteFlag::dip`; live MIDI never does). Every other legato note is a *slide*, over `us`.
 
 `choke`:
 
