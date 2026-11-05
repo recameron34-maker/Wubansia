@@ -39,12 +39,17 @@ import math
 import sys
 from pathlib import Path
 
-import numpy as np
+if __package__ in (None, ''):  # run as a script: import the tools.sound package from the repo root
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from tools.sound import dsp48 as D
-from tools.sound import kits
-from tools.sound import parts as P
-from tools.sound.item import Out
+import tools.sound  # noqa: E402,F401  first: it pins numpy's SIMD level before numpy loads (ADR 0007)
+
+import numpy as np  # noqa: E402
+
+from tools.sound import dsp48 as D  # noqa: E402
+from tools.sound import kits  # noqa: E402
+from tools.sound import parts as P  # noqa: E402
+from tools.sound.item import Out  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'engine' / 'tests' / 'vectors' / 'sampler'
