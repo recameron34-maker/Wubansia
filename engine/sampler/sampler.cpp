@@ -392,6 +392,11 @@ namespace wubansia::engine
         return held;
     }
 
+    void Sampler::setTempo (double hostBpm) noexcept
+    {
+        impl->pool.setPhraseTempo (hostBpm);
+    }
+
     void Sampler::setLaneGains (const std::array<float, kLanes>& gains) noexcept
     {
         for (std::size_t i = 0; i < gains.size(); ++i)

@@ -89,8 +89,11 @@ namespace wubansia::engine
         bool continues = false; // NoteFlag::continues (phrase notes)
         Source source = Source::sequencer;
         std::int32_t offset = 0; // the sample within the next render () call
-        // align end only: host samples from offset to the note's end at the current tempo (what remains
-        // of it when chased); 0 otherwise.
+        // Host samples from offset to a note's end at the current tempo (what remains of it when chased):
+        // - align end instruments: the end the file's end lands on;
+        // - a phrase slice note with a live throw: the end of the note it slices (its twin's end), for which
+        //   the phrase voice keeps the throw send, across the slices after it.
+        // 0 otherwise.
         std::int64_t lengthSamples = 0;
         // Chase: the time since the note's start, in 48 kHz frames before pitch (elapsed host samples x
         // 48000 / rate, rounded); the voice scales it by its own pitch. 0: from the start.
@@ -149,6 +152,11 @@ namespace wubansia::engine
 
         // Whether a voice, or a queued event, still refers to kit.
         bool holdsKit (const Kit* kit) const noexcept;
+
+        // The host's tempo for the phrase voices' notes from now on (0 or less: the kit's own), forwarded to
+        // every phrase voice (PhraseVoice::setTempo): off the kit's tempo they play each slice as its own
+        // run. The engine calls it once per block, before render ().
+        void setTempo (double hostBpm) noexcept;
 
         // The lane levels (linear, 0 muted) that scale the voices' direct sends, as the mixer scales the
         // channels' sends. Each moves towards its new value at kLaneRampUs per unit. Default 1.

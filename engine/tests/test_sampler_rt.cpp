@@ -350,7 +350,9 @@ TEST_CASE ("phrase notes go to the phrase voices, never to a multisample voice",
 namespace
 {
     // A kit of phrases for the phrase slots' tests: one stem, each phrase two long slices of it (valid for P6's
-    // voice too, so these tests hold with it dropped in), on the lanes given.
+    // voice too, so these tests hold with it dropped in), on the lanes given. Every note is the sequencer's:
+    // MIDI in never plays slices (P6's voice ignores a live phrase note), so the tests tell voices apart by
+    // kit.
     struct PhraseKit
     {
         TestKit t;
@@ -434,20 +436,20 @@ namespace
 
 TEST_CASE ("phraseLanes: a bit per lane whose phrase voice plays and isn't stopping", "[sampler][rt][phrase]")
 {
-    PhraseKit k;
+    PhraseKit k, other;
     const int lead = k.add (Lane::lead);
-    const int vox = k.add (Lane::vox);
+    const int vox = other.add (Lane::vox);
     PhrasePool p;
     CHECK (p.pool.phraseLanes() == 0u);
-    p.pool.phraseNoteOn (k.t.kit, k.note (lead, 0, Source::sequencer), 0, PhrasePool::kSteal);
-    p.pool.phraseNoteOn (k.t.kit, k.note (vox, 0, Source::live), 0, PhrasePool::kSteal);
+    p.pool.phraseNoteOn (k.t.kit, k.note (lead, 0), 0, PhrasePool::kSteal);
+    p.pool.phraseNoteOn (other.t.kit, other.note (vox, 0), 0, PhrasePool::kSteal);
     p.render (32);
     CHECK (p.pool.phraseLanes() == (laneBit (Lane::lead) | laneBit (Lane::vox)));
-    p.pool.stopPhrases (Source::live, 10, 480); // the vox voice fades: no longer its lane's recording
+    p.pool.stopPhrasesOf (&other.t.kit, 10, 480); // the vox voice fades: no longer its lane's recording
     CHECK (p.pool.phraseLanes() == laneBit (Lane::lead));
     p.render (32);
     CHECK (p.pool.phraseLanes() == laneBit (Lane::lead));
-    p.pool.stopPhrasesOf (&k.t.kit, 10, 480);
+    p.pool.stopPhrases (Source::sequencer, 10, 480);
     CHECK (p.pool.phraseLanes() == 0u);
     p.pool.reset();
     CHECK (p.pool.phraseLanes() == 0u);
@@ -476,7 +478,8 @@ TEST_CASE ("a jump mid-phrase: the chased note starts in a fresh voice while the
     CHECK (p.busy() == 1);
 
     // The jump: the transport stops the sequenced voices over 10 ms, then the note sounding at the new
-    // position comes chased.
+    // position comes chased (at a new tempo, which every phrase voice takes).
+    p.pool.setPhraseTempo (131.5);
     p.pool.stopPhrases (Source::sequencer, 5, 480);
     p.pool.phraseNoteOn (k.t.kit, k.note (lead, 1, Source::sequencer, 3000), 5, PhrasePool::kSteal);
     CHECK (p.busy() == 2);
@@ -572,34 +575,38 @@ TEST_CASE ("with every phrase voice busy the oldest is stolen; it fades in a slo
 
 TEST_CASE ("a stopping phrase voice is stolen first: the one with the least fade left", "[sampler][rt][phrase]")
 {
-    PhraseKit k;
+    // Phrases 0 and 1 in kits of their own, so a kit's stop reaches just that voice.
+    PhraseKit k, kitZero, kitOne;
     std::vector<int> ph;
     for (int i = 0; i < Sampler::kPhraseVoices + 1; ++i)
         ph.push_back (k.add (Lane::vox));
+    const int zeroPhrase = kitZero.add (Lane::vox);
+    const int onePhrase = kitOne.add (Lane::vox);
     PhrasePool p;
-    p.pool.phraseNoteOn (k.t.kit, k.note (ph[0], 0, Source::live), 0, PhrasePool::kSteal);
+    p.pool.phraseNoteOn (kitZero.t.kit, kitZero.note (zeroPhrase, 0), 0, PhrasePool::kSteal);
     p.render (32);
-    p.pool.stopPhrases (Source::live, 0, 4800);
+    p.pool.stopPhrasesOf (&kitZero.t.kit, 0, 4800);
     p.render (992); // phrase 0's voice: 3808 samples of fade left
-    p.pool.phraseNoteOn (k.t.kit, k.note (ph[1], 0, Source::live), 0, PhrasePool::kSteal);
+    p.pool.phraseNoteOn (kitOne.t.kit, kitOne.note (onePhrase, 0), 0, PhrasePool::kSteal);
     p.render (32);
-    p.pool.stopPhrases (Source::live, 0, 4800); // phrase 1's: 4800 left; phrase 0's keeps its sooner end
+    p.pool.stopPhrasesOf (&kitOne.t.kit, 0, 4800); // phrase 1's: 4800 left
     for (int i = 2; i < Sampler::kPhraseVoices; ++i)
         p.pool.phraseNoteOn (k.t.kit, k.note (ph[static_cast<std::size_t> (i)], 0), 0, PhrasePool::kSteal);
     p.render (32);
     CHECK (p.busy() == Sampler::kPhraseVoices);
-    const PhraseSlot* zero = p.slotOf (k.t.kit, ph[0]);
-    const PhraseSlot* one = p.slotOf (k.t.kit, ph[1]);
+    const PhraseSlot* zero = p.slotOf (kitZero.t.kit, zeroPhrase);
+    const PhraseSlot* one = p.slotOf (kitOne.t.kit, onePhrase);
     REQUIRE (zero != nullptr);
     REQUIRE (one != nullptr);
     CHECK (zero->fadeLeft < one->fadeLeft);
 
     p.pool.phraseNoteOn (k.t.kit, k.note (ph.back(), 0), 0, PhrasePool::kSteal);
     CHECK (p.pool.phraseSteals == 1);
-    CHECK (zero->phrase == ph.back()); // phrase 0's slot, the least fade left, went
-    CHECK (one->phrase == ph[1]);
+    CHECK (zero->kit == &k.t.kit); // phrase 0's slot, the least fade left, went
+    CHECK (zero->phrase == ph.back());
+    CHECK (one->kit == &kitOne.t.kit);
     CHECK (one->stopping);
-    CHECK (p.pool.phraseFading[0].phrase == ph[0]);
+    CHECK (p.pool.phraseFading[0].kit == &kitZero.t.kit);
     CHECK (p.pool.phraseFading[0].fadeLeft <= PhrasePool::kSteal); // its fade shortened to the steal's
     p.render (128);
     CHECK (! p.pool.phraseFading[0].busy);
@@ -690,6 +697,7 @@ TEST_CASE ("noteOn, noteOff, the fades and render neither allocate nor free", "[
         sampler.noteOn (t.kit, phraseNote);
         lanes[0] = block % 2 ? 1.0f : 0.0f;
         sampler.setLaneGains (lanes);
+        sampler.setTempo (block % 3 == 0 ? 0.0 : 126.0 + block % 9); // the phrase voices' tempo, every block
         sampler.render (bus, sends, 256);
         (void) sampler.holdsKit (&t.kit);
         (void) sampler.activeVoices();
