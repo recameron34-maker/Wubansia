@@ -871,6 +871,59 @@ class TestInstallMacos(Case):
         self.assertEqual(list(self.home.rglob('*')), [])
 
 
+WORKFLOW = REPO / '.github' / 'workflows' / 'ci.yml'
+
+
+def job_block(text, name):
+    """A job's lines in ci.yml: from '  <name>:' to the next job (no YAML parser in CI's venv)."""
+    m = re.search(rf'^  {name}:\n(.*?)(?=^  [a-z]+:\n|\Z)', text, re.M | re.S)
+    if not m:
+        raise AssertionError(f'no job {name} in {WORKFLOW}')
+    return m.group(1)
+
+
+class TestWorkflow(unittest.TestCase):
+    def setUp(self):
+        self.text = WORKFLOW.read_text(encoding='utf-8')
+
+    def test_the_content_job_runs_only_when_dispatched_with_content(self):
+        content = job_block(self.text, 'content')
+        self.assertIn("if: github.event_name == 'workflow_dispatch' && inputs.platforms == 'content'\n", content)
+        self.assertIn('options: [all, linux, macos, windows, content]', self.text)
+        for job in ('linux', 'sound', 'macos', 'windows'):
+            condition = job_block(self.text, job).split('runs-on:')[0]
+            self.assertNotIn('content', condition, job)  # platforms=content runs nothing else; all runs no content
+
+    def test_the_content_job_caches_the_samples_by_the_manifests_hash(self):
+        content = job_block(self.text, 'content')
+        self.assertIn('uses: actions/cache@', content)
+        self.assertIn('path: .git/lfs/objects', content)
+        self.assertIn("key: content-lfs-${{ matrix.kit }}-${{ hashFiles(format('content/plugin/{0}/*_kit.json', "
+                      "matrix.kit)) }}", content)
+        self.assertIn('tools/content/pack.py --kit "$KIT" --list', content)  # only the listed samples come down
+        self.assertIn('git lfs pull --include', content)
+        self.assertIn('retention-days: 3', content)
+        self.assertIsNone(re.search(r'^\s*lfs:\s*true', content, re.M))  # the checkout itself fetches no samples
+
+    def test_the_macos_zip_carries_the_installer_and_is_checked(self):
+        macos = job_block(self.text, 'macos')
+        self.assertIn('cp dist/INSTALL.md dist/install-macos.sh dist/Wubansia/', macos)
+        check = macos.split('name: Check the package')[1].split('- name:')[0]
+        for item in ('Wubansia.vst3', 'Wubansia.component', 'Wubansia.clap', 'Wubansia.app',
+                     'THIRD_PARTY_NOTICES.md', 'INSTALL.md', 'install-macos.sh'):
+            self.assertIn(item, check)
+        self.assertIn('codesign --verify --strict', check)
+        self.assertIn('install-macos.sh" --dry-run', check)
+        self.assertLess(macos.index('name: Check the package'), macos.index('name: Upload'))
+
+    def test_actionlint_passes(self):
+        actionlint = os.environ.get('WUBANSIA_ACTIONLINT') or shutil.which('actionlint')
+        if not actionlint:
+            self.skipTest('actionlint is not installed (set WUBANSIA_ACTIONLINT to its path)')
+        proc = run([actionlint, WORKFLOW], cwd=REPO)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+
 class TestDocs(unittest.TestCase):
     def test_install_md_names_every_step_the_script_takes(self):
         text = INSTALL_MD.read_text(encoding='utf-8')
