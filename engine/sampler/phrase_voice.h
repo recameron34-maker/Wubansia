@@ -36,7 +36,8 @@
 //   reading that slice takes the note instead: within a frame it reads on, 1 or 2 frames off it re-syncs
 //   over 1 ms, further it jumps (so a slice a host loop re-chases doesn't sound twice).
 // - Off 48 kHz it resamples with the sampler's sinc bank (no pitch: 48000 / rate frames a sample).
-// It ignores note-offs and velocity: the stem has its own lengths and dynamics.
+// It ignores note-offs and velocity: the stem has its own lengths and dynamics. MIDI in never plays slices: a
+// note from Source::live plays nothing here.
 //
 // Output: the stem at the phrase's gain_mdb into the phrase's mix channel. A live throw (NoteOn::throwSpace,
 // throwEcho; none for a phrase whose throw is baked into its stem) sends the head's sound, as mono, into the
@@ -88,7 +89,7 @@ namespace wubansia::engine
             int resyncs = 0; // 1 ms re-syncs: a cycle's wrap, or a chase 1 or 2 frames off
             int jumps = 0; // 3 ms crossfades
             int missed = 0; // slices whose expected follower never came
-            int dropped = 0; // events past kMaxEvents, or naming no slice of the phrase
+            int dropped = 0; // events past kMaxEvents, naming no slice of the phrase, or from MIDI in
         };
 
         // Message thread: the host's rate (11025-192000 Hz). Builds the sampler's shared sinc bank if it
