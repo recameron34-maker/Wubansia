@@ -239,12 +239,12 @@ namespace wubansia::dragout
                 fileName (kit, label + (song ? " Song" : "") + (fromNovox ? " NoVox" : "")));
         }
 
-        // One of the kit's files as it is.
+        // One of the kit's own files (named <KIT>_...) as it is.
         DragResult phraseDrag (const engine::KitInfo& kit, std::span<const MidiFile> files, const juce::String& phraseFile)
         {
             const auto wanted = phraseFile.toStdString();
             const auto base = baseName (wanted);
-            const auto* file = base.empty() ? nullptr : findFile (files, base);
+            const auto* file = startsWith (base, kit.id + "_") ? findFile (files, base) : nullptr;
             if (file == nullptr)
                 return DragResult::failure ("the kit has no phrase file '" + wanted + "'");
             const auto parsed = midi::readSmf (file->bytes);

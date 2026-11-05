@@ -748,6 +748,28 @@ TEST_CASE ("embedded file names may carry folders", "[dragout]")
     CHECK_THAT (dragout::makeDragFile (k.info, none, state (PlayMode::loop, Variant::vox), loopRequest()).error, ContainsSubstring ("FUT04_Loop_Vox_4bars.mid"));
 }
 
+TEST_CASE ("a drag only ever takes the kit's own files", "[dragout]")
+{
+    // Every kit's files in one list: each kit still finds only its own.
+    std::vector<dragout::MidiFile> all;
+    for (const auto& k : kits())
+        all.insert (all.end(), k.files.begin(), k.files.end());
+
+    for (const auto& k : kits())
+    {
+        INFO (k.info.id);
+        CHECK (dragout::phraseFiles (k.info.id, all) == dragout::phraseFiles (k.info.id, k.files));
+        CHECK (drag ({ k.info, {}, {}, all }, state (PlayMode::song, Variant::novox), songRequest()).bytes == drag (k, state (PlayMode::song, Variant::novox), songRequest()).bytes);
+        CHECK (drag ({ k.info, {}, {}, all }, state (PlayMode::loop, Variant::vox), laneRequest (Lane::bass)).bytes == drag (k, state (PlayMode::loop, Variant::vox), laneRequest (Lane::bass)).bytes);
+    }
+
+    const auto& fut01 = kit ("FUT01");
+    CHECK_THAT (dragError ({ fut01.info, {}, {}, all }, state (PlayMode::loop, Variant::vox), phraseRequest ("FUT02_Phrase_GlassMelody_4bars.mid")),
+        ContainsSubstring ("FUT02_Phrase_GlassMelody_4bars.mid"));
+    CHECK (drag ({ fut01.info, {}, {}, all }, state (PlayMode::loop, Variant::vox), phraseRequest ("FUT01_Phrase_OrganRiff_4bars.mid")).bytes
+           == fut01.bytesOf ("FUT01_Phrase_OrganRiff_4bars.mid"));
+}
+
 TEST_CASE ("drag file names hold kit, title, BPM, key and Camelot, in safe characters, and pass the denylists", "[dragout]")
 {
     SECTION ("the denylist port agrees with tools/sound/denylist.py")
