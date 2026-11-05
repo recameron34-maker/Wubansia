@@ -37,15 +37,20 @@ namespace wubansia::engine::fx
     public:
         void reset() noexcept
         {
-            stage2.reset();
-            stage1.reset();
+            evens4.reset();
+            odds4.reset();
+            odds2.reset();
+            evens2.reset();
         }
 
         // Four samples at 4x to one.
         double push (const double* in) noexcept;
 
     private:
-        History<double, 16> stage2; // 4x inputs: the last 15
-        History<double, 64> stage1; // 2x samples after stage 2: the last 47
+        // each stage's input split by phase, so each half-band's nonzero taps meet a contiguous run
+        History<double, 8> evens4; // the 4x inputs at even places: the last 8
+        History<double, 4> odds4; // at odd places: the last 4
+        History<double, 32> odds2; // stage 2's output at odd 2x places: the last 24
+        History<double, 16> evens2; // at even places: the last 12
     };
 }

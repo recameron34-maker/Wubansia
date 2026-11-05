@@ -15,6 +15,7 @@
 #include <complex>
 #include <cstdint>
 #include <numbers>
+#include <utility>
 
 namespace wubansia::engine::fx
 {
@@ -167,7 +168,10 @@ namespace wubansia::engine::fx
         }
         if (count != sections)
             return 0;
-        std::stable_sort (found.begin(), found.begin() + count, [] (const Section& a, const Section& b) { return a.radius < b.radius; });
+        // the poles nearest the unit circle last (a stable insertion sort: std::stable_sort may allocate)
+        for (int i = 1; i < count; ++i)
+            for (int j = i; j > 0 && found[static_cast<std::size_t> (j)].radius < found[static_cast<std::size_t> (j - 1)].radius; --j)
+                std::swap (found[static_cast<std::size_t> (j)], found[static_cast<std::size_t> (j - 1)]);
 
         for (int s = 0; s < count; ++s)
         {

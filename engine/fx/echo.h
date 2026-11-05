@@ -46,6 +46,10 @@ namespace wubansia::engine::fx
         // The delay in seconds directly (tests; sends.echo's delay_s).
         void setDelaySeconds (double seconds) noexcept;
 
+        // The stream starts this many samples after the first process (): the wow and flutter count from it. Takes
+        // effect at reset ().
+        void setOrigin (std::int64_t samplesBefore) noexcept { origin = samplesBefore; }
+
         // in: the mono send; out: the stereo return.
         void process (const float* in, float* outL, float* outR, int n) noexcept;
 
@@ -58,6 +62,18 @@ namespace wubansia::engine::fx
         bool primed = false; // a delay was set since the last reset
         DelayLine<float> a, b;
         BiquadCascade<2, 2> loop; // LP then HP, per side (0: the left line's repeats, 1: the right's)
-        std::int64_t t = 0;
+        std::int64_t origin = 0;
+        std::int64_t t = 0; // from the stream's start
+
+        // sin (2 pi f t / fs + phase) for the wow and the flutter, rotated one sample at a time and re-synced from
+        // std::sin and std::cos every kResync samples (and at the start)
+        struct Oscillator
+        {
+            double sin = 0.0, cos = 1.0, stepSin = 0.0, stepCos = 1.0;
+        };
+        static constexpr std::int64_t kResync = 4096;
+        void sync (Oscillator& o, double hz, double phase) const noexcept;
+        Oscillator wowOsc, flutterOsc;
+        bool synced = false;
     };
 }

@@ -110,7 +110,7 @@ namespace wubansia::engine::fx
         if (k < 0)
             return;
         const double g = meanSum / static_cast<double> (meanSize);
-        const double r2 = -20.0 * std::log10 (std::min (g, 1.0));
+        const double r2 = g < 1.0 ? -20.0 * std::log10 (g) : 0.0;
         r = std::max (r2, r * releaseCoeff);
     }
 
@@ -146,7 +146,7 @@ namespace wubansia::engine::fx
             double out = 0.0;
             if (k >= 0)
                 out = r < 1e-9 ? 0.0 : r;
-            const double gain = std::exp (-kDbToLog * out);
+            const double gain = out > 0.0 ? std::exp (-kDbToLog * out) : 1.0;
             l[i] = static_cast<float> (static_cast<double> (audioL.at (k)) * gain);
             rr[i] = static_cast<float> (static_cast<double> (audioR.at (k)) * gain);
             if (grDb != nullptr)

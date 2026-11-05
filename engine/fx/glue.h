@@ -43,6 +43,10 @@ namespace wubansia::engine::fx
         void setThreshold (double thresholdDb) noexcept { s.thresholdDb = thresholdDb; }
         void reset() noexcept;
 
+        // The stream starts this many samples after the first process (): the input before it is silence, and the
+        // blocks count from it (where aligned time 0 reaches the glue in the mix graph). Takes effect at reset ().
+        void setOrigin (std::int64_t samplesBefore) noexcept { origin = samplesBefore; }
+
         // Stereo in place (r may equal l for mono), 23 samples late. grDb, if given, receives each output sample's
         // gain reduction in dB (>= 0, before the makeup).
         void process (float* l, float* r, int n, double* grDb = nullptr) noexcept;
@@ -60,7 +64,8 @@ namespace wubansia::engine::fx
         double rmsCoeff = 0.0;
         double attackCoeff = 0.0, fastCoeff = 0.0, slowAttackCoeff = 0.0, slowCoeff = 0.0;
 
-        std::int64_t t = 0; // samples taken
+        std::int64_t origin = 0;
+        std::int64_t t = 0; // samples taken, from the stream's start (negative before it)
         double blockSum = 0.0;
         double power = 0.0; // the smoothed power
         double fast = 0.0, slow = 0.0;

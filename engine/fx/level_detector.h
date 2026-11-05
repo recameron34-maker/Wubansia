@@ -31,9 +31,13 @@ namespace wubansia::engine::fx
             reset();
         }
 
+        // The key's stream starts this many samples after the first tick (): the blocks count from it. Takes effect at
+        // reset ().
+        void setOrigin (std::int64_t samplesBefore) noexcept { origin = samplesBefore; }
+
         void reset() noexcept
         {
-            t = 0;
+            t = -origin;
             acc = 0.0;
             level = kSilenceDb;
             values.fill (0.0);
@@ -46,8 +50,9 @@ namespace wubansia::engine::fx
         // One key sample in; the share of the duck's depth (0..1) at this sample out.
         double tick (double key) noexcept
         {
-            acc += key * key;
-            if ((t + 1) % block == 0)
+            if (t >= 0)
+                acc += key * key;
+            if (t >= 0 && (t + 1) % block == 0)
             {
                 const double p = acc / static_cast<double> (block);
                 acc = 0.0;
@@ -96,7 +101,8 @@ namespace wubansia::engine::fx
         double low = -18.0;
         double attack = 0.0;
         double release = 0.0;
-        std::int64_t t = 0;
+        std::int64_t origin = 0;
+        std::int64_t t = 0; // from the stream's start
         double acc = 0.0;
         double level = kSilenceDb;
         std::array<double, kRing> values {};

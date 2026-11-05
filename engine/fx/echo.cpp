@@ -38,9 +38,20 @@ namespace wubansia::engine::fx
         a.reset();
         b.reset();
         loop.reset();
-        t = 0;
+        t = -origin;
+        synced = false;
         primed = false;
         current = target;
+    }
+
+    void Echo::sync (Oscillator& o, double hz, double phase) const noexcept
+    {
+        const double w = 2.0 * std::numbers::pi * hz;
+        const double angle = w * (static_cast<double> (t) / fs) + phase;
+        o.sin = std::sin (angle);
+        o.cos = std::cos (angle);
+        o.stepSin = std::sin (w / fs);
+        o.stepCos = std::cos (w / fs);
     }
 
     void Echo::setDelaySeconds (double seconds) noexcept
@@ -72,12 +83,22 @@ namespace wubansia::engine::fx
                 if (std::abs (current - target) < 1e-9)
                     current = target;
             }
-            const double ts = static_cast<double> (t) / fs;
-            const double wobble = s.wow * std::sin (2.0 * std::numbers::pi * s.wowHz * ts + s.wowPhase)
-                                  + s.flutter * std::sin (2.0 * std::numbers::pi * s.flutterHz * ts + s.flutterPhase);
+            if (! synced || t % kResync == 0)
+            {
+                sync (wowOsc, s.wowHz, s.wowPhase);
+                sync (flutterOsc, s.flutterHz, s.flutterPhase);
+                synced = true;
+            }
+            const double wobble = s.wow * wowOsc.sin + s.flutter * flutterOsc.sin;
+            for (auto* o : { &wowOsc, &flutterOsc })
+            {
+                const double sn = o->sin * o->stepCos + o->cos * o->stepSin;
+                o->cos = o->cos * o->stepCos - o->sin * o->stepSin;
+                o->sin = sn;
+            }
             const double pos = static_cast<double> (t) - current * (1.0 + wobble);
-            const double ta = loop.tick (0, std::tanh (drive * a.read (pos)) / drive);
-            const double tb = loop.tick (1, std::tanh (drive * b.read (pos)) / drive);
+            const double ta = loop.tick (0, std::tanh (drive * a.readFast (pos, origin)) / drive);
+            const double tb = loop.tick (1, std::tanh (drive * b.readFast (pos, origin)) / drive);
             outL[i] = static_cast<float> (ta);
             outR[i] = static_cast<float> (tb);
             b.push (static_cast<float> (s.feedback * ta));

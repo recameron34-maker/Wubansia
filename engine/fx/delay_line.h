@@ -89,18 +89,34 @@ namespace wubansia::engine::fx
             return buf[static_cast<std::size_t> (i) & mask];
         }
 
+        // The sample at absolute index i, unchecked: i must be under size () and less than capacity () back. Before the
+        // stream (i < 0) it reads the ring's still untouched end, which is 0 until the ring first wraps.
+        T tap (std::int64_t i) const noexcept { return buf[static_cast<std::size_t> (i) & mask]; }
+
         // The sample pushed `delay` pushes before the last one (0: the last).
         T delayed (std::int64_t delay) const noexcept { return at (written - 1 - delay); }
 
-        // sends._read: v at a fractional position, (1 - fr) v[i] + fr v[i + 1], i = floor (pos); 0 where i < 0.
-        double read (double pos) const noexcept
+        // sends._read: v at a fractional stream position, (1 - fr) v[i] + fr v[i + 1], i = floor (pos); 0 where i < 0.
+        // The stream's sample i is the line's absolute index i + offset.
+        double read (double pos, std::int64_t offset = 0) const noexcept
         {
             const double fl = std::floor (pos);
             const auto i = static_cast<std::int64_t> (fl);
             if (i < 0)
                 return 0.0;
             const double fr = pos - fl;
-            return (1.0 - fr) * static_cast<double> (at (i)) + fr * static_cast<double> (at (i + 1));
+            return (1.0 - fr) * static_cast<double> (at (i + offset)) + fr * static_cast<double> (at (i + 1 + offset));
+        }
+
+        // read () without the range checks: pos must be within capacity () of the newest sample.
+        double readFast (double pos, std::int64_t offset = 0) const noexcept
+        {
+            const double fl = std::floor (pos);
+            const auto i = static_cast<std::int64_t> (fl);
+            if (i < 0)
+                return 0.0;
+            const double fr = pos - fl;
+            return (1.0 - fr) * static_cast<double> (tap (i + offset)) + fr * static_cast<double> (tap (i + 1 + offset));
         }
 
     private:

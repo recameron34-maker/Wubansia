@@ -1,5 +1,6 @@
 #include "fx/oversampler_exact.h"
 
+#include "fx/dot.h"
 #include "fx/generated/os_fir4.h"
 
 #include <cstddef>
@@ -39,27 +40,16 @@ namespace wubansia::engine::fx
         history.push (x);
         const double* h = history.newest();
         for (std::size_t j = 0; j < 4; ++j)
-        {
-            const auto& taps = kPhases.taps[j];
-            const int count = kPhases.count[j];
-            double acc = 0.0;
-            for (int m = 0; m < count; ++m)
-                acc += taps[static_cast<std::size_t> (m)] * h[-m];
-            out[j] = acc;
-        }
+            out[j] = dotBack (kPhases.taps[j].data(), h, kPhases.count[j]);
     }
 
     double ExactDownsampler4::push (const double* in) noexcept
     {
         history.push (in[0]);
-        const double* z = history.newest();
-        // y = sum h[k] z[-k], the taps symmetric about the centre
-        double acc = kOsFir4[static_cast<std::size_t> (kCentre)] * z[-kCentre];
-        for (int k = 0; k < kCentre; ++k)
-            acc += kOsFir4[static_cast<std::size_t> (k)] * (z[-k] + z[-(kTaps - 1 - k)]);
+        const double y = dotSymmetric (kOsFir4.data(), history.newest(), kCentre); // the taps are symmetric about the centre
         history.push (in[1]);
         history.push (in[2]);
         history.push (in[3]);
-        return acc;
+        return y;
     }
 }

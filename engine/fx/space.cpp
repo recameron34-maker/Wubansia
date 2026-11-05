@@ -63,13 +63,15 @@ namespace wubansia::engine::fx
         const int maxW = std::max (static_cast<int> (hist[0].capacity()) - 1, 2);
         window = std::clamp (scaled (s.windowFrames, fs), 2, maxW);
         window -= window % 2;
+        stepSin = std::sin (std::numbers::pi / static_cast<double> (window));
+        stepCos = std::cos (std::numbers::pi / static_cast<double> (window));
         shimmerDry = std::sqrt (std::max (1.0 - s.shimmer * s.shimmer, 0.0));
 
         if (s.sendHpHz > 0.0)
             sendHp.setButterworth (PassKind::highpass, std::clamp (s.sendOrder, 1, 8), s.sendHpHz, 0.0, fs);
         else
             sendHp.setSections (nullptr, 0);
-        shimmerBand.setButterworth (PassKind::bandpass, 4, s.shimmerLoHz, s.shimmerHiHz, fs);
+        bandSections = butterworth (PassKind::bandpass, 4, s.shimmerLoHz, s.shimmerHiHz, fs, bandCoeffs.data(), 4);
         if (s.monoHz > 0.0)
             monoSide.setButterworth (PassKind::highpass, 8, s.monoHz, 0.0, fs);
         else
@@ -87,9 +89,13 @@ namespace wubansia::engine::fx
             h.reset();
         damp.fill (0.0);
         low.fill (0.0);
-        shimmerBand.reset();
+        for (auto& z : bandZ1)
+            z.fill (0.0);
+        for (auto& z : bandZ2)
+            z.fill (0.0);
         monoSide.reset();
-        t = 0;
+        t = -origin;
+        phaseSynced = false;
     }
 
     void Space::process (const float* in, float* outL, float* outR, int n) noexcept
@@ -102,39 +108,78 @@ namespace wubansia::engine::fx
             pre.push (static_cast<float> (sendHp.tick (0, static_cast<double> (in[i]))));
             const double xin = static_cast<double> (pre.delayed (predelay));
 
-            // the shifter's two taps at this absolute time, shared by the lines
+            // the shifter's two taps at this absolute time, shared by the lines: delays d and d - W / 2 (mod W), weights
+            // sin^2 (pi d / W) and cos^2 (pi d / W) (sends.octave_taps); sin (pi d / W) turns back by pi / W a
+            // sample, re-synced exactly where d wraps to W (sin 0, cos -1)
             std::array<std::int64_t, 2> dk {};
             std::array<double, 2> wk {};
             if (shimmer)
+            {
+                const std::int64_t w0 = window;
                 for (std::size_t o = 0; o < 2; ++o)
                 {
                     const std::int64_t off = o == 0 ? 0 : window / 2;
-                    dk[o] = window - (t + off) % window;
-                    const double sn = std::sin (std::numbers::pi * static_cast<double> (dk[o]) / w);
-                    wk[o] = sn * sn;
+                    dk[o] = w0 - (((t + off) % w0) + w0) % w0; // Python's modulo, also before the stream
                 }
+                if (dk[0] == w0 || ! phaseSynced)
+                {
+                    const double a = std::numbers::pi * static_cast<double> (dk[0]) / w;
+                    phaseSin = dk[0] == w0 ? 0.0 : std::sin (a);
+                    phaseCos = dk[0] == w0 ? -1.0 : std::cos (a);
+                    phaseSynced = true;
+                }
+                wk[0] = phaseSin * phaseSin;
+                wk[1] = phaseCos * phaseCos;
+                const double sn = phaseSin * stepCos - phaseCos * stepSin; // the angle less pi / W
+                phaseCos = phaseCos * stepCos + phaseSin * stepSin;
+                phaseSin = sn;
+            }
 
-            std::array<double, kLines> v {};
+            // the lines side by side: the taps, the damping, the low band, the shimmer
+            std::array<double, kLines> x {};
+            for (std::size_t j = 0; j < kLines; ++j)
+                x[j] = static_cast<double> (lines[j].tap (t - d[j] + origin));
             for (std::size_t j = 0; j < kLines; ++j)
             {
-                const double tap = static_cast<double> (lines[j].at (t - d[j]));
-                damp[j] = (1.0 - dampA) * tap + dampA * damp[j];
-                double x = damp[j];
-                if (lowBand)
-                {
-                    low[j] = (1.0 - lowA) * x + lowA * low[j];
-                    x = x + lowMix[j] * low[j];
-                }
-                if (shimmer)
-                {
-                    const double h = shimmerBand.tick (static_cast<int> (j), x);
-                    hist[j].push (static_cast<float> (h));
-                    const double upOct = wk[0] * static_cast<double> (hist[j].at (t - dk[0]))
-                                         + wk[1] * static_cast<double> (hist[j].at (t - dk[1]));
-                    x = shimmerDry * x + s.shimmer * upOct;
-                }
-                v[j] = x * g[j];
+                damp[j] = (1.0 - dampA) * x[j] + dampA * damp[j];
+                x[j] = damp[j];
             }
+            if (lowBand)
+                for (std::size_t j = 0; j < kLines; ++j)
+                {
+                    low[j] = (1.0 - lowA) * x[j] + lowA * low[j];
+                    x[j] = x[j] + lowMix[j] * low[j];
+                }
+            if (shimmer)
+            {
+                std::array<double, kLines> h = x;
+                for (std::size_t sec = 0; sec < static_cast<std::size_t> (bandSections); ++sec)
+                {
+                    const auto& c = bandCoeffs[sec];
+                    auto& z1 = bandZ1[sec];
+                    auto& z2 = bandZ2[sec];
+                    for (std::size_t j = 0; j < kLines; ++j)
+                    {
+                        const double xj = h[j];
+                        const double y = c.b0 * xj + z1[j];
+                        z1[j] = c.b1 * xj - c.a1 * y + z2[j];
+                        z2[j] = c.b2 * xj - c.a2 * y;
+                        h[j] = y;
+                    }
+                }
+                std::array<double, kLines> upOct {};
+                for (std::size_t j = 0; j < kLines; ++j)
+                {
+                    hist[j].push (static_cast<float> (h[j]));
+                    upOct[j] = wk[0] * static_cast<double> (hist[j].tap (t - dk[0] + origin))
+                               + wk[1] * static_cast<double> (hist[j].tap (t - dk[1] + origin));
+                }
+                for (std::size_t j = 0; j < kLines; ++j)
+                    x[j] = shimmerDry * x[j] + s.shimmer * upOct[j];
+            }
+            std::array<double, kLines> v {};
+            for (std::size_t j = 0; j < kLines; ++j)
+                v[j] = x[j] * g[j];
 
             hadamard8 (v);
             double yl = 0.0, yr = 0.0;

@@ -26,7 +26,7 @@ namespace wubansia::engine::fx
 
     void Glue::reset() noexcept
     {
-        t = 0;
+        t = -origin;
         blockSum = 0.0;
         power = 0.0;
         fast = slow = 0.0;
@@ -84,12 +84,13 @@ namespace wubansia::engine::fx
         {
             const double xl = static_cast<double> (l[i]);
             const double xr = stereo ? static_cast<double> (r[i]) : xl;
-            blockSum += (xl * xl + xr * xr) / 2.0;
+            if (t >= 0)
+                blockSum += (xl * xl + xr * xr) / 2.0;
             delay[0].push (l[i]);
             if (stereo)
                 delay[1].push (r[i]);
             ++t;
-            if (t % kBlock == 0)
+            if (t > 0 && t % kBlock == 0)
                 finishBlock();
 
             const std::int64_t ta = t - 1 - kLatency;

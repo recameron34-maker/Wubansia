@@ -52,6 +52,10 @@ namespace wubansia::engine::fx
         void setup (const SpaceSettings& settings) noexcept; // also resets
         void reset() noexcept;
 
+        // The stream starts this many samples after the first process (): the shimmer's taps count from it. Takes
+        // effect at reset ().
+        void setOrigin (std::int64_t samplesBefore) noexcept { origin = samplesBefore; }
+
         // in: the mono send; out: the stereo return. n samples.
         void process (const float* in, float* outL, float* outR, int n) noexcept;
 
@@ -73,8 +77,14 @@ namespace wubansia::engine::fx
         std::array<DelayLine<float>, kLines> lines;
         std::array<DelayLine<float>, kLines> hist; // the shifter's input (band-passed taps)
         std::array<double, kLines> damp {}, low {};
-        BiquadCascade<4, kLines> shimmerBand;
+        // the shimmer's band-pass, its state by section and line, so the 8 lines run side by side
+        std::array<BiquadCoeffs, 4> bandCoeffs {};
+        int bandSections = 0;
+        std::array<std::array<double, kLines>, 4> bandZ1 {}, bandZ2 {};
         BiquadCascade<4, 2> monoSide; // 8th order: 4 sections, on the side (channel 0)
-        std::int64_t t = 0;
+        std::int64_t origin = 0;
+        std::int64_t t = 0; // from the stream's start
+        double phaseSin = 0.0, phaseCos = 1.0, stepSin = 0.0, stepCos = 1.0; // the shifter's crossfade
+        bool phaseSynced = false;
     };
 }
