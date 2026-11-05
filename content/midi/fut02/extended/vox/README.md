@@ -67,7 +67,7 @@ Line by line (bars of the whole mix):
 - 161-168: kick, clap, hats, perc, bass (Relay), vox (call), accents (the glass melody), fx; the drums' tresillo variant; a turnaround in its last bar
 - 169-176: kick, clap, busy hats, perc, bass (Relay), the lead's skeleton, vox (call), accents with the glass melody, fx; the phrases rest from the fill; the fill in its last bar
 - 177-184: kick, clap, hats, perc, bass (Relay), the lead's call, vox (answer), accents; the drums' pingpong variant; a turnaround in its last bar
-- 185-192: kick, clap, busy hats, perc, bass (Relay), chords (the laser stab riff), the vox's last note thrown, fx; the phrases rest from the fill; the fill in its last bar
+- 185-192: kick, clap, busy hats, perc, bass (Relay), chords (the laser stab riff), fx; the phrases rest from the fill; the fill in its last bar
 
 **9. Outro** (bars 193-224)
 - 193-200: kick, clap, busy hats, perc; the drums' pingpong variant; a turnaround in its last bar

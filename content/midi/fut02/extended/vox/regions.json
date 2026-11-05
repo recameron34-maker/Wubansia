@@ -882,12 +882,10 @@
             "perc",
             "bass",
             "chords",
-            "vox",
             "fx"
           ],
           "hats": "busy",
           "bass": "Relay",
-          "throw": 1,
           "phrases": [
             "Laser stab riff, Dm9 and B-flat maj9"
           ],
