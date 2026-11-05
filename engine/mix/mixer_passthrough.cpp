@@ -11,6 +11,7 @@ namespace wubansia::engine
     {
         const MixConfig* config = nullptr;
         int maxBlock = 0;
+        MixMeters meters; // stays zero: the pass-through mixer measures nothing
     };
 
     Mixer::Mixer() : impl (std::make_unique<Impl>()) {}
@@ -103,5 +104,10 @@ namespace wubansia::engine
     double Mixer::tailSeconds() const noexcept
     {
         return 0.0;
+    }
+
+    const MixMeters& Mixer::meters() const noexcept
+    {
+        return impl->meters;
     }
 }
