@@ -518,6 +518,7 @@ namespace wubansia::engine::testing
             phrase.cycle16ths = 32;
             phrase.tolerancePm = 20;
             phrase.fadeUs = 5000;
+            phrase.fadeInUs = 2000; // not the usual 500: slice 4 has no pre-roll, so a run starting there fades in
             for (int i = 0; i < phrase.cycle16ths * 240 / kRideTicks; ++i)
                 phrase.ride74.push_back (static_cast<std::uint8_t> (leadRide (i)));
             for (std::size_t i = 0; i < kPhrase.size(); ++i)
@@ -534,7 +535,7 @@ namespace wubansia::engine::testing
                 SliceEntry s;
                 s.step = note.step;
                 s.key = note.key;
-                s.lead = 48;
+                s.lead = s.step == 16 ? 0 : 48; // the downbeat of the second bar has no pre-roll
                 s.start = onsetFrames (s.step) - s.lead;
                 s.fade = soundEnd - kPhraseFadeFrames;
                 phrase.slices.push_back (s);
@@ -1155,6 +1156,7 @@ namespace wubansia::engine::testing
             p.cycle16ths = e.cycle16ths;
             p.tolerancePm = e.tolerancePm;
             p.fadeUs = e.fadeUs;
+            p.fadeInUs = e.fadeInUs;
             p.firstSlice = static_cast<std::uint16_t> (kit->slices.size());
             p.sliceCount = static_cast<std::uint16_t> (e.slices.size());
             for (const auto& s : e.slices)

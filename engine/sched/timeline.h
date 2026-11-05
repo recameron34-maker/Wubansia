@@ -99,6 +99,17 @@ namespace wubansia::engine
         friend bool operator== (const DuckKey&, const DuckKey&) = default;
     };
 
+    // Each slice note's twin's end: the milliticks from the slice note's pos to the end (pos + len) of the
+    // note it slices (same channel and key, same onset; floorMod in a loop). Note is full at 32 bytes, so
+    // this lives beside it, in Timeline::sliceThrough.
+    struct SliceThrough
+    {
+        std::uint32_t note = 0; // the slice note's index into Timeline::notes
+        std::int64_t through = 0; // milliticks
+
+        friend bool operator== (const SliceThrough&, const SliceThrough&) = default;
+    };
+
     // A section marker (FF 06) or a cue point (FF 07) from the file's conductor track.
     struct Section
     {
@@ -120,6 +131,11 @@ namespace wubansia::engine
         // Indices into notes of every note with NoteFlag::chase (longer than a beat, moved earlier by
         // pre-roll, or phrase-matched), by pos. The builder makes it after annotatePhrases.
         std::vector<std::uint32_t> chase;
+        // Each slice note's twin's end, by note index, ascending; a slice note with no twin has no entry.
+        // Built by buildTimeline after annotatePhrases. At a slice note's note-on the engine looks up its
+        // index and passes NoteOn::lengthSamples = the samples from the note's start to start + through;
+        // with no entry it passes 0, and the throw lasts until the next note sets another.
+        std::vector<SliceThrough> sliceThrough;
 
         friend bool operator== (const Timeline&, const Timeline&) = default;
     };
