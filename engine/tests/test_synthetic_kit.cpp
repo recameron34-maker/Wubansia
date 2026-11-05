@@ -17,6 +17,7 @@
 #include <bit>
 #include <cmath>
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <set>
 #include <string>
@@ -284,9 +285,9 @@ TEST_CASE ("the synthetic files: 24-bit values, exact loops, and WAVs that hash 
         for (const float x : audio.audio)
         {
             const double scaled = static_cast<double> (x) * 8388608.0;
-            values24 = values24 && scaled == std::floor (scaled);
+            values24 = values24 && std::equal_to<double> {}(scaled, std::floor (scaled));
             inRange = inRange && std::fabs (x) < 1.0f;
-            sounds = sounds || x != 0.0f;
+            sounds = sounds || std::not_equal_to<float> {}(x, 0.0f);
         }
         CHECK (values24);
         CHECK (inRange);
