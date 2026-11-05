@@ -1,0 +1,591 @@
+{
+  "kit": "FUT04",
+  "content_version": 1,
+  "channels": [
+    {
+      "id": "kick",
+      "lane": "kick",
+      "group": "drums",
+      "inserts": [
+        {
+          "type": "gain",
+          "gain_mdb": -2658
+        }
+      ],
+      "sends_pm": [0, 0, 0]
+    },
+    {
+      "id": "rumble",
+      "lane": "kick",
+      "group": "none",
+      "inserts": [
+        {
+          "type": "gain",
+          "gain_mdb": -14420
+        }
+      ],
+      "sends_pm": [0, 0, 0]
+    },
+    {
+      "id": "bass",
+      "lane": "bass",
+      "group": "none",
+      "inserts": [
+        {
+          "type": "cc_filter",
+          "response": "lowpass",
+          "cc74_lo_hz": 5400,
+          "cc74_hi_hz": 14040,
+          "cc74_default": 0,
+          "cc71_lo_pm": 707,
+          "cc71_hi_pm": 2500,
+          "cc71_default": 0,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 0
+          }
+        },
+        {
+          "type": "gain",
+          "gain_mdb": -1360,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "b"
+          }
+        },
+        {
+          "type": "gain",
+          "gain_mdb": -1360,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        },
+        {
+          "type": "duck",
+          "mode": "onset",
+          "key_lanes": ["kick"],
+          "min_velocity": 1,
+          "depth_mdb": 8000,
+          "ramp_us": 2000,
+          "hold_us": 250000,
+          "release_us": 80000,
+          "pre_us": 0,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 120
+          },
+          "pump": true
+        },
+        {
+          "type": "duck",
+          "mode": "level",
+          "key_channel": "vox",
+          "depth_mdb": 9000,
+          "range_mdb": 30000,
+          "top_mdb": -15615,
+          "attack_us": 10000,
+          "release_us": 150000,
+          "band": {
+            "lo_hz": 500,
+            "hi_hz": 0
+          },
+          "pump": false
+        }
+      ],
+      "sends_pm": [0, 0, 0]
+    },
+    {
+      "id": "bass_stem",
+      "lane": "bass",
+      "group": "none",
+      "inserts": [
+        {
+          "type": "gain",
+          "gain_mdb": -1360,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "b"
+          }
+        },
+        {
+          "type": "gain",
+          "gain_mdb": -1360,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        },
+        {
+          "type": "duck",
+          "mode": "onset",
+          "key_lanes": ["kick"],
+          "min_velocity": 1,
+          "depth_mdb": 8000,
+          "ramp_us": 2000,
+          "hold_us": 250000,
+          "release_us": 80000,
+          "pre_us": 0,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 120
+          },
+          "pump": true
+        },
+        {
+          "type": "duck",
+          "mode": "level",
+          "key_channel": "vox",
+          "depth_mdb": 9000,
+          "range_mdb": 30000,
+          "top_mdb": -15615,
+          "attack_us": 10000,
+          "release_us": 150000,
+          "band": {
+            "lo_hz": 500,
+            "hi_hz": 0
+          },
+          "pump": false
+        }
+      ],
+      "sends_pm": [0, 0, 0]
+    },
+    {
+      "id": "snare",
+      "lane": "snare",
+      "group": "drums",
+      "inserts": [
+        {
+          "type": "gain",
+          "gain_mdb": -850
+        }
+      ],
+      "sends_pm": [300, 0, 0]
+    },
+    {
+      "id": "hat",
+      "lane": "hats",
+      "group": "drums",
+      "inserts": [
+        {
+          "type": "pan",
+          "pan_pm": 150
+        },
+        {
+          "type": "gain",
+          "gain_mdb": -3717
+        }
+      ],
+      "sends_pm": [80, 100, 100]
+    },
+    {
+      "id": "ride",
+      "lane": "hats",
+      "group": "drums",
+      "inserts": [
+        {
+          "type": "gain",
+          "gain_mdb": -14829
+        }
+      ],
+      "sends_pm": [100, 50, 0]
+    },
+    {
+      "id": "perc",
+      "lane": "perc",
+      "group": "drums",
+      "inserts": [
+        {
+          "type": "pan",
+          "pan_pm": -250
+        },
+        {
+          "type": "gain",
+          "gain_mdb": -6328
+        }
+      ],
+      "sends_pm": [800, 500, 100]
+    },
+    {
+      "id": "fill",
+      "lane": "fx",
+      "group": "drums",
+      "inserts": [
+        {
+          "type": "gain",
+          "gain_mdb": -1890
+        },
+        {
+          "type": "duck",
+          "mode": "level",
+          "key_channel": "vox",
+          "depth_mdb": 9000,
+          "range_mdb": 30000,
+          "top_mdb": -15615,
+          "attack_us": 10000,
+          "release_us": 150000,
+          "band": {
+            "lo_hz": 2500,
+            "hi_hz": 0
+          },
+          "pump": false
+        }
+      ],
+      "sends_pm": [250, 250, 0]
+    },
+    {
+      "id": "pad",
+      "lane": "chords",
+      "group": "music",
+      "inserts": [
+        {
+          "type": "gain",
+          "gain_mdb": -9890
+        },
+        {
+          "type": "duck",
+          "mode": "onset",
+          "key_lanes": ["kick"],
+          "min_velocity": 1,
+          "depth_mdb": 3000,
+          "ramp_us": 2000,
+          "hold_us": 10000,
+          "release_us": 200000,
+          "pre_us": 0,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 0
+          },
+          "pump": true
+        }
+      ],
+      "sends_pm": [600, 0, 0]
+    },
+    {
+      "id": "lead",
+      "lane": "lead",
+      "group": "music",
+      "inserts": [
+        {
+          "type": "gain",
+          "gain_mdb": -4539
+        }
+      ],
+      "sends_pm": [250, 200, 50]
+    },
+    {
+      "id": "vox",
+      "lane": "vox",
+      "group": "music",
+      "inserts": [
+        {
+          "type": "gain",
+          "gain_mdb": -5609
+        }
+      ],
+      "sends_pm": [350, 250, 100]
+    },
+    {
+      "id": "accent",
+      "lane": "accents",
+      "group": "music",
+      "inserts": [],
+      "sends_pm": [300, 200, 0]
+    }
+  ],
+  "groups": {
+    "drums": {
+      "inserts": [
+        {
+          "type": "parallel",
+          "level_mdb": -8000,
+          "inserts": [
+            {
+              "type": "highpass",
+              "freq_hz": 250,
+              "order": 4,
+              "q_pm": 0,
+              "stages": 1,
+              "band": {
+                "lo_hz": 0,
+                "hi_hz": 0
+              }
+            },
+            {
+              "type": "peak",
+              "freq_hz": 3000,
+              "gain_mdb": 3000,
+              "q_pm": 700
+            },
+            {
+              "type": "gain",
+              "gain_mdb": 3678
+            },
+            {
+              "type": "drive",
+              "drive_pm": 2500,
+              "bias_pm": 0,
+              "output_mdb": -3678
+            },
+            {
+              "type": "peak",
+              "freq_hz": 600,
+              "gain_mdb": -3000,
+              "q_pm": 1000
+            },
+            {
+              "type": "lowpass",
+              "freq_hz": 9000,
+              "order": 2,
+              "q_pm": 0,
+              "stages": 1,
+              "band": {
+                "lo_hz": 0,
+                "hi_hz": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "clip",
+          "ceiling_mdb": -3678,
+          "knee_mdb": 1500
+        }
+      ]
+    },
+    "music": {
+      "inserts": [
+        {
+          "type": "peak",
+          "freq_hz": 250,
+          "gain_mdb": 3000,
+          "q_pm": 1000
+        },
+        {
+          "type": "peak",
+          "freq_hz": 1000,
+          "gain_mdb": -2500,
+          "q_pm": 800
+        },
+        {
+          "type": "peak",
+          "freq_hz": 3500,
+          "gain_mdb": 1500,
+          "q_pm": 800
+        }
+      ]
+    }
+  },
+  "returns": {
+    "space": {
+      "delays_frames": [1164, 1303, 1562, 1756, 1945, 2271, 2583, 2927],
+      "signs": [-1, 1, 1, 1, 1, 1, -1, -1],
+      "t60_ms": 5000,
+      "t60_low_ms": 800,
+      "low_hz": 500,
+      "damp_hz": 3500,
+      "predelay_us": 27574,
+      "send_hp_hz": 250,
+      "send_order": 4,
+      "shimmer_pm": 30,
+      "shimmer_lo_hz": 300,
+      "shimmer_hi_hz": 7000,
+      "window_frames": 2048,
+      "mono_hz": 150,
+      "return_mdb": 3000,
+      "inserts": [
+        {
+          "type": "duck",
+          "mode": "level",
+          "key_channel": "vox",
+          "depth_mdb": 6000,
+          "range_mdb": 18000,
+          "top_mdb": -15615,
+          "attack_us": 10000,
+          "release_us": 300000,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 0
+          },
+          "pump": false
+        },
+        {
+          "type": "duck",
+          "mode": "onset",
+          "key_lanes": ["kick"],
+          "min_velocity": 1,
+          "depth_mdb": 5000,
+          "ramp_us": 2000,
+          "hold_us": 20000,
+          "release_us": 250000,
+          "pre_us": 0,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 0
+          },
+          "pump": true
+        },
+        {
+          "type": "peak",
+          "freq_hz": 250,
+          "gain_mdb": 3000,
+          "q_pm": 1000
+        },
+        {
+          "type": "peak",
+          "freq_hz": 1000,
+          "gain_mdb": -2500,
+          "q_pm": 800
+        },
+        {
+          "type": "peak",
+          "freq_hz": 3500,
+          "gain_mdb": 1500,
+          "q_pm": 800
+        }
+      ]
+    },
+    "echo": {
+      "steps": 3,
+      "feedback_pm": 380,
+      "lp_hz": 2200,
+      "hp_hz": 400,
+      "drive_pm": 1500,
+      "wow_ppm": 400,
+      "wow_mhz": 500,
+      "flutter_ppm": 150,
+      "flutter_mhz": 4700,
+      "phases_mrad": [2123, 3893],
+      "return_mdb": 3000,
+      "inserts": [
+        {
+          "type": "duck",
+          "mode": "onset",
+          "key_lanes": ["kick"],
+          "min_velocity": 1,
+          "depth_mdb": 5000,
+          "ramp_us": 2000,
+          "hold_us": 20000,
+          "release_us": 250000,
+          "pre_us": 0,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 0
+          },
+          "pump": true
+        },
+        {
+          "type": "peak",
+          "freq_hz": 250,
+          "gain_mdb": 3000,
+          "q_pm": 1000
+        },
+        {
+          "type": "peak",
+          "freq_hz": 1000,
+          "gain_mdb": -2500,
+          "q_pm": 800
+        },
+        {
+          "type": "peak",
+          "freq_hz": 3500,
+          "gain_mdb": 1500,
+          "q_pm": 800
+        }
+      ]
+    },
+    "resonator": {
+      "tones_mhz": [659255, 987767, 1036283, 1062983, 1318510, 1552670, 1567982, 1592675, 1611615, 2072566, 2125966, 2414694, 2464711, 2528214, 2959955, 3223230, 3833088, 4652754, 4772632, 7235907],
+      "tau_ms": 400,
+      "send_hp_hz": 600,
+      "return_mdb": -21000,
+      "inserts": [
+        {
+          "type": "duck",
+          "mode": "onset",
+          "key_lanes": ["kick"],
+          "min_velocity": 1,
+          "depth_mdb": 5000,
+          "ramp_us": 2000,
+          "hold_us": 20000,
+          "release_us": 250000,
+          "pre_us": 0,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 0
+          },
+          "pump": true
+        },
+        {
+          "type": "peak",
+          "freq_hz": 250,
+          "gain_mdb": 3000,
+          "q_pm": 1000
+        },
+        {
+          "type": "peak",
+          "freq_hz": 1000,
+          "gain_mdb": -2500,
+          "q_pm": 800
+        },
+        {
+          "type": "peak",
+          "freq_hz": 3500,
+          "gain_mdb": 1500,
+          "q_pm": 800
+        }
+      ]
+    }
+  },
+  "bus_eq": {
+    "vox": [],
+    "novox": []
+  },
+  "master": {
+    "lowcut_hz": 25,
+    "lowcut_order": 4,
+    "mono_below_hz": 150,
+    "glue": {
+      "ratio_pm": 2000,
+      "knee_mdb": 6000,
+      "attack_us": 30000,
+      "release_fast_us": 150000,
+      "release_slow_us": 1500000
+    },
+    "vox": {
+      "glue_threshold_mdb": -14090,
+      "drive_mdb": 4221
+    },
+    "novox": {
+      "glue_threshold_mdb": -14159,
+      "drive_mdb": 5157
+    },
+    "clip": {
+      "knee_mdb": 1500,
+      "ceiling_mdb": -520
+    },
+    "limiter": {
+      "ceiling_mdb": -1020,
+      "lookahead_us": 5000,
+      "hold_us": 60000,
+      "release_us": 80000
+    },
+    "dc_hz": 5
+  },
+  "reference": {
+    "vox": {
+      "pre_master_lufs_mlu": -10143,
+      "club_lufs_mlu": -8611,
+      "channel_true_peak_mdb": [-3678, -15440, -120000, -2351, -1870, -3799, -15883, -6114, -2910, -11132, -5559, -7373, -8702]
+    },
+    "novox": {
+      "pre_master_lufs_mlu": -10366,
+      "club_lufs_mlu": -8095,
+      "channel_true_peak_mdb": [-3678, -15440, -120000, -2351, -1870, -3799, -15883, -6114, -2910, -11132, -5559, -120000, -7889]
+    }
+  }
+}
