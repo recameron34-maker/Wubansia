@@ -668,8 +668,9 @@ TEST_CASE ("kits published from a service thread are adopted, faded and handed b
 {
     // 40 distinct kits, published one after another from a "service" thread that also collects what the
     // engine retires; the audio thread renders meanwhile, stopped (each switch after its 20 ms fade) and
-    // then playing (switches on bar lines). At the end every kit is accounted for exactly once: handed
-    // back unadopted, retired, still pending, or the one playing.
+    // then playing (switches on bar lines), and on for a bar after the last publish, so a switch the
+    // engine has planned (its kit taken from the slot) lands. Then every kit is accounted for exactly
+    // once: handed back unadopted, retired, still pending, or the one playing.
     constexpr int count = 40;
     std::vector<std::unique_ptr<Kit>> kits;
     for (int i = 0; i < count; ++i)
@@ -704,8 +705,11 @@ TEST_CASE ("kits published from a service thread are adopted, faded and handed b
         t.bpm = 480.0; // a bar every half second
         double ppq = 0.0;
         int blocks = 0;
-        while (! done.load() || blocks < 2000)
+        int after = 0; // blocks after the service's last publish: enough for a planned switch (a bar) to land
+        while (blocks < 2000 || after < 200)
         {
+            if (done.load())
+                ++after;
             t.ppq = ppq;
             engine.process (out, 2, 256, t, Controls {}, nullptr, 0);
             if (playing)
@@ -740,4 +744,137 @@ TEST_CASE ("kits published from a service thread are adopted, faded and handed b
         }
         CHECK (retired.size() >= 2u); // some were adopted in turn
     }
+}
+
+TEST_CASE ("a kit published while it is the adopted one goes straight back: no fade, no restart, no fading slot", "[engine][kit]")
+{
+    const Kit a = switchingKit (0), b = switchingKit (1);
+
+    SECTION ("stopped")
+    {
+        Harness h;
+        FakeHost host (48000.0, 64);
+        host.prepare (h);
+        h.loop.voices().drone = 0.5f;
+        FakeHost::Output out;
+        h.pending.publish (&a);
+        host.render (h, Controls {}, 64, out);
+        REQUIRE (h.telemetry.kitIndex.load() == 0);
+        h.pending.publish (&a); // the user picks the current kit again
+        host.render (h, Controls {}, 2048, out);
+        CHECK (h.telemetry.kitIndex.load() == 0);
+        CHECK (h.loop.kit() == &a);
+        CHECK (h.loop.fadingKits() == 0);
+        CHECK (h.retired.pop() == &a); // the duplicate publish, for the service to drop
+        CHECK (h.retired.pop() == nullptr);
+        for (const auto& i : h.loop.voices().log)
+            CHECK (i.kind != Item::Kind::fadeKit);
+        for (std::size_t s = 0; s < out.left.size(); ++s)
+            if (! (out.left[s] == Catch::Approx (0.5)))
+            {
+                CAPTURE (s, out.left[s]);
+                FAIL ("the output faded");
+            }
+    }
+
+    SECTION ("playing, and A, B, A within one bar")
+    {
+        for (const bool viaB : { false, true })
+        {
+            CAPTURE (viaB);
+            Harness h;
+            FakeHost host (48000.0, 512);
+            host.prepare (h);
+            h.loop.voices().drone = 0.5f;
+            FakeHost::Output out;
+            h.pending.publish (&a);
+            host.setTempo (120.0);
+            host.play (0.0);
+            host.render (h, Controls {}, 60000, out); // 2.5 quarters in
+            if (viaB)
+                CHECK (h.pending.publish (&b) == nullptr);
+            const Kit* back = h.pending.publish (&a);
+            CHECK (back == (viaB ? &b : nullptr)); // B, never adopted, comes back to the service at once
+            host.render (h, Controls {}, 100000, out); // past the bar line at 96000
+            CHECK (h.telemetry.kitIndex.load() == 0);
+            CHECK (h.loop.kit() == &a);
+            CHECK (h.loop.fadingKits() == 0);
+            CHECK (h.retired.pop() == &a);
+            CHECK (h.retired.pop() == nullptr);
+            for (const auto& i : h.loop.voices().log)
+            {
+                CHECK (i.kind != Item::Kind::fadeKit);
+                if (i.kind == Item::Kind::on && i.sample > 0)
+                    CHECK (i.note.startFrame == 0); // no restart: nothing chased
+            }
+            // The drone never dips: no fade around the bar line.
+            for (std::size_t s = 90000; s < 100000; ++s)
+                CHECK (out.left[s] >= 0.5f - 1.0e-6f);
+        }
+    }
+}
+
+TEST_CASE ("an offline render adopts a pending kit on the block's first sample, with no bar line to wait for and no fades", "[engine][kit][offline]")
+{
+    const Kit a = switchingKit (0), b = switchingKit (1);
+    for (const bool playing : { true, false })
+    {
+        CAPTURE (playing);
+        Harness h;
+        FakeHost host (48000.0, 512);
+        host.prepare (h);
+        h.loop.voices().drone = 0.5f;
+        FakeHost::Output out;
+        h.pending.publish (&a);
+        host.setTempo (120.0);
+        if (playing)
+            host.play (0.0);
+        host.render (h, Controls {}, 60416, out); // 118 blocks: mid-bar
+        REQUIRE (h.telemetry.kitIndex.load() == 0);
+
+        h.pending.publish (&b);
+        host.setNonRealtime (true);
+        const auto first = host.samplePosition();
+        host.render (h, Controls {}, 512, out);
+        CHECK (h.telemetry.kitIndex.load() == 1);
+        bool faded = false;
+        for (const auto& i : h.loop.voices().log)
+        {
+            if (i.kind == Item::Kind::fadeKit)
+            {
+                faded = true;
+                CHECK (i.kit == &a);
+                CHECK (i.sample == first);
+            }
+            if (i.kind == Item::Kind::on && i.note.source == Source::sequencer)
+                CHECK (i.kit == (i.sample < first ? &a : &b));
+        }
+        CHECK (faded);
+        if (playing)
+        {
+            // The new kit's timeline is chased at once: its pad, 2.5 quarters in.
+            const Item* pad = onOf (h.loop.voices().log, inst::pad, first);
+            REQUIRE (pad != nullptr);
+            CHECK (pad->kit == &b);
+            CHECK (pad->note.startFrame == 60416);
+        }
+        // No fade out before it, none in after it.
+        for (std::size_t s = static_cast<std::size_t> (first) - 2000; s < out.left.size(); ++s)
+            CHECK (out.left[s] >= 0.5f - 1.0e-6f);
+        host.render (h, Controls {}, 2048, out);
+        CHECK (h.retired.pop() == &a);
+    }
+
+    // With no kit at all, offline adopts on the first sample too.
+    Harness h;
+    FakeHost host (48000.0, 256);
+    host.prepare (h);
+    host.setNonRealtime (true);
+    host.setTempo (120.0);
+    host.play (0.0);
+    h.pending.publish (&a);
+    FakeHost::Output out;
+    host.render (h, Controls {}, 256, out);
+    CHECK (h.telemetry.kitIndex.load() == 0);
+    CHECK (onOf (h.loop.voices().log, inst::kickB, 0) != nullptr);
 }

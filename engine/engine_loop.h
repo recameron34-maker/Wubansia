@@ -16,14 +16,19 @@
 // 4. retired kits and the telemetry.
 //
 // Kit switches. A Kit the service publishes is adopted:
-// - at once when there is none yet;
+// - at once when there is none yet, and at the start of an offline block (TransportInfo::nonRealtime:
+//   a D5 render that waited for its Kit starts with it on its first sample), with no fades;
 // - while stopped, after the output fades out over 20 ms;
 // - while playing, at the next 4/4 bar line (the scheduler's: a multiple of 4 quarters), the output
 //   fading out over the 20 ms before it.
-// Only while the retire FIFO has room for the Kit it lets go. At the switch the old Kit's voices fade
-// (the sampler's 5 ms), the mixer takes the new mix and loses its tails, the sounding notes are
-// forgotten and the new Kit's timeline is chased; then the output fades back in over 20 ms. A Kit no
-// voice holds any more goes into the retire FIFO.
+// Only while the retire FIFO has room and a fading slot is free. The pending Kit is taken when its
+// switch is planned (while playing, within 20 ms of the bar line, so a later publish still wins until
+// then). At the switch the old Kit's voices fade (the sampler's 5 ms), the mixer takes the new mix and
+// loses its tails, the sounding notes are forgotten and the new Kit's timeline is chased; then the
+// output fades back in over 20 ms. A Kit no voice holds any more goes into the retire FIFO.
+// A Kit published while it is the adopted one (the current kit picked again; or A, B, A) isn't a
+// switch: it goes straight into the retire FIFO, for the service to drop that publish's reference, with
+// no fade and no restart.
 //
 // What the voices get (P5's NoteOn, docs/plugin/manifest.md):
 // - a note's instrument: its KeyTarget's a, or b when its A/B switch is on B, resolved at its note-on;
@@ -217,7 +222,8 @@ namespace wubansia::engine
             scheduler_.prepare (rate_);
             router_.reset();
             absolute_ = 0;
-            switchAt_ = -1;
+            // A Kit already taken for a switch is adopted at once on the next block, so it is never lost.
+            switchAt_ = next_ != nullptr ? 0 : -1;
             fadeFrom_ = 0;
             switchedAt_ = 0;
             fadeInEnd_ = 0;
@@ -342,41 +348,63 @@ namespace wubansia::engine
                     mixer_.cc (c, number, value, offset, rampSamples);
         }
 
-        // Plans a pending Kit's switch, when one can be adopted (see the top).
+        // Takes the pending Kit for a switch when one can be adopted. The adopted Kit itself goes straight
+        // back through the retire FIFO; another becomes next_. Whether next_ is set.
         template <std::size_t N>
-        void planSwitch (const PendingSlot<Kit>& pending, const RetireFifo<Kit, N>& retired) noexcept
+        bool takePending (PendingSlot<Kit>& pending, RetireFifo<Kit, N>& retired) noexcept
         {
-            if (switchAt_ >= 0 || ! pending.pending() || ! retired.hasSpace() || fadingCount_ >= kFadingKits)
-                return;
-            if (kit_ == nullptr)
+            if (next_ != nullptr)
+                return true;
+            if (! pending.pending() || ! retired.hasSpace() || fadingCount_ >= kFadingKits)
+                return false;
+            const Kit* kit = pending.take();
+            if (kit == nullptr)
+                return false;
+            if (kit == kit_)
             {
-                switchAt_ = absolute_;
-                fadeFrom_ = absolute_;
-                return;
+                retired.push (kit); // there was room: hasSpace above
+                return false;
             }
-            if (! scheduler_.playing())
-            {
-                fadeFrom_ = absolute_;
-                switchAt_ = absolute_ + kitFadeSamples_;
-                return;
-            }
-            const int bar = scheduler_.barLineWithin (kitFadeSamples_ + kControlFrame);
-            if (bar < 0)
-                return;
-            switchAt_ = absolute_ + bar;
-            fadeFrom_ = std::max (absolute_, switchAt_ - kitFadeSamples_);
+            next_ = kit;
+            return true;
         }
 
-        // The switch, on the current piece's first sample.
-        void doSwitch (PendingSlot<Kit>& pending, const Controls& controls, Telemetry& telemetry) noexcept
+        // Plans a pending Kit's switch (see the top).
+        template <std::size_t N>
+        void planSwitch (PendingSlot<Kit>& pending, RetireFifo<Kit, N>& retired) noexcept
+        {
+            if (switchAt_ >= 0)
+                return;
+            if (kit_ != nullptr && scheduler_.playing())
+            {
+                // The next bar line, once it is near: then the Kit is taken and the fade begins.
+                if (next_ == nullptr && ! pending.pending())
+                    return;
+                const int bar = scheduler_.barLineWithin (kitFadeSamples_ + kControlFrame);
+                if (bar < 0 || ! takePending (pending, retired))
+                    return;
+                switchAt_ = absolute_ + bar;
+                fadeFrom_ = std::max (absolute_, switchAt_ - kitFadeSamples_);
+                return;
+            }
+            if (! takePending (pending, retired))
+                return;
+            fadeFrom_ = absolute_;
+            switchAt_ = kit_ == nullptr ? absolute_ : absolute_ + kitFadeSamples_;
+        }
+
+        // The switch to next_, on the current piece's first sample; fadeIn: the output comes back over
+        // 20 ms (not for the first Kit, nor offline).
+        void doSwitch (const Controls& controls, Telemetry& telemetry, bool fadeIn) noexcept
         {
             switchAt_ = -1;
+            const Kit* next = next_;
+            next_ = nullptr;
             const bool hadKit = kit_ != nullptr;
             switchedAt_ = absolute_;
-            fadeInEnd_ = hadKit ? absolute_ + kitFadeSamples_ : absolute_;
-            const Kit* next = pending.take();
+            fadeInEnd_ = hadKit && fadeIn ? absolute_ + kitFadeSamples_ : absolute_;
             if (next == nullptr)
-                return; // withdrawn: the output fades back in
+                return;
             if (hadKit)
             {
                 voices_.fadeKit (kit_, 0);
@@ -443,6 +471,7 @@ namespace wubansia::engine
         float reduction_ = 0.0f; // and its deepest gain reduction
 
         const Kit* kit_ = nullptr;
+        const Kit* next_ = nullptr; // taken from the pending slot for a planned switch
         std::array<const Kit*, kFadingKits> fading_ {};
         int fadingCount_ = 0;
 
@@ -469,6 +498,11 @@ namespace wubansia::engine
         peaks_.fill (0.0f);
         reduction_ = 0.0f;
 
+        // Offline, a pending Kit is adopted on the block's first sample, before the transport is read.
+        const bool offline = transport.nonRealtime;
+        if (offline && takePending (pending, retired))
+            doSwitch (controls, telemetry, false);
+
         // 1. The transport; 2. a switch due now (the first Kit at once, or a bar line on this sample).
         {
             SequencerSink seq { *this, controls };
@@ -484,9 +518,10 @@ namespace wubansia::engine
         int nextMidi = 0;
         while (done < numSamples)
         {
-            planSwitch (pending, retired);
+            if (! offline)
+                planSwitch (pending, retired);
             if (switchAt_ == absolute_)
-                doSwitch (pending, controls, telemetry);
+                doSwitch (controls, telemetry, true);
 
             int piece = std::min (numSamples - done, kControlFrame - static_cast<int> (absolute_ % kControlFrame));
             if (switchAt_ > absolute_ && switchAt_ < absolute_ + piece)
