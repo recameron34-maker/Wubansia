@@ -12,7 +12,8 @@ from tools.sound import plugin_mix as PM
 from tools.sound.mix_trace import Rule
 
 VARIANTS = {'vox': 'vox', 'novox': 'novox'}
-R5_LOOPS = {'vox': ('ContextLoopVoxWet', 'ContextLoopVoxClub'), 'novox': ('ContextLoopNoVoxWet', 'ContextLoopNoVoxClub')}
+R5_LOOPS = {'vox': ('ContextLoopVoxWet', 'ContextLoopVoxClub'),
+            'novox': ('ContextLoopNoVoxWet', 'ContextLoopNoVoxClub')}
 STAB = (900.0, 5000.0)              # the stab's CC74 map: context.STAB_RIDE
 
 

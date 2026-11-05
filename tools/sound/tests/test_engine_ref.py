@@ -200,8 +200,8 @@ class Limiter(unittest.TestCase):
 
     def test_latencies(self):
         self.assertEqual(MS.limit_latency(), R.limit_latency(hold='two_sided'))
-        self.assertEqual(265, R.limit_latency())
-        for hold, d in (('lookback', 265), ('two_sided', 3145)):
+        self.assertEqual(289, R.limit_latency())
+        for hold, d in (('lookback', 289), ('two_sided', 3145)):
             x = _loop(20000, seed=11, peak=0.5)
             g = R.limit_db(x, -1.02, hold=hold)
             x2 = x.copy()
@@ -216,9 +216,9 @@ class Limiter(unittest.TestCase):
         # can't reach back before the stream starts: the signal starts after more than its lookahead of silence
         for hold in ('lookback', 'two_sided'):
             y = R.limit(x, -1.02, hold=hold)
-            # the gain's own movement between the detector's 4x points can lift a peak by a few mdB: master.py
-            # trims that offline (its trim, about -0.003 dB); live it stays
-            self.assertLessEqual(D.true_peak_db(y), -1.02 + 0.01, hold)
+            # the gain's own movement between the detector's 4x points can lift a peak by a few tenths of a mdB:
+            # master.py trims that offline (its trim, about -0.003 dB); live it stays
+            self.assertLessEqual(D.true_peak_db(y), -1.02 + 0.002, hold)
 
     def test_sliding_min(self):
         a = np.random.default_rng(13).uniform(0, 1, 500)
@@ -314,7 +314,7 @@ class RenderMix(unittest.TestCase):
             self.assertIsNotNone(first, master)
             self.assertGreaterEqual(first, P - d, f'{master}: a change at {P} moved the output at {first}, more than '
                                                   f'its latency {d} ahead')
-            self.assertEqual(54 if master == 'off' else 54 + 23 + 48 + 265, d)
+            self.assertEqual(54 if master == 'off' else 54 + 23 + 48 + 289, d)
 
     def test_variants_and_switches(self):
         from tools.sound import engine_ref as E

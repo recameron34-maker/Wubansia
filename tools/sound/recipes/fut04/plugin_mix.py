@@ -13,7 +13,8 @@ from tools.sound import plugin_mix as PM
 from tools.sound.mix_trace import Rule
 
 VARIANTS = {'vox': 'vox', 'novox': 'novox'}
-R5_LOOPS = {'vox': ('ContextLoopWetVox', 'ContextLoopClubVox'), 'novox': ('ContextLoopWetNoVox', 'ContextLoopClubNoVox')}
+R5_LOOPS = {'vox': ('ContextLoopWetVox', 'ContextLoopClubVox'),
+            'novox': ('ContextLoopWetNoVox', 'ContextLoopClubNoVox')}
 CHANNEL = {'bass': 'bass_stem'}     # the loops play the acid stem (its ride baked in), not the multisample
 ACID = (5400.0, 14040.0)            # REST_HZ 900 x 2^2.6 (the attack's widest), x the ride's 2.6
 ACID_Q = (0.707, 2.5)               # the ride's resonance 0.9-0.96 adds about 8 dB to the ladder's peak

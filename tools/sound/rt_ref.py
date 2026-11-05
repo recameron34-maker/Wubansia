@@ -23,7 +23,7 @@ match. A stage with latency 0 is causal as it stands.
   returns, bus EQ, parallel chains). P8 measured aliases at -94 dB, and -69 dB under 16 kHz against
   master.soft_clip on drum material, at about a fifth of os_fir(4)'s cost.
 - limit_db: master.limit's gain on a stream, its 60 ms hold two-sided (master.py's, latency 3145) or looking back
-  only (the real-time master's, latency 265).
+  (the real-time master's, reaching forward only over the true peak's FIR, latency 289).
 - dc_block: the real-time master's causal DC blocker, in place of master.dc_clean's zero-phase one.
 """
 import math
@@ -51,12 +51,14 @@ SILENCE_DB = -200.0                               # 10 log10(1e-20): the level o
 
 
 def limit_latency(lookahead_s=0.005, hold_s=0.060, hold='lookback'):
-    """How far ahead the limiter's gain looks, samples: the lookahead's ramp, the hold if it reaches forward
-    (two-sided, master.limit_latency()), the sample either side the peak detector reads and the 4x FIR's reach. At
-    the defaults: 265 looking back, 3145 two-sided."""
+    """How far ahead the limiter's gain looks, samples: the lookahead's ramp, the sample either side the peak
+    detector reads and the 4x FIR's reach, and then the hold's reach forward: two-sided, the whole hold
+    (master.limit_latency()); looking back, the FIR's reach again, so the gain has settled over every sample the true
+    peak's FIR reads round a peak (P8). At the defaults: 289 looking back, 3145 two-sided."""
     w = 2 * int(round(lookahead_s * SR / 2))
-    h = int(round(hold_s * SR)) if hold == 'two_sided' else 0
-    return w + h + 1 + OS_REACH
+    if hold == 'two_sided':
+        return w + int(round(hold_s * SR)) + 1 + OS_REACH
+    return w + 1 + 2 * OS_REACH
 
 
 LATENCY['limit_lookback'] = limit_latency()
@@ -332,8 +334,9 @@ def limit_db(x, ceiling_db, lookahead_s=0.005, hold_s=0.060, release_s=0.080, ho
     """The true-peak limiter's gain reduction (dB, >= 0) per sample on a stream, stereo-linked: the gain each sample
     needs from the 4x peak within a sample of it (os_fir(4)), the lowest need held from hold_s before to lookahead_s
     after (hold='lookback', the real-time master) or to lookahead_s + hold_s after (hold='two_sided', master.limit),
-    ramped down over the lookahead by a moving average and released exponentially in dB. Latency
-    limit_latency(lookahead_s, hold_s, hold)."""
+    ramped down over the lookahead by a moving average and released exponentially in dB. Looking back, the hold
+    also reaches os_fir(4)'s reach forward (OS_REACH), so the gain is still over the samples the true peak's FIR reads
+    round a peak. Latency limit_latency(lookahead_s, hold_s, hold)."""
     x = D.st(np.asarray(x, dtype=float))
     n = len(x)
     c = float(D.undb(ceiling_db))
@@ -346,7 +349,7 @@ def limit_db(x, ceiling_db, lookahead_s=0.005, hold_s=0.060, release_s=0.080, ho
     h = int(round(hold_s * SR))
     if hold not in ('lookback', 'two_sided'):
         raise ValueError(f"hold is 'lookback' or 'two_sided', not {hold!r}")
-    after = w + h if hold == 'two_sided' else w
+    after = w + h if hold == 'two_sided' else w + OS_REACH     # looking back, the hold still reaches over the FIR
     m = sliding_min(need, h, after)
     g = _mean_back(m, w)
     r2 = -20 * np.log10(np.minimum(g, 1.0))

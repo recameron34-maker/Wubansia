@@ -112,9 +112,9 @@ def rules(variant):
              "names, the kick onsets the ducks key on (the kick lane's notes), the pump's gain"),
         # the dry lanes
         Rule('context.(kick_raw|hat_lane|zap_lane|pad_lane|fill_lane|bass_raw|bass_lane|tile|mute_mask|rest_mask)',
-             'dry', "the voices: the drums and the zaps (their per-hit pans, kit.json's pan cycle) on the grid, the pad "
-                    "held, the fill, the bass line and the arp phrase tiled with the recipe's mute edges (P2's phrase "
-                    "lanes fade there; the arp's rest moves ahead of its filter, a ring-out of a few ms)"),
+             'dry', "the voices: the drums and the zaps (their per-hit pans, kit.json's pan cycle) on the grid, "
+                    "the pad held, the fill, the bass line and the arp phrase tiled with the recipe's mute edges (P2's "
+                    "phrase lanes fade there; the arp's rest moves ahead of its filter, a ring-out of a few ms)"),
         Rule('context.glide_lane', 'dry', 'the drop glide struck and released (its own sidechain below)'),
         Rule('(dsp48.st|dsp48.taper|phrase.place|phrase.pan)', 'dry', 'the voices, placed (their pans and edges)',
              under='context.glide_lane', when=lambda c: c.fn != 'phrase.pump_db'),

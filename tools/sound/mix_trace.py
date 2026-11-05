@@ -383,7 +383,8 @@ def lane_of(fn, key='k'):
 COMMON = (
     Rule('phrase.kit_files', 'dry', "the kit's files as render.py writes them: kit.json's samples"),
     Rule('context5?.club', 'structure', 'the club loop: the wet loop through the club master'),
-    Rule(r'[a-z0-9_]+\.[A-Za-z0-9_]+', 'dry', "inside an item's render: the samples themselves", under='phrase.kit_files'),
+    Rule(r'[a-z0-9_]+\.[A-Za-z0-9_]+', 'dry', "inside an item's render: the samples themselves",
+         under='phrase.kit_files'),
     Rule('phrase.hits_lane', 'dry', 'one-shots on the grid: the sampler (the layer nearest the velocity, round '
                                     'robins in turn)'),
     Rule(r'[a-z0-9_]+\.[A-Za-z0-9_]+', 'dry', 'one-shots on the grid: the sampler', under='phrase.hits_lane'),
@@ -408,8 +409,9 @@ COMMON = (
     Rule('master.dc_clean', 'dropped', "the second DC clean, after the limiter: live, a filter there moves the peaks "
                                        "over the ceiling, and the blocker before the limiter takes the ripple",
          under='master._chain', when=nth(1)),
-    Rule('master.limit', 'causal', 'master.limiter: its 60 ms hold looks back only (rt_ref.limit_db, latency 265 '
-                                   'against 3145); the two-sided hold stays for renders', under='master._chain'),
+    Rule('master.limit', 'causal', 'master.limiter: its 60 ms hold looks back, reaching forward only over the '
+                                   "true peak's FIR (rt_ref.limit_db, latency 289 against 3145); the two-sided hold "
+                                   'stays for renders', under='master._chain'),
     Rule('mixmeter.true_peak_db', 'dropped', "the trim's reading", under='master._chain'),
     Rule('mixmeter.(true_peak_db|lufs_i)', 'fixed', "the drive solve's readings (the drive is exported)",
          under='master.master'),

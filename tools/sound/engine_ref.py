@@ -405,11 +405,11 @@ def render_mix(mix, dry, *, variant, loop_len, bpm, keys=(), ccs=None, throws=No
     """The engine's mix of one loop played `passes` times from silence (aligned time).
 
     mix: a mix manifest (the parsed JSON). dry: {channel id: (loop_len,) or (loop_len, 2)}, what the voices play into
-    each channel over one loop (tails wrapped), or a whole stream of passes x loop_len samples. keys: (lane, sample in the loop, velocity) duck keys. ccs: {channel id:
-    {74: [(tick, value)], 71: [...]}} the cc_filter rides over the loop. throws: {channel id: [(part, cc91, cc94)]}
-    thrown voices among a channel's dry lane. ab: {'kick': 'a'|'b', 'bass': ..., 'stab': ...}. lane_db: {lane: dB}
-    lane levels; mutes: lanes muted. macros: {'space', 'echo', 'pump'}: 0-2 (1 = 100 %). taps: extra meta to keep
-    ('channels', 'returns', 'groups').
+    each channel over one loop (tails wrapped), or a whole stream of passes x loop_len samples. keys: (lane, sample in
+    the loop, velocity) duck keys. ccs: {channel id: {74: [(tick, value)], 71: [...]}} the cc_filter rides over the
+    loop. throws: {channel id: [(part, cc91, cc94)]} thrown voices among a channel's dry lane. ab: {'kick': 'a'|'b',
+    'bass': ..., 'stab': ...}. lane_db: {lane: dB} lane levels; mutes: lanes muted. macros: {'space', 'echo', 'pump'}:
+    0-2 (1 = 100 %). taps: extra meta to keep ('channels', 'returns', 'groups').
 
     Every stream starts from rest: PRE samples of silence in front, POST behind, dropped from what comes back (the
     centred 4x stages ring before the first sample, the limiter holds for what comes, as the engine does); the echo's
