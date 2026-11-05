@@ -7,6 +7,7 @@
 #include "alloc_counter.h"
 
 #include "sampler/voice.h"
+#include "sampler/voice_pool.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -344,6 +345,52 @@ TEST_CASE ("phrase notes go to the phrase voices, never to a multisample voice",
     });
     rig.runUntil (256);
     CHECK (silent (rig.left[0])); // P0's PhraseVoice stub is silent; the multisample didn't play the note
+}
+
+TEST_CASE ("phraseLanes: a bit per lane whose phrase voice plays and isn't stopping", "[sampler][rt][phrase]")
+{
+    TestKit t;
+    const int stem = t.addFile (sine (96000, 220.0, 0.3));
+    auto addPhrase = [&t, stem] (Lane lane) {
+        Phrase ph;
+        ph.lane = lane;
+        ph.mixChannel = 5;
+        ph.stem = { static_cast<std::uint16_t> (stem), static_cast<std::uint16_t> (stem) };
+        ph.firstSlice = static_cast<std::uint16_t> (t.kit.slices.size());
+        ph.sliceCount = 2;
+        t.kit.slices.push_back (PhraseSlice { 0, 60, 0, 24000, 22000, 0, 1 });
+        t.kit.slices.push_back (PhraseSlice { 8, 62, 24000, 48000, 46000, 0, 1 });
+        t.kit.phrases.push_back (ph);
+        return static_cast<int> (t.kit.phrases.size()) - 1;
+    };
+    const int lead = addPhrase (Lane::lead);
+    const int vox = addPhrase (Lane::vox);
+    auto phraseNote = [&t] (int phrase, int k, Source source) {
+        NoteOn n;
+        n.phrase = static_cast<std::int16_t> (phrase);
+        n.slice = static_cast<std::int16_t> (t.kit.phrases[static_cast<std::size_t> (phrase)].firstSlice + k);
+        n.key = 60;
+        n.velocity = 100;
+        n.source = source;
+        return n;
+    };
+
+    VoicePool pool;
+    pool.prepare (48000.0);
+    CHECK (pool.phraseLanes() == 0u);
+    pool.phraseNoteOn (t.kit, phraseNote (lead, 0, Source::sequencer), 0);
+    pool.phraseNoteOn (t.kit, phraseNote (vox, 0, Source::live), 0);
+    CHECK (pool.phraseLanes() == (laneBit (Lane::lead) | laneBit (Lane::vox)));
+    pool.stopPhrases (Source::live, 10, 480); // the vox voice fades: no longer its lane's recording
+    CHECK (pool.phraseLanes() == laneBit (Lane::lead));
+    pool.stopPhrasesOf (&t.kit, 10, 480);
+    CHECK (pool.phraseLanes() == 0u);
+    pool.reset();
+    CHECK (pool.phraseLanes() == 0u);
+
+    Sampler sampler;
+    sampler.prepare (48000.0, 64);
+    CHECK (sampler.phraseLanes() == 0u);
 }
 
 TEST_CASE ("noteOn, noteOff, the fades and render neither allocate nor free", "[sampler][rt][alloc]")

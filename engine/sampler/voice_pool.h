@@ -27,6 +27,7 @@ namespace wubansia::engine
         std::int16_t phrase = -1;
         Source source = Source::sequencer;
         bool busy = false; // started, and not yet seen silent after a render
+        bool stopping = false; // fading out after a stop: no note routes to it any more
     };
 
     class VoicePool
@@ -67,8 +68,8 @@ namespace wubansia::engine
 
         // The phrase voices. Every call into PhraseVoice is in these four (and prepare and reset), so a
         // change to its interface is an edit here.
-        // A phrase note: a busy slot playing the same kit, phrase and source reads on (continueWith), else a
-        // free slot starts it (the first slot, stopped, when none is free).
+        // A phrase note: a busy slot playing the same kit, phrase and source, and not stopping, reads on
+        // (continueWith), else a free slot starts it (the first slot, stopped, when none is free).
         void phraseNoteOn (const Kit& kit, const NoteOn& note, int offset) noexcept;
         // Fades the phrase voices of a source, or of a kit, over fadeSamples from offset.
         void stopPhrases (Source source, int offset, int fadeSamples) noexcept;
@@ -77,6 +78,8 @@ namespace wubansia::engine
         // (stride floats apart).
         void renderPhrases (MixBus& bus, SendBus& sends, int numSamples, const float* laneSends, std::size_t stride) noexcept;
         bool phrasesHold (const Kit* kit) const noexcept;
+        // A bit per Lane for each busy phrase voice that isn't stopping: the lanes playing their recordings.
+        std::uint32_t phraseLanes() const noexcept;
 
         std::array<Voice, Sampler::kVoices> voices {};
         std::array<Voice, Sampler::kFadeSlots> fading {};

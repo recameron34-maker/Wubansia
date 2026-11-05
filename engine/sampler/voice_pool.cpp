@@ -19,6 +19,7 @@ namespace wubansia::engine
         {
             p.voice.stop (0, 0);
             p.busy = false;
+            p.stopping = false;
             p.kit = nullptr;
             p.phrase = -1;
         }
@@ -75,7 +76,7 @@ namespace wubansia::engine
         if (note.phrase < 0 || static_cast<std::size_t> (note.phrase) >= kit.phrases.size())
             return;
         for (auto& p : phrases)
-            if (p.busy && p.kit == &kit && p.phrase == note.phrase && p.source == note.source)
+            if (p.busy && ! p.stopping && p.kit == &kit && p.phrase == note.phrase && p.source == note.source)
             {
                 p.voice.continueWith (note.slice, offset);
                 return;
@@ -96,6 +97,7 @@ namespace wubansia::engine
         slot->phrase = note.phrase;
         slot->source = note.source;
         slot->busy = true;
+        slot->stopping = false;
         slot->voice.start (kit, note.phrase, note.slice, note.character, offset, note.startFrame);
     }
 
@@ -103,14 +105,20 @@ namespace wubansia::engine
     {
         for (auto& p : phrases)
             if (p.busy && p.source == source)
+            {
                 p.voice.stop (offset, fadeSamples);
+                p.stopping = true;
+            }
     }
 
     void VoicePool::stopPhrasesOf (const Kit* kit, int offset, int fadeSamples) noexcept
     {
         for (auto& p : phrases)
             if (p.busy && p.kit == kit)
+            {
                 p.voice.stop (offset, fadeSamples);
+                p.stopping = true;
+            }
     }
 
     void VoicePool::renderPhrases (MixBus& bus, SendBus& sends, int numSamples, const float* laneSends, std::size_t stride) noexcept
@@ -122,7 +130,18 @@ namespace wubansia::engine
             {
                 p.voice.render (bus, sends, numSamples);
                 p.busy = p.voice.active();
+                p.stopping = p.stopping && p.busy;
             }
+    }
+
+    std::uint32_t VoicePool::phraseLanes() const noexcept
+    {
+        std::uint32_t lanes = 0;
+        for (const auto& p : phrases)
+            if (p.busy && ! p.stopping && p.kit != nullptr && p.phrase >= 0
+                && static_cast<std::size_t> (p.phrase) < p.kit->phrases.size())
+                lanes |= laneBit (p.kit->phrases[static_cast<std::size_t> (p.phrase)].lane);
+        return lanes;
     }
 
     bool VoicePool::phrasesHold (const Kit* kit) const noexcept

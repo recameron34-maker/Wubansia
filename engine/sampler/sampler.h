@@ -157,6 +157,10 @@ namespace wubansia::engine
         // Events dropped because the queue was full, since prepare ().
         int droppedEvents() const noexcept;
 
+        // A bit per Lane (laneBit) for each phrase lane playing its recording now: a busy phrase voice that
+        // isn't stopping (Telemetry::phraseRecorded). After the last render ().
+        std::uint32_t phraseLanes() const noexcept;
+
     private:
         struct Impl;
         std::unique_ptr<Impl> impl;

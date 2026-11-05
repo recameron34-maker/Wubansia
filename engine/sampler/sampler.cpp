@@ -429,4 +429,9 @@ namespace wubansia::engine
     {
         return impl->dropped;
     }
+
+    std::uint32_t Sampler::phraseLanes() const noexcept
+    {
+        return impl->pool.phraseLanes();
+    }
 }
