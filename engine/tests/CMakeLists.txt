@@ -12,7 +12,7 @@ list(FILTER WUBANSIA_ENGINE_TEST_SOURCES EXCLUDE REGEX "^pic/")
 list(TRANSFORM WUBANSIA_ENGINE_TEST_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 
 add_executable(engine_tests ${WUBANSIA_ENGINE_TEST_SOURCES})
-target_link_libraries(engine_tests PRIVATE wubansia_engine wubansia_core_warnings Catch2::Catch2)
+target_link_libraries(engine_tests PRIVATE wubansia_engine_testing wubansia_engine wubansia_core_warnings Catch2::Catch2)
 # Catch2's headers as system headers, so our warning flags (and -Werror) judge only our code.
 target_include_directories(engine_tests SYSTEM PRIVATE $<TARGET_PROPERTY:Catch2,INTERFACE_INCLUDE_DIRECTORIES>)
 target_include_directories(engine_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
