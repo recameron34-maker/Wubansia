@@ -98,11 +98,12 @@ namespace wubansia::engine
     };
     inline constexpr std::array<std::string_view, 2> kInterpIds { "sinc", "hermite" };
 
+    // How a mono legato voice moves to a new note's pitch. The curves run in log frequency (semitones).
     enum class GlideCurve : std::uint8_t {
         none, // no glide (and us == 0)
-        raisedCosine, // FUT01: a raised-cosine slide over us, with a dip of dipUs
-        exponential, // FUT02: an exponential approach with time constant us
-        linear // FUT04: a linear slide over us
+        raisedCosine, // a raised-cosine slide over us, or over dipUs for a dip (FUT01: 70 ms, dip 30 ms; FUT04: 50 ms)
+        exponential, // an exponential approach with time constant us (FUT02: 18 ms)
+        linear // a linear slide over us
     };
     inline constexpr std::array<std::string_view, 4> kGlideCurveIds { "none", "raised_cosine", "exponential", "linear" };
 
@@ -131,12 +132,15 @@ namespace wubansia::engine
         friend bool operator== (const AbLabels&, const AbLabels&) = default;
     };
 
-    // Mono legato glide: a new note while one is held slides the held voice instead of starting one.
+    // Mono legato glide: a new note while one is held moves the held voice to its pitch instead of
+    // starting a voice, keeping the first note's zone and layer. A dip is a legato note whose next legato
+    // note returns to the pitch before it (FUT01's 30 ms pitch dip): it glides over dipUs. Every other
+    // legato note is a slide, over us.
     struct Glide
     {
         GlideCurve curve = GlideCurve::none;
-        std::int32_t us = 0; // the slide's length (raised_cosine, linear) or time constant (exponential)
-        std::int32_t dipUs = 0; // raised_cosine only: the level dip across the slide
+        std::int32_t us = 0; // a slide's length (raised_cosine, linear) or time constant (exponential)
+        std::int32_t dipUs = 0; // raised_cosine only: a dip's length; 0 when the instrument has no dips
 
         friend bool operator== (const Glide&, const Glide&) = default;
     };
@@ -205,9 +209,10 @@ namespace wubansia::engine
         std::uint8_t mixChannel = 0; // index into mix.channels; that channel's lane is this lane
         SampleMode mode = SampleMode::oneShot;
         Align align = Align::start;
-        std::int32_t attackUs = 0;
-        std::int32_t releaseUs = 0;
+        std::int32_t attackUs = 0; // a raised-cosine fade-in
+        std::int32_t releaseUs = 0; // a raised-cosine fade-out after note-off (gated, sustain_loop)
         std::int32_t gainMdb = 0; // the voice's own gain, before its mix channel
+        std::int64_t startFrames = 0; // playback starts this far into each of its files (the attack fades it in)
         VelocityLaw velocityLaw = VelocityLaw::layerOnly;
         Interp interp = Interp::sinc;
         bool mono = false; // one voice at a time, legato (with glide when glide.curve isn't none)
@@ -252,7 +257,9 @@ namespace wubansia::engine
         friend bool operator== (const Phrase&, const Phrase&) = default;
     };
 
-    // One note of a phrase, in the stem's 48 kHz frames.
+    // One note of a phrase, in the stem's 48 kHz frames. A note belongs to the 16th whose swung start is
+    // the latest at or before it; a slice with hits n plays the first of its n notes of its key in that
+    // 16th and swallows the rest (FUT04's blip ratchets).
     struct PhraseSlice
     {
         std::int32_t step = 0; // the 16th in the cycle where its note starts
@@ -261,6 +268,7 @@ namespace wubansia::engine
         std::int64_t end = 0; // exclusive
         std::int64_t fade = 0; // where it fades out when no slice follows it
         std::int32_t lead = 0; // frames of pre-roll before the onset
+        std::uint8_t hits = 1; // 1-8: the notes of its key in its 16th this slice plays
 
         friend bool operator== (const PhraseSlice&, const PhraseSlice&) = default;
     };

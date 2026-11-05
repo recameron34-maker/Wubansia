@@ -122,9 +122,13 @@ namespace wubansia::engine
         friend bool operator== (const PanParams&, const PanParams&) = default;
     };
 
-    struct WidthParams // width: the side channel times widthPm / 1000
+    // width: side' = side + (widthPm / 1000 - 1) x HP (side), HP a Butterworth high-pass of `order` at
+    // freqHz. freqHz 0 widens the whole side: side' = side x widthPm / 1000.
+    struct WidthParams
     {
         std::int32_t widthPm = 1000;
+        std::int32_t freqHz = 0;
+        std::int32_t order = 2; // 1-8
 
         friend bool operator== (const WidthParams&, const WidthParams&) = default;
     };
@@ -143,6 +147,8 @@ namespace wubansia::engine
         std::int32_t freqHz = 1000;
         std::int32_t order = 2; // Butterworth order 1-8 (dsp48.bfilt)
         std::int32_t qPm = 0; // 0: Butterworth; else order is 2 and this is the RBJ biquad's Q x 1000
+        std::int32_t stages = 1; // 1-2: the filter applied that many times in series
+        Band band; // where the filter works; the rest passes dry
 
         friend bool operator== (const PassParams&, const PassParams&) = default;
     };
@@ -229,14 +235,17 @@ namespace wubansia::engine
         friend bool operator== (const DuckParams&, const DuckParams&) = default;
     };
 
-    // comp: a feed-forward peak compressor with a soft knee.
+    // comp: master.py's glue at a fixed threshold, the same glue the club master runs. Stereo-linked RMS
+    // over 5 ms on 16-sample blocks, a soft knee, the attack, and an auto release: the larger of the fast
+    // release's envelope and a slow one (releaseSlowUs, with a 0.5 s attack). Then makeupMdb.
     struct CompParams
     {
         std::int32_t thresholdMdb = 0;
         std::int32_t ratioPm = 2000; // 2:1 is 2000
         std::int32_t kneeMdb = 0;
-        std::int32_t attackUs = 10000;
-        std::int32_t releaseUs = 100000;
+        std::int32_t attackUs = 30000;
+        std::int32_t releaseFastUs = 150000;
+        std::int32_t releaseSlowUs = 1500000;
         std::int32_t makeupMdb = 0;
 
         friend bool operator== (const CompParams&, const CompParams&) = default;
@@ -332,7 +341,7 @@ namespace wubansia::engine
         friend bool operator== (const EchoConfig&, const EchoConfig&) = default;
     };
 
-    // Resonator: sends.resonator. One 2-pole resonator per tone; no tones, no resonator.
+    // Resonator: sends.resonator. One 2-pole resonator per tone (0-24 tones); no tones, no resonator.
     struct ResonatorConfig
     {
         std::vector<std::int32_t> tonesMhz;
@@ -345,8 +354,9 @@ namespace wubansia::engine
     };
 
     // The club master for one variant (master.py's chain; the limiter holds looking back only, and
-    // a causal DC blocker replaces the zero-phase clean). The JSON gives the shared settings once
-    // and the solved glue threshold and drive per variant; the parser fills both entries.
+    // a causal DC blocker replaces the zero-phase clean). Its glue is the comp insert's (CompParams).
+    // The JSON gives the shared settings once and the solved glue threshold and drive per variant;
+    // the parser fills both entries.
     struct MasterConfig
     {
         std::int32_t lowcutHz = 25;
