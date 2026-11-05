@@ -296,6 +296,33 @@ TEST_CASE ("fadeOut fades one source's voices; releaseAll releases its held note
     CHECK (! rig.sampler.holdsKit (&second.kit));
 }
 
+TEST_CASE ("a full queue drops events and counts them; reset empties it", "[sampler][rt]")
+{
+    TestKit t;
+    const int file = t.addFile (constant (480, 0.25f));
+    const int i = t.addSimple (instrument (SampleMode::oneShot), file);
+    Rig rig;
+    for (int n = 0; n < Sampler::kMaxEvents + 10; ++n)
+        rig.sampler.noteOff (i, 60, 0, Source::sequencer);
+    CHECK (rig.sampler.droppedEvents() == 10);
+    rig.sampler.noteOn (t.kit, note (i, 60, 127, 0)); // dropped too: the queue is full
+    CHECK (rig.sampler.droppedEvents() == 11);
+    CHECK (rig.sampler.holdsKit (&t.kit) == false);
+    rig.runUntil (32);
+    CHECK (silent (rig.left[0]));
+
+    rig.sampler.noteOn (t.kit, note (i, 60, 127, 0));
+    CHECK (rig.sampler.holdsKit (&t.kit));
+    rig.sampler.reset();
+    CHECK (! rig.sampler.holdsKit (&t.kit));
+    rig.runUntil (64);
+    CHECK (silent (rig.left[0]));
+
+    Sampler unprepared; // nothing to queue into before prepare (): dropped, and nothing allocates
+    unprepared.noteOn (t.kit, note (i, 60, 127, 0));
+    CHECK (unprepared.droppedEvents() == 1);
+}
+
 TEST_CASE ("phrase notes go to the phrase voices, never to a multisample voice", "[sampler][rt]")
 {
     TestKit t;
