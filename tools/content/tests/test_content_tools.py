@@ -1415,7 +1415,8 @@ class TestWorkflow(unittest.TestCase):
 
     def test_the_listed_samples_are_checked_before_any_lfs_download(self):
         content = job_block(self.text, 'content')
-        self.assertLess(content.index('tools/content/pack.py --kit "$KIT" --check'), content.index('git lfs pull'))
+        self.assertLess(content.index('tools/content/pack.py --kit "$KIT" --check'),
+                        content.index('git lfs pull --include'))
         self.assertIn("restore-keys: content-lfs-${{ matrix.kit }}-", content)
         sound = job_block(self.text, 'sound')
         self.assertIn('python3 tools/content/pack.py --check', sound)  # every push, no LFS

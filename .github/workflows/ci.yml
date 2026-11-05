@@ -17,18 +17,21 @@
 #
 # "content" packs the per-kit content zips (tools/content/pack.py, ADR 0022). It runs only when dispatched with
 # platforms=content, never with "all": it pulls the kits' samples through Git LFS, which counts against the repo
-# owner's LFS bandwidth, and its zips (about 175 MB for four kits) take artifact storage for 3 days. The samples it
-# pulls are cached by each kit's manifest hash, so LFS serves each content version once:
+# owner's LFS bandwidth (about 200 MB for the four kits' first run), and its zips (about 175 MB) take artifact
+# storage for 3 days. Before any download it checks that every listed sample is in the commit. The samples it
+# pulls are cached by each kit's manifest hash, but a cache belongs to its branch (any branch can also restore
+# main's) and is evicted after 7 days unused: a re-run on the same branch that week downloads nothing, and a run
+# on another branch downloads again unless main has the cache. So dispatch it on main when you can:
 #   gh workflow run ci.yml --ref <branch> -f platforms=content
 #
 # Windows runs only when dispatched: for now only macOS is needed (ADR 0004).
 #
 # Nothing runs for:
-#   - pushes and PRs that change only docs/** or **/*.md. A PR is filtered on
-#     its whole diff, so a docs-only commit to a PR with code changes still runs the
-#     desktop jobs. If a job here ever becomes a required check, drop paths-ignore from
-#     pull_request: a docs-only PR would stay "Pending" and couldn't merge (GitHub docs,
-#     "Skipping workflow runs").
+#   - pushes and PRs that change only docs/** or **/*.md, except dist/INSTALL.md, which ships in
+#     the macOS zip and is tested ("paths": the last pattern that matches a file decides). A PR is
+#     filtered on its whole diff, so a docs-only commit to a PR with code changes still runs the
+#     desktop jobs. If a job here ever becomes a required check, drop paths from pull_request: a
+#     docs-only PR would stay "Pending" and couldn't merge (GitHub docs, "Skipping workflow runs").
 #   - tag pushes ("branches" is set, so tags never match)
 #   - PRs to other base branches, other PR activity (closed, labeled, ...), and PRs
 #     with a merge conflict (GitHub skips pull_request runs until it is resolved)
@@ -50,11 +53,11 @@ name: CI
 on:
   push:
     branches: ["**"]
-    paths-ignore: ["docs/**", "**/*.md"]
+    paths: ["**", "!docs/**", "!**/*.md", "dist/INSTALL.md"]
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore: ["docs/**", "**/*.md"]
+    paths: ["**", "!docs/**", "!**/*.md", "dist/INSTALL.md"]
   workflow_dispatch:
     inputs:
       platforms:
@@ -192,9 +195,12 @@ jobs:
 
       - name: Content tools
         # pack.py and install.py on a synthetic kit, and install-macos.sh's dry runs against a fake home folder
-        # (ADR 0022). Standard library only; shellcheck and unzip are on the image.
+        # (ADR 0022). Standard library only; shellcheck and unzip are on the image. pack.py --check finds every
+        # sample the kit manifests list in this commit, as an LFS pointer with the manifest's SHA-256: it reads
+        # the pointers only, so it downloads nothing.
         run: |
           shellcheck --shell=bash dist/install-macos.sh
+          python3 tools/content/pack.py --check
           python3 -m unittest discover -s tools/content/tests -t . -v
 
   macos:
@@ -376,16 +382,26 @@ jobs:
           # this repo's own scripts. Without lfs: true, the checkout itself fetches no samples.
           persist-credentials: true
 
+      - name: Check the kit's samples are in this commit
+        # Before any LFS download: every file the kit's manifest lists must be here as an LFS pointer whose oid is
+        # the manifest's SHA-256. A missing file would otherwise show up only after the download, at Pack.
+        env:
+          KIT: ${{ matrix.kit }}
+        run: python3 tools/content/pack.py --kit "$KIT" --check
+
       - name: Restore the kit's samples from the cache
         uses: actions/cache@v5
         with:
           path: .git/lfs/objects
           # The kit's manifest lists every file it packs, with its SHA-256: the same manifest, the same samples.
+          # The cache is this branch's (or main's) and lasts 7 days unused. A changed manifest restores the
+          # previous one's objects, so only the changed samples download.
           key: content-lfs-${{ matrix.kit }}-${{ hashFiles(format('content/plugin/{0}/*_kit.json', matrix.kit)) }}
+          restore-keys: content-lfs-${{ matrix.kit }}-
 
       - name: Pull the listed samples (Git LFS)
-        # Only the files the kit's manifest lists, not the reference loops beside them. With the cache restored,
-        # git lfs downloads nothing.
+        # Only the files the kit's manifest lists, not the reference loops beside them. git lfs downloads only the
+        # objects the cache didn't have.
         env:
           KIT: ${{ matrix.kit }}
         run: |
