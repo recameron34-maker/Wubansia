@@ -1,11 +1,15 @@
 // KitCache (kit/kit_cache.h): one Kit per (kit, content version) for the whole process, freed after its last holder
 // lets go, and built once even when two instances ask for it at the same time.
 
+#include "manifest_samples.h"
+
 #include "kit/kit_builder.h"
 #include "kit/kit_cache.h"
+#include "kit/manifest.h"
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <functional>
@@ -292,6 +296,64 @@ TEST_CASE ("KitCache: a waiter's cancel ends its wait at once", "[kit_cache]")
     first.release = true;
     one.join();
     CHECK (a.ok());
+}
+
+TEST_CASE ("KitCache with buildKit: two instances loading one kit decode its files once", "[kit_cache]")
+{
+    const auto kit = parseKitManifest (test::kKitJson);
+    REQUIRE (kit.error.empty());
+    const auto mix = parseMixManifest (test::kMixJson, kit.value);
+    REQUIRE (mix.error.empty());
+    auto fill = [&] (test::MemorySource& source) {
+        for (std::size_t i = 0; i < kit.value.files.size(); ++i)
+        {
+            const auto& f = kit.value.files[i];
+            source.files.emplace (f.path, util::Result<SampleData>::success (test::sampleFor (f.frames, f.channels, static_cast<std::int32_t> (i))));
+        }
+    };
+
+    KitCache cache;
+    // Instance A's source holds its first read until B is waiting, so both requests overlap.
+    test::MemorySource sourceA, sourceB;
+    fill (sourceA);
+    fill (sourceB);
+    std::atomic<bool> aReading { false }, go { false };
+    sourceA.beforeRead = [&] (std::size_t read) {
+        if (read != 0)
+            return;
+        aReading = true;
+        while (! go.load())
+            std::this_thread::sleep_for (1ms);
+    };
+    const std::atomic<bool> cancelA { false }, cancelB { false };
+    auto load = [&] (test::MemorySource& source, const std::atomic<bool>& cancel) {
+        return cache.acquire (kit.value.kit.id, kit.value.kit.contentVersion, [&] {
+            return buildKit (kit.value, mix.value, source, std::array<Timeline, 4> {}, cancel, [] (int) {});
+        }, &cancel);
+    };
+
+    KitResult a, b;
+    std::thread one ([&] { a = load (sourceA, cancelA); });
+    REQUIRE (eventually ([&] { return aReading.load(); }));
+    std::thread two ([&] { b = load (sourceB, cancelB); });
+    REQUIRE (eventually ([&] { return cache.waiting ("TST01", 3) == 1; }));
+    go = true;
+    one.join();
+    two.join();
+
+    REQUIRE (a.error.empty());
+    REQUIRE (b.error.empty());
+    CHECK (a.value.get() == b.value.get());
+    CHECK (sourceA.reads.size() == kit.value.files.size());
+    CHECK (sourceB.reads.empty());
+
+    // Both let go: the Kit is freed, and the next load decodes again.
+    a.value.reset();
+    b.value.reset();
+    CHECK (cache.find ("TST01", 3) == nullptr);
+    const auto again = load (sourceB, cancelB);
+    REQUIRE (again.ok());
+    CHECK (sourceB.reads.size() == kit.value.files.size());
 }
 
 TEST_CASE ("KitCache::instance is one cache for the process", "[kit_cache]")

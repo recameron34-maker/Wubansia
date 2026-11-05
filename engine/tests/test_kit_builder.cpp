@@ -289,11 +289,8 @@ TEST_CASE ("buildKit lays out the manifests as kit/kit.h describes", "[kit_build
 
 TEST_CASE ("buildKit: a phrase without an alternative plays stem A on both sides", "[kit_builder]")
 {
+    // (A struct made in code: the parser would also refuse stem B's file, which nothing plays now. buildKit doesn't.)
     auto manifest = testKit();
-    manifest.phrases[0].stemB = -1;
-    manifest.phrases[0].ab = -1;
-    manifest.files.pop_back(); // keep the layout simple: drop nothing that matters, then put it back
-    manifest = testKit();
     manifest.phrases[0].stemB = -1;
     manifest.phrases[0].ab = -1;
     const auto mix = testMix (testKit());
