@@ -8,7 +8,11 @@ it, and nothing wraps round a loop. Results are in aligned time: a stage with la
 output is delayed by d samples, y_causal[k + d] = y_aligned[k], and the engine's graph delays the shorter paths to
 match. A stage with latency 0 is causal as it stands.
 
-- band_split: the LR4 band an insert works in, and the rest (an all-pass of the input when added back).
+- band_split: the LR4 band a filter insert works in, and the rest (an all-pass of the input when added back): the
+  crossover form of FUT01's wobble and wall, rest + f(band).
+- band_duck: a duck's gain on an LR4 band, added to the untouched signal, x + (g - 1) band: exact while the duck
+  rests, as the recipes' zero-phase ducks are (FUT02's snap and carve, FUT04's sidechain and dips), with a causal
+  band.
 - onset_db: phrase.pump_db's envelope on a stream of key onsets: the deepest duck wins, a negative depth lifts.
 - level_duck_db: sends.duck with a fixed top (the key's loudest block in the reference loop), its gain 1.5 blocks
   later than sends.duck's centred interpolation, which needs the next block.
@@ -80,9 +84,30 @@ def band_split(x, lo_hz, hi_hz):
 
 
 def in_band(fn, x, lo_hz, hi_hz):
-    """fn on the band (band_split), the rest added back untouched."""
+    """fn on the band (band_split), the rest added back: the crossover form (a filter insert's band)."""
     rest, band = band_split(x, lo_hz, hi_hz)
     return rest + fn(band)
+
+
+def band_part(x, lo_hz, hi_hz):
+    """The LR4 band between lo_hz and hi_hz (0 leaves a side open): dsp48.lr4 high-pass at lo, low-pass at hi."""
+    x = np.asarray(x, dtype=float)
+    if lo_hz:
+        x = D.lr4(x, lo_hz, 'highpass')
+    if hi_hz:
+        x = D.lr4(x, hi_hz, 'lowpass')
+    return x
+
+
+def band_duck(x, gain_db, lo_hz, hi_hz):
+    """A duck's gain (dB per sample) on a band: x + (g - 1) x band (band_part), so where the duck rests the signal
+    passes exactly as it came; {0, 0} is the whole signal, x g. A negative gain_db ducks, a positive one lifts."""
+    x = np.asarray(x, dtype=float)
+    g = D.undb(gain_db)
+    g = g[:, None] if x.ndim == 2 else g
+    if not lo_hz and not hi_hz:
+        return x * g
+    return x + (g - 1.0) * band_part(x, lo_hz, hi_hz)
 
 
 # ------------------------------------------------------------------ ducks

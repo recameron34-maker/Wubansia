@@ -229,6 +229,117 @@ class Limiter(unittest.TestCase):
             self.assertTrue(np.array_equal(got, want), (before, after))
 
 
+def synthetic_mix():
+    """A small mix manifest with every insert type, in the contract's layout (plugin_mix's constructors)."""
+    from tools.sound import plugin_mix as PM
+    W = PM.when
+    chans = [
+        PM.channel('kick', 'kick', 'drums', [PM.gain(-1.0), PM.clip(-6.0), PM.peak(120, 2.0, 1.0)]),
+        PM.channel('bass', 'bass', 'none', [
+            PM.cc_filter('lowpass', 300, 3000, 0.9, 2.0, 64, 0, (200, 0)),
+            PM.duck_onset(('kick',), 6.0, 0.002, 0.03, 0.06), PM.width(0.6), PM.mono_below(150, 8),
+            PM.highpass(250, 8, 0.0, 2, (150, 0), W(ab='bass', side='a')), PM.drive(2.0, 0.1, -1.0)]),
+        PM.channel('vox', 'vox', 'music', [PM.comp(-20.0, 4.0, 6.0, 0.005, 0.08, 0.5, 2.0), PM.pan(-0.2),
+                                           PM.low_shelf(200, -2.0, 0.7), PM.high_shelf(8000, 1.5, 0.7),
+                                           PM.lowpass(9000, 2, 0.8)], (0.4, 0.3, 0.2)),
+        PM.channel('pad', 'chords', 'music', [
+            PM.duck_level('vox', 6.0, 18.0, -10.0, 0.01, 0.3, (1200, 6500)),
+            PM.width(2.0, 3000, 4), PM.duck_onset(('snare',), -3.0, 0.0, 0.012, 0.013, 100, 0.0, (1000, 5000), False),
+            PM.gain(-3.0, W(variant='novox'))], (0.5, 0.0, 0.1)),
+        PM.channel('clap', 'snare', 'drums', [PM.gain(-2.0)], (0.2, 0.0, 0.0)),
+    ]
+    import numpy as np
+    r = np.random.default_rng(1)
+    space = {'delays_frames': [515, 583, 682, 799, 885, 1029, 1167, 1361], 'signs': [-1, -1, -1, 1, 1, -1, -1, -1],
+             't60_ms': 1100, 't60_low_ms': 400, 'low_hz': 500, 'damp_hz': 9000, 'predelay_us': 27985,
+             'send_hp_hz': 500, 'send_order': 4, 'shimmer_pm': 30, 'shimmer_lo_hz': 300, 'shimmer_hi_hz': 7000,
+             'window_frames': 2048, 'mono_hz': 150, 'return_mdb': 3000,
+             'inserts': [PM.duck_level('vox', 6.0, 18.0, -12.0, 0.01, 0.3), PM.duck_onset(('kick',), 3.0, 0.002, 0.01,
+                                                                                          0.18)]}
+    echo = {'steps': 3, 'feedback_pm': 380, 'lp_hz': 2600, 'hp_hz': 600, 'drive_pm': 1500, 'wow_ppm': 400,
+            'wow_mhz': 500, 'flutter_ppm': 150, 'flutter_mhz': 4700, 'phases_mrad': [3054, 183], 'return_mdb': 3000,
+            'inserts': [PM.peak(900, -3.5, 0.8)]}
+    res = {'tones_mhz': [739989, 1108731], 'tau_ms': 400, 'send_hp_hz': 600, 'return_mdb': -21000, 'inserts': []}
+    m = {'kit': 'TST00', 'content_version': 1, 'channels': chans,
+         'groups': {'drums': {'inserts': [PM.parallel(-8.0, [PM.highpass(250, 4), PM.drive(2.5, 0.0, 0.0)])]},
+                    'music': {'inserts': [PM.peak(900, -3.5, 0.8)]}},
+         'returns': {'space': space, 'echo': echo, 'resonator': res},
+         'bus_eq': {'vox': [PM.peak(16000, -1.5, 0.8), PM.highpass(20, 4)], 'novox': [PM.highpass(20, 4)]},
+         'master': {'lowcut_hz': 25, 'lowcut_order': 4, 'mono_below_hz': 150,
+                    'glue': {'ratio_pm': 2000, 'knee_mdb': 6000, 'attack_us': 30000, 'release_fast_us': 150000,
+                             'release_slow_us': 1500000},
+                    'vox': {'glue_threshold_mdb': -14000, 'drive_mdb': 4000},
+                    'novox': {'glue_threshold_mdb': -14000, 'drive_mdb': 4000},
+                    'clip': {'knee_mdb': 1500, 'ceiling_mdb': -520},
+                    'limiter': {'ceiling_mdb': -1020, 'lookahead_us': 5000, 'hold_us': 60000, 'release_us': 80000},
+                    'dc_hz': 5},
+         'reference': {v: {'pre_master_lufs_mlu': -12000, 'club_lufs_mlu': -9000,
+                           'channel_true_peak_mdb': [-1000] * len(chans)} for v in ('vox', 'novox')}}
+    L = 9600
+    t = np.arange(L)
+    dry = {'kick': np.exp(-t / 2000.0)[:, None] * np.sin(2 * np.pi * 55 * t / SR)[:, None] * np.ones((1, 2)),
+           'bass': 0.4 * np.stack([np.sin(2 * np.pi * 110 * t / SR), np.sin(2 * np.pi * 111 * t / SR)], 1),
+           'vox': r.normal(0, 0.1, (L, 2)) * (t > L // 3)[:, None], 'pad': r.normal(0, 0.05, (L, 2)),
+           'clap': r.normal(0, 0.3, (L, 2)) * np.exp(-((t - 2400) % L) / 800.0)[:, None]}
+    keys = (('kick', 0, 127), ('kick', 4800, 100), ('snare', 2400, 127), ('snare', 7200, 40))
+    ccs = {'bass': {74: [(0, 0), (120, 40), (240, 90), (3840, 127), (7680, 20)], 71: [(0, 0), (7680, 127)]}}
+    throws = {'vox': [(dry['vox'] * (t > 2 * L // 3)[:, None], 127, 64)]}
+    return m, dry, keys, ccs, throws, L
+
+
+class RenderMix(unittest.TestCase):
+    """engine_ref.render_mix on a synthetic mix with every insert type: valid, causal at its declared latency."""
+
+    def test_synthetic_mix_is_valid(self):
+        from tools.sound import plugin_mix as PM
+        m = synthetic_mix()[0]
+        PM.validate(m)
+        self.assertLessEqual(max(PM.path_latencies(m).values()), PM.MAX_PATH_LATENCY)
+
+    def test_causal_at_its_latency(self):
+        from tools.sound import engine_ref as E
+        m, dry, keys, ccs, throws, L = synthetic_mix()
+        kw = dict(variant='vox', loop_len=L, bpm=134.0, keys=keys, ccs=ccs, throws=throws, ab={'bass': 'a'},
+                  passes=3)
+        for master in ('off', 'lookback'):
+            y, meta = E.render_mix(m, dry, master=master, **kw)
+            d = meta['latency']['total']
+            dry2 = {k: np.tile(v, (3, 1)) for k, v in dry.items()}        # whole streams: change one pass only
+            P = L + 4000
+            for k in ('pad', 'vox', 'kick'):
+                dry2[k][P:P + 100] += 0.5
+            y2, _ = E.render_mix(m, dry2, master=master, **kw)
+            diff = np.flatnonzero(np.any(np.abs(y2 - y) > 1e-12, axis=1))
+            first = int(diff[0]) if len(diff) else None
+            self.assertIsNotNone(first, master)
+            self.assertGreaterEqual(first, P - d, f'{master}: a change at {P} moved the output at {first}, more than '
+                                                  f'its latency {d} ahead')
+            self.assertEqual(54 if master == 'off' else 54 + 23 + 48 + 265, d)
+
+    def test_variants_and_switches(self):
+        from tools.sound import engine_ref as E
+        m, dry, keys, ccs, throws, L = synthetic_mix()
+        kw = dict(loop_len=L, bpm=134.0, keys=keys, ccs=ccs, throws=throws, passes=2, master='off')
+        a, _ = E.render_mix(m, dry, variant='vox', ab={'bass': 'a'}, **kw)
+        b, _ = E.render_mix(m, dry, variant='vox', ab={'bass': 'b'}, **kw)
+        c, _ = E.render_mix(m, dry, variant='novox', ab={'bass': 'b'}, **kw)
+        self.assertGreater(float(np.max(np.abs(a - b))), 1e-3)
+        self.assertGreater(float(np.max(np.abs(b - c))), 1e-3)
+
+    def test_space_return_is_sends_space(self):
+        """engine_ref.space from the manifest's delays and signs is sends.space with the kit's seed, sample for
+        sample."""
+        from tools.sound import engine_ref as E
+        from tools.sound import plugin_mix as PM
+        from tools.sound.kits import fut01 as K
+        from tools.sound.recipes.fut01 import context4 as C4
+        x = np.random.default_rng(5).normal(0, 0.1, 30000)
+        want = S.space(x, K.space_rng('send r4'), **C4.PLATE)
+        cfg = PM.space_return(K, 'send r4', C4.PLATE, [])
+        got = E.space(x, cfg)
+        self.assertLess(float(np.max(np.abs(got - want))), 1e-12)
+
+
 class Dc(unittest.TestCase):
     def test_causal_and_flat_over_40_hz(self):
         f, h = _response(lambda u: R.dc_block(u, 5.0))
@@ -237,6 +348,37 @@ class Dc(unittest.TestCase):
         x = np.zeros(1000)
         x[500] = 1.0
         self.assertFalse(np.any(R.dc_block(x)[:500]))
+
+
+def _heavy():
+    from tools.sound import engine_ref as E
+    return all(E.r5_dir(k) is not None for k in ('FUT01', 'FUT02', 'FUT03', 'FUT04'))
+
+
+@unittest.skipUnless(_heavy(), 'the round 5 renders are not here (set WUBANSIA_R5_BUILD to the folder holding '
+                                '<kit>-r5/)')
+class Gates(unittest.TestCase):
+    """engine_ref with the exact master against each kit's committed Wet and Club loops, both variants, second pass:
+    LUFS-I +-0.3 LU, short-term +-0.5 LU, 1/3-octave bands 40 Hz-16 kHz +-0.75 dB, true peak +-0.3 dB, kick crest
+    +-0.5 dB; and the look-back master's difference from the exact one (expected 0.2 LU or less)."""
+
+    def test_wet_and_club_loops(self):
+        from tools.sound import engine_ref as E
+        for kit in ('FUT01', 'FUT02', 'FUT03', 'FUT04'):
+            for v in ('vox', 'novox'):
+                r = E.gates(kit, v, 'exact')
+                for which in ('wet', 'club'):
+                    with self.subTest(kit=kit, variant=v, loop=which):
+                        self.assertTrue(all(r[which]['pass'].values()), f"{r[which]['diff']}")
+
+    def test_lookback_master_difference(self):
+        from tools.sound import engine_ref as E
+        for kit in ('FUT01', 'FUT02', 'FUT03', 'FUT04'):
+            for v in ('vox', 'novox'):
+                d = E.master_difference(kit, v)
+                with self.subTest(kit=kit, variant=v):
+                    self.assertLessEqual(abs(d['diff']['lufs_i']), 0.2, d['diff'])
+                    self.assertLessEqual(d['lookback']['true_peak'], -1.02 + 0.05)
 
 
 if __name__ == '__main__':
