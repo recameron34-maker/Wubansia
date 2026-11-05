@@ -28,7 +28,7 @@ if [ -z "${BASH_VERSION:-}" ]; then
   echo "Run this with bash: bash install-macos.sh" >&2
   exit 2
 fi
-set -u
+set -u # "$@" is written ${1+"$@"} where it can be empty: some old bash versions call it unbound then
 set -o pipefail
 set +o posix # sh install-macos.sh on a Mac runs bash in POSIX mode
 export LC_ALL=C # byte-wise patterns and tools; the file names are ASCII
@@ -97,7 +97,7 @@ while [ "$n" -gt 0 ]; do
       exit 0
       ;;
     -*) usage_error "unknown option: $arg" ;;
-    *) set -- "$@" "$arg" ;;
+    *) set -- ${1+"$@"} "$arg" ;;
   esac
 done
 if [ "$want_content" = 0 ] && [ $# -gt 0 ]; then usage_error "--plugins-only takes no content zips"; fi
@@ -160,7 +160,7 @@ clear_quarantine() {
   have xattr || return 0
   xattr -dr com.apple.quarantine "$1" >/dev/null 2>&1
   if xattr -p com.apple.quarantine "$1" >/dev/null 2>&1; then
-    warn "the quarantine flag is still on $1; clear it with: xattr -dr com.apple.quarantine \"$1\""
+    error "the quarantine flag is still on $1, so macOS won't open it. Clear it with: xattr -dr com.apple.quarantine \"$1\""
   else
     note "cleared the quarantine flag on $1"
   fi
@@ -427,7 +427,7 @@ install_content() { # the content zips and folders named on the command line, or
   if [ $# -eq 0 ]; then
     for dir in "$script_dir" "$parent_dir"; do
       for f in "$dir"/Wubansia-Content-*.zip "$dir/$ZIP_ROOT"*; do
-        if [ -e "$f" ]; then set -- "$@" "$f"; fi
+        if [ -e "$f" ]; then set -- ${1+"$@"} "$f"; fi
       done
       if [ "$parent_dir" = "$script_dir" ]; then break; fi
     done
@@ -442,14 +442,14 @@ install_content() { # the content zips and folders named on the command line, or
     fi
     return 0
   fi
-  for src in "$@"; do install_source "$src"; done
+  for src in ${1+"$@"}; do install_source "$src"; done
 }
 
 # --- Main -----------------------------------------------------------------------------------------------------------
 say "Wubansia installer, from $script_dir"
 if [ "$dry_run" = 1 ]; then say "Dry run: it checks everything and changes nothing."; fi
 if [ "$want_plugins" = 1 ]; then install_plugins; fi
-if [ "$want_content" = 1 ]; then install_content "$@"; fi
+if [ "$want_content" = 1 ]; then install_content ${1+"$@"}; fi
 
 say ""
 if [ "$failures" -gt 0 ]; then

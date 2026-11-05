@@ -686,6 +686,8 @@ class TestInstallMacos(Case):
                         r';;&', r';&', r'\[\[\s+-v', r'local\s+-n', r'\{\w+\}[<>]', r'@[QEPAa]\}', r'\[@\]',
                         r'\[\*\]', r'\bcoproc\b', r'\bwait\s+-n', r'\bshopt\s+-s\s+globstar', r'=~'):
             self.assertIsNone(re.search(pattern, code), pattern)
+        # "$@" with no arguments counts as unbound under set -u in some old bash versions: ${1+"$@"} is safe.
+        self.assertEqual(code.count('"$@"'), code.count('${1+"$@"}'))
 
     def test_it_is_executable_in_git(self):
         if not (REPO / '.git').exists():
