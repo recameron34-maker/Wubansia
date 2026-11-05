@@ -32,7 +32,7 @@ namespace
 {
     // One digest over every byte the synthetic kit is: both manifests, every WAV and every SMF. A change
     // to the synthetic kit changes it: update it in the same commit, and tell the packages that use it.
-    constexpr const char* kSyntheticContentSha256 = "b399c2d5d95b378936b95b4de4c4e486c2ddecf9fcf0b7eb7e9652518bb56751";
+    constexpr const char* kSyntheticContentSha256 = "1473652862e7c33c8c8ed0bb2bbfd794a4db95675c85296ab54013c64b884d1e";
 
     std::string contentDigest (const SyntheticContent& c)
     {
@@ -224,18 +224,21 @@ TEST_CASE ("the synthetic kit has what the packages test against", "[synthetic]"
         CHECK (riser.attackUs > 0);
     }
 
-    SECTION ("a 2-bar phrase stem with 8 contiguous slices, one holding a retrigger")
+    SECTION ("a looped 2-bar phrase stem with 8 contiguous slices, one holding a retrigger, the last wrapping")
     {
         REQUIRE (m.phrases.size() == 1);
         const auto& p = m.phrases[0];
         CHECK (p.cycle16ths == 32);
         CHECK (p.stemA == syn::stemFile);
         CHECK (p.stemB == -1);
+        CHECK (p.throwMode == PhraseThrow::baked);
         const auto stemFrames = m.files.at (static_cast<std::size_t> (syn::stemFile)).frames;
         CHECK (stemFrames == 32 * kSyntheticSixteenthFrames);
         REQUIRE (p.slices.size() == static_cast<std::size_t> (syn::phraseSlices));
-        CHECK (p.slices.front().start == 0);
-        CHECK (p.slices.back().end == stemFrames);
+        CHECK (p.slices.front().start > 0); // slice 0 starts at its own pre-roll
+        CHECK (p.slices.back().end > stemFrames); // the last slice wraps through the stem's end...
+        CHECK (p.slices.back().end - stemFrames == p.slices.front().start); // ...and continues into slice 0
+        CHECK (p.slices.back().fade > stemFrames);
         int holding = 0;
         for (std::size_t i = 0; i < p.slices.size(); ++i)
         {
@@ -316,7 +319,7 @@ TEST_CASE ("the synthetic manifests are strict integer-only JSON in the document
     CHECK (keysOf (instruments->items.at (0)) == std::vector<std::string> { "id", "name", "lane", "mix_channel", "mode", "align", "attack_us", "release_us", "gain_mdb", "start_frames", "velocity_law", "interp", "mono", "glide", "restrike_continues", "choke", "duck_key", "pan_cycle_pm", "rr_block_16ths", "layered_with", "zones" });
     const auto* phrases = kit.value.find ("phrases");
     REQUIRE (phrases != nullptr);
-    CHECK (keysOf (phrases->items.at (0)) == std::vector<std::string> { "lane", "ch", "ab", "mix_channel", "gain_mdb", "stems", "cycle_16ths", "tolerance_pm", "fade_us", "ride", "slices" });
+    CHECK (keysOf (phrases->items.at (0)) == std::vector<std::string> { "lane", "ch", "ab", "mix_channel", "gain_mdb", "throw", "stems", "cycle_16ths", "tolerance_pm", "fade_us", "ride", "slices" });
     CHECK (keysOf (*phrases->items.at (0).find ("ride")) == std::vector<std::string> { "cc74", "cc71" });
     CHECK (keysOf (phrases->items.at (0).find ("slices")->items.at (0)) == std::vector<std::string> { "step", "key", "start", "end", "fade", "lead", "holds" });
 
@@ -580,6 +583,7 @@ TEST_CASE ("layOutKit lays the synthetic kit out as kit.h describes", "[syntheti
     CHECK (k.phrases[0].stem[0] == syn::stemFile);
     CHECK (k.phrases[0].stem[1] == syn::stemFile); // no alternative: B is A
     CHECK (k.phrases[0].ab == -1);
+    CHECK (k.phrases[0].throwMode == PhraseThrow::baked);
     CHECK (k.phrases[0].channel == 1);
     CHECK (k.phrases[0].sliceCount == syn::phraseSlices);
     CHECK (k.slices.size() == static_cast<std::size_t> (syn::phraseSlices));
