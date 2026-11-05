@@ -275,6 +275,8 @@ namespace wubansia::engine
             Note note;
             note.pos = start - shift;
             note.len = end - start + shift;
+            note.preroll = static_cast<std::int32_t> (std::clamp<std::int64_t> (shift, std::numeric_limits<std::int32_t>::min(),
+                std::numeric_limits<std::int32_t>::max()));
             note.channel = r.channel;
             note.key = r.key;
             note.velocity = r.velocity;

@@ -21,6 +21,7 @@
 #include <map>
 #include <memory>
 #include <thread>
+#include <tuple>
 #include <vector>
 
 using namespace p7;
@@ -246,92 +247,204 @@ TEST_CASE ("note-ons carry the chase, the end alignment, the A/B pre-roll, throw
     }
 }
 
-TEST_CASE ("phrase notes play their slices near the kit's tempo, with the stem their A/B picks; otherwise, and from MIDI in, the multisample", "[engine][phrase]")
+namespace
 {
-    // The loop's bass notes made phrase notes by hand (as P6's annotatePhrases will), on a phrase that
-    // plays on the vox channel so its voices are told apart.
-    auto m = synManifest();
-    const auto mix = synMix();
-    auto t = build (synLoopSmf(), m, mix, 15360);
-    std::int16_t slice = 0;
-    for (auto& n : t.notes)
-        if (n.channel == 0)
-        {
-            n.phrase = 0;
-            n.slice = slice++;
-            n.flags |= NoteFlag::chase;
-        }
-    Kit kit = assemble (m, mix, { t, t, t, t });
-    Phrase phrase;
-    phrase.lane = Lane::bass;
-    phrase.channel = 0;
-    phrase.ab = static_cast<std::int8_t> (AbSwitch::bass);
-    phrase.mixChannel = static_cast<std::uint8_t> (mix.channelIndex ("vox"));
-    phrase.tolerancePm = 20;
-    kit.phrases.push_back (phrase);
-    kit.slices.resize (static_cast<std::size_t> (slice));
+    // The loop's bass line as P6's annotatePhrases encodes a matched line: each note stays, as its
+    // multisample twin (phrase 0, slice -1), and a slice note sits beside it (phrase 0, slice k, on the
+    // note's onset, continuing into the next). The phrase plays on the vox channel, so its voices are told
+    // apart; its cycle is 2 bars; a thrown first note.
+    Kit phraseKit (PhraseThrow throwMode = PhraseThrow::live)
+    {
+        auto m = synManifest();
+        const auto mix = synMix();
+        auto smfBytes = synLoopSmf();
+        Timeline t = build (smfBytes, m, mix, 15360);
+        std::vector<Note> slices;
+        std::int16_t k = 0;
+        for (auto& n : t.notes)
+            if (n.channel == 0)
+            {
+                n.phrase = 0;
+                Note s = n;
+                s.slice = k++;
+                s.flags = static_cast<std::uint8_t> (NoteFlag::chase | NoteFlag::continues);
+                if (k == 1)
+                    s.throwSpace = n.throwSpace = 127;
+                slices.push_back (s);
+            }
+        t.notes.insert (t.notes.end(), slices.begin(), slices.end());
+        std::stable_sort (t.notes.begin(), t.notes.end(), [] (const Note& a, const Note& b) {
+            return std::tie (a.pos, a.channel, a.key) < std::tie (b.pos, b.channel, b.key);
+        });
+        t.chase.clear();
+        for (std::size_t i = 0; i < t.notes.size(); ++i)
+            if ((t.notes[i].flags & NoteFlag::chase) != 0)
+                t.chase.push_back (static_cast<std::uint32_t> (i));
+        Kit kit = assemble (m, mix, { t, t, t, t });
+        Phrase phrase;
+        phrase.lane = Lane::bass;
+        phrase.channel = 0;
+        phrase.ab = static_cast<std::int8_t> (AbSwitch::bass);
+        phrase.mixChannel = static_cast<std::uint8_t> (mix.channelIndex ("vox"));
+        phrase.tolerancePm = 20;
+        phrase.cycle16ths = 32;
+        phrase.throwMode = throwMode;
+        kit.phrases.push_back (phrase);
+        kit.slices.resize (static_cast<std::size_t> (k));
+        return kit;
+    }
 
-    auto bassOns = [] (const std::vector<Item>& log) {
+    // The bass's note-ons: slice notes (phrase 0, slice >= 0) or multisample ones.
+    std::vector<Item> bassOns (const std::vector<Item>& log)
+    {
         std::vector<Item> out;
         for (const auto& i : ons (log))
             if (i.note.instrument == inst::bass)
                 out.push_back (i);
         return out;
-    };
+    }
+}
 
-    for (const double factor : { 1.0, 1.019, 0.981 })
+TEST_CASE ("a phrase plays its slice notes near the kit's tempo and its twins elsewhere, decided once per cycle", "[engine][phrase]")
+{
+    const Kit kit = phraseKit();
+
+    SECTION ("within the tolerance: slices, with the stem their A/B picks, no note-offs, the twins silent")
     {
-        CAPTURE (factor);
-        const auto played = bassOns (playKit (kit, Controls {}, 120.0 * factor, 0.0, 100000).log);
-        REQUIRE_FALSE (played.empty());
-        for (const auto& i : played)
+        for (const double factor : { 1.0, 1.019, 0.981 })
         {
-            CHECK (i.note.phrase == 0);
+            CAPTURE (factor);
+            const auto played = playKit (kit, Controls {}, 120.0 * factor, 0.0, 200000);
+            const auto bass = bassOns (played.log);
+            REQUIRE (bass.size() >= 8u);
+            for (const auto& i : bass)
+            {
+                CHECK (i.note.phrase == 0);
+                CHECK (i.note.slice >= 0);
+                CHECK (i.note.character == 1); // bass B
+                CHECK (i.note.lengthSamples == 0);
+            }
+            for (const auto& i : played.log)
+                CHECK_FALSE ((i.kind == Item::Kind::off && i.instrument == inst::bass));
+        }
+        Controls bassA;
+        bassA.ab = { 1, 0, 0 };
+        CHECK (bassOns (playKit (kit, bassA, 120.0, 0.0, 30000).log).front().note.character == 0);
+    }
+
+    SECTION ("past the tolerance, or with phrase lanes off: the twins, with their note-offs")
+    {
+        Controls off;
+        off.phrases = PhraseMode::off;
+        for (const auto& [factor, controls] : { std::pair { 1.021, Controls {} }, std::pair { 0.979, Controls {} }, std::pair { 1.5, Controls {} },
+                 std::pair { 1.0, off } })
+        {
+            CAPTURE (factor);
+            const auto played = playKit (kit, controls, 120.0 * factor, 0.0, 200000);
+            const auto bass = bassOns (played.log);
+            REQUIRE (bass.size() >= 8u);
+            std::size_t offs = 0;
+            for (const auto& i : played.log)
+                offs += (i.kind == Item::Kind::off && i.instrument == inst::bass) ? 1 : 0;
+            for (const auto& i : bass)
+            {
+                CHECK (i.note.phrase == -1);
+                CHECK (i.note.slice == -1);
+            }
+            CHECK (offs + 1 >= bass.size()); // the last may still sound
+        }
+    }
+
+    SECTION ("continues only on the kit's exact tempo")
+    {
+        const auto exact = bassOns (playKit (kit, Controls {}, 120.0, 0.0, 100000).log);
+        const auto near = bassOns (playKit (kit, Controls {}, 121.2, 0.0, 100000).log); // +1 %: slices, each its own head
+        REQUIRE_FALSE (exact.empty());
+        REQUIRE_FALSE (near.empty());
+        for (const auto& i : exact)
+            CHECK (i.note.continues);
+        for (const auto& i : near)
+        {
             CHECK (i.note.slice >= 0);
-            CHECK (i.note.character == 1); // bass B
+            CHECK_FALSE (i.note.continues);
         }
     }
-    Controls bassA;
-    bassA.ab = { 1, 0, 0 };
-    CHECK (bassOns (playKit (kit, bassA, 120.0, 0.0, 30000).log).front().note.character == 0);
 
-    for (const double factor : { 1.021, 0.979, 1.5 })
+    SECTION ("a tempo change mid-cycle keeps the cycle's decision; the next cycle decides again")
     {
-        CAPTURE (factor);
-        for (const auto& i : bassOns (playKit (kit, Controls {}, 120.0 * factor, 0.0, 100000).log))
+        Harness h;
+        FakeHost host (48000.0, 512);
+        host.prepare (h);
+        h.pending.publish (&kit);
+        host.setTempo (120.0);
+        host.play (0.0);
+        FakeHost::Output out;
+        host.render (h, Controls {}, 96256, out); // a bar and a block, at the kit's tempo
+        host.setTempo (130.0); // past the tolerance, a bar into the 2-bar cycle
+        host.render (h, Controls {}, 200000, out);
+        // The cycle ends on bar 3: 96256 samples at 120, then (8 quarters - that) at 130.
+        const double rest = (8.0 - 96256.0 / 24000.0) * 60.0 / 130.0 * 48000.0;
+        const auto boundary = static_cast<std::int64_t> (96256.0 + rest);
+        int before = 0, after = 0;
+        for (const auto& i : bassOns (h.loop.voices().log))
         {
-            CHECK (i.note.phrase == -1);
-            CHECK (i.note.slice == -1);
+            if (i.sample < boundary - 1)
+            {
+                ++before;
+                CHECK (i.note.slice >= 0);
+            }
+            else if (i.sample > boundary + 1)
+            {
+                ++after;
+                CHECK (i.note.slice < 0);
+            }
         }
+        CHECK (before >= 12);
+        CHECK (after >= 4);
     }
-    Controls off;
-    off.phrases = PhraseMode::off;
-    for (const auto& i : bassOns (playKit (kit, off, 120.0, 0.0, 100000).log))
-        CHECK (i.note.phrase == -1);
 
-    // The telemetry says which lanes play their recordings.
-    Harness h;
-    FakeHost host (48000.0, 512);
-    host.prepare (h);
-    h.pending.publish (&kit);
-    host.setTempo (120.0);
-    host.play (0.0);
-    FakeHost::Output out;
-    host.render (h, Controls {}, 4096, out);
-    CHECK (h.telemetry.phraseRecorded.load() == laneBit (Lane::bass));
-    host.setTempo (130.0);
-    host.render (h, Controls {}, 4096, out);
-    CHECK (h.telemetry.phraseRecorded.load() == 0u);
+    SECTION ("throws: a slice note's from the phrase's channel, none for a baked phrase; twins keep theirs")
+    {
+        const auto live = bassOns (playKit (kit, Controls {}, 120.0, 0.0, 30000).log);
+        REQUIRE_FALSE (live.empty());
+        CHECK (live.front().note.throwSpace > 0.0f);
+        const Kit baked = phraseKit (PhraseThrow::baked);
+        const auto none = bassOns (playKit (baked, Controls {}, 120.0, 0.0, 30000).log);
+        REQUIRE_FALSE (none.empty());
+        CHECK_FALSE (none.front().note.throwSpace > 0.0f);
+        const auto twins = bassOns (playKit (baked, Controls {}, 130.0, 0.0, 30000).log);
+        REQUIRE_FALSE (twins.empty());
+        CHECK (twins.front().note.slice < 0);
+        CHECK (twins.front().note.throwSpace > 0.0f);
+    }
 
-    // MIDI in on the phrase's channel plays the multisample.
-    host.stop();
-    host.addMidi (host.samplePosition() + 10, 0x90, 40, 100);
-    host.render (h, Controls {}, 512, out);
-    const auto live = ons (h.loop.voices().log);
-    REQUIRE_FALSE (live.empty());
-    CHECK (live.back().note.source == Source::live);
-    CHECK (live.back().note.phrase == -1);
-    CHECK (live.back().note.slice == -1);
+    SECTION ("the telemetry: twins light the lane either way; the voices say which lanes play recordings")
+    {
+        Harness h;
+        FakeHost host (48000.0, 512);
+        host.prepare (h);
+        h.pending.publish (&kit);
+        host.setTempo (120.0);
+        host.play (0.0);
+        FakeHost::Output out;
+        host.render (h, Controls {}, 24064, out);
+        CHECK ((h.telemetry.laneHits.exchange (0) & laneBit (Lane::bass)) != 0u);
+        CHECK (h.telemetry.phraseRecorded.load() == laneBit (Lane::bass));
+        host.setTempo (130.0);
+        host.render (h, Controls {}, 200000, out);
+        CHECK ((h.telemetry.laneHits.exchange (0) & laneBit (Lane::bass)) != 0u);
+        CHECK (h.telemetry.phraseRecorded.load() == 0u);
+
+        // MIDI in on the phrase's channel plays the multisample.
+        host.stop();
+        host.addMidi (host.samplePosition() + 10, 0x90, 40, 100);
+        host.render (h, Controls {}, 512, out);
+        const auto live = ons (h.loop.voices().log);
+        REQUIRE_FALSE (live.empty());
+        CHECK (live.back().note.source == Source::live);
+        CHECK (live.back().note.phrase == -1);
+        CHECK (live.back().note.slice == -1);
+    }
 }
 
 TEST_CASE ("Off plays only MIDI in", "[engine]")

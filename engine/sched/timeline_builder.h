@@ -10,11 +10,13 @@
 //    ends snap with their starts, so a note that ends where a swung note starts still ends exactly
 //    there: no gap, and no overlap a mono legato instrument would glide on.
 // 2. Pre-roll. A note whose sample has preroll_frames starts that much earlier, at the kit's BPM, in
-//    milliticks (frames x bpm / 3); its end stays. The pre-roll is the file's played at the note's
-//    pitch: a key 12 semitones over its zone's root halves it. An A/B pair shifts by the smaller pre-roll
-//    of its two instruments, and the engine skips the rest of the larger one's (startFrame).
+//    milliticks (frames x bpm / 3); its end stays, and Note::preroll keeps the shift (its onset is
+//    pos + preroll). The pre-roll is the file's played at the note's pitch: a key 12 semitones over its
+//    zone's root halves it. An A/B pair shifts by the smaller pre-roll of its two instruments, and the
+//    engine skips the rest of the larger one's (startFrame).
 // 3. The loop wrap (TimelineOptions::loopTicks > 0). Positions wrap into [0, length): a pre-rolled
-//    note at tick 0 moves to the loop's end, and anything at the loop's end (15360) moves to 0. A
+//    note at tick 0 moves to the loop's end (its preroll stays, so its onset is floorMod (pos +
+//    preroll, length)), and anything at the loop's end (15360) moves to 0. A
 //    note may cross the end (pos + len > length); the scheduler ends it in the next cycle. Notes ends
 //    at the loop end come before the notes at 0, because the scheduler sends note-offs first.
 // 4. Round robins and pan indices: per instrument (the keymap's A side), the note's count among that

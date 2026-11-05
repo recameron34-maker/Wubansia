@@ -631,6 +631,7 @@ namespace p7
         int dropped = 0;
         std::array<std::pair<const Kit*, std::int64_t>, kHeld> held {};
         std::array<float, kLanes> laneGains {};
+        std::array<std::int64_t, kLanes> phraseUntil {}; // a slice note-on makes its lane "recorded" for 2000 samples
         int renders = 0;
         int longestRender = 0;
 
@@ -643,6 +644,7 @@ namespace p7
             now = 0;
             queued = 0;
             held.fill ({ nullptr, 0 });
+            phraseUntil.fill (0);
         }
 
         void push (const Item& item) noexcept
@@ -738,6 +740,8 @@ namespace p7
                         channel = kit.phrases[static_cast<std::size_t> (item.note.phrase)].mixChannel;
                     bus.left (channel)[offset] += impulse (item.note);
                     bus.right (channel)[offset] += 0.5f * impulse (item.note);
+                    if (item.note.slice >= 0)
+                        phraseUntil[static_cast<std::size_t> (kit.phrases[static_cast<std::size_t> (item.note.phrase)].lane)] = item.sample + 2000;
                     for (auto& h : held)
                         if (h.second <= item.sample)
                         {
@@ -771,6 +775,15 @@ namespace p7
         }
 
         int droppedEvents() const noexcept { return dropped; }
+
+        std::uint32_t phraseLanes() const noexcept
+        {
+            std::uint32_t lanes = 0;
+            for (int lane = 0; lane < kLanes; ++lane)
+                if (phraseUntil[static_cast<std::size_t> (lane)] > now)
+                    lanes |= 1u << lane;
+            return lanes;
+        }
 
         std::vector<Item> only (Item::Kind kind) const
         {

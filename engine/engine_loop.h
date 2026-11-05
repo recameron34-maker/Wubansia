@@ -37,9 +37,15 @@
 //   note skips its pre-roll, starting on its onset, since it can't be anticipated;
 // - lengthSamples for align=end instruments; rr and panIndex; dip and continues from the note's flags;
 // - throws: (1 - the channel's send level) x cc / 127 x the channel's static gain;
-// - phrase notes play their slice while phrase lanes are on Auto and the tempo is within the phrase's
-//   tolerance of the kit's (abs (bpm / kit bpm - 1) x 1000 <= tolerance_pm), with the stem the phrase's
-//   A/B switch picks; otherwise their multisample. Live notes never play slices.
+// - phrase lanes (sched/timeline.h's three kinds of note): a phrase decides once per onset cycle whether
+//   it plays slices (playsSlices: phrase lanes on Auto and the tempo within the phrase's tolerance of
+//   the kit's), latched per phrase on (the scheduler's epoch, the cycle of the note's onset as a host
+//   position), so a tempo change never splits a cycle and a start, jump or wrap decides afresh. A slice
+//   note plays its slice (the stem its A/B picks) only when the phrase does, with no note-off; its
+//   throws come from the phrase's channel (none for a "baked" phrase), and it continues into the next
+//   slice only within 20 ppm of the kit's tempo. A multisample twin, or a note a slice holds, plays the
+//   multisample only when the phrase doesn't, and lights its lane either way; a slice note never does.
+//   Live notes never play slices.
 
 #include "engine.h"
 #include "mix/mixer.h"
@@ -49,6 +55,7 @@
 #include "sched/midi_router.h"
 #include "sched/scheduler.h"
 #include "sched/timeline_builder.h"
+#include "util/ints.h"
 
 #include <algorithm>
 #include <array>
@@ -106,6 +113,17 @@ namespace wubansia::engine
             return 0.0;
         }
 
+        // Whether a phrase's notes play its slices: P6's playsSlices (sampler/phrase_voice.h on plugin-p6),
+        // the same formula, until that merges. With PhraseMode::automatic, while abs (host - kit) x 1000
+        // <= tolerance_pm x kit (the slack keeps exactly 2 % in).
+        inline bool playsSlices (const Phrase& phrase, std::int32_t kitBpm, double hostBpm, PhraseMode mode) noexcept
+        {
+            if (mode != PhraseMode::automatic || kitBpm <= 0 || ! (hostBpm > 0.0))
+                return false;
+            const auto kit = static_cast<double> (kitBpm);
+            return std::fabs (hostBpm - kit) * 1000.0 <= static_cast<double> (phrase.tolerancePm) * kit + 1.0e-6;
+        }
+
         inline void raisePeak (std::atomic<float>& peak, float value) noexcept
         {
             float current = peak.load (std::memory_order_relaxed);
@@ -122,6 +140,8 @@ namespace wubansia::engine
         static constexpr double kStopFadeSeconds = 0.010; // sequenced voices at a stop or jump
         static constexpr double kKitFadeSeconds = 0.020; // the output before and after a kit switch
         static constexpr double kSoundOffSeconds = 0.005; // live voices at CC120
+        static constexpr int kMaxLatchedPhrases = 32; // phrases with a latched decision; any further decide per note
+        static constexpr double kContinuePpm = 20.0; // slice notes continue within this of the kit's tempo
 
         // Message thread, the audio thread stopped: sizes everything for this rate and 1 or 2 outputs.
         // Voices, position and fades reset; the adopted Kit stays.
@@ -245,12 +265,21 @@ namespace wubansia::engine
             return instrument >= 0 && static_cast<std::size_t> (instrument) < kit_->instruments.size() ? instrument : -1;
         }
 
-        bool phrasePlays (const Phrase& phrase, const Controls& controls) const noexcept
+        // Whether phrase p plays slices for the note whose onset is onsetH: decided once per (epoch, onset
+        // cycle) and latched.
+        bool phraseDecides (int p, std::int64_t onsetH, const Controls& controls) noexcept
         {
-            if (controls.phrases != PhraseMode::automatic || kit_ == nullptr || kit_->info.bpm <= 0)
-                return false;
-            const double off = std::abs (scheduler_.bpm() / kit_->info.bpm - 1.0) * 1000.0;
-            return off <= phrase.tolerancePm + 1.0e-9;
+            const Phrase& phrase = kit_->phrases[static_cast<std::size_t> (p)];
+            const std::int64_t cycleLength = std::int64_t { std::max (1, phrase.cycle16ths) } * kMilliticksPerSixteenth;
+            const std::int64_t cycle = util::floorDiv (onsetH, cycleLength);
+            const std::uint32_t epoch = scheduler_.epoch();
+            auto decide = [&] { return detail::playsSlices (phrase, kit_->info.bpm, scheduler_.bpm(), controls.phrases); };
+            if (p >= kMaxLatchedPhrases)
+                return decide();
+            auto& latch = latches_[static_cast<std::size_t> (p)];
+            if (! latch.valid || latch.epoch != epoch || latch.cycle != cycle)
+                latch = { epoch, cycle, decide(), true };
+            return latch.slices;
         }
 
         // The voice's direct sends for a note's latched throws (0-127) on a mix channel.
@@ -271,7 +300,6 @@ namespace wubansia::engine
         int sequencedOn (const Note& note, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples, std::int64_t startH,
             const Controls& controls) noexcept
         {
-            (void) startH; // the phrase latch's key (next commit)
             if (kit_ == nullptr)
                 return -1;
             const Kit& kit = *kit_;
@@ -281,6 +309,18 @@ namespace wubansia::engine
                 return -1;
             const Instrument& in = kit.instruments[static_cast<std::size_t> (instrument)];
 
+            // A phrase's notes: its decision for this onset cycle picks the slice note or the multisample.
+            const bool phraseNote = note.phrase >= 0 && static_cast<std::size_t> (note.phrase) < kit.phrases.size();
+            const bool sliceNote = phraseNote && note.slice >= 0;
+            if (phraseNote)
+            {
+                const bool slices = phraseDecides (note.phrase, startH + note.preroll, controls);
+                if (! sliceNote)
+                    hits_ |= laneBit (in.lane); // the twin lights its lane, played or not
+                if (slices != sliceNote)
+                    return -1;
+            }
+
             NoteOn on;
             on.instrument = static_cast<std::int16_t> (instrument);
             on.key = note.key;
@@ -288,34 +328,43 @@ namespace wubansia::engine
             on.rr = note.rr;
             on.panIndex = note.panIndex;
             on.dip = (note.flags & NoteFlag::dip) != 0;
-            on.continues = (note.flags & NoteFlag::continues) != 0;
             on.source = Source::sequencer;
             on.offset = offset;
-            on.lengthSamples = in.align == Align::end ? std::max<std::int64_t> (1, lengthSamples) : 0;
 
             double frames = chaseSamples > 0 ? static_cast<double> (chaseSamples) * kContentSampleRate / rate_ : 0.0;
             int mixChannel = in.mixChannel;
-            if (note.phrase >= 0 && note.slice >= 0 && static_cast<std::size_t> (note.phrase) < kit.phrases.size()
-                && phrasePlays (kit.phrases[static_cast<std::size_t> (note.phrase)], controls))
+            bool throwsLive = true;
+            if (sliceNote)
             {
                 const Phrase& phrase = kit.phrases[static_cast<std::size_t> (note.phrase)];
                 on.phrase = note.phrase;
                 on.slice = note.slice;
                 on.character = phrase.ab >= 0 && phrase.ab < kAbSwitches ? controls.ab[static_cast<std::size_t> (phrase.ab)] : 0;
+                // Off the kit's exact tempo the next slice's note won't land where this one ends: each is
+                // its own head.
+                on.continues = (note.flags & NoteFlag::continues) != 0
+                               && std::abs (scheduler_.bpm() - kit.info.bpm) <= kContinuePpm * 1.0e-6 * kit.info.bpm;
                 mixChannel = phrase.mixChannel;
+                throwsLive = phrase.throwMode != PhraseThrow::baked;
             }
             else
             {
+                on.continues = (note.flags & NoteFlag::continues) != 0;
+                on.lengthSamples = in.align == Align::end ? std::max<std::int64_t> (1, lengthSamples) : 0;
                 // The pre-roll this instrument has beyond the timeline's shift (the smaller of an A/B pair's).
                 const double own = detail::prerollAt (kit, instrument, note.key);
                 if (own > 0.0 && target.b >= 0)
                     frames += own - std::min (detail::prerollAt (kit, target.a, note.key), detail::prerollAt (kit, target.b, note.key));
             }
             on.startFrame = static_cast<std::int64_t> (std::floor (frames + 0.5));
-            throws (mixChannel, note.throwSpace, note.throwEcho, controls, on);
+            if (throwsLive)
+                throws (mixChannel, note.throwSpace, note.throwEcho, controls, on);
 
             voices_.noteOn (kit, on);
-            hits_ |= laneBit (in.lane);
+            if (sliceNote)
+                return -1; // a slice has no note-off: no sounding entry
+            if (! phraseNote)
+                hits_ |= laneBit (in.lane);
             return instrument;
         }
 
@@ -474,6 +523,15 @@ namespace wubansia::engine
 
         const Kit* kit_ = nullptr;
         const Kit* next_ = nullptr; // taken from the pending slot for a planned switch
+
+        struct Latch
+        {
+            std::uint32_t epoch = 0;
+            std::int64_t cycle = 0;
+            bool slices = false;
+            bool valid = false;
+        };
+        std::array<Latch, kMaxLatchedPhrases> latches_ {}; // per phrase: its decision for one onset cycle
         std::array<const Kit*, kFadingKits> fading_ {};
         int fadingCount_ = 0;
 
@@ -568,12 +626,7 @@ namespace wubansia::engine
         // 4. Retired kits, and the telemetry.
         retireFaded (retired);
         telemetry.laneHits.fetch_or (hits_, std::memory_order_relaxed);
-        std::uint32_t recorded = 0;
-        if (kit_ != nullptr && scheduler_.playing())
-            for (const auto& phrase : kit_->phrases)
-                if (phrasePlays (phrase, controls))
-                    recorded |= laneBit (phrase.lane);
-        telemetry.phraseRecorded.store (recorded, std::memory_order_relaxed);
+        telemetry.phraseRecorded.store (voices_.phraseLanes(), std::memory_order_relaxed);
         for (std::size_t lane = 0; lane < static_cast<std::size_t> (kLanes); ++lane)
             detail::raisePeak (telemetry.lanePeak[lane], peaks_[lane]);
         telemetry.gainReduction.store (reduction_, std::memory_order_relaxed);

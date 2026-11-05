@@ -249,8 +249,10 @@ TEST_CASE ("pre-roll starts a note its sample's pre-roll early at the kit's BPM,
         REQUIRE (t.notes.size() == 2u);
         CHECK (t.notes[0].pos == -shift); // before the song's start: its onset is on tick 0
         CHECK (t.notes[0].len == 480000 + shift); // the end stays
+        CHECK (t.notes[0].preroll == shift); // the onset: pos + preroll
         CHECK (t.notes[1].pos == 7680000 - shift);
         CHECK (t.notes[1].len == 1440000 + shift);
+        CHECK (t.notes[1].preroll == shift);
     }
 
     SECTION ("at the note's pitch: an octave up halves it, a fifth down lengthens it")
@@ -259,6 +261,7 @@ TEST_CASE ("pre-roll starts a note its sample's pre-roll early at the kit's BPM,
         const auto t = build (bytes, m, synMix(), 0);
         REQUIRE (t.notes.size() == 2u);
         CHECK (t.notes[0].pos == 3840000 - shift / 2);
+        CHECK (t.notes[0].preroll == shift / 2);
         CHECK (std::bit_cast<std::uint64_t> (semitoneRatio (12)) == std::bit_cast<std::uint64_t> (2.0));
         CHECK (std::bit_cast<std::uint64_t> (semitoneRatio (-12)) == std::bit_cast<std::uint64_t> (0.5));
         CHECK (semitoneRatio (-7) == Catch::Approx (std::pow (2.0, -7.0 / 12.0)).epsilon (1e-15));
@@ -276,6 +279,8 @@ TEST_CASE ("pre-roll starts a note its sample's pre-roll early at the kit's BPM,
         CHECK (t.notes[1].pos == kLoopLength - shift);
         CHECK (t.notes[1].len == 480000 + shift);
         CHECK (t.notes[1].pos + t.notes[1].len > t.length);
+        CHECK (t.notes[1].preroll == shift); // unwrapped: floorMod (pos + preroll, length) is tick 0
+        CHECK (((t.notes[1].pos + t.notes[1].preroll) % t.length) == 0);
     }
 
     SECTION ("an A/B pair shifts by the smaller pre-roll of its two instruments")
@@ -284,6 +289,7 @@ TEST_CASE ("pre-roll starts a note its sample's pre-roll early at the kit's BPM,
         const auto t = build (bytes, m, synMix(), 0);
         REQUIRE (t.notes.size() == 1u);
         CHECK (t.notes[0].pos == 3840000 - framesToMilliticks (480, kSynBpm)); // chop_b's 480, not chop_a's 960
+        CHECK (t.notes[0].preroll == framesToMilliticks (480, kSynBpm));
     }
 
     SECTION ("instruments without pre-roll stay on their ticks")
@@ -291,6 +297,9 @@ TEST_CASE ("pre-roll starts a note its sample's pre-roll early at the kit's BPM,
         const auto t = build (synLoopSmf(), m, synMix(), 15360);
         CHECK (findNote (t, 10, 36, 0) != nullptr);
         CHECK (findNote (t, 7, 48, 11520000) != nullptr);
+        for (const auto& n : t.notes)
+            CHECK (n.preroll == (n.channel == 4 ? n.preroll : 0));
+        CHECK (findNote (t, 10, 36, 0)->preroll == 0);
     }
 }
 
@@ -765,8 +774,10 @@ TEST_CASE ("P0's synthetic kit's four files build: sorted notes, lengths, sectio
         if (! t.loops)
             CHECK (t.sections.size() >= 3u); // Intro, Drop, Outro
         CHECK (std::is_sorted (t.chase.begin(), t.chase.end()));
-        // The swung 16ths (written 29 ticks late) sit on the exact 28.8.
+        // The swung 16ths (written 29 ticks late) sit on the exact 28.8. (A slice note, from P6's matcher,
+        // sits where its slice starts.)
         for (const auto& n : t.notes)
-            CHECK (((n.pos % 480000) + 480000) % 480000 != 240000 + 29000);
+            if (n.slice < 0)
+                CHECK (((n.pos + n.preroll) % 480000 + 480000) % 480000 != 240000 + 29000);
     }
 }
