@@ -651,6 +651,15 @@ def multisample_checks(kit, renders, root=None):
     cap = references(kit, 'vox')
     phrases = set(phrase_channels(kit, root))
     out = []
+    # the whole loop with the phrase lanes on their multisamples, at the kit's tempo, against the Club loop
+    from tools.sound import engine_ref as E
+    _, club_item = E.items(kit, 'vox')
+    club_ref, club_rep = E.reference(kit, club_item)
+    mixed = load(wav_path(renders, kit, name))
+    if mixed is not None:
+        r = compare(mixed[0][L:2 * L] * D.undb(club_rep['gain_db']), club_ref, E.full_kicks(kit))
+        out.append(Check(kit, 'multisample', f'club mix with phrases off vs {club_item}', r['diff'], None,
+                         'the phrase lanes on their multisamples at the kit tempo'))
     lanes = {c['id']: c['lane'] for c in m['channels']}
     for ph in sorted(phrases):
         lane = lanes.get(ph)
@@ -857,7 +866,7 @@ def report_md(checks, kits):
         if not ks:
             continue
         lines += [f'## {kit}', '']
-        gate_rows = [c for c in ks if c.group in ('mix', 'dry', 'low', 'master') or (c.group == 'tempo' and 'lufs_i' in c.values)]
+        gate_rows = [c for c in ks if c.group in ('mix', 'dry', 'low', 'master') or (c.group in ('tempo', 'multisample') and 'lufs_i' in c.values)]
         if gate_rows:
             lines += ['| check | LUFS-I | short-term | worst 1/3 oct | true peak | kick crest | result |',
                       '|---|---|---|---|---|---|---|']
@@ -866,7 +875,7 @@ def report_md(checks, kits):
                 lines.append(f"| {c.group}: {c.name} | {_fmt(v.get('lufs_i'))} | {_fmt(v.get('lufs_s'))} | {_fmt(v.get('bands'))} "
                              f"| {_fmt(v.get('true_peak'))} | {_fmt(v.get('kick_crest'))} | {verdict(c.ok, c.known)} |")
             lines.append('')
-        lane_rows = [c for c in ks if c.group in ('lane', 'multisample') or (c.group == 'tempo' and 'clicks' in c.values)]
+        lane_rows = [c for c in ks if (c.group in ('lane', 'multisample') and 'lufs_i' not in c.values) or (c.group == 'tempo' and 'clicks' in c.values)]
         if lane_rows:
             lines += ['| lane | null pass 1 (shift) | null pass 2 (shift) | worst band | level | result |',
                       '|---|---|---|---|---|---|']
