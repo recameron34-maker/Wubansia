@@ -484,10 +484,12 @@ def zone_root(m, ch):
 
 class TestReadme(unittest.TestCase):
     def test_the_readme_lists_the_multisample_cycles_and_the_derived_stems(self):
-        """content/plugin/README.md lists, as plugin_kit.py --report prints them, the extended mixes' cycles that play
-        the multisample on a phrase lane, and every derived stem with its size."""
+        """content/plugin/README.md lists each kit's manifest (its size and counts), the extended mixes' cycles that
+        play the multisample on a phrase lane (as plugin_kit.py --report prints them), and every derived stem with its
+        size."""
         text = (REPO / 'content' / 'plugin' / 'README.md').read_text(encoding='utf-8')
         for kit in KITS:
+            self.assertIn(PK.summary_row(kit), text)
             for line in PK.report(kit):
                 self.assertIn(line, text)
             m = manifest(kit)
