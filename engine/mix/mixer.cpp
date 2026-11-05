@@ -26,13 +26,13 @@ namespace wubansia::engine
 
     void Mixer::prepare (double sampleRate, int maxBlock, int numOutputs, MasterHold hold)
     {
-        (void) hold; // the club master's hold: wired in the next commit
         impl->sampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
         impl->maxBlock = std::max (1, maxBlock);
         impl->numOutputs = std::clamp (numOutputs, 1, 2);
         bus_.prepare (kMaxMixChannels, impl->maxBlock);
         sends_.prepare (impl->maxBlock);
-        impl->graph.prepare (impl->sampleRate, impl->maxBlock);
+        impl->graph.prepare (impl->sampleRate, impl->maxBlock,
+            hold == MasterHold::twoSided ? fx::Limiter::Hold::twoSided : fx::Limiter::Hold::lookBack);
         impl->prepared = true;
     }
 

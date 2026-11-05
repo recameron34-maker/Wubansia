@@ -136,7 +136,7 @@ namespace wubansia::engine::mix
         return a3v;
     }
 
-    void MixGraph::prepare (double sampleRate, int maxBlockSize)
+    void MixGraph::prepare (double sampleRate, int maxBlockSize, fx::Limiter::Hold hold)
     {
         fs = sampleRate;
         maxBlock = std::max (1, maxBlockSize);
@@ -178,7 +178,7 @@ namespace wubansia::engine::mix
         space.prepare (fs);
         echo.prepare (fs);
         resonator.prepare (fs);
-        master.prepare (fs, maxBlock);
+        master.prepare (fs, maxBlock, hold);
         plainL.prepare (static_cast<std::size_t> (latency() + 2));
         plainR.prepare (static_cast<std::size_t> (latency() + 2));
         for (auto* r : { &spaceMacro, &echoMacro, &pumpMacro, &busMix })

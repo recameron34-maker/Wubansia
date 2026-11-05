@@ -72,6 +72,28 @@ TEST_CASE ("latency: fixed per rate, whatever the kit: 64 + the club master's", 
     CHECK (mix::ClubMaster::latencyFor (48000.0) == 23 + 48 + 289);
 }
 
+TEST_CASE ("latency: the master's hold sets the total: 424 looking back, 3280 two-sided at 48 kHz", "[latency]")
+{
+    // MasterHold::twoSided is master.py's hold, for groovecore render's verification renders: 64 + 23 + 48 + 3145
+    Mixer live;
+    live.prepare (48000.0, 256, 2);
+    CHECK (live.latencySamples() == 424);
+    Mixer exact;
+    exact.prepare (48000.0, 256, 2, MasterHold::twoSided);
+    CHECK (exact.latencySamples() == 3280);
+    const auto busy = busyMix();
+    exact.setConfig (&busy);
+    CHECK (exact.latencySamples() == 3280);
+
+    // and an impulse comes out exactly that late through the two-sided master
+    const auto cfg = makeMix ({ channel ("pad", Lane::chords) });
+    Mixer mixer;
+    mixer.prepare (48000.0, 512, 2, MasterHold::twoSided);
+    mixer.setConfig (&cfg);
+    const auto out = run (mixer, 8192, 512, 2, impulse (1000, 0.25f), 1);
+    CHECK (static_cast<int> (peakAt (out)) == 1000 + 3280);
+}
+
 TEST_CASE ("latency: the reported latency is the measured impulse delay, the club master on and off", "[latency]")
 {
     const double rate = GENERATE (44100.0, 48000.0, 96000.0);
