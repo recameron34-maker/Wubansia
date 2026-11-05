@@ -89,9 +89,10 @@ instrument, and the sound on each key of channels 6, 7 and 8.
   FUT04's values are 0 at rest, where the samples play as they are. Each kit's README and the extended mixes'
   `regions.json` give the same ranges.
 - **Throws:** CC91 (Space) and CC94 (Echo) go to 127 on a thrown note's tick, before its note-on, and back to 0 at its
-  note-off: FUT02's vox throw, FUT04's vox throws and thrown accents, and every vox note an extended mix throws.
-  Wubansia latches them per note (send = base + (1 - base) x value / 127). They are the GS send controllers, so other
-  samplers either use them or ignore them.
+  note-off, or sooner at the next note-on on its track that isn't thrown (on that tick, before the note-on), so no
+  other note takes the throw: FUT02's vox throw, FUT04's vox throws and thrown accents, and every vox note an extended
+  mix throws. Wubansia latches them per note (send = base + (1 - base) x value / 127). They are the GS send
+  controllers, so other samplers either use them or ignore them.
 
 ## Tracks
 One track per instrument, each resolving to one Wubansia lane (`channels.track_lane`): Kick and Rumble (kick), Snare,
