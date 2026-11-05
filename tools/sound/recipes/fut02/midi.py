@@ -135,8 +135,10 @@ def ramp(a, b):
 # - the pad plays where nothing plays B-flat: the B-flat maj9 stabs' root B-flat 3 is a semitone over its A3;
 # - the arp's filter ride (CC74): closed and held low in the groove (12, then 20: 2-2.3 kHz), opening slowly into the
 #   break, from closed to fully open across the build, the loop's own ride in the drops;
-# - the laser fill ends the lines into the breaks, the build and the drops; a turnaround (TURN) every other line;
-#   the stab cue (B-flat maj9 on the 'and' of 4, the VI into the i) where no pad and no arp's E5 meet it.
+# - the laser fill (and the drop glide, under Orbit) ends the lines into break 1, the build, both drops and the outro,
+#   and the drops' and the groove's 16-bar halves; a turnaround (TURN) ends each of the rest that has a clap or zaps
+#   to turn; break 2 comes in on the starfield sweep, the switch-up on the drums' silence and the reverse chord;
+# - the stab cue (B-flat maj9 on the 'and' of 4, the VI into the i) where no pad and no arp's E5 meet it.
 GROOVE = DRUMS + ' bass'
 FORM = (
     section('Intro', 'intro', (                       # 1-32: drums to mix in on, the kick alone first
