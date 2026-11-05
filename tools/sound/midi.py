@@ -253,7 +253,8 @@ def line(lanes, **opt):
       fill from beat 3, where the loop plays its beat 4 only);
     - end: 'fill' (the last bar is the loop's fill bar, with the kit's fill: a Fill cue), 'turn' (a turnaround in the
       last bar: PARTS['drums']['turn'], else a pickup roll on the last beat of the snare, the perc or the hats, the
-      first with room for it) or 'drop' (the drums sit out the last bar);
+      first with room for it) or 'drop' (the drums sit out the last bar); turn: a named turnaround,
+      PARTS['drums']['turns'][name], in place of PARTS['drums']['turn'];
     - cue: 'Riser' (the kit's riser, end-aligned on the line's end: put it on a section's last line) or 'Vox' (a
       label: the vox notes play);
     - ride: {track: 'loop' (the default) | ('hold', value) | ('ramp', from, to)}: the filter rides."""
@@ -1137,11 +1138,18 @@ def pickup_lane(k, lanes, out, bar_lo):
     return None
 
 
-def turnaround(k, part, notes, bar_lo, pickup=None):
-    """The line's last bar as a turnaround: PARTS['drums']['turn'][part] (a bar of notes) in place of the bar, else on
-    the pickup lane (pickup_lane()) a pickup roll on its most written note, the last beat's 'e', 'and' and 'a' at 0.45,
-    0.6 and 0.75 of the lane's loudest velocity, in place of that note's own there; every other note kept."""
-    authored = k.P['drums'].get('turn')
+def turnaround(k, part, notes, bar_lo, pickup=None, name=None):
+    """The line's last bar as a turnaround: PARTS['drums']['turn'][part] (a bar of notes; a named one,
+    PARTS['drums']['turns'][name], where the line asks for it) in place of the bar, else on the pickup lane
+    (pickup_lane()) a pickup roll on its most written note, the last beat's 'e', 'and' and 'a' at 0.45, 0.6 and 0.75 of
+    the lane's loudest velocity, in place of that note's own there; every other note kept."""
+    if name is not None:
+        turns = k.P['drums'].get('turns', {})
+        if name not in turns:
+            raise ValueError(f"{k.kit}: no turnaround called {name!r} in PARTS['drums']['turns']")
+        authored = turns[name]
+    else:
+        authored = k.P['drums'].get('turn')
     if authored is not None:
         if part not in authored:
             return notes
@@ -1373,7 +1381,7 @@ def line_notes(k, ln, ctx, variant):
         for part in DRUM_PARTS:
             t = k.part_track(part)
             if part in lanes and t in out:
-                out[t] = turnaround(k, part, out[t], last_bar, pickup)
+                out[t] = turnaround(k, part, out[t], last_bar, pickup, ln.get('turn'))
     if 'rise' in ln:
         lane, a, z = ln['rise']
         for t in ([k.part_track(lane)] if lane in DRUM_PARTS else [lane]):
@@ -1498,6 +1506,8 @@ def line_info(k, ln, got, start, variant='vox'):
         info['end'] = ln['end']
     if ln.get('fill') and ln.get('end') == 'fill':
         info['fill'] = ln['fill']
+    if ln.get('turn') and ln.get('end') == 'turn':
+        info['turn'] = ln['turn']
     return info
 
 
@@ -1827,8 +1837,10 @@ def describe_line(k, ln):
     if ln.get('end'):
         words_.append({'fill': 'the fill in its last bar', 'turn': 'a turnaround in its last bar',
                        'drop': 'the drums out in its last bar'}[ln['end']])
-    if ln.get('fill'):
+    if ln.get('fill') and ln.get('end') == 'fill':
         words_[-1] = f"the fill ({words(ln['fill'])}) in its last bar, the drums out from its start"
+    if ln.get('turn') and ln.get('end') == 'turn':
+        words_[-1] = f"a turnaround ({ln['turn']}) in its last bar"
     return '; '.join(words_)
 
 
