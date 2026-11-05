@@ -5,6 +5,7 @@ fixed order, with SHA256SUMS and README.txt (ADR 0022). Two runs give the same b
     python3 tools/content/pack.py --kit FUT01 --out DIR      # DIR/Wubansia-Content-FUT01-v1.zip
     python3 tools/content/pack.py --out DIR                  # every kit in content/plugin
     python3 tools/content/pack.py --kit FUT01 --list         # the listed files' paths, for git lfs pull --include
+    python3 tools/content/pack.py --check                    # every listed file is here, as kit.json says
 
 Each zip holds:
     Wubansia Content/README.txt                  dist/README.txt, the same in every zip
@@ -119,6 +120,35 @@ def pack(kit, samples, out_dir, readme):
     return write_zip(kit, read_kit(kit, samples), out_dir, readme)
 
 
+def check_files(kit, samples):
+    """(how many listed files are LFS pointers, how many are samples, problems): each listed file must be in the
+    kit's folder, as a Git LFS pointer whose oid is kit.json's SHA-256 (a checkout without LFS, as CI's) or as the
+    sample itself, checked like pack(). Reads only the pointers' first bytes, so it costs no LFS download."""
+    src = KF.kit_source(samples, kit)
+    pointers, samples_found, problems = 0, 0, []
+    for f in kit.files:
+        path = src / f.path
+        if not path.is_file():
+            problems.append(f'{f.path}: missing from {src}')
+            continue
+        if KF.is_lfs_pointer(path):
+            with open(path, 'rb') as fh:
+                oid = KF.lfs_oid(fh.read(KF.LFS_POINTER_MAX + 1))
+            if oid is None:
+                problems.append(f'{f.path}: an LFS pointer without a sha256 oid')
+            elif oid != f.sha256:
+                problems.append(f"{f.path}: its LFS pointer's oid is {oid}, kit.json says {f.sha256}")
+            else:
+                pointers += 1
+            continue
+        _, problem = KF.read_checked(path, f)
+        if problem:
+            problems.append(f'{f.path}: {problem}')
+        else:
+            samples_found += 1
+    return pointers, samples_found, problems
+
+
 def listed_paths(kit, samples, shown):
     """The listed files' paths under samples, spelled from `shown` (how that folder was named), in kit.json's order."""
     sub = KF.kit_source(samples, kit).relative_to(samples).as_posix()
@@ -134,6 +164,9 @@ def main(argv=None):
     what.add_argument('--out', type=Path, metavar='DIR', help='where to write the zips')
     what.add_argument('--list', action='store_true',
                       help="print each listed file's path (repo-relative by default) and pack nothing")
+    what.add_argument('--check', action='store_true',
+                      help='check every listed file is here, as an LFS pointer with its SHA-256 or as the sample, '
+                           'and pack nothing (no LFS download)')
     ap.add_argument('--samples', metavar='DIR',
                     help='a folder of <kit>/ (or <kit>/v<N>/) folders; default: content/samples')
     ap.add_argument('--manifests', type=Path, default=KF.MANIFESTS, metavar='DIR',
@@ -146,6 +179,21 @@ def main(argv=None):
         print(f'pack.py: {e}', file=sys.stderr)
         return 2
     samples = Path(args.samples) if args.samples else KF.SAMPLES
+
+    if args.check:
+        status = 0
+        for kit in kits:
+            pointers, found, problems = check_files(kit, samples)
+            src = KF.kit_source(samples, kit)
+            if problems:
+                print(f'pack.py: {kit.label}: {KF.plural(len(problems), "problem")} in {src}:', file=sys.stderr)
+                for line in KF.summarize(problems):
+                    print(f'  {line}', file=sys.stderr)
+                status = 1
+            else:
+                print(f'{kit.label}: all {len(kit.files)} files kit.json lists are in {src} ({pointers} as LFS '
+                      f'pointers, {found} as samples), with its SHA-256')
+        return status
 
     if args.list:
         shown = args.samples if args.samples else 'content/samples'
