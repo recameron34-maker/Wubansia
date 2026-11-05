@@ -27,8 +27,18 @@ namespace wubansia::engine
     namespace NoteFlag
     {
         inline constexpr std::uint8_t endAligned = 1 << 0; // the sample's end lands on the note's end at the current tempo
-        inline constexpr std::uint8_t chase = 1 << 1; // longer than a beat: listed in Timeline::chase, started mid-sample after a seek
+
+        // A note a start or seek must chase, listed in Timeline::chase: (i) a note longer than a beat;
+        // (ii) a note pre-roll moved earlier, so starting at its onset still plays it instead of dropping
+        // it; (iii) a phrase-matched note (slice >= 0), which the phrase voice chases mid-slice.
+        inline constexpr std::uint8_t chase = 1 << 1;
+
         inline constexpr std::uint8_t continues = 1 << 2; // a phrase slice whose next slice follows contiguously
+
+        // A legato note that glides over its instrument's glide.dip_us: a dip (a legato note whose next
+        // legato note returns to the pitch before it) and that returning note. The builder sets it on
+        // both notes of the pair; live MIDI never does.
+        inline constexpr std::uint8_t dip = 1 << 3;
     }
 
     struct Note
@@ -93,7 +103,9 @@ namespace wubansia::engine
         std::vector<DuckKey> keys; // by pos
         std::vector<Section> sections; // FF 06, by pos
         std::vector<Section> cues; // FF 07, by pos
-        std::vector<std::uint32_t> chase; // indices into notes of the notes longer than a beat, by pos
+        // Indices into notes of every note with NoteFlag::chase (longer than a beat, moved earlier by
+        // pre-roll, or phrase-matched), by pos. The builder makes it after annotatePhrases.
+        std::vector<std::uint32_t> chase;
 
         friend bool operator== (const Timeline&, const Timeline&) = default;
     };
