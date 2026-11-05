@@ -3,8 +3,8 @@
 plugin_mix.py and engine_ref.py read it through kits.load('FUT02').RECIPES.
 
 The accents get a channel each (each sound has its own sends); the bass line and the drop glide get one each (the
-glide has its own sidechain); the arp's vox pocket becomes two level ducks keyed on the vox channel and bar 1's
-backbeat carve is dropped (both approved: position rides have no insert).
+glide has its own sidechain); the arp's vox pocket becomes two onset ducks keyed on the vox notes (POCKET) and bar 1's
+backbeat carve is dropped (position rides have no insert).
 """
 import numpy as np
 
@@ -17,8 +17,13 @@ R5_LOOPS = {'vox': ('ContextVoxSynthWet', 'ContextVoxSynthClub'), 'novox': ('Con
 ACCENTS = {'LaserChordStab': 'acc_laser', 'GlassPing': 'acc_glass', 'StarfieldSweep': 'acc_sweep',
            'ReverseChord': 'acc_revchord', 'ArpStab': 'acc_arpstab'}
 ARP = (1600.0, 16000.0)             # the arp's CC74 map: context.ARP_RIDE
-POCKET = {'attack': 0.005, 'release': 1.0, 'range': 36.0, 'under_top': 6.0}   # fitted to the recipe's rides (pass 2,
-# the least squares in dB over a grid): mean depth -0.87 dB against the ride's -0.90, the carve -2.17 against -2.24
+# the arp's vox pocket (context5.ARP_POCKET over 16ths 16-44, a ride with an 80 ms pre-roll and 20 ms raised-cosine
+# ramps) as onset ducks keyed on the vox notes, placed early by the ride's pre-roll and ramp; each holds over the riff's
+# longest gap between notes (4 16ths, 461.5 ms), so the pocket stays down from before the first note to the last. The
+# carve's band is fitted against the gates: the causal LR4 band added to the signal barely cuts near its lower edge
+# (it lifts 1.5 dB at 1.3 kHz where the recipe's zero-phase band cuts 2.7), so {700, 6500} at 4 dB stands in for the
+# recipe's {1200, 6500} at 5 dB (FUT02 vox: the 1.6 kHz third octave +0.34 dB, the kick crest 0.38 dB)
+POCKET = {'pre': 0.100, 'ramp': 0.020, 'hold': 0.470, 'release': 0.020, 'carve_hz': (700.0, 6500.0), 'carve_db': 4.0}
 
 
 def render(version):
@@ -146,21 +151,23 @@ def rules(variant):
                                             'ride on CC74: plugin_mix.ride_points)'),
         Rule('(context.ride_hz|dsp48.svf_tpt)', 'live', "the cc_filter's ride and TPT SVF",
              under='context.filter_ride'),
-        Rule('context.ride_db', 'causal', 'the vox pocket (16-44, -2 dB): a level duck keyed on the vox channel',
+        Rule('context.ride_db', 'causal', 'the vox pocket (16-44, -2 dB): onset ducks keyed on the vox notes, '
+                                          'placed 100 ms early as the ride is (POCKET)',
              under='context5.arp_lane', when=lambda c: c.nth == 0 and pocket(c)),
         Rule('context.ride_db', 'structure', 'no pocket without the vox', under='context5.arp_lane',
              when=lambda c: c.nth == 0),
         Rule('context.ride_db', 'dropped', "bar 1's backbeat carve (4 dB in 1.2-6.5 kHz from 100 ms before claps "
                                            "4 and 12): position automation the mix has no insert for (approved); the "
-                                           "vox pocket's carve rows become a band level duck on the vox",
+                                           "vox pocket's carve rows become a band onset duck on the vox notes",
              under='context5.arp_lane', when=lambda c: c.nth == 1 and backbeat(c)),
-        Rule('dsp48.undb', 'causal', 'the pocket as a level duck (whole band)', under='context5.arp_lane',
+        Rule('dsp48.undb', 'causal', 'the pocket as an onset duck on the vox notes (whole band)',
+             under='context5.arp_lane',
              when=nth(0)),
         Rule('dsp48.undb', 'causal' if vox else 'dropped',
-             'the carve as a band level duck on the vox' if vox else 'the backbeat carve (dropped)',
+             'the carve as a band onset duck on the vox notes' if vox else 'the backbeat carve (dropped)',
              under='context5.arp_lane', when=nth(1)),
         Rule('dsp48.bfilt', 'causal' if vox else 'dropped',
-             "the carve's zero-phase band-pass: the level duck's LR4 band {1200, 6500}" if vox
+             "the carve's zero-phase band-pass: the duck's LR4 band, fitted ({700, 6500}: POCKET)" if vox
              else "the backbeat carve's band (dropped)", under='context5.arp_lane'),
         Rule('phrase.pump_db', 'live', 'channels[glide].inserts: an onset duck keyed on the kick lane (6 dB, '
                                        '2/20/120 ms; the kicks it keys sound only under the glide)',
@@ -194,17 +201,15 @@ def rules(variant):
     )
 
 
-def arp_pocket(caps):
-    """The vox pocket on the arp (ARP_POCKET: 2 dB down, its carve band 5 dB further, over 16ths 16-44, a ride in
-    the recipe) as two level ducks keyed on the vox channel (approved): the whole band and the carve band, each full
-    while the vox sounds within POCKET['under_top'] of its loudest block and out by POCKET['range'] under that, a fast
-    attack and a release that holds over the riff's rests (POCKET, fitted to the rides)."""
-    from tools.sound.recipes.fut02 import context as C, context5 as C5
-    top = caps['vox'].values[('top', 'space')] - POCKET['under_top']
-    (duck_rows,), (carve_rows,) = C5.ARP_POCKET[C5.VOX]
-    return [PM.duck_level('vox', -duck_rows[2], POCKET['range'], top, POCKET['attack'], POCKET['release']),
-            PM.duck_level('vox', -carve_rows[2], POCKET['range'], top, POCKET['attack'], POCKET['release'],
-                          C.CARVE_HZ)]
+def arp_pocket():
+    """The vox pocket on the arp (POCKET): the whole band down 2 dB and the carve band 4 dB more, keyed on the vox
+    lane's notes (FUT02's vox instruments set duck_key), the Pump macro leaving them alone."""
+    from tools.sound.recipes.fut02 import context5 as C5
+    (duck_rows,), _ = C5.ARP_POCKET[C5.VOX]
+    p = POCKET
+    return [PM.duck_onset(('vox',), -duck_rows[2], p['ramp'], p['hold'], p['release'], 1, p['pre'], pump=False),
+            PM.duck_onset(('vox',), p['carve_db'], p['ramp'], p['hold'], p['release'], 1, p['pre'], p['carve_hz'],
+                          pump=False)]
 
 
 def build(caps):
@@ -230,7 +235,7 @@ def build(caps):
         ch('bass', 'bass', 'none', bass_fader, sends('bass')),
         ch('glide', 'bass', 'none', [PM.pump_duck(C.GLIDE_DUCK)] + bass_fader, sends('bass')),
         ch('pad', 'chords', 'music', fader('pad') + [pump], sends('pad')),
-        ch('arp', 'lead', 'music', [PM.cc_filter('lowpass', *ARP, C.ARP_RIDE['q'], C.ARP_RIDE['q'])] + arp_pocket(caps)
+        ch('arp', 'lead', 'music', [PM.cc_filter('lowpass', *ARP, C.ARP_RIDE['q'], C.ARP_RIDE['q'])] + arp_pocket()
            + fader('arp') + [pump], sends('arp')),
         ch('fill', 'fx', 'music', fader('fill') + [room], sends('fill')),
         ch('vox', 'vox', 'music', [PM.clip(v[('clip', 'vox', 0, '')], C5.VOX_CLIP['knee_db']),
@@ -256,10 +261,14 @@ def build(caps):
     return chans, groups, returns, {'vox': [], 'novox': []}, MS.settings(K, max_reduction_db=C.MASTER_REDUCTION_DB)
 
 
-def keys():
-    from tools.sound.recipes.fut02 import context as C
-    return tuple([('kick', C.G.at(s), PM.iround(v, 127)) for s, v in C.KICK]
-                 + [('snare', C.G.at(s), PM.iround(v, 127)) for s, v in C.CLAP])
+def keys(variant='vox'):
+    """The duck keys: the kicks, the claps (snare lane) and, with the vox synth, the riff's notes on the vox lane."""
+    from tools.sound.recipes.fut02 import context as C, context5 as C5, voxsynth as Vs
+    out = [('kick', C.G.at(s), PM.iround(v, 127)) for s, v in C.KICK]
+    out += [('snare', C.G.at(s), PM.iround(v, 127)) for s, v in C.CLAP]
+    if variant == 'vox':
+        out += [('vox', C.G.at(C5.RIFF_AT + s), PM.iround(v, 127)) for s, _, _, v in Vs.RIFF]
+    return tuple(out)
 
 
 def loop_info():

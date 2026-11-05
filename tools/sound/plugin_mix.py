@@ -290,10 +290,12 @@ def curve_points(curve, L, value):
 
 
 # ------------------------------------------------------------------ the score engine_ref plays the ducks from
-def keys(kit):
-    """The duck keys of the loop, (lane, sample in the loop, velocity 1-127): the kick and clap (snare) parts as the
-    MIDI has them, velocity round(v x 127), the layer's own (the kit module's keys())."""
-    return tuple(kit_module(kit).keys())
+def keys(kit, variant='vox'):
+    """The duck keys of the loop in a variant, (lane, sample in the loop, velocity 1-127): the notes of the duck-key
+    instruments as the MIDI has them, velocity round(v x 127), the layer's own (the kit module's keys())."""
+    import inspect
+    fn = kit_module(kit).keys
+    return tuple(fn(variant) if inspect.signature(fn).parameters else fn())
 
 
 def loop_info(kit):

@@ -518,7 +518,7 @@ def render(kit, variant, bass='b', passes=3, master='exact', mix=None, taps=(), 
         if not any(side == 'a' and ch in ('bass', 'bass_stem') for ch, side in cap.sides):
             raise ValueError(f'{kit}: the trace holds no bass A dry lane')
     L, bpm = PM.loop_info(kit)
-    out, meta = render_mix(m, dry, variant=variant, loop_len=L, bpm=bpm, keys=PM.keys(kit),
+    out, meta = render_mix(m, dry, variant=variant, loop_len=L, bpm=bpm, keys=PM.keys(kit, variant),
                            ccs=PM.ride_points(kit), throws=cap.throws, ab={'bass': bass}, passes=passes,
                            master=master, taps=taps, **kw)
     meta['loop_len'] = L
