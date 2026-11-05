@@ -72,7 +72,8 @@ def render_derived():
 
 def phrases():
     """The bass (the Rubber line, the loop's, and the Deep line) and the vox (the loop's riff, and the riff twice for
-    the extended mix's other vox lines)."""
+    the extended mix's other vox lines). The riff has its dub echo and its last chop's dub throw in the audio
+    (voxsynth.riff_tail): its throw is baked."""
     kicks, sub = tuple(R.KICKS), iround(R.SUB_LEAD, SR)
     lines = tuple(
         Spec('FUT03', name.lower(), 'bass', 1, (loops_path(f'Line{name}Clean'), loops_path(f'Line{name}Warm')), 'bass',
@@ -83,8 +84,10 @@ def phrases():
     return lines + (
         Spec('FUT03', 'vox', 'vox', 5, (DERIVED[0], None), '', 64,
              tuple((s + C5.VOX_AT, m, ()) for s, m, _, _ in VS.VOX_RIFF), pre, 'vox', why,
-             gain_mdb=-1000 * STEM_GAIN_DB, derived=True, frames=C5.G.at(C5.VOX_AT) + riff_frames(), looped=False),
+             gain_mdb=-1000 * STEM_GAIN_DB, derived=True, frames=C5.G.at(C5.VOX_AT) + riff_frames(), looped=False,
+             throw='baked'),
         Spec('FUT03', 'vox_twice', 'vox', 5, (DERIVED[1], None), '', 64,
              tuple(sorted((s + at, m, ()) for at in TWICE for s, m, _, _ in VS.VOX_RIFF)), pre, 'vox', why,
-             gain_mdb=-1000 * TWICE_GAIN_DB, derived=True, frames=C5.G.at(max(TWICE)) + riff_frames(), looped=False),
+             gain_mdb=-1000 * TWICE_GAIN_DB, derived=True, frames=C5.G.at(max(TWICE)) + riff_frames(), looped=False,
+             throw='baked'),
     )

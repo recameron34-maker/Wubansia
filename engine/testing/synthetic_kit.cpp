@@ -149,14 +149,16 @@ namespace wubansia::engine::testing
         }
 
         // The lead phrase: 2 bars, every note the stem plays and the MIDI writes. The one at swung step 13
-        // retriggers step 12's key: slice 3 holds it, so 9 notes make 8 slices.
+        // retriggers step 12's key: slice 3 holds it, so 9 notes make 8 slices. The stem is looped: the
+        // first note comes at step 2, so slice 0 starts at its own pre-roll, and the last note sounds on
+        // through the cycle's end into the stem's start, which the last slice owns (it wraps).
         struct PhraseNote
         {
             int step;
             int key;
-            int steps; // its length in 16ths
+            int steps; // how long it sounds, in 16ths; the MIDI note stops at the cycle's end
         };
-        constexpr std::array<PhraseNote, 9> kPhrase { { { 0, 67, 3 }, { 4, 70, 3 }, { 8, 72, 3 }, { 12, 74, 1 }, { 13, 74, 2 }, { 16, 72, 3 }, { 20, 70, 3 }, { 24, 67, 3 }, { 27, 65, 3 } } };
+        constexpr std::array<PhraseNote, 9> kPhrase { { { 2, 67, 2 }, { 4, 70, 3 }, { 8, 72, 3 }, { 12, 74, 1 }, { 13, 74, 2 }, { 16, 72, 3 }, { 20, 70, 3 }, { 24, 67, 3 }, { 27, 65, 6 } } };
         constexpr std::size_t kHeldNote = 4; // the retrigger, held by the slice before it
         constexpr std::int64_t kPhraseFadeFrames = 240; // 5 ms
 
@@ -323,7 +325,7 @@ namespace wubansia::engine::testing
                     }
                 }
             }
-            else // the lead phrase's stem
+            else // the lead phrase's stem, looped: a tail past its end wraps to its start
             {
                 for (const auto& note : kPhrase)
                 {
@@ -335,7 +337,7 @@ namespace wubansia::engine::testing
                         double env = std::min (1.0, static_cast<double> (m) / 96.0) * (1.0 - 0.5 * static_cast<double> (m) / static_cast<double> (length));
                         if (m >= length - kPhraseFadeFrames)
                             env *= static_cast<double> (length - m) / static_cast<double> (kPhraseFadeFrames);
-                        at (left, onset + m) += 0.5 * env * tone (m, p, kLeadWeights);
+                        at (left, (onset + m) % frames) += 0.5 * env * tone (m, p, kLeadWeights);
                     }
                 }
             }
@@ -511,10 +513,12 @@ namespace wubansia::engine::testing
             phrase.lane = Lane::lead;
             phrase.ch = 2;
             phrase.mixChannel = "lead_stem";
+            phrase.throwMode = PhraseThrow::baked;
             phrase.stemA = syn::stemFile;
             phrase.cycle16ths = 32;
             phrase.tolerancePm = 20;
             phrase.fadeUs = 5000;
+            phrase.fadeInUs = 2000; // not the usual 500: slice 4 has no pre-roll, so a run starting there fades in
             for (int i = 0; i < phrase.cycle16ths * 240 / kRideTicks; ++i)
                 phrase.ride74.push_back (static_cast<std::uint8_t> (leadRide (i)));
             for (std::size_t i = 0; i < kPhrase.size(); ++i)
@@ -531,13 +535,15 @@ namespace wubansia::engine::testing
                 SliceEntry s;
                 s.step = note.step;
                 s.key = note.key;
-                s.lead = i == 0 ? 0 : 48;
+                s.lead = s.step == 16 ? 0 : 48; // the downbeat of the second bar has no pre-roll
                 s.start = onsetFrames (s.step) - s.lead;
                 s.fade = soundEnd - kPhraseFadeFrames;
                 phrase.slices.push_back (s);
             }
-            for (std::size_t i = 0; i < phrase.slices.size(); ++i) // contiguous: each ends where the next starts
-                phrase.slices[i].end = i + 1 < phrase.slices.size() ? phrase.slices[i + 1].start : kFiles[static_cast<std::size_t> (syn::stemFile)].frames;
+            // Contiguous: each ends where the next starts, and the last wraps through the stem's end to slice 0's.
+            const auto stemFrames = kFiles[static_cast<std::size_t> (syn::stemFile)].frames;
+            for (std::size_t i = 0; i < phrase.slices.size(); ++i)
+                phrase.slices[i].end = i + 1 < phrase.slices.size() ? phrase.slices[i + 1].start : stemFrames + phrase.slices[0].start;
             m.phrases.push_back (std::move (phrase));
             return m;
         }
@@ -787,7 +793,7 @@ namespace wubansia::engine::testing
                 for (int i = 0; i < 128; ++i) // the ride the phrase's stem matches: CC74 every 60 ticks
                     t.cc (tick (rep) + i * kRideTicks, 2, 74, leadRide (i));
                 for (const auto& n : kPhrase)
-                    t.note (tick (rep + n.step), n.steps * 240, 2, n.key, 100);
+                    t.note (tick (rep + n.step), std::min<std::int64_t> (n.steps * 240, tick (32) - tick (n.step)), 2, n.key, 100);
             }
         }
 
@@ -1145,10 +1151,12 @@ namespace wubansia::engine::testing
             p.ab = static_cast<std::int8_t> (e.stemB >= 0 ? e.ab : -1);
             p.mixChannel = static_cast<std::uint8_t> (mixChannel);
             p.gainMdb = e.gainMdb;
+            p.throwMode = e.throwMode;
             p.stem = { static_cast<std::uint16_t> (e.stemA), static_cast<std::uint16_t> (e.stemB >= 0 ? e.stemB : e.stemA) };
             p.cycle16ths = e.cycle16ths;
             p.tolerancePm = e.tolerancePm;
             p.fadeUs = e.fadeUs;
+            p.fadeInUs = e.fadeInUs;
             p.firstSlice = static_cast<std::uint16_t> (kit->slices.size());
             p.sliceCount = static_cast<std::uint16_t> (e.slices.size());
             for (const auto& s : e.slices)

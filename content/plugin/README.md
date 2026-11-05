@@ -51,54 +51,74 @@ exporter falls back to the checkout for them. A content folder for the plugin ne
 
 | Kit | `kit.json` | Instruments | Keymap entries | Files | WAV listed | Phrase lanes (slices) |
 |---|---|---|---|---|---|---|
-| FUT01 | 99,539 bytes | 34 | 31 | 189 | 68.3 MB | 2 (20) |
-| FUT02 | 96,114 bytes | 31 | 29 | 138 | 53.2 MB | 5 (103) |
-| FUT03 | 94,804 bytes | 31 | 32 | 164 | 40.1 MB | 4 (60) |
-| FUT04 | 99,786 bytes | 28 | 27 | 130 | 43.5 MB | 4 (130) |
+| FUT01 | 99,638 bytes | 34 | 31 | 189 | 68.3 MB | 2 (20) |
+| FUT02 | 96,364 bytes | 31 | 29 | 138 | 53.2 MB | 5 (103) |
+| FUT03 | 94,998 bytes | 31 | 32 | 164 | 40.1 MB | 4 (60) |
+| FUT04 | 99,978 bytes | 28 | 27 | 130 | 43.5 MB | 4 (130) |
 
 A/B switches: the kick on FUT01 only (A Kick Split, B Kick Garage: the loops play B), the bass on all four (A clean,
 B warm: the wet and club loops play B), the stab on FUT01 only (A Organ Stab, the loops'; B E Piano Stab). FUT02's
 Drop Glide (channel 11) follows the bass switch. FUT03's Sub Deep is layered under both Rubber Basses, 11 dB down,
 where its sine meets the Rubber Bass's own sub (measured under 120 Hz on the hard layers' loops).
 
+Duck keys (`duck_key`): the kicks and claps key the onset ducks (FUT04's rumble, on the kick lane, doesn't), and so
+does FUT02's vox synth: its riff keys the arp's pocket (`context5.ARP_POCKET`, two onset ducks on the vox lane, 100 ms
+early, in `FUT02_mix.json`). The timeline makes the duck keys from the notes before it matches phrases, so the riff
+keys the pocket whether its notes play the phrase lane's stem or the multisample.
+
 ## Phrase lanes
 
 The lanes the recipes synthesize at render time play their recorded stem, sliced per note, while the host tempo is
 within 2 % of the kit's (ADR 0020). Every other time, and always from MIDI in, they play the multisample.
 
-| Kit | Ch | Lane | Stem (A / B) | Cycle | Synthesized by | Null vs the recipe's lane |
+| Kit | Ch | Lane | Stem (A / B) | Cycle | Synthesized by | Null vs the recipe's lane: first pass, second |
 |---|---|---|---|---|---|---|
-| FUT01 | 2 | lead | `Loops/Chrome Pluck Phrase.wav` | 2 bars | `fut01.music.pluck_phrase` | bit-exact |
-| FUT01 | 5 | vox | `Loops/Vox Synth Riff.wav` | 2 bars | `fut01.voxsynth.riff` | bit-exact |
-| FUT02 | 1 | bass | `Loops/Orbit Line Clean.wav` / `Warm` | 2 bars | `fut02.bass.line_lane` | -85 / -88 dB |
+| FUT01 | 2 | lead | `Loops/Chrome Pluck Phrase.wav` | 2 bars | `fut01.music.pluck_phrase` | bit-exact, bit-exact |
+| FUT01 | 5 | vox | `Loops/Vox Synth Riff.wav` | 2 bars | `fut01.voxsynth.riff` | bit-exact, bit-exact |
+| FUT02 | 1 | bass | `Loops/Orbit Line Clean.wav` / `Warm` | 2 bars | `fut02.bass.line_lane` | -85 / -88 dB, the same |
 | FUT02 | 1 | bass | `Loops/Relay Line Clean.wav` / `Warm` | 2 bars | `fut02.bass.line_lane` | (not in the loop) |
-| FUT02 | 2 | lead | `Loops/Chrome Arp Phrase.wav` | 2 bars | `fut02.lead.arp_phrase` | bit-exact |
-| FUT02 | 5 | vox | `Stems/Context Vox Riff.wav` (derived) | 4 bars | `fut02.voxsynth.sung_parts` | -117 dB |
-| FUT02 | 5 | vox | `Stems/Context Vox Riff Twice.wav` (derived) | 4 bars | `fut02.voxsynth.sung_parts` | -118 dB (its riffs) |
-| FUT03 | 1 | bass | `Loops/Line Rubber Clean.wav` / `Warm` | 2 bars | `fut03.rubber.line_lane` | bit-exact |
+| FUT02 | 2 | lead | `Loops/Chrome Arp Phrase.wav` | 2 bars | `fut02.lead.arp_phrase` | bit-exact, bit-exact |
+| FUT02 | 5 | vox | `Stems/Context Vox Riff.wav` (derived) | 4 bars | `fut02.voxsynth.sung_parts` | -117 dB, -117 dB |
+| FUT02 | 5 | vox | `Stems/Context Vox Riff Twice.wav` (derived) | 4 bars | `fut02.voxsynth.sung_parts` | -118 dB, -118 dB (its riffs) |
+| FUT03 | 1 | bass | `Loops/Line Rubber Clean.wav` / `Warm` | 2 bars | `fut03.rubber.line_lane` | bit-exact, bit-exact |
 | FUT03 | 1 | bass | `Loops/Line Deep Clean.wav` / `Warm` | 2 bars | `fut03.rubber.line_lane` | (not in the loop) |
-| FUT03 | 5 | vox | `Stems/Context Vox Riff.wav` (derived) | 4 bars | `fut03.voxsynth.riff_tail` | -89 dB |
-| FUT03 | 5 | vox | `Stems/Context Vox Riff Twice.wav` (derived) | 4 bars | `fut03.voxsynth.riff_tail` | -92 dB (its riffs) |
-| FUT04 | 1 | bass | `Loops/Acid Line 1 Ride Clean.wav` / `Warm` (ride) | 4 bars | `fut04.bass.play_line` | bit-exact |
+| FUT03 | 5 | vox | `Stems/Context Vox Riff.wav` (derived) | 4 bars | `fut03.voxsynth.riff_tail` | -125 dB, -89 dB |
+| FUT03 | 5 | vox | `Stems/Context Vox Riff Twice.wav` (derived) | 4 bars | `fut03.voxsynth.riff_tail` | -124 dB, -92 dB (its riffs) |
+| FUT04 | 1 | bass | `Loops/Acid Line 1 Ride Clean.wav` / `Warm` (ride) | 4 bars | `fut04.bass.play_line` | bit-exact, bit-exact |
 | FUT04 | 1 | bass | `Stems/Acid Line 1 Clean 4 Bars.wav` / `Warm` (at rest) | 4 bars | `fut04.bass.play_line` | (not in the loop) |
 | FUT04 | 1 | bass | `Stems/Acid Line 2 Clean 4 Bars.wav` / `Warm` (at rest) | 4 bars | `fut04.bass.play_line` | (not in the loop) |
-| FUT04 | 2 | lead | `Loops/Mod Blip Phrase.wav` | 2 bars | `fut04.lead.blip_phrase` | bit-exact |
+| FUT04 | 2 | lead | `Loops/Mod Blip Phrase.wav` | 2 bars | `fut04.lead.blip_phrase` | bit-exact, bit-exact |
 
-The nulls are the stem placed by its table at the Loop files' notes against the recipe's lane before its inserts,
-both variants and both bass characters, round the loop (`tools/sound/tests/test_phrase_tables.py`; the gate is -50 dB).
+The nulls are the phrase voice's model (`phrase_tables.play`) playing the stem by its table at the Loop files' notes,
+pass after pass from silence, against the recipe's lane before its inserts, both variants and both bass characters,
+one pass at a time (`tools/sound/tests/test_phrase_tables.py`; the gate is -50 dB). The first pass counts from where
+the voice has come in: past its first run's fade-in, and past the 2 bars a FUT03 vox stem's echoes ring into the next
+pass, which a fresh entry hasn't got. The second pass counts whole. At the kit's tempo and 48 kHz the engine is exact
+against the model over a loop's first pass and re-syncs at each cycle wrap after it (`docs/plugin/manifest.md` 2.6).
 The riff-twice stems play the extended mixes' call, riff and answer vox lines, which place the riff (or a bar of it)
 from 16ths 0 and 32: their nulls are against the recipe's riff placed there twice.
-FUT02's bass: the recipe mutes its line under the drop glide with 5 ms edges, the phrase voice comes back after it over
-its 3 ms crossfade, both in the line's silence on the kick. FUT02's vox: 24 bits at 3 dB under the lane. FUT03's vox:
-the 3 ms crossfade on the riff's first breath.
+FUT02's bass: the recipe mutes its line under the drop glide with 5 ms edges, and the phrase voice comes back after
+it over 3 ms through the next slice's pre-roll, both in the line's silence on the kick. FUT02's vox: 24 bits at 3 dB
+under the lane. FUT03's vox: its second pass has the 3 ms run fade on the riff's first breath.
 
 How the tables tie stems to notes:
 - **Slices tile the stem.** A slice runs from its note's onset less its lead to where the next starts, so contiguous
-  slices read on and the lane at the kit's tempo is the stem. A looped stem's first slice starts on frame 0: its lead
-  holds the tail the stem wraps round (FUT01's riff: the throw's echoes, 0.67 s).
+  slices read on and the lane at the kit's tempo is the stem.
+- **Looped stems are read round.** A stem the phrase plays cycle after cycle holds its tails wrapped round to its start.
+  Its last slice owns that wrapped tail: it runs past the stem's end, read modulo its length, to where the next cycle's
+  slice 0 starts. FUT01's riff: the last chop's release and throw, [160906, 203891), slice 0 from its own pre-roll at
+  31951; a fresh entry plays no ghost of a last chop, an exit keeps it. Where slice 0's pre-roll starts before its
+  cycle, slice 0 starts at the stem's end and wraps: FUT02's riff twice, its first breath, [352062, 368899), lead 2400,
+  starts 50 ms before its cycle. Every other looped stem's slice 0 starts on frame 0.
 - **Bass lines rest on the kicks**, so their slices break on the kicks: one played alone starts and ends in silence.
 - **Fades:** a slice with no follower fades from its fade frame over the phrase's `fade_us`: the recipe's mute edges
-  (FUT02's bass 5 ms before its glide mute on the kick, FUT02's arp 10 ms into its rest in the fill bar).
+  (FUT02's bass 5 ms before its glide mute on the kick, FUT02's arp 10 ms into its rest in the fill bar). A run (a
+  slice that doesn't continue the one before) comes in from its first frame: over 3 ms through a pre-roll, and over
+  the phrase's `fade_in_us` on an onset (lead 0): 0.5 ms, so plucks and blips keep their transients, but FUT02's
+  arp's 3 ms, the recipe's in-edge on the downbeat after its rest.
+- **throw:** `baked` where the stem has its throw in the audio (FUT01's riff: its last chop's ping-pong and plate;
+  FUT03's riff: its dub echo and dub throw), so the engine sends their notes no live throw; `live` for the rest
+  (FUT02's riff stems hold its throw note dry, and the loop sends it).
 - **holds:** FUT04's blip ratchets (MIDI v2 retriggers them) and FUT03's glides inside a note (written as legato
   notes) belong to their slice.
 - **ride:** FUT04's Ride stem has the loop's acid ride baked in, so its table carries the CC74/CC71 values it was
@@ -179,9 +199,9 @@ vox chops `vsynth`, its FX keys `fill`, its other accents `acc_hit` (its Air Pad
 - The multisample fallbacks' release times and glides where no recipe plays that multisample (the vox synths, FUT02's
   arp, FUT03's Keys EP, FUT02-04's basses), and Sub Deep's layer level: chosen from the nearest recipe, in each
   kit's `plugin.py`.
-- FUT01's vox riff entering fresh in the extended mix plays its first slice's lead, which holds the throw's echoes
-  wrapped from the riff's end (0.67 s before the first chop).
-- FUT02's riff-twice stem starts on its first note (16th 0), so that note's 50 ms pre-roll is at the stem's end: heard
-  when the riff repeats, lost when it enters fresh.
+- FUT01's vox riff entering fresh: from slice 0's pre-roll on, the stem still carries the last of the previous cycle's
+  throw (it rings 3 s), 36 dB under the chops over the first 0.6 s (RMS, measured on the recipe's riff) and fading.
+- FUT02's riff twice entering on the song's 16th 0 loses its first 50 ms breath: there is no cycle before it to start
+  in. Everywhere else its slice 0 starts 2400 frames before its cycle.
 - FUT02's vox throw: its slice plays with the throw's CC91/CC94 sends, and so do the tails of the notes before it that
   ring under it; the loop sends only the throw.

@@ -155,11 +155,13 @@ namespace wubansia::engine
         std::int32_t ab = -1; // an AbSwitch value choosing the stem, or -1
         std::string mixChannel; // a mix.json channel id
         std::int32_t gainMdb = 0;
+        PhraseThrow throwMode = PhraseThrow::live; // "throw"
         std::int32_t stemA = -1; // file index
         std::int32_t stemB = -1; // file index, or -1 without an alternative
         std::int32_t cycle16ths = 32;
         std::int32_t tolerancePm = 20;
         std::int32_t fadeUs = 5000;
+        std::int32_t fadeInUs = 500;
         // The CC74 and CC71 values the stem was rendered with on the ride grid (cycle16ths x 4 each, 0-127),
         // or empty: no constraint on that controller. Only the matcher reads them, on the service thread;
         // the runtime Kit doesn't carry them.

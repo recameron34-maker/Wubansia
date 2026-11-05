@@ -3,12 +3,18 @@ by Wubansia from their recorded stems sliced per note.
 
 The contract is docs/plugin/manifest.md section 2.6. What these tests hold:
 - every table is well formed: slices by step, (step, key) unique, each starting at phrase.Grid.at(step) less its lead,
-  the slices of a stem contiguous and covering it, integers only;
-- each table's notes are the recipe's notes of its stem;
-- the reference test: placing the stem by its table at the Loop file's notes reproduces the recipe's lane before its
-  inserts, nulling at -50 dB or lower on the second pass, for each variant and bass character. The Loop notes come from
-  the recipes here (as tools/sound/tests/test_midi.py's expected_loop reads them), and from the committed Loop files
-  once MIDI v2 has landed;
+  integers only, the slices of a stem tiling it. A looped stem is read round: its last slice owns the tail that wraps
+  to the stem's start, and its slice 0 starts at its own pre-roll (before the cycle's start, at the stem's end, where
+  that is where its pre-roll starts);
+- each table's notes are the recipe's notes of its stem, and its throw is "baked" exactly where the stem has its
+  throw in the audio;
+- the phrase voice's model (play()): a run's fade-in (0.5 ms on an onset, 3 ms through a pre-roll), a wrapping slice
+  read round the stem, the last slice reading on into the next cycle's slice 0;
+- the reference test: the model playing the stem by its table at the Loop file's notes, pass after pass from silence,
+  reproduces the recipe's lane before its inserts one pass at a time (the first from where the voice has come in, the
+  second whole), nulling at -50 dB or lower, for each variant and bass character. The Loop notes come from the recipes
+  here (as tools/sound/tests/test_midi.py's expected_loop reads them), and from the committed Loop files once MIDI v2
+  has landed;
 - the derived stems re-render byte for byte;
 - FUT04's acid phrases carry the controller rides their stems were rendered with, and the Loop files' rides equal
   the Ride stem's;
@@ -30,12 +36,18 @@ from tools.sound import dsp48 as D
 from tools.sound import kits, listen
 from tools.sound import phrase as Ph
 from tools.sound import phrase_tables as PT
+from tools.sound import plugin_common as PC
 from tools.sound.item import Out
 
 REPO = Path(__file__).resolve().parents[3]
 KITS = ('FUT01', 'FUT02', 'FUT03', 'FUT04')
 NULL_DB = -50.0
 TWICE = (0, 32)     # the extended mixes' call, riff and answer vox lines start FUT02's and FUT03's riff here
+LOOP_16THS = 64     # a Loop file: 4 bars
+# the stems with their throw in the audio (the engine sends their slice notes no live throw): FUT01's vox-synth riff
+# (its last chop's dotted-8th ping-pong and plate) and FUT03's riff (its dub echo and dub throw). FUT02's riff stems
+# hold the throw note dry: the loop sends it, and so does the engine
+BAKED = {('FUT01', 'riff'), ('FUT03', 'vox'), ('FUT03', 'vox_twice')}
 
 
 # ------------------------------------------------------------------ the samples, when they are here
@@ -200,6 +212,23 @@ def table_of(K, s):
     return PT.table(s, index, {p: stem_frames(K, s) for p in index})
 
 
+def voice_passes(K, t, stem, notes, length, n=3):
+    """The phrase voice's model over n passes of a loop of `length` frames, from silence: the notes of one pass
+    (16ths in the loop) every LOOP_16THS 16ths, the stem at its table gain. Returns (the render, n x length frames;
+    the frame of the first pass from which the recipe's loop is what a fresh entry plays: where the first run has come
+    in, and past the tail a pass before rings into the loop's start, a stem's frames past its cycle)."""
+    if PT.cycle_frames(K, LOOP_16THS) != length:
+        raise ValueError(f'a {LOOP_16THS}-16th loop is {PT.cycle_frames(K, LOOP_16THS)} frames, not {length}')
+    every = [(p + k * LOOP_16THS, key) for k in range(n) for p, key in notes]
+    resolved, unmatched = PT.resolve(K, every, [t])
+    if unmatched:
+        raise AssertionError(f'notes no slice matches: {unmatched[:4]}')
+    pos, _, j = min(resolved)
+    overhang = max(0, len(stem) - PT.cycle_frames(K, t['cycle_16ths']))   # FUT03's 6-bar vox stems: 2 bars
+    entry = max(0, PT.slice_frame(K, t, pos, j) + PT.run_fade(t, t['slices'][j]), overhang)
+    return PT.play(K, t, stem, resolved, n * length), entry
+
+
 # ------------------------------------------------------------------ the tables
 class TestTables(unittest.TestCase):
     def test_each_kit_has_its_plugin_module(self):
@@ -263,31 +292,65 @@ class TestTables(unittest.TestCase):
                          [h for _, _, h in spec('FUT03', 'rubber').notes])
 
     def test_slices_are_well_formed(self):
-        """By step, (step, key) unique; start = Grid.at(step) - lead, contiguous, the first from frame 0 where its
-        lead can hold the frames before it, the last to the stem's end; fade between start and end; all integers."""
+        """By step, (step, key) unique, all integers, in the contract's key order; start = Grid.at(step) - lead, on
+        the stem (0 to its frames - 1); start < end, start <= fade <= end. The slices tile the stem: each ends where
+        the next starts, the last where the stem ends. A looped stem is read round (modulo its frames), so there each
+        ends where the next starts or a stem's length on (it wraps through the stem's end), the last where the next
+        cycle's slice 0 starts, and together they cover the stem once."""
         for kit in KITS:
             K = kits.module(kit)
             for s in PT.specs(kit):
-                frames = PT.cycle_frames(K, s.cycle) if not s.derived else s.frames
+                frames = stem_frames(K, s)
                 sl = PT.slices(s, frames)
                 with self.subTest(kit=kit, line=s.line):
                     g = Ph.Grid(K, s.cycle, PT.cycle_frames(K, s.cycle))
+                    if s.looped:
+                        self.assertEqual(PT.cycle_frames(K, s.cycle), frames, 'a looped stem is its cycle long')
                     self.assertEqual(sorted(sl, key=lambda x: x['step']), sl)
                     self.assertEqual(len(sl), len({(x['step'], x['key']) for x in sl}))
-                    for x in sl:
+                    for i, x in enumerate(sl):
+                        self.assertEqual(list(PC.KEYS['slice']), list(x))
                         self.assertTrue(all(type(v) is int for k, v in x.items() if k != 'holds'), x)
                         self.assertTrue(all(type(v) is int for v in x['holds']), x)
-                        self.assertEqual(g.at(x['step']) - x['lead'], x['start'])
-                        self.assertLessEqual(x['start'], x['fade'])
-                        self.assertLessEqual(x['fade'], x['end'])
+                        self.assertTrue(0 <= x['start'] < frames, x)
+                        wraps = s.looped and i == 0 and g.at(x['step']) - x['lead'] < 0
+                        self.assertEqual(g.at(x['step']) - x['lead'] + (frames if wraps else 0), x['start'])
+                        self.assertTrue(x['start'] <= x['fade'] <= x['end'], x)
                         self.assertLess(x['start'], x['end'])
                         self.assertTrue(0 <= x['lead'] <= 48000)
                         self.assertLessEqual(len(x['holds']), 8)
-                    for a, b in zip(sl, sl[1:]):
-                        self.assertEqual(a['end'], b['start'])
-                    self.assertEqual(frames, sl[-1]['end'])
                     if s.looped:
-                        self.assertEqual(0, sl[0]['start'], 'a looped stem: its first slice holds the wrapped tail')
+                        for a, b in zip(sl, sl[1:] + sl[:1]):
+                            self.assertIn(a['end'] - b['start'], (0, frames), (a, b))
+                        self.assertEqual(frames, sum(x['end'] - x['start'] for x in sl))
+                    else:
+                        for a, b in zip(sl, sl[1:]):
+                            self.assertEqual(a['end'], b['start'])
+                        self.assertEqual(frames, sl[-1]['end'])
+
+    def test_looped_stems_wrap_round(self):
+        """A looped stem holds its last slice's tail at its start: that slice wraps through the stem's end and owns
+        the tail, and slice 0 starts at its own pre-roll. FUT01's vox-synth riff: the last chop's release and throw
+        run on to slice 0's pre-roll (31951, lead 288), so a fresh entry plays no ghost of the previous cycle's last
+        chop, and an exit keeps it. FUT02's riff twice: slice 0's breath starts 2400 frames before its cycle, at the
+        stem's end, so slice 0 wraps the other way, the last slice ending where the breath starts. Every other looped
+        stem's slice 0 starts on its cycle's start (on its note, or on the kick before a bass note), and its last
+        slice ends on the stem's end."""
+        riff = PT.slices(spec('FUT01', 'riff'), 171940)        # FUT01's 2-bar cycle
+        self.assertEqual((6, 31951, 288), (riff[0]['step'], riff[0]['start'], riff[0]['lead']))
+        self.assertEqual((160906, 171940 + 31951, 171940 + 31951 - 240),
+                         (riff[-1]['start'], riff[-1]['end'], riff[-1]['fade']))
+        twice = PT.slices(spec('FUT02', 'vox_twice'), 354462)  # FUT02's 4-bar cycle
+        self.assertEqual((0, 354462 - 2400, 354462 + 14437, 2400),
+                         (twice[0]['step'], twice[0]['start'], twice[0]['end'], twice[0]['lead']))
+        self.assertEqual(14437, twice[1]['start'])
+        self.assertEqual((354462 - 2400, 354462 - 2400 - 240), (twice[-1]['end'], twice[-1]['fade']))
+        for kit in KITS:
+            K = kits.module(kit)
+            for s in PT.specs(kit):
+                if s.looped and (kit, s.line) not in (('FUT01', 'riff'), ('FUT02', 'vox_twice')):
+                    sl = PT.slices(s, stem_frames(K, s))
+                    self.assertEqual((0, stem_frames(K, s)), (sl[0]['start'], sl[-1]['end']), (kit, s.line))
 
     def test_bass_slices_break_on_the_kicks(self):
         """The bass lines rest on every kick: a slice that follows a kick starts on it, so one played alone starts
@@ -305,30 +368,36 @@ class TestTables(unittest.TestCase):
 
     def test_the_arp_fades_into_its_rest_as_the_recipe(self):
         """FUT02's arp rests from 16th 48: its last slice fades over the recipe's 10 ms (context.ARP_REST) to the
-        rest's start, and comes back on the downbeat over the phrase voice's 3 ms crossfade, the recipe's."""
+        rest's start, and comes back on the downbeat over the recipe's 3 ms (its fade_in_us: a run starting on a
+        slice's onset). Every other phrase comes in on an onset over 0.5 ms, keeping the note's transient."""
         from tools.sound.recipes.fut02 import context as C2
         s = spec('FUT02', 'arp')
-        self.assertEqual(int(C2.ARP_REST[1] * 1e6), s.fade_us)
-        self.assertEqual(int(C2.ARP_REST[2] * 1e6), PT.XFADE_US)
+        self.assertEqual((10000, 3000), (s.fade_us, s.fade_in_us))
+        self.assertEqual((int(C2.ARP_REST[1] * 1e6), int(C2.ARP_REST[2] * 1e6)), (s.fade_us, s.fade_in_us))
+        for kit in KITS:
+            for x in PT.specs(kit):
+                self.assertEqual(3000 if (kit, x.line) == ('FUT02', 'arp') else 500, x.fade_in_us, (kit, x.line))
 
     def test_tables_follow_the_contract(self):
-        """Key order, units, A/B and stems as docs/plugin/manifest.md section 2.6 has them."""
-        keys = ['lane', 'ch', 'ab', 'mix_channel', 'gain_mdb', 'stems', 'cycle_16ths', 'tolerance_pm', 'fade_us',
-                'ride', 'slices']
+        """Key order (plugin_common's), units, A/B, stems and throws as docs/plugin/manifest.md section 2.6 has them:
+        "baked" exactly for the stems with their throw in the audio."""
+        self.assertEqual(('lane', 'ch', 'ab', 'mix_channel', 'gain_mdb', 'throw', 'stems', 'cycle_16ths',
+                          'tolerance_pm', 'fade_us', 'fade_in_us', 'ride', 'slices'), PC.KEYS['phrase'])
         for kit in KITS:
             K = kits.module(kit)
             for s in PT.specs(kit):
                 t = table_of(K, s)
                 with self.subTest(kit=kit, line=s.line):
-                    self.assertEqual(keys, list(t))
-                    self.assertEqual(['a', 'b'], list(t['stems']))
-                    self.assertEqual(['step', 'key', 'start', 'end', 'fade', 'lead', 'holds'], list(t['slices'][0]))
+                    self.assertEqual(list(PC.KEYS['phrase']), list(t))
+                    self.assertEqual(list(PC.KEYS['stems']), list(t['stems']))
+                    self.assertEqual(list(PC.KEYS['slice']), list(t['slices'][0]))
+                    self.assertEqual('baked' if (kit, s.line) in BAKED else 'live', t['throw'])
                     self.assertEqual(20, t['tolerance_pm'])
                     self.assertEqual(t['ab'] == '', t['stems']['b'] == -1)
                     self.assertEqual(0, t['stems']['a'])
                     self.assertEqual(s.lane == 'bass', t['ab'] == 'bass')
                     self.assertIn(t['cycle_16ths'], (32, 64))
-                    self.assertEqual(['cc74', 'cc71'], list(t['ride']))
+                    self.assertEqual(list(PC.KEYS['ride']), list(t['ride']))
                     for values in t['ride'].values():
                         self.assertIn(len(values), (0, t['cycle_16ths'] * 4))
                         self.assertTrue(all(type(v) is int and 0 <= v <= 127 for v in values))
@@ -346,13 +415,89 @@ class TestTables(unittest.TestCase):
                         self.assertTrue(p.startswith('Stems/' if s.derived else 'Loops/'), p)
 
 
+# ------------------------------------------------------------------ the phrase voice's model
+def ramp(n):
+    """A stem whose frame k holds k (exact in float64), so a render shows which stem frame it read."""
+    return np.repeat(np.arange(n, dtype=float)[:, None], 2, axis=1)
+
+
+class TestVoiceModel(unittest.TestCase):
+    def test_a_run_comes_in_over_its_run_fade(self):
+        """A run's first slice comes in from its first frame (0.5 - 0.5 cos): over its phrase's fade_in_us where it
+        starts on its onset (lead 0: 0.5 ms, 24 frames, for a pluck's or blip's transient; FUT02's arp 3 ms, its
+        recipe's), over 3 ms (144 frames) through its pre-roll (a bass line's from the kick, a vox's breath)."""
+        self.assertEqual((500, 3000), (PT.ONSET_FADE_US, PT.RUN_FADE_US))
+        for kit, line, frames in (('FUT04', 'blip', 24), ('FUT01', 'pluck', 24), ('FUT02', 'arp', 144),
+                                  ('FUT02', 'orbit', 144), ('FUT03', 'vox', 144)):
+            K = kits.module(kit)
+            s = spec(kit, line)
+            t = table_of(K, s)
+            cf = PT.cycle_frames(K, s.cycle)
+            x = t['slices'][1]
+            self.assertEqual(frames, PT.run_fade(t, x), (kit, line))
+            pos = s.cycle + x['step']                           # in the second cycle
+            at = PT.slice_frame(K, t, pos, 1)
+            self.assertEqual(cf + Ph.Grid(K, s.cycle, cf).at(x['step']) - x['lead'], at)
+            got = PT.play(K, t, np.ones((stem_frames(K, s), 2)), [(pos, 0, 1)], 3 * cf)
+            fade_in = 0.5 - 0.5 * np.cos(np.pi * np.arange(frames) / frames)
+            np.testing.assert_array_equal(np.stack([fade_in, fade_in], 1), got[at:at + frames], (kit, line))
+            self.assertEqual((0.0, 1.0), (got[at - 1, 0], got[at + frames, 0]))
+
+    def test_a_wrapping_slice_reads_round_the_stem(self):
+        """FUT01's riff: its last slice alone (an exit) reads the stem on through its end and round from frame 0 to
+        slice 0's pre-roll, fading from its fade frame over the phrase's 5 ms: it keeps the last chop's release and
+        throw. Followed by the next cycle's slice 0, it reads on round the stem without a seam."""
+        K = kits.module('FUT01')
+        t = table_of(K, spec('FUT01', 'riff'))
+        n = 171940
+        last, first = len(t['slices']) - 1, t['slices'][0]
+        x = t['slices'][last]
+        f = t['fade_us'] * 48 // 1000
+        self.assertEqual(x['start'], PT.slice_frame(K, t, x['step'], last))   # cycle 0: on the stem's own frames
+        got = PT.play(K, t, ramp(n), [(x['step'], 0, last)], 3 * n)[:, 0]
+        k = np.arange(x['start'] + PT.run_fade(t, x), x['fade'])
+        np.testing.assert_array_equal(k % n, got[k])                           # frame k, read round the stem
+        self.assertTrue(0 < got[x['fade'] + f // 2] < x['fade'] + f // 2 - n)
+        np.testing.assert_array_equal(np.zeros(3 * n - x['end']), got[x['end']:])
+        got = PT.play(K, t, ramp(n), [(x['step'], 0, last), (32 + first['step'], 0, 0)], 3 * n)[:, 0]
+        k = np.arange(x['start'] + PT.run_fade(t, x), n + first['fade'])
+        np.testing.assert_array_equal(k % n, got[k])                           # on into slice 0, to its fade
+
+    def test_a_wrapping_slice_0_starts_in_the_cycle_before(self):
+        """FUT02's riff twice: slice 0's breath starts 2400 frames before its cycle, read from the stem's end round
+        into its start, and on into slice 1. In the song's first cycle the frames before the song's start aren't
+        played: it comes in on its onset."""
+        K = kits.module('FUT02')
+        t = table_of(K, spec('FUT02', 'vox_twice'))
+        n = 354462
+        x, y = t['slices'][0], t['slices'][1]
+        self.assertEqual(n - 2400, PT.slice_frame(K, t, 64, 0))
+        got = PT.play(K, t, ramp(n), [(64, 0, 0), (64 + y['step'], 0, 1)], 3 * n)[:, 0]
+        k = np.arange(n - 2400 + PT.run_fade(t, x), n + y['fade'])
+        np.testing.assert_array_equal(k % n, got[k])
+        self.assertEqual(-2400, PT.slice_frame(K, t, 0, 0))
+        got = PT.play(K, t, ramp(n), [(0, 0, 0)], n)[:, 0]
+        k = np.arange(x['fade'] - x['start'] - 2400)
+        np.testing.assert_array_equal(k, got[k])
+
+
 # ------------------------------------------------------------------ the reference test
+def pass_nulls(K, t, stem, notes, lane):
+    """The model's nulls against the recipe's lane (the loop, its tails wrapped round), one pass at a time: (the
+    first pass from where the voice has come in, the second pass whole)."""
+    L = len(lane)
+    got, entry = voice_passes(K, t, stem * D.undb(t['gain_mdb'] / 1000.0), notes, L)
+    want = D.st(lane)
+    return null_db(got[entry:L], want[entry:]), null_db(got[L:2 * L], want)
+
+
 class TestNulls(unittest.TestCase):
-    def test_each_stem_placed_by_its_table_is_the_recipes_lane(self):
-        """At the Loop file's notes, the stem placed by its table (the phrase voice's rules: contiguous slices read
-        on, a slice with no follower fades from its fade frame, a new run comes in over 3 ms) nulls against the
-        recipe's lane before inserts at -50 dB or lower on the second pass (round the loop, tails wrapped), for each
-        variant and bass character."""
+    def test_each_stem_played_by_its_table_is_the_recipes_lane(self):
+        """At the Loop file's notes, pass after pass from silence, the phrase voice's model playing the stem by its
+        table (contiguous slices read on, round a looped stem too; a slice with no follower fades from its fade
+        frame; a run comes in over 0.5 ms on an onset, 3 ms through a pre-roll) nulls against the recipe's lane
+        before inserts at -50 dB or lower one pass at a time: the first from where the voice has come in (a fresh
+        entry has no tail from a pass before), the second whole. For each variant and bass character."""
         for kit, line in PLAYED:
             K = kits.module(kit)
             s = spec(kit, line)
@@ -369,19 +514,18 @@ class TestNulls(unittest.TestCase):
                             self.skipTest(f'{kit}/{path} is not here (set WUBANSIA_CONTENT_DIR or git lfs pull)')
                         stem = stem_audio(kit, path)
                         self.assertEqual(stem_frames(K, s), len(stem))
-                        t = table_of(K, s)
                         placed = [(PT.tick_16th(K, PT.step_tick(K, p)), k) for p, k in notes]
-                        resolved, unmatched = PT.resolve(K, placed, [t])
-                        self.assertEqual([], unmatched)
-                        got = PT.play(K, t, stem * D.undb(t['gain_mdb'] / 1000.0), resolved, len(lane))
-                        self.assertLessEqual(null_db(got, D.st(lane)), NULL_DB)
+                        first, second = pass_nulls(K, table_of(K, s), stem, placed, lane)
+                        self.assertLessEqual(first, NULL_DB, 'the first pass')
+                        self.assertLessEqual(second, NULL_DB, 'the second pass')
 
 
 class TestTwiceNulls(unittest.TestCase):
-    def test_the_riff_twice_stems_placed_by_their_tables_are_the_recipes_riffs(self):
-        """The extended mixes' riff lines (FUT02's and FUT03's riff from 16ths 0 and 32): the derived stem placed by
-        its table at those notes nulls against the recipe's two riffs round a 4-bar loop at -50 dB or lower; the
-        looped FUT02 stem's last slice fades before the first note's wrapped pre-roll."""
+    def test_the_riff_twice_stems_played_by_their_tables_are_the_recipes_riffs(self):
+        """The extended mixes' riff lines (FUT02's and FUT03's riff from 16ths 0 and 32): the phrase voice's model
+        playing the derived stem by its table at those notes, pass after pass, nulls against the recipe's two riffs
+        round a 4-bar loop at -50 dB or lower, one pass at a time. FUT02's slice 0 comes in with its breath from the
+        pass before."""
         for kit, line in TWICE_LINES:
             K = kits.module(kit)
             s = spec(kit, line)
@@ -389,14 +533,9 @@ class TestTwiceNulls(unittest.TestCase):
             with self.subTest(kit=kit):
                 if sample(kit, s.stems[0]) is None:
                     self.skipTest(f'{kit}/{s.stems[0]} is not here (git lfs pull)')
-                t = table_of(K, s)
-                resolved, unmatched = PT.resolve(K, notes, [t])
-                self.assertEqual([], unmatched)
-                stem = stem_audio(kit, s.stems[0]) * D.undb(t['gain_mdb'] / 1000.0)
-                self.assertLessEqual(null_db(PT.play(K, t, stem, resolved, len(lane)), D.st(lane)), NULL_DB)
-        t = table_of(kits.module('FUT02'), spec('FUT02', 'vox_twice'))
-        last = t['slices'][-1]
-        self.assertEqual(last['end'] - 240 - int(0.05 * D.SR), last['fade'])
+                first, second = pass_nulls(K, table_of(K, s), stem_audio(kit, s.stems[0]), notes, lane)
+                self.assertLessEqual(first, NULL_DB, 'the first pass')
+                self.assertLessEqual(second, NULL_DB, 'the second pass')
 
     def test_the_loops_vox_cycles_pick_the_loops_stem(self):
         """In the Loop files the loop's own vox stem wins its cycle (the riff-twice stem only ties on FUT03)."""
