@@ -63,7 +63,7 @@ class TestChannels(unittest.TestCase):
         self.assertEqual((35, 59), CH.DRUM_RANGE)
         self.assertEqual(('kick', 'snare', 'hats', 'perc', 'bass', 'lead', 'chords', 'vox', 'accents', 'fx'),
                          CH.LANES)
-        self.assertEqual({'FUT01': ['Organ Bass', 'Organ Lead'],
+        self.assertEqual({'FUT01': ['Organ Bass', 'Organ Lead', 'Air Pad'],
                           'FUT02': ['Drop Glide', 'Laser Chord Stab', 'Glass Ping'], 'FUT03': ['Pad Warm'],
                           'FUT04': ['Acid Stab', 'Metal Chord', 'Rave Stab']},
                          {k: [n for _, n, _ in v] for k, v in CH.EXTRAS.items()})

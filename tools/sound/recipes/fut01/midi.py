@@ -77,7 +77,7 @@ PARTS = dict(
     fx=(Key('GlitchFillLift'), Key('GlitchFillLift', start=C.FILL_FROM, name='GlitchFillLiftBeat4'),
         Key('ShiftRiser'), Key('SubDrop')),
     chops=(Key('VoxChopAhCs5'), Key('VoxChopEeE5'), Key('VoxChopAhEeFs5'), Key('VoxChopOhA4'), Key('VoxChopAhOhB4')),
-    extras={'Organ Bass': 'OrganBass', 'Organ Lead': 'OrganLead'},
+    extras={'Organ Bass': 'OrganBass', 'Organ Lead': 'OrganLead', 'Air Pad': 'AirPadFsm9'},
     frames={'ReverseStab': 62400, 'NoiseUplifter': 171940, 'OrganHit': 73300, 'WarpStab': 18739, 'RaveStab': 33989,
             'ChordSweep': 74548, 'VoxSynthStab': 22227, 'AlloyBell': 119440, 'GlitchFillLift': 42985,
             'ShiftRiser': 687761, 'SubDrop': 87223, 'VoxChopAhCs5': 20242, 'VoxChopEeE5': 14955,
@@ -107,6 +107,7 @@ PARTS = dict(
               'vox': 'the Vox Synth Riff (`Loops/Vox Synth Riff.wav`), its throw baked in'},
     # TODO(FUT01 engineer): form=(...): FUT01's own arrangement (audit B, FUT01): the groove on Low, the drop on
     # Bounce with the vox, a 4x4 switch-up on Speed, drop 2 with the organ riff (phrases=('Organ riff',)), the build's
-    # clap roll into the whole glitch fill on beat 3 (cues fill='GlitchFillLift'), the Air Pad under the breaks (a
-    # pad needs a channel: ask for one on 13), the pluck's call while the vox plays.
+    # clap roll into the whole glitch fill on beat 3 (cues fill='GlitchFillLift'), the Air Pad under both breaks
+    # (channel 13: pad=dict(on='Air Pad', blocks=...), whole-bar chords: F#m9 on F#3 = 54, Bm9 on B3 = 59, the same
+    # file), the pluck's call while the vox plays.
 )

@@ -53,7 +53,8 @@ ROLE_LANE = {'bass': 'bass', 'lead': 'lead', 'voicing': 'chords', 'chords': 'cho
 # every kit's extras on channels 11-16: (channel, name, lane). The name is the track's and the instrument's.
 EXTRAS = {
     'FUT01': ((11, 'Organ Bass', 'bass'),           # the Low line
-              (12, 'Organ Lead', 'lead')),          # the organ riff
+              (12, 'Organ Lead', 'lead'),           # the organ riff
+              (13, 'Air Pad', 'chords')),           # the pad under the breaks (F#m9 on F#3, Bm9 on B3)
     'FUT02': ((11, 'Drop Glide', 'bass'),           # follows the bass A/B switch
               (12, 'Laser Chord Stab', 'chords'),   # the laser stab riff, Dm9 and B-flat maj9
               (13, 'Glass Ping', 'accents')),       # the glass melody
