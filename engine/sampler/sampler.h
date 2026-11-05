@@ -44,6 +44,10 @@
 //   new note starts at once.
 // - Reads never leave the file: frames before 0 or past the end read as silence (Hermite: the
 //   recipe's edge, the first frame, before 0). Mono files feed both sides at unity.
+// - Phrase notes (slice >= 0) go to the phrase voices (P6): a voice playing the note's kit, phrase and
+//   source, and not stopping, reads on (continueWith); else a free voice starts it. fadeOut () and
+//   fadeKit () stop phrase voices too, and a stopping voice takes no more notes, so after a jump the chased
+//   note starts afresh while the old one fades. Note-offs never reach them: a stem has its own lengths.
 // - Interpolation: a copy where the voice's ratio is exactly 1; the 16-tap polyphase sinc
 //   (sinc_bank.h), or 4-point Hermite (hermite.h) where the instrument asks for it. The ratio is
 //   48000 / rate x 2 ^ (semitones / 12).
@@ -105,6 +109,7 @@ namespace wubansia::engine
         static constexpr int kVoices = 64; // multisample voices sounding at once
         static constexpr int kFadeSlots = 16; // where stolen voices fade out
         static constexpr int kPhraseVoices = 8;
+        static constexpr int kPhraseFadeSlots = 4; // where stolen phrase voices fade out
         static constexpr int kMaxEvents = 1024; // queued events per render () call; more are dropped
         static constexpr std::int32_t kStealFadeUs = 2000;
         static constexpr std::int32_t kKitFadeUs = 5000; // fadeKit ()

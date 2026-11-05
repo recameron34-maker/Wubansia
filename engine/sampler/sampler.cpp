@@ -169,7 +169,7 @@ namespace wubansia::engine
         {
             if (note.slice >= 0 && note.phrase >= 0)
             {
-                pool.phraseNoteOn (kit, note, offset);
+                pool.phraseNoteOn (kit, note, offset, static_cast<int> (std::lround (samples (kStealFadeUs))));
                 return;
             }
             const auto count = static_cast<int> (kit.instruments.size());
@@ -315,8 +315,8 @@ namespace wubansia::engine
         m.laneTarget.fill (1.0f);
         m.laneGain.fill (1.0f);
         m.laneStep = 1.0 / samplesOf (kLaneRampUs, m.rate);
-        (void) SincBank::instance(); // built here, off the audio thread
-        m.pool.prepare (m.rate);
+        (void) SincBank::instance(); // built here, off the audio thread, before the phrase voices ask for it
+        m.pool.prepare (m.rate); // so PhraseVoice::prepare never allocates
         m.now = 0;
         m.order = 0;
         m.dropped = 0;
