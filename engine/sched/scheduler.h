@@ -321,6 +321,7 @@ namespace wubansia::engine
         const double expected = positionAt (now_);
         const bool wasLooping = loopActive_;
         const double previousLoopEnd = loopEndH_;
+        const std::int64_t previousWrap = wasLooping ? sampleAt (loopEndH_) : -1; // where the loop region's end fell
         const bool tempoChanged = std::abs (bpm - bpm_) > 1.0e-9 * bpm_;
         setTempo (bpm);
 
@@ -340,7 +341,12 @@ namespace wubansia::engine
                     sink.stopSequenced (0);
                     clearSounding();
                 }
-                anchor (now_, host);
+                // A wrap the host made on this block's first sample lands where an in-block wrap would have
+                // (the loop's start on the end's sample), not on the host's rounding of it.
+                if (wrap && std::abs (previousWrap - now_) <= 1)
+                    anchor (previousWrap, loopStart);
+                else
+                    anchor (now_, host);
                 armLoop (transport);
                 seek (timeline, now_);
                 chase (host, now_, sink);
