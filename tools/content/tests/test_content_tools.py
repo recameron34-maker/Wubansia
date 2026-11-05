@@ -95,6 +95,58 @@ def wav_bytes(channels, frames, seed, rate=48000, bits=24, fmt_tag=1):
     return b'RIFF' + struct.pack('<I', len(body)) + body
 
 
+GUID_TAIL = bytes.fromhex('000010008000' '00aa00389b71')  # KSDATAFORMAT_SUBTYPE_*'s last 12 bytes
+
+
+def fmt_chunk(tag, channels, rate, bits, block=None, ext_code=None, valid_bits=None, tail=GUID_TAIL, size=None):
+    """A 'fmt ' chunk; ext_code adds WAVE_FORMAT_EXTENSIBLE's 24 bytes; size cuts the body short."""
+    block = channels * bits // 8 if block is None else block
+    body = struct.pack('<HHIIHH', tag, channels, rate, rate * block, block, bits)
+    if ext_code is not None:
+        body += struct.pack('<HHI', 22, bits if valid_bits is None else valid_bits, 3) + struct.pack('<I', ext_code)
+        body += tail
+    if size is not None:
+        body = body[:size]
+    return b'fmt ' + struct.pack('<I', len(body)) + body + (b'\0' if len(body) % 2 else b'')
+
+
+def data_chunk(n):
+    return b'data' + struct.pack('<I', n) + bytes(n) + (b'\0' if n % 2 else b'')
+
+
+def riff(*chunks, magic=b'RIFF'):
+    body = b'WAVE' + b''.join(chunks)
+    return magic + struct.pack('<I', len(body)) + body
+
+
+def patch_entry(zpath, name, patch):
+    """Patches a zip entry's headers in place: patch(raw, offset, signature) for its local and central headers."""
+    raw = bytearray(Path(zpath).read_bytes())
+    encoded = name.encode()
+    for sig, name_at in ((b'PK\x03\x04', 30), (b'PK\x01\x02', 46)):
+        start = 0
+        while True:
+            i = raw.find(sig, start)
+            if i < 0:
+                break
+            if raw[i + name_at:i + name_at + len(encoded)] == encoded:
+                patch(raw, i, sig)
+            start = i + 4
+    Path(zpath).write_bytes(bytes(raw))
+
+
+def flip_entry_byte(zpath, name, at=None):
+    """Flips one byte of an entry's stored (compressed) data: the middle one, or `at`."""
+    with zipfile.ZipFile(zpath) as z:
+        info = z.getinfo(name)
+    raw = bytearray(Path(zpath).read_bytes())
+    head = info.header_offset
+    name_len, extra_len = struct.unpack_from('<HH', raw, head + 26)
+    start = head + 30 + name_len + extra_len
+    raw[start + (info.compress_size // 2 if at is None else at)] ^= 0xFF
+    Path(zpath).write_bytes(bytes(raw))
+
+
 def lfs_pointer(data):
     """What a Git LFS checkout without the objects holds in place of data."""
     return (f'version https://git-lfs.github.com/spec/v1\noid sha256:{hashlib.sha256(data).hexdigest()}\n'
@@ -248,6 +300,71 @@ class TestKitFiles(Case):
             with self.assertRaises(KF.ManifestError):
                 KF.load_kit(kit.manifest)
 
+    def test_paths_follow_the_plugins_rule(self):
+        # engine/kit/file_sample_source.cpp's contentPathProblem (P4), case for case: ':' would leave the kit's
+        # folder on Windows ("C:/x.wav" is absolute there, "D:x.wav" names another drive).
+        refused = ('', 'Drums/../../etc/x.wav', '/Drums/Kick.wav', 'Drums//Kick.wav', './Drums/Kick.wav',
+                   'Drums\\Kick.wav', 'C:/Drums/Kick.wav', 'C:/Users/Public/x.wav', 'D:y.wav', 'Drums/a:b.wav',
+                   'Drums/Kick.flac', 'Drums/Kick\t.wav', 'Drums/Kick\x7f.wav', 'Drums/Kick.wav/')
+        for path in refused:
+            with self.subTest(path=path):
+                self.assertIsNotNone(KF.check_path(path))
+        for path in ('Drums/Kick A.wav', 'Bass/Warp Clean F#1 v1.wav', 'Stems/Context Vox Riff.wav', 'x.wav'):
+            with self.subTest(path=path):
+                self.assertIsNone(KF.check_path(path))
+        for line in ('C:/x.wav', 'D:x.wav', 'Drums/a:b.wav'):
+            with self.subTest(line=line):
+                with self.assertRaises(ValueError):
+                    KF.parse_sums(f'{"0" * 64}  {line}\n')
+
+    def test_wav_info_takes_exactly_what_the_plugins_reader_takes(self):
+        # engine/kit/wav_reader.cpp's readWav (P4): 16- or 24-bit PCM or 32-bit float, mono or stereo, a block of
+        # channels x bytes, WAVE_FORMAT_EXTENSIBLE with 40 bytes and the PCM or float GUID.
+        taken = {
+            'PCM 16 stereo': (riff(fmt_chunk(1, 2, 48000, 16), data_chunk(40)), 2, 10),
+            'PCM 24 mono': (riff(fmt_chunk(1, 1, 48000, 24), data_chunk(30)), 1, 10),
+            'float 32 stereo': (riff(fmt_chunk(3, 2, 48000, 32), data_chunk(80)), 2, 10),
+            'extensible PCM 24': (riff(fmt_chunk(0xFFFE, 2, 48000, 24, ext_code=1), data_chunk(60)), 2, 10),
+            'extensible float 32': (riff(fmt_chunk(0xFFFE, 1, 48000, 32, ext_code=3), data_chunk(40)), 1, 10),
+            'the data chunk first': (riff(data_chunk(60), fmt_chunk(1, 2, 48000, 24)), 2, 10),
+            'another chunk first': (riff(b'LIST' + struct.pack('<I', 4) + b'INFO', fmt_chunk(1, 2, 48000, 24),
+                                         data_chunk(60)), 2, 10),
+        }
+        for name, (data, channels, frames) in taken.items():
+            with self.subTest(name):
+                info = KF.wav_info_bytes(data)
+                self.assertEqual((info.channels, info.frames), (channels, frames))
+        refused = {
+            '0 bits and a 0 block': riff(fmt_chunk(1, 1, 48000, 0, block=0), data_chunk(0)),
+            '8-bit PCM': riff(fmt_chunk(1, 1, 48000, 8), data_chunk(10)),
+            '32-bit int PCM': riff(fmt_chunk(1, 1, 48000, 32), data_chunk(40)),
+            '16-bit float': riff(fmt_chunk(3, 1, 48000, 16), data_chunk(20)),
+            '64-bit float': riff(fmt_chunk(3, 1, 48000, 64), data_chunk(80)),
+            '6 channels': riff(fmt_chunk(1, 6, 48000, 24), data_chunk(180)),
+            '0 channels': riff(fmt_chunk(1, 0, 48000, 24), data_chunk(0)),
+            'a block that isn\'t channels x bytes': riff(fmt_chunk(1, 2, 48000, 24, block=8), data_chunk(80)),
+            'ADPCM': riff(fmt_chunk(2, 1, 48000, 16), data_chunk(20)),
+            'extensible in 16 bytes': riff(fmt_chunk(0xFFFE, 2, 48000, 24), data_chunk(60)),
+            'extensible ADPCM': riff(fmt_chunk(0xFFFE, 2, 48000, 24, ext_code=2), data_chunk(60)),
+            'extensible with another GUID': riff(fmt_chunk(0xFFFE, 2, 48000, 24, ext_code=1, tail=bytes(12)),
+                                                 data_chunk(60)),
+            'more valid bits than bits': riff(fmt_chunk(0xFFFE, 2, 48000, 24, ext_code=1, valid_bits=32),
+                                              data_chunk(60)),
+            'a 14-byte fmt chunk': riff(fmt_chunk(1, 2, 48000, 24, size=14), data_chunk(60)),
+            'RIFX': riff(fmt_chunk(1, 2, 48000, 24), data_chunk(60), magic=b'RIFX'),
+            'RF64': riff(fmt_chunk(1, 2, 48000, 24), data_chunk(60), magic=b'RF64'),
+            'no data chunk': riff(fmt_chunk(1, 2, 48000, 24)),
+            'no fmt chunk': riff(data_chunk(60)),
+            'part of a frame': riff(fmt_chunk(1, 2, 48000, 24), data_chunk(61)),
+            'cut short': riff(fmt_chunk(1, 2, 48000, 24), data_chunk(60))[:-10],
+            'not a WAV': b'not a wav at all',
+            'empty': b'',
+        }
+        for name, data in refused.items():
+            with self.subTest(name):
+                with self.assertRaises(KF.WavError):
+                    KF.wav_info_bytes(data)
+
     def test_lfs_pointers_are_recognised(self):
         p = self.tmp / 'x.wav'
         p.write_bytes(lfs_pointer(b'RIFF'))
@@ -368,6 +485,38 @@ class TestPack(Case):
                 self.assertIn(words, proc.stderr)
                 out = kit.root / 'out'
                 self.assertEqual(list(out.iterdir()) if out.exists() else [], [])  # no zip, not even a partial one
+
+    def test_a_header_the_plugin_refuses_stops_its_kit_only(self):
+        bad = SynKit(self.tmp, 'AAA01')
+        good = SynKit(self.tmp, 'BBB01')
+        bad.write_sample('FX/Riser.wav', riff(fmt_chunk(1, 1, 48000, 0, block=0), data_chunk(0)))
+        proc = run([sys.executable, PACK_PY, '--manifests', bad.manifests, '--samples', bad.samples,
+                    '--out', self.tmp / 'out'])
+        self.assertFails(proc)
+        self.assertNotIn('Traceback', proc.stderr)
+        self.assertIn('FX/Riser.wav', proc.stderr)
+        self.assertEqual([p.name for p in (self.tmp / 'out').iterdir()], [good.zip_name])
+
+    def test_check_finds_every_listed_file_as_a_pointer_with_kit_jsons_hash(self):
+        kit = SynKit(self.tmp)
+        for path, data in kit.data.items():
+            kit.write_sample(path, lfs_pointer(data))
+        kit.write_sample('Drums/Kick A.wav', kit.data['Drums/Kick A.wav'])  # a pulled sample counts too
+        proc = run_pack(kit, '--check')
+        self.assertOk(proc)
+        self.assertIn('SYN01 v1', proc.stdout)
+        self.assertIn(f'{len(kit.paths)} files', proc.stdout)
+
+        kit.write_sample('Music/Pad G3.wav', lfs_pointer(b'another build'))
+        kit.sample('Stems/Lead Phrase F#4 4 Bars.wav').unlink()
+        kit.write_sample('Drums/Kick A.wav', b'RIFF other bytes')
+        proc = run_pack(kit, '--check')
+        self.assertFails(proc)
+        for path in ('Music/Pad G3.wav', 'Stems/Lead Phrase F#4 4 Bars.wav', 'Drums/Kick A.wav'):
+            self.assertIn(path, proc.stderr)
+        self.assertIn('missing', proc.stderr)
+        self.assertIn('oid', proc.stderr)
+        self.assertEqual(list((self.tmp).glob('**/*.zip')), [])
 
     def test_an_lfs_pointer_says_how_to_get_the_samples(self):
         kit = SynKit(self.tmp)
@@ -608,6 +757,114 @@ class TestInstall(Case):
         self.assertEqual(tree(dest), self.expected_tree(kit))
         self.assertIn(str(dest), out.getvalue())
 
+    def zip_only(self, name, members, sums=None):
+        """A content zip for a kit no checkout lists: {path: bytes} under 'Wubansia Content/zzz01/v1/'."""
+        zpath = self.tmp / name
+        kitdir = 'Wubansia Content/zzz01/v1/'
+        sums = sums if sums is not None else ''.join(f'{sha256(d)}  {p}\n' for p, d in members.items())
+        with zipfile.ZipFile(zpath, 'w', zipfile.ZIP_DEFLATED) as z:
+            z.writestr(kitdir + 'SHA256SUMS', sums)
+            for path, data in members.items():
+                z.writestr(kitdir + path, data)
+        return zpath
+
+    def test_a_path_with_a_drive_installs_nothing(self):
+        data = wav_bytes(1, 100, 'x')
+        zpath = self.zip_only('drive.zip', {'C:/Users/Public/x.wav': data, 'D:y.wav': data})
+        dest = self.tmp / 'Content'
+        proc = run([sys.executable, INSTALL_PY, '--manifests', self.tmp / 'none', '--from-zip', zpath,
+                    '--dest', dest])
+        self.assertFails(proc)
+        self.assertNotIn('Traceback', proc.stderr)
+        self.assertIn(':', proc.stderr)
+        self.assertEqual(tree(self.tmp / 'Content'), {})
+
+    def test_nothing_is_written_outside_the_kits_folder(self):
+        kit = SynKit(self.tmp)
+        dest = self.tmp / 'Content'
+        outside = self.tmp / 'outside'
+        outside.mkdir()
+        drums = self.dest_of(kit, dest) / 'Drums'
+        drums.parent.mkdir(parents=True)
+        drums.symlink_to(outside, target_is_directory=True)
+        proc = run_install(kit, '--from-zip', self.packed(kit), '--dest', dest)
+        self.assertFails(proc)
+        self.assertIn('Drums/', proc.stderr)
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_damaged_encrypted_or_unsupported_entries_are_refused_not_crashed(self):
+        kit = SynKit(self.tmp)
+        kitdir = f'Wubansia Content/{kit.folder}/v1/'
+        wav = kitdir + 'Music/Pad G3.wav'
+
+        def encrypted(raw, i, sig):
+            raw[i + (6 if sig == b'PK\x03\x04' else 8)] |= 1
+
+        def deflate64(raw, i, sig):
+            at = 8 if sig == b'PK\x03\x04' else 10
+            raw[at + i:at + i + 2] = struct.pack('<H', 9)
+
+        cases = {
+            'a damaged SHA256SUMS': lambda z: flip_entry_byte(z, kitdir + 'SHA256SUMS'),
+            'a damaged deflate stream': lambda z: flip_entry_byte(z, wav, at=0),
+            'a damaged sample': lambda z: flip_entry_byte(z, wav),
+            'an encrypted sample': lambda z: patch_entry(z, wav, encrypted),
+            'deflate64': lambda z: patch_entry(z, wav, deflate64),
+        }
+        good = SynKit(self.tmp / 'good', 'SYN02')
+        good_zip = self.packed(good, self.tmp / 'good out')
+        for name, damage in cases.items():
+            with self.subTest(name):
+                zpath = self.tmp / f'{name}.zip'
+                shutil.copy2(self.packed(kit), zpath)
+                damage(zpath)
+                dest = self.tmp / f'{name} Content'
+                proc = run_install(kit, '--from-zip', zpath, good_zip, '--dest', dest)
+                self.assertFails(proc)
+                self.assertNotIn('Traceback', proc.stderr)
+                self.assertIn('SYN01 v1', proc.stderr)
+                self.assertFalse((dest / kit.folder).exists())
+                self.assertEqual(tree(dest / 'syn02' / 'v1')['SHA256SUMS'], sha256(good.sums_text().encode()))
+
+    def test_an_unreadable_zip_is_a_problem_with_that_source_only(self):
+        good = SynKit(self.tmp, 'SYN02')
+        broken = self.tmp / 'broken.zip'
+        broken.write_bytes(self.packed(good).read_bytes()[:1000])
+        dest = self.tmp / 'Content'
+        proc = run_install(good, '--from-zip', broken, self.packed(good), '--dest', dest)
+        self.assertFails(proc)
+        self.assertIn('broken.zip', proc.stderr)
+        self.assertNotIn('Traceback', proc.stderr)
+        self.assertTrue((dest / 'syn02' / 'v1' / 'SHA256SUMS').is_file())
+
+    def test_two_sources_of_one_kit_version_with_other_files_install_neither(self):
+        a = SynKit(self.tmp / 'a')
+        b = SynKit(self.tmp / 'b', seed=' another build')
+        a_zip, b_zip = self.packed(a, self.tmp / 'a out'), self.packed(b, self.tmp / 'b out')
+        dest = self.tmp / 'Content'
+        proc = run([sys.executable, INSTALL_PY, '--manifests', self.tmp / 'none', '--from-zip', a_zip, b_zip,
+                    '--dest', dest])
+        self.assertFails(proc)
+        self.assertIn(str(a_zip), proc.stderr)
+        self.assertIn(str(b_zip), proc.stderr)
+        self.assertEqual(tree(dest), {})
+        copy = self.tmp / 'copy of a.zip'
+        shutil.copy2(a_zip, copy)
+        proc = run([sys.executable, INSTALL_PY, '--manifests', self.tmp / 'none', '--from-zip', a_zip, copy,
+                    '--dest', dest])
+        self.assertOk(proc)
+        self.assertEqual(tree(self.dest_of(a, dest)), self.expected_tree(a))
+
+    def test_an_installed_sha256sums_listing_more_files_stays(self):
+        bigger = SynKit(self.tmp / 'big')
+        smaller = SynKit(self.tmp / 'small', files=SYN_FILES[:-1])
+        dest = self.tmp / 'Content'
+        self.assertOk(run_install(bigger, '--from-zip', self.packed(bigger, self.tmp / 'big out'), '--dest', dest))
+        proc = run([sys.executable, INSTALL_PY, '--manifests', self.tmp / 'none', '--from-zip',
+                    self.packed(smaller, self.tmp / 'small out'), '--dest', dest])
+        self.assertOk(proc)
+        self.assertEqual(tree(self.dest_of(bigger, dest)), self.expected_tree(bigger))
+
     def test_from_zip_dry_run_writes_nothing(self):
         kit = SynKit(self.tmp)
         zpath = self.packed(kit)
@@ -631,9 +888,17 @@ STUBS = {
     'uname': 'case "$1" in -s|"") echo Darwin ;; *) exec {uname} "$@" ;; esac\n',
     'id': 'case "$1" in -u) echo 501 ;; *) exec {id} "$@" ;; esac\n',
     'xattr': 'echo "xattr $*" >> "$STUB_LOG"\ncase "$1" in -p) exit 1 ;; esac\n',
-    'codesign': 'echo "codesign $*" >> "$STUB_LOG"\n',
+    'codesign': 'echo "codesign $*" >> "$STUB_LOG"\nif [ -n "${{STUB_CODESIGN_FAILS:-}}" ]; then exit 1; fi\n',
     'killall': 'echo "killall $*" >> "$STUB_LOG"\n',
+    # PlistBuddy -c "Print :KEY" FILE, for the XML Info.plist the tests write
+    'PlistBuddy': 'key=${{2#Print :}}\nsed -n "/<key>$key<\\/key>/{{n;s/.*<string>\\(.*\\)<\\/string>.*/\\1/p;q}}" "$3"\n',
 }
+
+
+def info_plist(version, build):
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0">\n<dict>\n'
+            f'  <key>CFBundleShortVersionString</key>\n  <string>{version}</string>\n'
+            f'  <key>CFBundleVersion</key>\n  <string>{build}</string>\n</dict>\n</plist>\n')
 
 BUNDLES = ('Wubansia.vst3', 'Wubansia.component', 'Wubansia.clap', 'Wubansia.app')
 
@@ -651,7 +916,7 @@ class TestInstallMacos(Case):
             exe = self.pkg / b / 'Contents' / 'MacOS' / 'Wubansia'
             exe.parent.mkdir(parents=True)
             exe.write_bytes(b'\xcf\xfa\xed\xfe' + b.encode())
-            (self.pkg / b / 'Contents' / 'Info.plist').write_text('<plist/>\n')
+            (self.pkg / b / 'Contents' / 'Info.plist').write_text(info_plist('0.1.0', '0.1.0.42'))
         for f in (SCRIPT, INSTALL_MD, REPO / 'THIRD_PARTY_NOTICES.md'):
             shutil.copy2(f, self.pkg / f.name)
         self.tmpdir = self.tmp / 'tmp'
@@ -668,10 +933,16 @@ class TestInstallMacos(Case):
         bin_dir = self.tmp / 'stub bin'
         bin_dir.mkdir(exist_ok=True)
         for name, body in STUBS.items():
-            p = bin_dir / name
-            p.write_text('#!/bin/sh\n' + body.format(uname=shutil.which('uname'), id=shutil.which('id')))
-            p.chmod(0o755)
+            self.stub(name, body.format(uname=shutil.which('uname'), id=shutil.which('id')))
         return {'PATH': f'{bin_dir}{os.pathsep}{os.environ["PATH"]}', 'STUB_LOG': str(self.log)}
+
+    def stub(self, name, body):
+        """A stand-in on the stubbed PATH; `real` names the real command, for stand-ins that pass most calls on."""
+        bin_dir = self.tmp / 'stub bin'
+        bin_dir.mkdir(exist_ok=True)
+        p = bin_dir / name
+        p.write_text('#!/bin/sh\n' + body.replace('{real}', shutil.which(name) or name))
+        p.chmod(0o755)
 
     def script(self, *args, stubs=False, env=None):
         full = {'HOME': str(self.home), 'TMPDIR': str(self.tmpdir)}
@@ -872,16 +1143,177 @@ class TestInstallMacos(Case):
             self.assertEqual(tree(dest), tree(self.pkg / b), b)
         self.assertFalse((old / 'Contents' / 'stale').exists())
         self.assertEqual([p.name for p in self.plugins_dir().joinpath('VST3').iterdir()], ['Wubansia.vst3'])
-        log = self.log.read_text().splitlines()
-        for dest in installed:
-            self.assertIn(f'xattr -dr com.apple.quarantine {dest}', log)
-            self.assertIn(f'codesign --verify --strict {dest}', log)
-        self.assertEqual(log.count('killall -9 AudioComponentRegistrar'), 1)
+        log = self.log.read_text()
+        for dest in installed:  # on the new copy, before it takes the old one's place
+            new_copy = re.escape(f'{dest.parent}/.{dest.name}.installing.') + r'\d+'
+            self.assertRegex(log, rf'(?m)^xattr -dr com\.apple\.quarantine {new_copy}$')
+            self.assertRegex(log, rf'(?m)^codesign --verify --strict {new_copy}$')
+            self.assertEqual([p.name for p in dest.parent.iterdir() if p.name.startswith('.')], [])
+        self.assertEqual(log.splitlines().count('killall -9 AudioComponentRegistrar'), 1)
         self.assertEqual(tree(self.content_dir() / kit.folder / 'v1')['Drums/Kick A.wav'],
                          sha256(kit.data['Drums/Kick A.wav']))
         for line in ('Wubansia.vst3', 'Wubansia.component', 'Wubansia.clap', 'Wubansia.app', 'quarantine',
                      'AudioComponentRegistrar', str(self.content_dir() / kit.folder / 'v1')):
             self.assertIn(line, proc.stdout)
+
+    def old_vst3(self, marker='an older build'):
+        old = self.plugins_dir() / 'VST3' / 'Wubansia.vst3'
+        (old / 'Contents' / 'MacOS').mkdir(parents=True)
+        (old / 'Contents' / 'MacOS' / 'Wubansia').write_text(marker)
+        (old / 'Contents' / 'Info.plist').write_text(info_plist('0.0.9', '0.0.9.7'))
+        return old
+
+    def leftovers(self):
+        return [p for p in self.home.rglob('.*') if '.installing.' in p.name or '.old.' in p.name]
+
+    @unittest.skipUnless(ON_LINUX, 'stand-ins for the macOS commands')
+    def test_a_new_copy_that_fails_its_checks_leaves_the_old_bundle(self):
+        old = self.old_vst3()
+        before = tree(old)
+        proc = self.script('--plugins-only', stubs=True, env={'STUB_CODESIGN_FAILS': '1'})
+        self.assertFails(proc)
+        self.assertIn('codesign', proc.stderr)
+        self.assertEqual(tree(old), before)
+        self.assertEqual(self.leftovers(), [])
+
+    @unittest.skipUnless(ON_LINUX, 'stand-ins for the macOS commands')
+    def test_an_old_bundle_that_cant_be_deleted_is_moved_aside_whole(self):
+        old = self.old_vst3()
+        self.stubs()
+        self.stub('rm', 'for a in "$@"; do case "$a" in *.old.*) echo "rm: $a: Operation not permitted" >&2; '
+                        'exit 1 ;; esac; done\nexec {real} "$@"\n')
+        proc = self.script('--plugins-only', stubs=True)
+        self.assertOk(proc)
+        self.assertEqual(tree(old), tree(self.pkg / 'Wubansia.vst3'))  # the new build, whole
+        aside = [p for p in self.leftovers() if '.old.' in p.name]
+        self.assertEqual(len(aside), 1)
+        self.assertEqual((aside[0] / 'Contents' / 'MacOS' / 'Wubansia').read_text(), 'an older build')
+        self.assertIn(str(aside[0]), proc.stdout + proc.stderr)
+
+    @unittest.skipUnless(ON_LINUX, 'stand-ins for the macOS commands')
+    def test_a_failed_swap_puts_the_old_bundle_back(self):
+        old = self.old_vst3()
+        before = tree(old)
+        self.stubs()
+        self.stub('mv', 'case "$1" in *.installing.*) echo "mv: refused" >&2; exit 1 ;; esac\nexec {real} "$@"\n')
+        proc = self.script('--plugins-only', stubs=True)
+        self.assertFails(proc)
+        self.assertEqual(tree(old), before)
+        self.assertEqual(self.leftovers(), [])
+
+    @unittest.skipUnless(ON_LINUX, 'stand-ins for the macOS commands')
+    def test_an_interrupt_during_the_copy_leaves_no_copy_behind(self):
+        old = self.old_vst3()
+        before = tree(old)
+        self.stubs()
+        self.stub('ditto', 'mkdir -p "$2/Contents"\nkill -INT $PPID\nsleep 1\nexit 1\n')
+        proc = self.script('--plugins-only', stubs=True)
+        self.assertEqual(proc.returncode, 130, proc.stdout + proc.stderr)
+        self.assertEqual(tree(old), before)
+        self.assertEqual(self.leftovers(), [])
+
+    @unittest.skipUnless(ON_LINUX, 'stand-ins for the macOS commands')
+    def test_it_says_which_builds_it_replaces(self):
+        self.old_vst3()
+        proc = self.script('--dry-run', '--plugins-only', stubs=True)
+        self.assertOk(proc)
+        line = [x for x in proc.stdout.splitlines() if '0.0.9' in x]
+        self.assertTrue(line, proc.stdout)
+        self.assertIn('0.0.9.7', line[0])
+        self.assertIn('0.1.0.42', line[0])
+
+    def evil_zip(self, name, links):
+        """A content zip whose entries in `links` ({name: target}) are symbolic links."""
+        zpath = self.downloads / name
+        with zipfile.ZipFile(zpath, 'w') as z:
+            for entry, target in links.items():
+                if target is None:
+                    z.writestr(entry, b'')
+                    continue
+                info = zipfile.ZipInfo(entry)
+                info.create_system = 3
+                info.external_attr = (stat.S_IFLNK | 0o777) << 16
+                z.writestr(info, target)
+        return zpath
+
+    @unittest.skipUnless(ON_MAC or ON_LINUX, 'macOS, or Linux with stand-ins')
+    def test_a_zip_with_symlinked_folders_is_refused_and_moves_nothing(self):
+        # The review's two layouts: a kit folder that links to another installed kit, and a 'Wubansia Content'
+        # that links to a content folder elsewhere. Either way the files there would have moved in.
+        kit = SynKit(self.tmp / 'kit', 'SYN03')
+        zpath = self.zip_beside(kit)
+        self.assertOk(self.real_content_run())
+        zpath.unlink()
+        installed = tree(self.content_dir())
+        elsewhere = self.tmp / 'elsewhere' / 'Wubansia Content 3'
+        other = SynKit(self.tmp / 'other', 'SYN04')
+        shutil.copytree(other.samples / 'syn04', elsewhere / 'syn04' / 'v1')
+        (elsewhere / 'syn04' / 'v1' / 'SHA256SUMS').write_text(other.sums_text())
+        away = tree(elsewhere)
+        layouts = {
+            'a kit folder': {'Wubansia Content/': None, 'Wubansia Content/syn02': '../../syn03'},
+            'the top folder': {'Wubansia Content': str(elsewhere)},
+        }
+        for name, links in layouts.items():
+            with self.subTest(name):
+                evil = self.evil_zip('Wubansia-Content-SYN02-v1.zip', links)
+                for args in (('--dry-run',), ()):
+                    proc = self.real_content_run(*args)
+                    self.assertFails(proc)
+                    self.assertIn('symbolic link', proc.stderr)
+                    self.assertEqual(tree(self.content_dir()), installed)
+                    self.assertEqual(tree(elsewhere), away)
+                evil.unlink()
+
+    def test_a_run_that_finds_no_bundles_fails(self):
+        lone = self.tmp / 'lone'
+        lone.mkdir()
+        shutil.copy2(SCRIPT, lone / 'install-macos.sh')
+        proc = run([BASH, lone / 'install-macos.sh', '--dry-run'], env={'HOME': str(self.home), 'TMPDIR': str(self.tmpdir)})
+        self.assertFails(proc)
+        self.assertIn('error:', proc.stderr)
+        self.assertNotIn('Done', proc.stdout)
+
+    def test_an_exported_cdpath_doesnt_move_the_scripts_folder(self):
+        proc = run([BASH, 'Wubansia/install-macos.sh', '--dry-run', '--plugins-only'],
+                   env={'HOME': str(self.home), 'TMPDIR': str(self.tmpdir), 'CDPATH': '.:/nonexistent'},
+                   cwd=self.downloads)
+        self.assertOk(proc)
+        self.assertEqual(proc.stdout.splitlines()[0], f'Wubansia installer, from {self.pkg}')
+        self.assertIn('would copy Wubansia.vst3', proc.stdout)
+
+    @unittest.skipUnless(ON_MAC or ON_LINUX, 'macOS, or Linux with stand-ins')
+    def test_two_downloads_of_one_kit_version_install_neither(self):
+        a = SynKit(self.tmp / 'a')
+        b = SynKit(self.tmp / 'b', seed=' another build')
+        for k, folder in ((a, 'Wubansia Content'), (b, 'Wubansia Content 2')):
+            with zipfile.ZipFile(self.packed(k, self.tmp / f'{folder} zip')) as z:
+                z.extractall(self.tmp / 'x')
+            (self.tmp / 'x' / 'Wubansia Content').rename(self.downloads / folder)
+        for args in (('--dry-run',), ()):
+            proc = self.real_content_run(*args)
+            self.assertFails(proc)
+            self.assertIn(str(self.downloads / 'Wubansia Content') + '\n', proc.stderr + '\n')
+            self.assertIn(str(self.downloads / 'Wubansia Content 2'), proc.stderr)
+            self.assertFalse((self.content_dir() / a.folder).exists())
+        shutil.rmtree(self.downloads / 'Wubansia Content 2')
+        self.zip_beside(a)  # the same build twice: a zip and its unzipped folder
+        proc = self.real_content_run()
+        self.assertOk(proc)
+        self.assertEqual(tree(self.content_dir() / a.folder / 'v1')['SHA256SUMS'], sha256(a.sums_text().encode()))
+
+    @unittest.skipUnless(ON_MAC or ON_LINUX, 'macOS, or Linux with stand-ins')
+    def test_an_installed_sha256sums_listing_more_files_stays(self):
+        bigger = SynKit(self.tmp / 'big')
+        smaller = SynKit(self.tmp / 'small', files=SYN_FILES[:-1])
+        zpath = self.zip_beside(bigger)
+        self.assertOk(self.real_content_run())
+        zpath.unlink()
+        self.zip_beside(smaller)
+        proc = self.real_content_run()
+        self.assertOk(proc)
+        sums = (self.content_dir() / bigger.folder / 'v1' / 'SHA256SUMS').read_text()
+        self.assertEqual(sums, bigger.sums_text())
 
     @unittest.skipUnless(ON_LINUX, 'stand-ins for the macOS commands')
     def test_it_refuses_sudo(self):
