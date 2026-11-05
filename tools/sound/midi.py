@@ -318,7 +318,7 @@ CUES = {                            # the kit's audio, which the MIDI leaves to 
     'Riser': "the kit's riser (`FX/`), 8 bars from this bar, ending on the next section's first beat",
     'Fill': "the kit's fill (`FX/`) in this bar, its end on the next downbeat (a half-bar fill starts on beat 3); the "
             "drums play their written fill bar here, which leaves it room",
-    'Vox': "the kit's sung line or chops (`Vox/`) from this bar",
+    'Vox': "the kit's vox synth riff (`Loops/`) or its vox synth one-shots (`Vox/`) from this bar",
 }
 ENDS = {'fill': 'fill', 'drop': 'drum drop'}
 

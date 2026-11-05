@@ -79,7 +79,7 @@ The MIDI plays the kit's drums, bass, lead and chords. Its riser, fills and voca
 the cue points, and this list, say where they go:
 - **Riser** (bars 89, 153): the kit's riser (`FX/`), 8 bars from this bar, ending on the next section's first beat.
 - **Fill** (bars 32, 48, 64, 80, 96, 112, 144, 176, 192): the kit's fill (`FX/`) in this bar, its end on the next downbeat (a half-bar fill starts on beat 3); the drums play their written fill bar here, which leaves it room.
-- **Vox** (bars 65, 73, 97, 113, 145, 161, 177): the kit's sung line or chops (`Vox/`) from this bar.
+- **Vox** (bars 65, 73, 97, 113, 145, 161, 177): the kit's vox synth riff (`Loops/`) or its vox synth one-shots (`Vox/`) from this bar.
 
 ## Tracks
 
