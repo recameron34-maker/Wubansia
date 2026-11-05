@@ -39,10 +39,10 @@ namespace
 
     // The synthetic loop, but with one timeline per mode and variant: Loop no-vox drops the vox; the songs
     // are 8 bars of kicks with a pad and a riser, sections Intro and Drop.
-    Kit switchingKit (int index = 0)
+    Kit switchingKit (int index = 0, bool clean = false)
     {
         const auto m = synManifest();
-        const auto mix = synMix();
+        const auto mix = clean ? cleanMix() : synMix();
         const auto loopVox = build (synLoopSmf(), m, mix, 15360);
         auto loopNoVox = loopVox;
         std::erase_if (loopNoVox.notes, [] (const Note& n) { return n.channel == 4; });
@@ -100,32 +100,53 @@ namespace
 
 TEST_CASE ("the block loop plays the timeline on the voices at its samples, into their mix channels", "[engine]")
 {
-    const Kit kit = synKit();
-    const Controls controls; // Loop, vox, kick B, bass B, stab A
-    const auto played = playKit (kit, controls, 120.0, 0.0, 96000);
+    // A mix with no inserts and the club master off: P8's mixer is then a plain delay of the channel buses'
+    // sum, latencySamples () long. One kit-less block with the club off first, since the mixer takes the
+    // club master's state at a kit's adoption from its last block's controls.
+    const Kit kit = synKit (0, true);
+    Controls controls; // Loop, vox, kick B, bass B, stab A
+    controls.club = false;
+    Harness h;
+    FakeHost host (48000.0, 512);
+    host.prepare (h);
+    FakeHost::Output out;
+    host.render (h, controls, 64, out);
+    h.pending.publish (&kit);
+    host.setTempo (120.0);
+    host.play (0.0);
+    host.render (h, controls, 96000, out);
+
+    const auto& log = h.loop.voices().log;
     std::vector<std::int64_t> kicks;
-    for (const auto& i : ons (played.log))
+    for (const auto& i : ons (log))
         if (i.note.instrument == inst::kickB)
-            kicks.push_back (i.sample);
+            kicks.push_back (i.sample - 64);
     CHECK (kicks == std::vector<std::int64_t> { 0, 24000, 48000, 72000 });
-    for (const auto& i : ons (played.log))
+    for (const auto& i : ons (log))
     {
         CHECK (i.note.source == Source::sequencer);
         CHECK (i.note.instrument != inst::kickA); // kick B is on
     }
 
-    // The output is every note-on's impulse at its sample, mixed at unity, and nothing else.
+    // The engine reports its mixer's latency, and every note-on's impulse comes out that late, mixed at unity,
+    // with nothing else.
+    const int latency = h.loop.latencySamples();
+    Mixer mixer;
+    mixer.prepare (48000.0, 32, 2);
+    CHECK (latency == mixer.latencySamples());
+    CHECK (latency > 0);
     std::map<std::int64_t, double> expected;
-    for (const auto& i : ons (played.log))
-        expected[i.sample] += RecordingVoices::impulse (i.note);
-    for (std::size_t s = 0; s < played.out.left.size(); ++s)
+    for (const auto& i : ons (log))
+        expected[i.sample + latency] += RecordingVoices::impulse (i.note);
+    REQUIRE (expected.begin()->first == 64 + latency);
+    for (std::size_t s = 0; s < out.left.size(); ++s)
     {
         const auto it = expected.find (static_cast<std::int64_t> (s));
         const double want = it == expected.end() ? 0.0 : it->second;
-        if (std::abs (played.out.left[s] - want) > 1.0e-6)
+        if (std::abs (out.left[s] - want) > 1.0e-6 || std::abs (out.right[s] - 0.5 * want) > 1.0e-6)
         {
-            CAPTURE (s, want, played.out.left[s]);
-            FAIL ("the output isn't the impulses");
+            CAPTURE (s, want, out.left[s], out.right[s]);
+            FAIL ("the output isn't the impulses, latencySamples () late");
         }
     }
 }
@@ -471,41 +492,54 @@ TEST_CASE ("Off plays only MIDI in", "[engine]")
 
 TEST_CASE ("a kit is adopted at once when there is none, after a 20 ms fade while stopped, and on the next bar line while playing", "[engine][kit]")
 {
-    const Kit a = switchingKit (0), b = switchingKit (1), c = switchingKit (2);
+    // The drone (a constant into the kick's mix channel) shows the output's gain. The mix has no inserts and
+    // the club master is off, so the mixer is a plain delay (see the first test); a kit's adoption resets its
+    // tails, so the drone is back latencySamples () after each switch.
+    const Kit a = switchingKit (0, true), b = switchingKit (1, true), c = switchingKit (2, true);
     Harness h;
     FakeHost host (48000.0, 64);
     host.prepare (h);
-    h.loop.voices().drone = 0.5f; // the output's gain, visible
+    h.loop.voices().drone = 0.5f;
     host.setTempo (120.0);
+    Controls controls;
+    controls.club = false;
     FakeHost::Output out;
+    const auto at = [&] (std::int64_t s) { return static_cast<double> (out.left[static_cast<std::size_t> (s)]); };
+    host.render (h, controls, 1024, out); // no kit yet: the buses at unity, as late as a mix
+    const int latency = h.loop.latencySamples();
+    REQUIRE (latency > 0);
+    REQUIRE (latency < 480); // the checks below sit 480 samples after a switch: the drone is back by then
+    CHECK (at (latency + 10) == Catch::Approx (0.5));
 
-    // The first kit: at once.
+    // The first kit: at once, with no fade.
     h.pending.publish (&a);
-    host.render (h, Controls {}, 64, out);
+    host.render (h, controls, 64, out);
     CHECK (h.telemetry.kitIndex.load() == 0);
-    CHECK (out.left[0] == Catch::Approx (0.5));
+    host.render (h, controls, 1024, out);
+    CHECK (at (1024 + latency + 10) == Catch::Approx (0.5));
 
     // Stopped: the output fades out over 960 samples (20 ms), then the switch, then back in over 960.
+    const auto t0 = host.samplePosition();
     h.pending.publish (&b);
-    host.render (h, Controls {}, 64 * 15, out); // 960 samples
+    host.render (h, controls, 64 * 15, out); // 960 samples
     CHECK (h.telemetry.kitIndex.load() == 0);
-    host.render (h, Controls {}, 64, out);
+    host.render (h, controls, 64, out);
     CHECK (h.telemetry.kitIndex.load() == 1);
-    CHECK (out.left[64] == Catch::Approx (0.5));
-    CHECK (out.left[64 + 480] == Catch::Approx (0.25).margin (1e-6));
-    CHECK (out.left[64 + 960] == Catch::Approx (0.0).margin (1e-9)); // the switch's sample
-    host.render (h, Controls {}, 64 * 15, out);
-    CHECK (out.left[64 + 960 + 480] == Catch::Approx (0.25).margin (1e-6));
-    CHECK (out.left[64 + 960 + 960] == Catch::Approx (0.5));
+    CHECK (at (t0) == Catch::Approx (0.5));
+    CHECK (at (t0 + 480) == Catch::Approx (0.25).margin (1e-6));
+    CHECK (at (t0 + 960) == Catch::Approx (0.0).margin (1e-9)); // the switch's sample
+    host.render (h, controls, 64 * 15, out);
+    CHECK (at (t0 + 960 + 480) == Catch::Approx (0.25).margin (1e-6));
+    CHECK (at (t0 + 960 + 960) == Catch::Approx (0.5));
     CHECK (h.retired.pop() == &a); // nothing held it
     CHECK (h.retired.pop() == nullptr);
 
     // Playing: c, published 2.5 quarters in, is adopted on the bar line at 4 quarters.
     const auto start = host.samplePosition();
     host.play (0.0);
-    host.render (h, Controls {}, 60000, out);
+    host.render (h, controls, 60000, out);
     h.pending.publish (&c);
-    host.render (h, Controls {}, 40000, out);
+    host.render (h, controls, 40000, out);
     CHECK (h.telemetry.kitIndex.load() == 2);
     const auto bar = start + 96000;
     const auto& log = h.loop.voices().log;
@@ -528,10 +562,8 @@ TEST_CASE ("a kit is adopted at once when there is none, after a 20 ms fade whil
             kick = &i;
     REQUIRE (kick != nullptr); // beat 4's kick, on the new kit
     CHECK (kick->kit == &c);
-    // The output fades out over the 960 samples before the bar line and back in over the 960 after (no
-    // note starts on the samples checked: the drone alone shows the gain). On the switch's sample it is 0,
-    // the new kit's downbeat included.
-    const auto at = [&] (std::int64_t s) { return static_cast<double> (out.left[static_cast<std::size_t> (s)]); };
+    // The output fades out over the 960 samples before the bar line and back in over the 960 after (no note
+    // comes out on the samples checked: the drone alone shows the gain). On the switch's sample it is 0.
     CHECK (at (bar - 961) == Catch::Approx (0.5).margin (1e-6));
     CHECK (at (bar - 480) == Catch::Approx (0.25).margin (1e-6));
     CHECK (at (bar) == Catch::Approx (0.0).margin (1e-9));
@@ -861,7 +893,11 @@ TEST_CASE ("kits published from a service thread are adopted, faded and handed b
 
 TEST_CASE ("a kit published while it is the adopted one goes straight back: no fade, no restart, no fading slot", "[engine][kit]")
 {
-    const Kit a = switchingKit (0), b = switchingKit (1);
+    // The drone shows the output's gain, through a mix with no inserts and the club master off (a plain delay;
+    // see the first test). After the first adoption's reset it is back latencySamples () later.
+    const Kit a = switchingKit (0, true), b = switchingKit (1, true);
+    Controls controls;
+    controls.club = false;
 
     SECTION ("stopped")
     {
@@ -870,11 +906,12 @@ TEST_CASE ("a kit published while it is the adopted one goes straight back: no f
         host.prepare (h);
         h.loop.voices().drone = 0.5f;
         FakeHost::Output out;
+        host.render (h, controls, 64, out);
         h.pending.publish (&a);
-        host.render (h, Controls {}, 64, out);
+        host.render (h, controls, 64, out);
         REQUIRE (h.telemetry.kitIndex.load() == 0);
         h.pending.publish (&a); // the user picks the current kit again
-        host.render (h, Controls {}, 2048, out);
+        host.render (h, controls, 2048, out);
         CHECK (h.telemetry.kitIndex.load() == 0);
         CHECK (h.loop.kit() == &a);
         CHECK (h.loop.fadingKits() == 0);
@@ -882,7 +919,7 @@ TEST_CASE ("a kit published while it is the adopted one goes straight back: no f
         CHECK (h.retired.pop() == nullptr);
         for (const auto& i : h.loop.voices().log)
             CHECK (i.kind != Item::Kind::fadeKit);
-        for (std::size_t s = 0; s < out.left.size(); ++s)
+        for (std::size_t s = 64 + static_cast<std::size_t> (h.loop.latencySamples()); s < out.left.size(); ++s)
             if (! (out.left[s] == Catch::Approx (0.5)))
             {
                 CAPTURE (s, out.left[s]);
@@ -900,15 +937,16 @@ TEST_CASE ("a kit published while it is the adopted one goes straight back: no f
             host.prepare (h);
             h.loop.voices().drone = 0.5f;
             FakeHost::Output out;
+            host.render (h, controls, 64, out);
             h.pending.publish (&a);
             host.setTempo (120.0);
             host.play (0.0);
-            host.render (h, Controls {}, 60000, out); // 2.5 quarters in
+            host.render (h, controls, 60000, out); // 2.5 quarters in
             if (viaB)
                 CHECK (h.pending.publish (&b) == nullptr);
             const Kit* back = h.pending.publish (&a);
             CHECK (back == (viaB ? &b : nullptr)); // B, never adopted, comes back to the service at once
-            host.render (h, Controls {}, 100000, out); // past the bar line at 96000
+            host.render (h, controls, 100000, out); // past the bar line at 64 + 96000
             CHECK (h.telemetry.kitIndex.load() == 0);
             CHECK (h.loop.kit() == &a);
             CHECK (h.loop.fadingKits() == 0);
@@ -917,11 +955,11 @@ TEST_CASE ("a kit published while it is the adopted one goes straight back: no f
             for (const auto& i : h.loop.voices().log)
             {
                 CHECK (i.kind != Item::Kind::fadeKit);
-                if (i.kind == Item::Kind::on && i.sample > 0)
+                if (i.kind == Item::Kind::on && i.sample > 64)
                     CHECK (i.note.startFrame == 0); // no restart: nothing chased
             }
             // The drone never dips: no fade around the bar line.
-            for (std::size_t s = 90000; s < 100000; ++s)
+            for (std::size_t s = 64 + 90000; s < 64 + 100000; ++s)
                 CHECK (out.left[s] >= 0.5f - 1.0e-6f);
         }
     }
@@ -929,7 +967,9 @@ TEST_CASE ("a kit published while it is the adopted one goes straight back: no f
 
 TEST_CASE ("an offline render adopts a pending kit on the block's first sample, with no bar line to wait for and no fades", "[engine][kit][offline]")
 {
-    const Kit a = switchingKit (0), b = switchingKit (1);
+    const Kit a = switchingKit (0, true), b = switchingKit (1, true);
+    Controls controls;
+    controls.club = false; // the mixer a plain delay (see the first test)
     for (const bool playing : { true, false })
     {
         CAPTURE (playing);
@@ -938,17 +978,18 @@ TEST_CASE ("an offline render adopts a pending kit on the block's first sample, 
         host.prepare (h);
         h.loop.voices().drone = 0.5f;
         FakeHost::Output out;
+        host.render (h, controls, 64, out);
         h.pending.publish (&a);
         host.setTempo (120.0);
         if (playing)
             host.play (0.0);
-        host.render (h, Controls {}, 60416, out); // 118 blocks: mid-bar
+        host.render (h, controls, 60416, out); // 118 blocks: mid-bar
         REQUIRE (h.telemetry.kitIndex.load() == 0);
 
         h.pending.publish (&b);
         host.setNonRealtime (true);
         const auto first = host.samplePosition();
-        host.render (h, Controls {}, 512, out);
+        host.render (h, controls, 512, out);
         CHECK (h.telemetry.kitIndex.load() == 1);
         bool faded = false;
         for (const auto& i : h.loop.voices().log)
@@ -971,10 +1012,14 @@ TEST_CASE ("an offline render adopts a pending kit on the block's first sample, 
             CHECK (pad->kit == &b);
             CHECK (pad->note.startFrame == 60416);
         }
-        // No fade out before it, none in after it.
-        for (std::size_t s = static_cast<std::size_t> (first) - 2000; s < out.left.size(); ++s)
+        // No fade out before it; and none in after it: the drone is back whole once through the mixer, whose
+        // tails the switch reset.
+        host.render (h, controls, 2048, out);
+        const auto latency = static_cast<std::size_t> (h.loop.latencySamples());
+        for (std::size_t s = static_cast<std::size_t> (first) - 2000; s < static_cast<std::size_t> (first); ++s)
             CHECK (out.left[s] >= 0.5f - 1.0e-6f);
-        host.render (h, Controls {}, 2048, out);
+        for (std::size_t s = static_cast<std::size_t> (first) + latency; s < out.left.size(); ++s)
+            CHECK (out.left[s] >= 0.5f - 1.0e-6f);
         CHECK (h.retired.pop() == &a);
     }
 

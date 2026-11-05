@@ -225,6 +225,16 @@ namespace p7
         return mix;
     }
 
+    // The same mix with no inserts at all. With the club master off it is, in P8's mixer, a plain delay of
+    // the channel buses' sum (latencySamples () long): what the tests that read the output use.
+    inline MixConfig cleanMix()
+    {
+        auto mix = synMix();
+        for (auto& channel : mix.channels)
+            channel.inserts.clear();
+        return mix;
+    }
+
     // ---- SMFs ----------------------------------------------------------------------------------
 
     // A file in the content's shape: a conductor (name, tempo, 4/4, markers) and the given tracks, every
@@ -433,11 +443,11 @@ namespace p7
         return kit;
     }
 
-    // The synthetic kit with its loop as all four timelines, or the given ones.
-    inline Kit synKit (int index = 0)
+    // The synthetic kit with its loop as all four timelines; clean: on cleanMix ().
+    inline Kit synKit (int index = 0, bool clean = false)
     {
         const auto m = synManifest();
-        const auto mix = synMix();
+        const auto mix = clean ? cleanMix() : synMix();
         const auto loop = build (synLoopSmf(), m, mix, 15360);
         return assemble (m, mix, { loop, loop, loop, loop }, index);
     }
