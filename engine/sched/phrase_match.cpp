@@ -65,6 +65,19 @@ namespace wubansia::engine
             return true;
         }
 
+        // A phrase's stem frames: the shorter of its A and B stems.
+        std::int64_t stemFrames (const KitManifest& kit, const PhraseEntry& entry) noexcept
+        {
+            std::int64_t frames = 0;
+            for (const auto stem : { entry.stemA, entry.stemB })
+                if (stem >= 0 && static_cast<std::size_t> (stem) < kit.files.size())
+                {
+                    const auto f = kit.files[static_cast<std::size_t> (stem)].frames;
+                    frames = frames == 0 ? f : std::min (frames, f);
+                }
+            return frames;
+        }
+
         // A note on a phrase channel, as the matcher sees it.
         struct Item
         {
@@ -154,9 +167,8 @@ namespace wubansia::engine
         }
 
         // play ()'s continues (): per phrase, its notes in order (by onset, then slice); each reads on into the next
-        // when that plays the next slice in the same cycle, or, on a looped stem (its last slice ends, wrapping, where
-        // its first starts: end - frames == slice 0's start), the first slice in the next cycle (round the loop in a
-        // loop).
+        // when that plays the next slice in the same cycle, or slice 0 in the next cycle after the last (round the loop
+        // in a loop), starting where it ends modulo the stem's frames.
         std::vector<bool> readsOn (const Timeline& timeline, const KitManifest& kit, const std::vector<Match>& matches)
         {
             std::vector<bool> out (matches.size(), false);
@@ -172,16 +184,14 @@ namespace wubansia::engine
                 std::stable_sort (mine.begin(), mine.end(), [&] (std::size_t a, std::size_t b) {
                     return matches[a].onset != matches[b].onset ? matches[a].onset < matches[b].onset : matches[a].slice < matches[b].slice;
                 });
-                std::int64_t frames = 0; // the shorter stem's
-                for (const auto stem : { entry.stemA, entry.stemB })
-                    if (stem >= 0 && static_cast<std::size_t> (stem) < kit.files.size())
-                    {
-                        const auto f = kit.files[static_cast<std::size_t> (stem)].frames;
-                        frames = frames == 0 ? f : std::min (frames, f);
-                    }
+                const auto frames = stemFrames (kit, entry);
                 const auto& sl = entry.slices;
                 const int last = static_cast<int> (sl.size()) - 1;
-                const bool looped = frames > 0 && sl.back().end - frames == sl.front().start;
+                // A slice reads on into another that starts where it ends, modulo the stem's frames (a looped stem
+                // wraps either way: its last slice through its end, or its slice 0 from before its cycle).
+                const auto meets = [frames] (std::int64_t end, std::int64_t start) {
+                    return frames > 0 ? (end - start) % frames == 0 : end == start;
+                };
                 const std::int64_t cycleLength = std::int64_t { entry.cycle16ths } * kMilliticksPerSixteenth;
                 const std::int64_t ring = timeline.loops && cycleLength > 0 ? std::max<std::int64_t> (1, timeline.length / cycleLength) : 0;
                 const std::size_t pairs = timeline.loops ? mine.size() : mine.size() - 1;
@@ -190,10 +200,10 @@ namespace wubansia::engine
                     const auto& a = matches[mine[i]];
                     const auto& b = matches[mine[(i + 1) % mine.size()]];
                     bool reads = false;
-                    if (b.slice == a.slice + 1 && a.cycle == b.cycle)
-                        reads = sl[static_cast<std::size_t> (a.slice)].end == sl[static_cast<std::size_t> (b.slice)].start;
-                    else if (a.slice == last && b.slice == 0 && looped) // the stem's wrap into the next cycle
-                        reads = ring > 0 ? wrapInto (b.cycle - a.cycle, ring) == 1 % ring : b.cycle - a.cycle == 1;
+                    const bool next = (b.slice == a.slice + 1 && a.cycle == b.cycle)
+                                      || (a.slice == last && b.slice == 0 // into the next cycle (round a loop)
+                                          && (ring > 0 ? wrapInto (b.cycle - a.cycle, ring) == 1 % ring : b.cycle - a.cycle == 1));
+                    reads = next && meets (sl[static_cast<std::size_t> (a.slice)].end, sl[static_cast<std::size_t> (b.slice)].start);
                     out[mine[i]] = reads;
                 }
             }
@@ -289,9 +299,11 @@ namespace wubansia::engine
             const auto& entry = phrases[static_cast<std::size_t> (match.phrase)];
             const auto& s = entry.slices[static_cast<std::size_t> (match.slice)];
             Note n = timeline.notes[match.index];
-            const auto cycleStart = match.cycle * entry.cycle16ths * kMilliticksPerSixteenth;
+            const auto cycleLength = std::int64_t { entry.cycle16ths } * kMilliticksPerSixteenth;
             const auto onset = sixteenthStart (match.cycle * entry.cycle16ths + s.step, swing);
-            n.pos = cycleStart + framesToMilliticks (s.start, kit.kit.bpm);
+            n.pos = match.cycle * cycleLength + framesToMilliticks (s.start, kit.kit.bpm);
+            if (s.start + s.lead >= stemFrames (kit, entry)) // a slice 0 whose pre-roll precedes its cycle (it wraps)
+                n.pos -= cycleLength; // sits in the cycle before: round a loop to its end, before a song's start
             n.preroll = static_cast<std::int32_t> (onset - n.pos);
             if (loops)
                 n.pos = wrapInto (n.pos, timeline.length);

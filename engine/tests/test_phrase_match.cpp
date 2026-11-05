@@ -187,7 +187,7 @@ TEST_CASE ("phrase match: SYN01's Loop plays every lead note's slice and holds t
             CHECK (n.key == s.key);
             CHECK (n.velocity == 100);
             CHECK (n.preroll == slicePreroll (phrase, c, j));
-            CHECK (n.preroll == 2048); // the 48-frame lead at 128 BPM, exactly
+            CHECK (n.preroll == framesToMt (s.lead, kBpm)); // the lead at 128 BPM, exactly: 2048 for 48 frames
             CHECK (cycleOf (n) == c);
             CHECK (n.len == framesToMt (s.end - s.start, kBpm));
             CHECK (continues (n));
