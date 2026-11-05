@@ -676,8 +676,9 @@ class TestExtendedMix(unittest.TestCase):
 
     def test_32_bars_of_drums_at_each_end(self):
         """The first and the last 32 bars are drums only (channel 10, FUT04's rumble among them): no bass, harmony,
-        vox, accents or FX sounding there; the kick in every bar of the first and last 8, for a DJ to beatmatch on (UK
-        garage's 2-step also the hats and the perc, which carry its pulse)."""
+        vox, accents or FX starting there, and none sounding past the outro's first bar (the whole mix lets a note held
+        over the section line ring on: FUT01's last stab of drop 2); the kick in every bar of the first and last 8, for
+        a DJ to beatmatch on (UK garage's 2-step also the hats and the perc, which carry its pulse)."""
         for kit in KITS:
             garage = kits.load(kit).DIRECTION == 'future garage / 2-step'
             for form in forms(kit):
@@ -688,7 +689,8 @@ class TestExtendedMix(unittest.TestCase):
                         with self.subTest(kit=kit, form=form, variant=v, track=name):
                             if CH.track_channel(kit, name) == 10:
                                 continue
-                            self.assertFalse([n for n in t['notes'] if n[0] < 32 * BAR or n[1] > end - 32 * BAR])
+                            self.assertFalse([n for n in t['notes'] if n[0] < 32 * BAR or n[0] >= end - 32 * BAR
+                                              or n[1] > end - 31 * BAR])
                     kick = lane_tracks(kit, {k: t for k, t in tracks.items() if k == 'Kick'}, 'kick')[0]
                     for lo in (0, end - 8 * BAR):
                         self.assertEqual(set(range(8)), {(on - lo) // BAR for on, *_ in ons(kick, lo, lo + 8 * BAR)},
