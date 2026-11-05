@@ -181,5 +181,7 @@ vox chops `vsynth`, its FX keys `fill`, its other accents `acc_hit` (its Air Pad
   kit's `plugin.py`.
 - FUT01's vox riff entering fresh in the extended mix plays its first slice's lead, which holds the throw's echoes
   wrapped from the riff's end (0.67 s before the first chop).
+- FUT02's riff-twice stem starts on its first note (16th 0), so that note's 50 ms pre-roll is at the stem's end: heard
+  when the riff repeats, lost when it enters fresh.
 - FUT02's vox throw: its slice plays with the throw's CC91/CC94 sends, and so do the tails of the notes before it that
   ring under it; the loop sends only the throw.
