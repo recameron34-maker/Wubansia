@@ -47,6 +47,40 @@ namespace wubansia::editor
         return contentBadge (status);
     }
 
+    namespace
+    {
+        // The card's three text lines, inside its stripe and padding.
+        juce::Rectangle<float> linesOf (juce::Rectangle<float> bounds)
+        {
+            return bounds.reduced (1.5f).withTrimmedLeft (19.0f).withTrimmedRight (10.0f).reduced (0.0f, 6.0f);
+        }
+
+        // The largest font from 11 down to 8 points that fits the text into the width.
+        juce::Font fitted (const juce::String& text, float width)
+        {
+            auto height = 11.0f;
+            auto font = uiFont (height);
+            while (height > 8.0f && juce::GlyphArrangement::getStringWidth (font, text) > width)
+            {
+                height -= 0.25f;
+                font = uiFont (height);
+            }
+            return font;
+        }
+    }
+
+    juce::Rectangle<float> KitPanel::Card::directionArea() const
+    {
+        const auto lines = linesOf (getLocalBounds().toFloat());
+        const auto lineHeight = lines.getHeight() / 3.0f;
+        return lines.withTrimmedTop (lineHeight).withHeight (lineHeight);
+    }
+
+    juce::Font KitPanel::Card::directionFont() const
+    {
+        return fitted (data.direction, directionArea().getWidth());
+    }
+
     void KitPanel::Card::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
         const auto accent = accentForKit (data.id);
@@ -76,7 +110,7 @@ namespace wubansia::editor
             g.fillRoundedRectangle (stripe.expanded (2.0f), 3.0f);
         }
 
-        auto lines = area.withTrimmedLeft (19.0f).withTrimmedRight (10.0f).reduced (0.0f, 6.0f);
+        auto lines = linesOf (getLocalBounds().toFloat()).translated (0.0f, isButtonDown ? 0.6f : 0.0f);
         const auto lineHeight = lines.getHeight() / 3.0f;
         const auto ready = status.state == ContentState::ready;
         const auto loading = status.state == ContentState::loading;
@@ -95,7 +129,7 @@ namespace wubansia::editor
         const auto line2 = lines.removeFromTop (lineHeight);
         if (ready)
         {
-            g.setFont (uiFont (11.0f));
+            g.setFont (directionFont());
             g.setColour (colours::textDim.withAlpha (selected ? 1.0f : 0.8f));
             g.drawText (data.direction, line2, juce::Justification::centredLeft, true);
         }

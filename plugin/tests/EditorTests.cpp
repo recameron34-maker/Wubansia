@@ -438,6 +438,26 @@ TEST_CASE ("kit cards select kits, and A/B switches follow the kit", "[editor]")
         });
 }
 
+TEST_CASE ("every kit card reads its direction in full at 100 %", "[editor]")
+{
+    Rig rig;
+    addKit (rig.controller, "FUT03", "Glass Current", "garage-house / deep tech house", "G minor", "6A", 128, {}, 0, {}, {});
+    addKit (rig.controller, "FUT04", "Furnace Code", "dark industrial / techno", "E minor", "9A", 136, {}, 0, {}, {});
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            editor.setZoom (1.0f);
+            for (const auto* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
+            {
+                INFO (id);
+                auto& card = get<editor::KitPanel::Card> (editor, "kit_" + juce::String (id));
+                const auto font = card.directionFont();
+                CHECK (juce::GlyphArrangement::getStringWidth (font, card.card().direction) <= card.directionArea().getWidth());
+                CHECK (font.getHeight() >= 8.0f);
+            }
+        });
+}
+
 TEST_CASE ("lanes are labelled the kit's way, and lanes the kit lacks are dimmed", "[editor]")
 {
     Rig rig;

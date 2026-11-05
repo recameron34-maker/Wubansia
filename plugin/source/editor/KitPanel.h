@@ -24,6 +24,10 @@ namespace wubansia::editor
             bool isSelected() const noexcept { return selected; }
             juce::String statusText() const;
 
+            // The direction line, which shrinks its font to read in full rather than be cut.
+            juce::Rectangle<float> directionArea() const;
+            juce::Font directionFont() const;
+
             void paintButton (juce::Graphics&, bool isMouseOver, bool isButtonDown) override;
 
         private:
