@@ -114,7 +114,7 @@ labels are `""` where the kit has no such switch, otherwise both are names. On F
 
 | Key | Type | Range | Meaning |
 |---|---|---|---|
-| `path` | string | relative path | from the kit's folder, `/`-separated, ending `.wav`, with no `..`, no leading `/` and no empty part: `"Drums/Kick Garage v1 rr1.wav"` |
+| `path` | string | relative path | from the kit's folder, `/`-separated, ending `.wav`: `"Drums/Kick Garage v1 rr1.wav"`. A relative path with no `..` or `.` part, no leading `/`, no empty part, and no `\`, `:` or control character, so it can't resolve outside the kit folder (on Windows, `"C:/x.wav"` or `"..\..\x.wav"` would). P4's parser and `FileSampleSource` share the rule (`contentPathProblem`, `engine/kit/file_sample_source.h`). |
 | `frames` | integer | 1-28 800 000 | the file's length in frames (48 kHz) |
 | `channels` | integer | 1 or 2 | mono files stay mono |
 | `sha256` | string | 64 lowercase hex digits | of the whole WAV file. The installer checks it; loads don't. |
@@ -168,7 +168,7 @@ pitch before it (FUT01's pitch dips): the dip and that returning note glide over
 
 | Key | Type | Range | Meaning |
 |---|---|---|---|
-| `group` | string | id, or `""` | instruments with the same group choke each other; `""` (with role `none`) is no group |
+| `group` | string | id, or `""` | instruments with the same group choke each other. `group` is `""` exactly when `role` is `none` (both ways): `""` is no group |
 | `role` | string | `none`, `chokes`, `choked`, `both` | a `chokes` (or `both`) note-on fades every sounding voice of the group's `choked` (or `both`) instruments |
 | `fade_us` | integer | 0-1 000 000 | how fast this instrument's voices fade when choked (FUT01 5000, FUT02-04 4000) |
 | `curve` | string | `linear`, `cos2` | the choke fade's shape (FUT01 `linear`, FUT02-04 `cos2`) |
@@ -204,13 +204,14 @@ All the files of one zone have the same number of channels.
 | `keys` | array of 2 integers | `[lo, hi]`, 0 ≤ lo ≤ hi ≤ 127 | the keys, both ends included |
 | `a` | string | an instrument id | what plays: the A side when there is a switch |
 | `b` | string | an instrument id, or `""` | the B side, or none |
-| `ab` | string | `kick`, `bass`, `stab`, or `""` | the switch choosing between `a` and `b`; `""` exactly when `b` is `""` |
+| `ab` | string | `kick`, `bass`, `stab`, or `""` | the switch choosing between `a` and `b`; `""` exactly when `b` is `""`, and only a switch the kit has (its `kit.ab` labels aren't empty) |
 
 - Ranges on one channel don't overlap.
 - Channel 3 (the voicing) and channel 9 (reserved) have no entries: Wubansia ignores them.
 - Channel 10's keys are within 35-59.
 - Every instrument appears in at least one entry, or is another's `layered_with`.
-- The phrase lanes' channels map to the multisample they fall back to.
+- The phrase lanes fall back to the multisample on their channel: every slice key, and every key in a slice's `holds`,
+  has a keymap entry on the phrase's channel.
 - A key that no entry covers plays nothing.
 
 ### 2.5 `extras[]`
@@ -236,7 +237,7 @@ near the kit's (ADR 0020).
 |---|---|---|---|
 | `lane` | string | lane id | the lane it plays on |
 | `ch` | integer | 1-16 | the MIDI channel whose notes it covers |
-| `ab` | string | `kick`, `bass`, `stab`, or `""` | the switch that chooses the stem; `""` exactly when `stems.b` is −1 |
+| `ab` | string | `kick`, `bass`, `stab`, or `""` | the switch that chooses the stem; `""` exactly when `stems.b` is −1, and only a switch the kit has (its `kit.ab` labels aren't empty) |
 | `mix_channel` | string | a `mix.json` channel id | where the stem plays; its lane is `lane` |
 | `gain_mdb` | integer | −60 000 to 24 000 | the stem's own gain, before its mix channel, as instruments have. Every `Loops/` stem has 0; FUT02's derived vox stem is stored 3 dB down and plays with 3000. |
 | `stems` | object | | `{"a": file, "b": file or -1}`: the stem per A/B side |
