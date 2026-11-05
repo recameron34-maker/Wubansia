@@ -262,6 +262,9 @@ namespace wubansia::engine
         std::int32_t cycle16ths = 32; // 32 or 64, aligned to the song grid
         std::int32_t tolerancePm = 20; // slices play while |host BPM / kit BPM - 1| <= tolerancePm / 1000
         std::int32_t fadeUs = 5000; // a slice with no follower fades over this, from its fade frame
+        // A run that starts on a slice whose lead is 0 fades in over this, so plucks, arps and blips keep
+        // their transients; a run that starts in a slice's pre-roll (lead > 0) crossfades over 3 ms.
+        std::int32_t fadeInUs = 500;
         std::uint16_t firstSlice = 0; // into Kit::slices
         std::uint16_t sliceCount = 0;
 

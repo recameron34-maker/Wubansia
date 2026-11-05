@@ -247,6 +247,7 @@ because at the exact BPM a cycle isn't a whole number of samples. FUT03's is: 36
 | `cycle_16ths` | integer | 16-256, a multiple of 16 | the phrase's length; cycles start every `cycle_16ths` from song 16th 0 |
 | `tolerance_pm` | integer | 0-100 | slices play while abs(host BPM ÷ kit BPM − 1) × 1000 ≤ this (20: 2 %) |
 | `fade_us` | integer | 0-100 000 | how long a slice with no follower takes to fade from its `fade` frame |
+| `fade_in_us` | integer | 0-100 000 | the fade-in when a run starts on a slice whose `lead` is 0, so plucks, arps and blips keep their transients: 500 for most stems; FUT02's arp keeps 3000, its recipe's rest-mask in-edge on the downbeat after its rest. A run that starts in a slice's pre-roll (`lead` > 0) crossfades over 3 ms instead. |
 | `ride` | object | | `{"cc74": [...], "cc71": [...]}`: the controller values the stem was rendered with (below) |
 | `slices` | array of objects | 1-256 | the phrase's notes, by `step` ascending (below) |
 
