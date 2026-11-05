@@ -81,6 +81,9 @@ namespace wubansia::engine
         // the chased note starts in a fresh slot while the old one fades, and a stop then a start within
         // the fade never cut it.
         void phraseNoteOn (const Kit& kit, const NoteOn& note, int offset, int stealFadeSamples) noexcept;
+        // The host's tempo for every phrase voice's notes from now on (0 or less: the kit's own): each slot's
+        // PhraseVoice::setTempo, kept across resets and steals.
+        void setPhraseTempo (double hostBpm) noexcept;
         // Fades the phrase voices of a source, or of a kit, over fadeSamples from offset (stop). They are
         // stopping from then on.
         void stopPhrases (Source source, int offset, int fadeSamples) noexcept;
@@ -109,5 +112,6 @@ namespace wubansia::engine
         }
 
         std::uint64_t phraseOrder = 0;
+        double phraseTempo = 0.0; // the last setPhraseTempo ()
     };
 }

@@ -54,10 +54,11 @@ namespace wubansia::engine
         };
 
         // Message thread: the host's rate. (P6's voice builds the sampler's shared sinc bank if it isn't
-        // yet; the sampler builds it first, so this never allocates.) Silent.
+        // yet; the sampler builds it first, so this never allocates.) Silent; the tempo is the kit's.
         void prepare (double sampleRate)
         {
             rate = sampleRate;
+            bpm = 0.0;
             reset();
         }
 
@@ -71,6 +72,10 @@ namespace wubansia::engine
             phrase_ = -1;
             stats_ = Stats {};
         }
+
+        // The host's tempo for the notes from now on (0 or less: the kit's own). The engine sets it per
+        // block, through Sampler::setTempo (); reset () keeps it.
+        void setTempo (double hostBpm) noexcept { bpm = hostBpm; }
 
         // A note of a phrase this voice doesn't play yet, at a sample offset in the next render ().
         void start (const Kit& kit, const NoteOn& note, int offset) noexcept
@@ -164,6 +169,7 @@ namespace wubansia::engine
         }
 
         double rate = 48000.0;
+        double bpm = 0.0; // the host's tempo; 0: the kit's
         const Kit* kit_ = nullptr;
         int phrase_ = -1;
         bool playing = false;

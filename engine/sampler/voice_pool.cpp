@@ -6,6 +6,7 @@ namespace wubansia::engine
 {
     void VoicePool::prepare (double sampleRate)
     {
+        phraseTempo = 0.0;
         reset();
         for (auto& p : phrases)
             p.voice.prepare (sampleRate);
@@ -20,8 +21,9 @@ namespace wubansia::engine
             v.stop();
         for (auto& v : fading)
             v.stop();
-        forEachPhraseSlot ([] (PhraseSlot& p) {
+        forEachPhraseSlot ([this] (PhraseSlot& p) {
             p.voice.reset();
+            p.voice.setTempo (phraseTempo);
             p.kit = nullptr;
             p.phrase = -1;
             p.busy = false;
@@ -124,6 +126,7 @@ namespace wubansia::engine
             fade->stopping = true;
             fade->voice.stop (offset, stealFadeSamples);
             slot->voice.reset();
+            slot->voice.setTempo (phraseTempo);
             ++phraseSteals;
         }
 
@@ -146,6 +149,12 @@ namespace wubansia::engine
             p.stopping = true;
             p.voice.stop (offset, fadeSamples);
         }
+    }
+
+    void VoicePool::setPhraseTempo (double hostBpm) noexcept
+    {
+        phraseTempo = hostBpm;
+        forEachPhraseSlot ([hostBpm] (PhraseSlot& p) { p.voice.setTempo (hostBpm); });
     }
 
     void VoicePool::stopPhrases (Source source, int offset, int fadeSamples) noexcept
