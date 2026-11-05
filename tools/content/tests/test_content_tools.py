@@ -84,6 +84,8 @@ def wav_bytes(channels, frames, seed, rate=48000, bits=24, fmt_tag=1):
     block = channels * bits // 8
     data = random.Random(seed).randbytes(frames * block)
     fmt = struct.pack('<HHIIHH', fmt_tag, channels, rate, rate * block, block, bits)
+    if fmt_tag == 0xFFFE:  # WAVE_FORMAT_EXTENSIBLE: cbSize, valid bits, channel mask, the PCM sub-format GUID
+        fmt += struct.pack('<HHI', 22, bits, 3) + bytes.fromhex('0100000000001000800000aa00389b71')
     body = b'WAVE' + b'fmt ' + struct.pack('<I', len(fmt)) + fmt + b'data' + struct.pack('<I', len(data)) + data
     if len(data) % 2:
         body += b'\0'
