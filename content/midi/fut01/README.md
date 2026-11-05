@@ -14,6 +14,7 @@ kit's recipes (`tools/sound/recipes/fut01/midi.py`); a test keeps these files eq
 - `FUT01_Phrase_ChromePluck_4bars.mid`
 - `FUT01_Phrase_EPianoStab_2bars.mid`
 - `FUT01_Phrase_OrganLead_4bars.mid`
+- `FUT01_Phrase_VoxSynth_2bars.mid`
 - `FUT01_Phrase_WarpClean_2bars.mid`
 
 **Drums** (channel 10): a drum rack with the kit's samples on these notes (C1 = 36).
@@ -47,6 +48,7 @@ multisample, each file rooted at its note: F#3, B3 (MIDI 54, 59). The sample tri
 - `FUT01_Phrase_WarpClean_2bars.mid`: Warp riff (2 bars), on Warp Clean, rooted at F#1, A1, C#2 (MIDI 30, 33, 37)
 - `FUT01_Phrase_ChromePluck_4bars.mid`: Pluck riff (4 bars), on Chrome Pluck, rooted at C4 to C6, every 3 semitones (MIDI 60 to 84)
 - `FUT01_Phrase_EPianoStab_2bars.mid`: E-piano stab rhythm (2 bars), on E Piano Stab, rooted at F#3, B3 (MIDI 54, 59)
+- `FUT01_Phrase_VoxSynth_2bars.mid`: Vox synth riff (2 bars), on Vox Synth, rooted at A4, C#5, F#5 (MIDI 69, 73, 78)
 
 **Extended mix** (`extended/`): these parts arranged as a DJ-friendly extended mix, 224 bars
 (6:41 at 134 BPM), as one file and one region per section, with `regions.json` and a README on

@@ -578,6 +578,7 @@ def organ_line(take):
 
 
 R4 = ('r4',)
+R45 = ('r4', 'r5')                  # round 5 carries these on, unchanged (its own loops are context5.py's)
 ABOUT = '4-bar UK garage context loop, 134 BPM, F# minor: the 2-step kick, the garage clap, swung hats and tambourine'
 FULL_MIX = {'mud': 'off', 'why': 'the full mix: vocals, the clap, the stabs and the pluck belong in 150-400 Hz; its '
                                  'low '
@@ -601,31 +602,31 @@ ITEMS = [
          about=f'{ABOUT}, wet, bass B: the garage plate, the echo, a little resonator; the engine\'s target'),
     Item('Loops', 'GarageContextClub', 'loop', context_club, loop=True, hp_hz=None, sets=R4, tags=('wet', 'club'),
          qa=CLUB, about=f'{ABOUT}: GarageContextWet through the club master, aimed at the UK garage target, -9 LUFS'),
-    Item('Loops', 'GarageContextLow', 'loop', context_low_clean, loop=True, sets=R4, tags=('with_kick',), qa=CLEAN,
+    Item('Loops', 'GarageContextLow', 'loop', context_low_clean, loop=True, sets=R45, tags=('with_kick',), qa=CLEAN,
          about=f'{ABOUT}: the kick and warp bass A lanes alone, mud-gated in every gap between kicks'),
-    Item('Loops', 'GarageContextLowWarm', 'loop', context_low_warm, loop=True, sets=R4, tags=('with_kick',), qa=WARM,
+    Item('Loops', 'GarageContextLowWarm', 'loop', context_low_warm, loop=True, sets=R45, tags=('with_kick',), qa=WARM,
          about=f'{ABOUT}: the kick and warp bass B lanes alone, under the bass-body rule in every gap'),
-    Item('Loops', 'SpeedGarageLoop', 'loop', speed_loop, loop=True, level=LOOP_LUFS, sets=R4, tags=('dry',),
+    Item('Loops', 'SpeedGarageLoop', 'loop', speed_loop, loop=True, level=LOOP_LUFS, sets=R45, tags=('dry',),
          qa={'mud': 'off', 'why': 'the full mix: the clap and the stabs belong in 150-400 Hz; its low end is checked '
                                   'as SpeedGarageLow (the gate), and every other lane passed its own low cut'},
          about='2-bar speed garage variant, 134 BPM, F# minor: the kick on every beat, the warp line (B) on the '
                'off-beats between the kicks, the clap, swung hats, tambourine and organ stabs'),
-    Item('Loops', 'SpeedGarageLow', 'loop', speed_low, loop=True, sets=R4, tags=('with_kick',), qa=CLEAN,
+    Item('Loops', 'SpeedGarageLow', 'loop', speed_low, loop=True, sets=R45, tags=('with_kick',), qa=CLEAN,
          about='the speed garage variant\'s kick and warp bass A alone, mud-gated in every gap between kicks'),
-    Item('Loops', 'DrumGroove4Garage', 'loop', groove_garage, loop=True, level=DRUM_LUFS, sets=R4,
+    Item('Loops', 'DrumGroove4Garage', 'loop', groove_garage, loop=True, level=DRUM_LUFS, sets=R45,
          tags=('preview', 'with_kick'), qa=DRUMS,
          about='preview: kick B (Garage) in bars 1-2 of the round 4 drums (clap, closed and open hats, tambourine, '
                'rim), 134 BPM'),
-    Item('Loops', 'DrumGroove4Split', 'loop', groove_split, loop=True, level=DRUM_LUFS, sets=R4,
+    Item('Loops', 'DrumGroove4Split', 'loop', groove_split, loop=True, level=DRUM_LUFS, sets=R45,
          tags=('preview', 'with_kick'), qa=DRUMS,
          about='preview: kick A (Split) in bars 1-2 of the round 4 drums, 134 BPM'),
-    Item('Loops', 'DrumGroove4Swing57', 'loop', groove_swing57, loop=True, level=DRUM_LUFS, sets=R4,
+    Item('Loops', 'DrumGroove4Swing57', 'loop', groove_swing57, loop=True, level=DRUM_LUFS, sets=R45,
          tags=('preview', 'with_kick'), qa=DRUMS,
          about='preview: DrumGroove4Garage on round 3\'s swing, 0.57, against the kit\'s new one'),
-    Item('Loops', 'WarpLineClean', 'loop', warp_line_clean, loop=True, sets=R4, tags=('with_kick',), qa=CLEAN,
+    Item('Loops', 'WarpLineClean', 'loop', warp_line_clean, loop=True, sets=R45, tags=('with_kick',), qa=CLEAN,
          about='2-bar warp line, A clean (WarpClean), with the 2-step kick and the closed hats, 134 BPM, F# minor'),
-    Item('Loops', 'WarpLineWarm', 'loop', warp_line_warm, loop=True, sets=R4, tags=('with_kick',), qa=WARM,
+    Item('Loops', 'WarpLineWarm', 'loop', warp_line_warm, loop=True, sets=R45, tags=('with_kick',), qa=WARM,
          about='2-bar warp line, B warm (WarpWarm), with the 2-step kick and the closed hats, 134 BPM, F# minor'),
-    Item('Loops', 'OrganLine', 'loop', organ_line, loop=True, sets=R4, tags=('with_kick',), qa=ORGAN,
+    Item('Loops', 'OrganLine', 'loop', organ_line, loop=True, sets=R45, tags=('with_kick',), qa=ORGAN,
          about='2-bar line on the organ bass, with the 2-step kick and the closed hats, 134 BPM, F# minor'),
 ]

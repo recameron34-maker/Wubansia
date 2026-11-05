@@ -256,7 +256,7 @@ def rim_shot(take):
     return y * D.taper(n, 0.12, 0.08)[:, None] * P.vel_gain(v, 12.0)
 
 
-R4 = ('r4',)
+R4 = ('r4', 'r5')                  # round 5 carries every one on, unchanged
 ITEMS = [
     Item('Drums', 'KickGarage', 'kick', kick_garage, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=R4,
          about='kick B, garage: a clean F#1 sub on a snappy sweep, gone by about 190 ms; a phase-locked 100-170 Hz '

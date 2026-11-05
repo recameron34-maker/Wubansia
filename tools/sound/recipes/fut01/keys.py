@@ -100,7 +100,7 @@ def epiano_stab(take):
     return Out(x * (0.6 + 0.4 * v), f0s=tuple(sorted(f0s)))
 
 
-R4 = ('r4',)
+R4 = ('r4', 'r5')                  # round 5 carries every one on, unchanged
 ITEMS = [
     Item('Stabs', 'OrganStab', 'stab', organ_stab, layers=LAYERS, notes=ZONES, sets=R4,
          about='house organ stab, minor 9: F#m9 on F#3 and Bm9 on B3 (root, 5, m7, 9, m3), drawbar harmonics, a '

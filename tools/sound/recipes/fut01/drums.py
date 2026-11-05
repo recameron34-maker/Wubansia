@@ -535,7 +535,7 @@ def alloy(take, decay, fade, seconds):
 
 ITEMS = [
     Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE,
-         sets=('s1a', 'r2', 'r3', 'r4'),
+         sets=('s1a', 'r2', 'r3', 'r4', 'r5'),
          about='kick A, split: clean F#1 sub, a driven knock gone by 95 ms, an alloy top above 1 kHz'),
     Item('Drums', 'KickPunch', 'kick', kick_punch, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('r3',),
          about="kick B, punch: Split's clean F#1 sub held flatter and gone sooner (-20 dB by about 220 ms), a "
@@ -553,13 +553,13 @@ ITEMS = [
          about='closed hat A, tight: FM pairs on the high alloy ratios at 4x, 30 dB down in 45-70 ms'),
     Item('Drums', 'ClosedHatRing', 'hat', hat_ring, layers=LAYERS, rr=3, sets=('s1a', 'r2', 'r3'),
          about='closed hat B, a darker sizzle: ring-modulated noise and alloy tones through a falling 5-6.5 kHz band'),
-    Item('Perc', 'Shaker', 'hat', shaker, layers=SHAKER_LAYERS, rr=4, sets=('r3', 'r4'),
+    Item('Perc', 'Shaker', 'hat', shaker, layers=SHAKER_LAYERS, rr=4, sets=('r3', 'r4', 'r5'),
          about='shaker for swung 16ths: grains of 4-14 kHz bead noise, a soft attack, a fall under a 16th, a faint '
                'alloy glint'),
     Item('Perc', 'AlloyHit', 'perc', alloy_hit, layers=ALLOY_LAYERS, rr=2, root=ALLOY_NOTE,
-         sets=('s1a', 'r2', 'r3', 'r4'),
+         sets=('s1a', 'r2', 'r3', 'r4', 'r5'),
          about='alloy hit on F#5: struck alloy modes, FM strike, ring-mod clang, +-6-36 Hz shifted sides'),
     Item('Perc', 'AlloyHitShort', 'perc', alloy_short, layers=ALLOY_LAYERS, rr=2, root=ALLOY_NOTE,
-         sets=('s1a', 'r2', 'r3', 'r4'),
+         sets=('s1a', 'r2', 'r3', 'r4', 'r5'),
          about='the alloy hit as the stab transient: the same strike, its modes three times shorter, gone by 0.35 s'),
 ]

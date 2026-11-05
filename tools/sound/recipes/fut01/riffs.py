@@ -151,7 +151,7 @@ def stab_notes():
     return [(s, z, STAB_LEN, v, False) for s, z, v in STAB_RHYTHM]
 
 
-R4 = ('r4',)
+R4 = ('r4', 'r5')                  # round 5 carries every one on, unchanged
 LEAD = {'mud': 'lowcut', 'why': 'a lead or stab loop: the low cut, like its sound'}
 PHRASE_LUFS = -16.0                 # every phrase loop at one loudness
 ITEMS = [

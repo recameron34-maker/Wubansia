@@ -265,7 +265,7 @@ def noise_uplifter(take):
     return D.mono_below(D.bfilt(out, 200.0, 'highpass', order=4), 150.0)
 
 
-R4 = ('r4',)
+R4 = ('r4', 'r5')                  # round 5 carries every one on, unchanged
 ITEMS = [
     Item('Stabs', 'OrganHit', 'stab', organ_hit, layers=LAYERS, root=ROOT3, sets=R4,
          about='accent, organ hit on F#3: F#m9 over two octaves (F#3 C#4 E4 A4 C#5 G#5), drawbars, a percussion '

@@ -137,7 +137,7 @@ def organ_bass(take):
     return Out(y, loop=loop, f0s=(f,))
 
 
-R4 = ('r4',)
+R4 = ('r4', 'r5')                  # round 5 carries every one on, unchanged
 WARM = {'mud': 'bass-body', 'why': "B, warm: the proposed bass-body rule (ADR 0011); A's stack plus its own 120-450 Hz "
                                    'through the same filter, over a mono sine sub'}
 ORGAN = {'mud': 'bass-body', 'why': 'an organ bass keeps its own drawbar harmonics in 150-400 Hz, under a saw\'s '

@@ -1,10 +1,11 @@
 """FUT01's written loop for the MIDI export (tools/sound/midi.py): the round 4 context loop's drums (context4.py: the
 2-step kick, the garage clap, the swung closed hats, the open hats, the tambourine on every 16th, the rim ghosts and
 the alloy hit), the three warp-bass lines (the 2-step bounce, the organ bass's low line and the 4x4 speed garage
-line), the chrome pluck phrase, the organ stabs, and the four synth phrases (riffs.py). Notes are (16th, MIDI note,
-length in 16ths, velocity 0-1, slide); a pitch dip is written as two slides, down and back."""
+line), the chrome pluck phrase, the organ stabs, and the five synth phrases: riffs.py's four and, from round 5, the
+vox synth riff (voxsynth.py) on the vox synth multisample. Notes are (16th, MIDI note, length in 16ths, velocity 0-1,
+slide); a pitch dip is written as two slides, down and back."""
 from tools.sound.midi import hits
-from tools.sound.recipes.fut01 import context4 as C, keys as Ky, music as M, riffs as R
+from tools.sound.recipes.fut01 import context4 as C, keys as Ky, music as M, riffs as R, voxsynth as V
 
 TAMBOURINE = 54                     # GM's tambourine
 RIM = 37                            # GM's side stick
@@ -43,5 +44,6 @@ PARTS = dict(
         dict(name='Pluck riff', sample='Chrome Pluck', zones='C4 to C6, every 3 semitones', notes=list(R.PLUCK_RIFF),
              bars=4),
         dict(name='E-piano stab rhythm', sample='E Piano Stab', zones='F#3, B3', notes=R.stab_notes(), bars=2),
+        dict(name='Vox synth riff', sample='Vox Synth', zones='A4, C#5, F#5', notes=list(V.RIFF_NOTES), bars=2),
     ],
 )

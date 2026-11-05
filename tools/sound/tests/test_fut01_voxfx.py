@@ -64,7 +64,7 @@ class TestSets(unittest.TestCase):
         for name in added:
             with self.subTest(name=name):
                 self.assertIn(name, self.r3)
-                self.assertIn(self.r3[name].sets, (('r3',), ('r3', 'r4')))   # round 4 keeps some of them
+                self.assertIn(self.r3[name].sets, (('r3',), ('r3', 'r4'), ('r3', 'r4', 'r5')))   # rounds 4-5 keep some
 
 
 class TestSungLines(unittest.TestCase):
