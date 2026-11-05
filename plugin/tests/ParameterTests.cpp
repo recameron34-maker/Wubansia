@@ -2,8 +2,9 @@
 // label, range and default, text that round-trips, and the controls the audio thread reads from them.
 //
 // The cases run on every processor type in ParameterProcessors: the test processor that holds the
-// layout today, and PluginProcessor once it builds its APVTS from Parameters::createLayout () (P9).
+// layout, and PluginProcessor, which builds its APVTS from Parameters::createLayout () (P9).
 
+#include "PluginProcessor.h"
 #include "helpers/test_processor.h"
 
 #include <catch2/catch_template_test_macros.hpp>
@@ -13,7 +14,7 @@
 #include <cmath>
 #include <string>
 
-#define ParameterProcessors wubansia::test::TestProcessor
+#define ParameterProcessors wubansia::test::TestProcessor, wubansia::PluginProcessor
 
 using Catch::Matchers::WithinAbs;
 namespace ids = wubansia::ParameterIds;
