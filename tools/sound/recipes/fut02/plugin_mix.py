@@ -17,7 +17,8 @@ R5_LOOPS = {'vox': ('ContextVoxSynthWet', 'ContextVoxSynthClub'), 'novox': ('Con
 ACCENTS = {'LaserChordStab': 'acc_laser', 'GlassPing': 'acc_glass', 'StarfieldSweep': 'acc_sweep',
            'ReverseChord': 'acc_revchord', 'ArpStab': 'acc_arpstab'}
 ARP = (1600.0, 16000.0)             # the arp's CC74 map: context.ARP_RIDE
-POCKET = {'attack': 0.010, 'release': 0.300, 'range': 24.0, 'under_top': 12.0}
+POCKET = {'attack': 0.005, 'release': 1.0, 'range': 36.0, 'under_top': 6.0}   # fitted to the recipe's rides (pass 2,
+# the least squares in dB over a grid): mean depth -0.87 dB against the ride's -0.90, the carve -2.17 against -2.24
 
 
 def render(version):
@@ -196,8 +197,8 @@ def rules(variant):
 def arp_pocket(caps):
     """The vox pocket on the arp (ARP_POCKET: 2 dB down, its carve band 5 dB further, over 16ths 16-44, a ride in
     the recipe) as two level ducks keyed on the vox channel (approved): the whole band and the carve band, each full
-    while the vox sounds within POCKET['under_top'] of its loudest block, out by POCKET['range'] under that, with the
-    Space duck's attack and a release that holds over the riff's rests."""
+    while the vox sounds within POCKET['under_top'] of its loudest block and out by POCKET['range'] under that, a fast
+    attack and a release that holds over the riff's rests (POCKET, fitted to the rides)."""
     from tools.sound.recipes.fut02 import context as C, context5 as C5
     top = caps['vox'].values[('top', 'space')] - POCKET['under_top']
     (duck_rows,), (carve_rows,) = C5.ARP_POCKET[C5.VOX]
