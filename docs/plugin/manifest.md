@@ -243,6 +243,7 @@ near the kit's (ADR 0020).
 | `cycle_16ths` | integer | 16-256, a multiple of 16 | the phrase's length; cycles start every `cycle_16ths` from song 16th 0 |
 | `tolerance_pm` | integer | 0-100 | slices play while abs(host BPM ÷ kit BPM − 1) × 1000 ≤ this (20: 2 %) |
 | `fade_us` | integer | 0-100 000 | how long a slice with no follower takes to fade from its `fade` frame |
+| `ride` | object | | `{"cc74": [...], "cc71": [...]}`: the controller values the stem was rendered with (below) |
 | `slices` | array of objects | 1-256 | the phrase's notes, by `step` ascending (below) |
 
 `slices[]`, in the stems' 48 kHz frames:
@@ -266,7 +267,21 @@ Each held note starts after the slice's note and before the next note the phrase
 The matcher gives held notes no sound of their own: the stem already has them. A note that fits neither a slice nor
 a hold stays on the multisample.
 
-Two phrases may share a channel; the matcher picks per cycle (`engine/sched/phrase_match.h`).
+`ride` has the keys `cc74` and `cc71`, in that order. Each is an array of either 0 or `cycle_16ths` × 4 integers,
+each 0-127.
+- **Non-empty:** the values of that controller the stem was rendered with, one per 60 ticks over the cycle
+  (ticks 0, 60, 120... from the cycle's start), as the MIDI files write rides. A cycle matches the phrase only where
+  its own values on that grid equal these within 1. A cycle's value at a grid tick is the last CC on the phrase's
+  channel at or before that tick; 0 before any. A cycle that doesn't match plays the multisample, whose filter
+  follows the arranged ride.
+- **Empty:** no constraint on that controller. One array may be empty while the other isn't.
+- **Both empty:** the stem follows no controller, and the matcher ignores CCs for it.
+
+Only FUT04's Acid Line 1 Ride stems have a ride. Beside them, FUT04's Acid Line 1 and 2 at rest ride 0/0. So the loop's
+ride plays the Ride stem, a ride at 0 the at-rest stem, and any other ride the multisample.
+
+Two phrases may share a channel; the matcher picks per cycle (`engine/sched/phrase_match.h`). Phrases that share a
+channel share its `cycle_16ths`, so its cycles line up (P2's export checks this).
 
 ## 3. `<KIT>_mix.json`
 

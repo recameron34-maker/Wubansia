@@ -114,8 +114,9 @@ KEYS = {
     'keymap': ('ch', 'keys', 'a', 'b', 'ab'),
     'extra': ('ch', 'name', 'lane'),
     'phrase': ('lane', 'ch', 'ab', 'mix_channel', 'gain_mdb', 'stems', 'cycle_16ths', 'tolerance_pm', 'fade_us',
-               'slices'),
+               'ride', 'slices'),
     'stems': ('a', 'b'),
+    'ride': ('cc74', 'cc71'),
     'slice': ('step', 'key', 'start', 'end', 'fade', 'lead', 'holds'),
     # <KIT>_mix.json
     'mix.json': ('kit', 'content_version', 'channels', 'groups', 'returns', 'bus_eq', 'master', 'reference'),

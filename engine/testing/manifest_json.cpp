@@ -454,6 +454,9 @@ namespace wubansia::engine::testing
             j.add ("mix_channel", str (p.mixChannel)).add ("gain_mdb", num (p.gainMdb));
             j.add ("stems", Json::object().add ("a", num (p.stemA)).add ("b", num (p.stemB)));
             j.add ("cycle_16ths", num (p.cycle16ths)).add ("tolerance_pm", num (p.tolerancePm)).add ("fade_us", num (p.fadeUs));
+            j.add ("ride", Json::object()
+                               .add ("cc74", Json::ints ({ p.ride74.begin(), p.ride74.end() }))
+                               .add ("cc71", Json::ints ({ p.ride71.begin(), p.ride71.end() })));
             j.add ("slices", std::move (slices));
             phrases.push (std::move (j));
         }
