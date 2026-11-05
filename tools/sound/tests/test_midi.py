@@ -407,8 +407,9 @@ class TestLoops(unittest.TestCase):
 
     def test_ccs(self):
         """CC74 and CC71 lie in 0-127, on the 60-tick grid, only on the channels (and controllers) the kit's rides
-        name; CC91 and CC94 only around thrown notes: 127 on its tick before its note-on, 0 at its note-off (the kits'
-        files check where the throws fall)."""
+        name; CC91 and CC94 only around thrown notes: 127 on its tick before its note-on, back to 0 at its note-off or
+        at the next note-on on the track that isn't thrown, whichever comes first (the kits' files check where the
+        throws fall)."""
         for kit in KITS:
             for path in mids(kit):
                 for t in parsed(kit, path)[2][1:]:
@@ -424,9 +425,35 @@ class TestLoops(unittest.TestCase):
                         self.assertEqual(set(), {c[2] for c in t['ccs']} - {71, 74, 91, 94})
                         throws = [c for c in t['ccs'] if c[2] in (91, 94)]
                         thrown = [n for n in t['notes'] if (n[0], n[2], 91, 127) in throws]
+                        plain = sorted({n[0] for n in t['notes'] if n not in thrown})
+                        back = lambda n: min([n[1]] + [on for on in plain if on > n[0]][:1])  # noqa: E731
                         want = sorted([(n[0], n[2], cc, 127) for n in thrown for cc in (91, 94)]
-                                      + [(n[1], n[2], cc, 0) for n in thrown for cc in (91, 94)])
+                                      + [(back(n), n[2], cc, 0) for n in thrown for cc in (91, 94)])
                         self.assertEqual(want, sorted(throws))
+
+    def test_a_throw_reaches_no_other_note(self):
+        """No note-on that isn't thrown starts while CC91 or CC94 is up on its channel, in any file: Wubansia latches
+        the sends at each note-on, so a throw held over a later note (FUT04's no-vox metal chord, thrown, over the
+        accents after it) would throw that note too. A note-on is thrown where CC91 goes to 127 on its tick; on a
+        tick the controllers come before the note-ons."""
+        for kit in KITS:
+            for path in mids(kit):
+                by_ch = {}
+                for t in parsed(kit, path)[2][1:]:
+                    for tick, kind, ch, a, b in t['events']:
+                        if kind == 'on' or (kind == 'cc' and a in (91, 94)):
+                            by_ch.setdefault(ch, []).append((tick, kind == 'on', a, b))
+                for ch, events in by_ch.items():
+                    events.sort(key=lambda e: (e[0], e[1]))
+                    thrown = {tick for tick, on, a, b in events if not on and a == 91 and b == 127}
+                    up, leaks = {91: 0, 94: 0}, []
+                    for tick, on, a, b in events:
+                        if not on:
+                            up[a] = b
+                        elif any(up.values()) and tick not in thrown:
+                            leaks.append(tick)
+                    with self.subTest(kit=kit, file=path, channel=ch):
+                        self.assertEqual([], leaks[:5])
 
 class TestRideLaw(unittest.TestCase):
     def test_one_law_for_the_rides(self):
