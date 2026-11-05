@@ -498,6 +498,18 @@ class TestInstall(Case):
         self.assertIn('differs', proc.stdout + proc.stderr)
         self.assertEqual(tree(dest), before)
 
+    def test_a_build_that_adds_files_to_the_same_version_adds_them(self):
+        # Every sample already there is identical, so the folder serves both builds: the new files go in, and
+        # SHA256SUMS then describes the new build.
+        kit = SynKit(self.tmp / 'a', files=SYN_FILES[:-1])
+        dest = self.tmp / 'Content'
+        self.assertOk(run_install(kit, '--from-repo', kit.samples, '--dest', dest))
+        bigger = SynKit(self.tmp / 'b')
+        proc = run_install(bigger, '--from-zip', self.packed(bigger), '--dest', dest)
+        self.assertOk(proc)
+        self.assertIn('installed 1 file (', proc.stdout)
+        self.assertEqual(tree(self.dest_of(bigger, dest)), self.expected_tree(bigger))
+
     def test_it_fills_in_a_half_installed_kit(self):
         kit = SynKit(self.tmp)
         dest = self.tmp / 'Content'

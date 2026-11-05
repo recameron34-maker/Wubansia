@@ -332,5 +332,10 @@ def summarize(problems, limit=10):
     return out
 
 
+def plural(n, word):
+    """'1 file', '2 files'."""
+    return f'{n} {word}' if n == 1 else f'{n} {word}s'
+
+
 def size_text(n):
     return f'{n / 1e6:.1f} MB' if n >= 100_000 else f'{n:,} bytes'

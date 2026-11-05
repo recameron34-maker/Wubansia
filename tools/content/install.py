@@ -16,11 +16,12 @@ The default --dest is the plugin's content folder:
 (Windows has none yet: pass --dest.) Each kit also gets its SHA256SUMS, so a folder installed from the repo and
 one installed from a zip are the same.
 
-It never replaces a file that is already there with other bytes: that is another build of the same content version
-(a different version has its own v<N> folder). Every file is checked before anything is written, and a kit with
-any problem or any such file is left exactly as it was. Files already there with the right bytes stay, so a second
-run changes nothing. Each new file is written under a temporary name and renamed into place. --dry-run checks
-everything and lists every file it would copy, and writes nothing. Exit status: 0 done, 1 a kit was refused, 2 a
+It never replaces a sample that is already there with other bytes: that is another build of the same content
+version (a different version has its own v<N> folder). Every file is checked before anything is written, and a kit
+with any problem or any such sample is left exactly as it was. Samples already there with the right bytes stay, so a
+second run changes nothing, and a build that only adds files to a version adds them; SHA256SUMS then describes the
+latest one. Each file is written under a temporary name and renamed into place. --dry-run checks everything and
+lists every file it would copy, and writes nothing. Exit status: 0 done, 1 a kit was refused, 2 a
 usage error. Standard library only (Python 3.9+).
 """
 import argparse
@@ -210,16 +211,13 @@ def install(source, dest_root, dry_run, out=print, err=None):
                 new.append(path)
                 size += len(data)
     if problems:
-        err(f'{source.label}: not installed: {len(problems)} problem{"s" if len(problems) != 1 else ""} '
-            f'in {source.where}:')
+        err(f'{source.label}: not installed: {KF.plural(len(problems), "problem")} in {source.where}:')
         for line in KF.summarize(problems):
             err(f'  {line}')
         if pointers:
             err(f'  {pointers} of them are Git LFS pointers: {KF.LFS_HINT}')
         return False
     sums_state = _sums_state(dest / KF.SUMS, source.items)
-    if sums_state == 'differs':
-        conflicts.append(KF.SUMS)
     if conflicts:
         err(f'{source.label}: not installed: {dest} holds another build of {source.label}:')
         for line in KF.summarize([f'{path} differs from the one in {source.where}' for path in conflicts]):
@@ -227,15 +225,15 @@ def install(source, dest_root, dry_run, out=print, err=None):
         err(f'  Nothing there was changed. Move {dest} aside (or delete it), then run this again.')
         return False
     if not new and sums_state == 'same':
-        out(f'{source.label}: already installed in {dest} ({there} files)')
+        out(f'{source.label}: already installed in {dest} ({KF.plural(there, "file")})')
         return True
     if dry_run:
         for path in new:
             out(f'  would copy {path}')
-        if sums_state == 'missing':
-            out(f'  would write {KF.SUMS}')
-        out(f'{source.label}: would install {len(new)} files ({KF.size_text(size)}) into {dest} '
-            f'({there} were already there)')
+        if sums_state != 'same':
+            out(f'  would {"write" if sums_state == "missing" else "update"} {KF.SUMS}')
+        out(f'{source.label}: would install {KF.plural(len(new), "file")} ({KF.size_text(size)}) into {dest} '
+            f'({there} {"was" if there == 1 else "were"} already there)')
         return True
     hashes = dict(source.items)
     try:
@@ -246,12 +244,13 @@ def install(source, dest_root, dry_run, out=print, err=None):
             if problem:
                 raise OSError(f'{path}: {problem}')
             _write(dest / path, data)
-        if sums_state == 'missing':
+        if sums_state != 'same':
             _write(dest / KF.SUMS, source.sums)
     except OSError as e:
         err(f'{source.label}: stopped: {e}. Files already copied are complete; run this again to finish.')
         return False
-    out(f'{source.label}: installed {len(new)} files ({KF.size_text(size)}) into {dest} ({there} were already there)')
+    out(f'{source.label}: installed {KF.plural(len(new), "file")} ({KF.size_text(size)}) into {dest} '
+        f'({there} {"was" if there == 1 else "were"} already there)')
     return True
 
 

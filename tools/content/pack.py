@@ -40,7 +40,7 @@ UNIX = 3                              # ZipInfo.create_system: the modes above a
 
 class PackError(Exception):
     def __init__(self, kit, problems, hint=None):
-        super().__init__(f'{kit.label}: {len(problems)} problem{"s" if len(problems) != 1 else ""}')
+        super().__init__(f'{kit.label}: {KF.plural(len(problems), "problem")}')
         self.kit = kit
         self.problems = problems
         self.hint = hint
