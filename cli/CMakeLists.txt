@@ -108,14 +108,14 @@ if(WUBANSIA_BUILD_TESTS)
     _groovecore_test("render without options is a usage error" 2 stderr "--kit and --out are required" render)
     _groovecore_test("render: a bad A/B value is a usage error" 2 stderr "--bass takes a or b, not \"c\"" render --kit FUT01 --bass c --out x.wav)
     _groovecore_test("render: --passes with a Song is a usage error" 2 stderr "--passes is for --mode loop" render --kit FUT01 --mode song --passes 2 --out x.wav)
-    _groovecore_test("render: --master exact refuses until the engine can select it" 2 stderr "--master exact is not available yet"
-        render --kit FUT01 --master exact --out x.wav)
+    _groovecore_test("render: a bad --master is a usage error" 2 stderr "--master takes lookback or exact, not \"both\""
+        render --kit FUT01 --master both --out x.wav)
     _groovecore_test("render: an unknown kit fails" 1 stderr "no kit \"NOPE\""
         render --kit NOPE --manifests "${_content}/plugin" --midi "${_content}/midi" --out "${CMAKE_CURRENT_BINARY_DIR}/nope.wav")
 
     add_executable(groovecore_render_fixture tests/render_fixture.cpp)
     target_link_libraries(groovecore_render_fixture PRIVATE wubansia_engine_testing wubansia_engine wubansia_core_warnings)
-    foreach(_check deterministic blocks taps latency song pcm24 no_content)
+    foreach(_check deterministic blocks taps latency master song pcm24 no_content)
         add_test(NAME "groovecore: render ${_check}"
             COMMAND ${CMAKE_COMMAND} -DGROOVECORE=$<TARGET_FILE:groovecore> -DFIXTURE=$<TARGET_FILE:groovecore_render_fixture>
                 "-DSOURCE=${PROJECT_SOURCE_DIR}" "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/render-${_check}" -DCHECK=${_check}

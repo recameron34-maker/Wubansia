@@ -39,6 +39,10 @@
 #include <system_error>
 #include <vector>
 
+#if ! defined(_WIN32)
+    #include <time.h>
+#endif
+
 namespace wubansia::cli
 {
     namespace
@@ -74,7 +78,7 @@ namespace wubansia::cli
                   "  --club on|off          the club master (default on); off: the mix before it, just as late\n"
                   "  --master lookback|exact\n"
                   "                         the limiter's hold: lookback (the plugin's, default) or exact (master.py's\n"
-                  "                         two-sided hold, for verification; not available yet: exit 2)\n"
+                  "                         two-sided hold, for verification only; the latency follows it)\n"
                   "  --solo <LANE|CHANNEL>  write instead what the voices play into a lane's mix channels (kick ... fx) or\n"
                   "                         one mix channel (its mix.json id), before any insert: the dry bus, in aligned time\n"
                   "  --taps <DIR>           also write every mix channel's dry bus to DIR/<channel>.wav and the voices'\n"
@@ -239,7 +243,7 @@ namespace wubansia::cli
         {
         public:
             virtual ~Player() = default;
-            virtual void prepare (double rate, int block) = 0;
+            virtual void prepare (double rate, int block, engine::MasterHold hold) = 0;
             virtual void publish (const engine::Kit* kit) = 0;
             virtual void process (float* const* out, int numSamples, const engine::TransportInfo& transport, const engine::Controls& controls,
                 const engine::MidiEvent* midi, int numMidi) = 0;
@@ -250,7 +254,7 @@ namespace wubansia::cli
         class EnginePlayer final : public Player
         {
         public:
-            void prepare (double rate, int block) override { eng.prepare (rate, block, 2); }
+            void prepare (double rate, int block, engine::MasterHold hold) override { eng.prepare (rate, block, 2, hold); }
             void publish (const engine::Kit* kit) override { (void) eng.publish (kit); }
             void process (float* const* out, int n, const engine::TransportInfo& t, const engine::Controls& c, const engine::MidiEvent* midi,
                 int numMidi) override
@@ -268,7 +272,7 @@ namespace wubansia::cli
         {
         public:
             explicit TapPlayer (Taps& taps) { loop.voices().setTaps (&taps); }
-            void prepare (double rate, int block) override { loop.prepare (rate, block, 2); }
+            void prepare (double rate, int block, engine::MasterHold hold) override { loop.prepare (rate, block, 2, hold); }
             void publish (const engine::Kit* kit) override { (void) pending.publish (kit); }
             void process (float* const* out, int n, const engine::TransportInfo& t, const engine::Controls& c, const engine::MidiEvent* midi,
                 int numMidi) override
@@ -493,12 +497,6 @@ namespace wubansia::cli
                 return usage ("--section and --start-bar each set the start: give one");
             if (! o.solo.empty() && ! o.taps.empty())
                 return usage ("--solo and --taps: give one");
-            if (o.exactMaster)
-            {
-                err << "groovecore render: --master exact is not available yet: the engine can't select master.py's two-sided "
-                       "limiter hold until Engine::prepare takes a MasterHold (P7, P8). Every render plays the look-back master.\n";
-                return exitUsage;
-            }
             return 0;
         }
 
@@ -549,6 +547,19 @@ namespace wubansia::cli
                     break;
             }
             return out;
+        }
+
+        // This thread's CPU time in seconds (the engine runs on it): what a block costs, without the time other
+        // processes take the core. Windows has no such clock here: wall time there.
+        double threadSeconds()
+        {
+#if defined(_WIN32)
+            return std::chrono::duration<double> (std::chrono::steady_clock::now().time_since_epoch()).count();
+#else
+            timespec ts {};
+            clock_gettime (CLOCK_THREAD_CPUTIME_ID, &ts);
+            return static_cast<double> (ts.tv_sec) + 1e-9 * static_cast<double> (ts.tv_nsec);
+#endif
         }
 
         double peakDb (const std::vector<float>& l, const std::vector<float>& r)
@@ -667,7 +678,7 @@ namespace wubansia::cli
         else
             player = std::make_unique<EnginePlayer>();
         const int block = static_cast<int> (o.block);
-        player->prepare (o.rate, block);
+        player->prepare (o.rate, block, o.exactMaster ? engine::MasterHold::twoSided : engine::MasterHold::lookBack);
         player->publish (loaded.value.kit.get());
         const int latency = player->latency();
         const std::int64_t skip = o.keepLatency ? 0 : latency;
@@ -699,20 +710,21 @@ namespace wubansia::cli
         std::vector<float> left (static_cast<std::size_t> (frames), 0.0f), right (static_cast<std::size_t> (frames), 0.0f);
         std::vector<float> blockL (static_cast<std::size_t> (block)), blockR (static_cast<std::size_t> (block));
         float* chunk[2] { blockL.data(), blockR.data() };
-        double worstBlock = 0.0;
+        std::vector<double> blockLoad; // each block's CPU time over its duration
+        blockLoad.reserve (static_cast<std::size_t> (total / block + 2));
         double wall = 0.0;
         int maxVoices = 0;
-        const std::clock_t cpu0 = std::clock();
+        const double cpu0 = threadSeconds();
         for (std::int64_t done = 0; done < total;)
         {
             const int n = static_cast<int> (std::min<std::int64_t> (block, total - done));
             transport.ppq = startPpq + static_cast<double> (done) * tempo / (60.0 * o.rate);
             const auto t0 = std::chrono::steady_clock::now();
+            const double c0 = threadSeconds();
             const bool first = done == 0;
             player->process (chunk, n, transport, controls, first ? held.data() : nullptr, first ? static_cast<int> (held.size()) : 0);
-            const double seconds = std::chrono::duration<double> (std::chrono::steady_clock::now() - t0).count();
-            wall += seconds;
-            worstBlock = std::max (worstBlock, seconds / (static_cast<double> (n) / o.rate));
+            blockLoad.push_back ((threadSeconds() - c0) / (static_cast<double> (n) / o.rate));
+            wall += std::chrono::duration<double> (std::chrono::steady_clock::now() - t0).count();
             maxVoices = std::max (maxVoices, player->voices());
             for (int i = 0; i < n; ++i)
             {
@@ -725,8 +737,14 @@ namespace wubansia::cli
             }
             done += n;
         }
-        const double cpu = static_cast<double> (std::clock() - cpu0) / CLOCKS_PER_SEC;
+        const double cpu = threadSeconds() - cpu0;
         const double audioSeconds = static_cast<double> (total) / o.rate;
+        // the worst block after the first (which pays the cold caches and the held notes' starts), and the 99th percentile
+        std::vector<double> sorted (blockLoad.begin() + (blockLoad.size() > 1 ? 1 : 0), blockLoad.end());
+        std::sort (sorted.begin(), sorted.end());
+        const double worstBlock = sorted.empty() ? 0.0 : sorted.back();
+        const double p99Block = sorted.empty() ? 0.0 : sorted[static_cast<std::size_t> (0.99 * static_cast<double> (sorted.size() - 1))];
+        const double firstBlock = blockLoad.empty() ? 0.0 : blockLoad.front();
 
         // --solo: the soloed channels' dry buses, summed, in place of the mix.
         if (! solo.empty())
@@ -810,7 +828,7 @@ namespace wubansia::cli
           << "  \"phrases\": \"" << (o.phrases == engine::PhraseMode::off ? "off" : "auto") << "\",\n"
           << "  \"space\": " << o.space << ", \"echo\": " << o.echo << ", \"pump\": " << o.pump << ",\n"
           << "  \"club\": " << (o.club ? "true" : "false") << ",\n"
-          << "  \"master\": \"lookback\",\n"
+          << "  \"master\": \"" << (o.exactMaster ? "exact" : "lookback") << "\",\n"
           << "  \"solo\": " << (o.solo.empty() ? std::string ("null") : jsonString (o.solo)) << ",\n"
           << "  \"solo_channels\": [";
         for (std::size_t i = 0; i < solo.size(); ++i)
@@ -831,7 +849,9 @@ namespace wubansia::cli
           << "  \"cpu_seconds\": " << fixed (cpu, 3) << ",\n"
           << "  \"wall_seconds\": " << fixed (wall, 3) << ",\n"
           << "  \"cpu_percent\": " << fixed (100.0 * cpu / audioSeconds, 2) << ",\n"
-          << "  \"worst_block_percent\": " << fixed (100.0 * worstBlock, 1) << "\n"
+          << "  \"p99_block_percent\": " << fixed (100.0 * p99Block, 1) << ",\n"
+          << "  \"worst_block_percent\": " << fixed (100.0 * worstBlock, 1) << ",\n"
+          << "  \"first_block_percent\": " << fixed (100.0 * firstBlock, 1) << "\n"
           << "}\n";
         auto sidecar = outPath;
         sidecar.replace_extension (".json");
@@ -852,7 +872,8 @@ namespace wubansia::cli
             << '\n'
             << "  samples from " << shown (loaded.value.samples) << '\n'
             << "  peak " << (std::isfinite (peak) ? fixed (peak, 2) + " dBFS" : std::string ("silence")) << "; up to " << maxVoices << " voices; "
-            << fixed (cpu, 2) << " s of CPU, " << fixed (100.0 * cpu / audioSeconds, 1) << " % of one core in real time\n"
+            << fixed (cpu, 2) << " s of CPU, " << fixed (100.0 * cpu / audioSeconds, 1) << " % of one core in real time (blocks: 99 % under "
+            << fixed (100.0 * p99Block, 1) << " %, worst " << fixed (100.0 * worstBlock, 1) << " %)\n"
             << "wrote " << shown (outPath) << (tapFiles.empty() ? "" : " and " + std::to_string (tapFiles.size()) + " taps") << '\n';
         return exitOk;
     }

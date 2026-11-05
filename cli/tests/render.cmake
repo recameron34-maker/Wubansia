@@ -8,6 +8,8 @@
 #   blocks         the loop at blocks of 64, 512 and 4096 samples: the same bytes
 #   taps           a tapped render's mix equals the plain render's, bit for bit, and --solo writes its channel's tap
 #   latency        --keep-latency is the aligned render, the sidecar's latency later
+#   master         --master exact (master.py's two-sided limiter hold) at 48 kHz: 3280 samples of latency against
+#                  the look-back master's 424, a sounding render, and other bytes than the look-back one's
 #   song           a Song section by name: the sidecar's start bar and length, and 4 bars of it
 #   pcm24          --format pcm24 writes a 24-bit PCM header
 # The real kits:
@@ -113,6 +115,26 @@ elseif(CHECK STREQUAL "latency")
     endif()
     if(_a MATCHES "^0*$")
         message(FATAL_ERROR "the compared stretch is silent")
+    endif()
+
+elseif(CHECK STREQUAL "master")
+    _fixture()
+    _render(${_syn} --passes 2 --out "${WORK}/lookback.wav")
+    _render(${_syn} --passes 2 --master exact --out "${WORK}/exact.wav")
+    _meta("${WORK}/lookback.wav" latency _look)
+    _meta("${WORK}/exact.wav" latency _exact)
+    _meta("${WORK}/exact.wav" master _which)
+    if(NOT _look EQUAL 424 OR NOT _exact EQUAL 3280 OR NOT _which STREQUAL "exact")
+        message(FATAL_ERROR "latencies ${_look} (look-back) and ${_exact} (${_which}); 424 and 3280 expected at 48 kHz")
+    endif()
+    file(SHA256 "${WORK}/lookback.wav" _a)
+    file(SHA256 "${WORK}/exact.wav" _b)
+    if(_a STREQUAL _b)
+        message(FATAL_ERROR "the exact master renders the same bytes as the look-back one")
+    endif()
+    _meta("${WORK}/exact.wav" peak_dbfs _peak)
+    if(_peak STREQUAL "null")
+        message(FATAL_ERROR "the exact master's render is silent")
     endif()
 
 elseif(CHECK STREQUAL "song")
