@@ -292,3 +292,19 @@ TEST_CASE ("master: a driven low saw through the club master adds no aliases (ma
     CHECK (asr <= -60.0);
     CHECK (master.gainReductionDb() > 2.5); // the glue's 2.5 dB and the limiter's share of the rest
 }
+
+TEST_CASE ("master: the club master can hold two-sided, master.py's way, at master.limit's latency", "[master]")
+{
+    // groovecore render's verification mode (P12): the same chain, the limiter's hold reaching both ways
+    CHECK (mix::ClubMaster::latencyFor (48000.0, Limiter::Hold::twoSided) == 23 + 48 + 3145);
+    mix::ClubMaster master;
+    master.prepare (48000.0, 256, Limiter::Hold::twoSided);
+    master.setup ({ MasterConfig {}, MasterConfig {} }, Controls {}, 0);
+    CHECK (master.latency() == 23 + 48 + 3145);
+    std::vector<float> l (8192, 0.0f), r (8192, 0.0f);
+    l[100] = r[100] = 0.25f;
+    for (int s = 0; s < 8192; s += 256)
+        master.process (l.data() + s, r.data() + s, 256, Controls {});
+    const auto at = static_cast<int> (std::max_element (l.begin(), l.end()) - l.begin());
+    CHECK (at == 100 + master.latency());
+}

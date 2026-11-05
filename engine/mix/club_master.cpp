@@ -19,25 +19,26 @@ namespace wubansia::engine::mix
 
         double driveGain (const MasterConfig& m) noexcept { return std::pow (10.0, static_cast<double> (m.driveMdb) / 20000.0); }
 
-        int limiterBudget (double fs) noexcept
+        int limiterBudget (double fs, fx::Limiter::Hold hold) noexcept
         {
             fx::LimiterSettings s;
             s.lookaheadS = ClubMaster::kLookaheadS;
-            return fx::Limiter::latencyFor (s, fx::Limiter::Hold::lookBack, fs);
+            return fx::Limiter::latencyFor (s, hold, fs);
         }
     }
 
-    int ClubMaster::latencyFor (double sampleRate) noexcept
+    int ClubMaster::latencyFor (double sampleRate, fx::Limiter::Hold hold) noexcept
     {
-        return fx::Glue::kLatency + fx::MasterClip::kLatency + limiterBudget (sampleRate);
+        return fx::Glue::kLatency + fx::MasterClip::kLatency + limiterBudget (sampleRate, hold);
     }
 
-    void ClubMaster::prepare (double sampleRate, int maxBlock)
+    void ClubMaster::prepare (double sampleRate, int maxBlock, fx::Limiter::Hold hold)
     {
         fs = sampleRate;
-        fixedLatency = latencyFor (fs);
+        holdMode = hold;
+        fixedLatency = latencyFor (fs, hold);
         limiter.prepare (fs);
-        const auto padCapacity = static_cast<std::size_t> (limiterBudget (fs) + 2);
+        const auto padCapacity = static_cast<std::size_t> (limiterBudget (fs, hold) + 2);
         padL.prepare (padCapacity);
         padR.prepare (padCapacity);
         bypassL.prepare (static_cast<std::size_t> (fixedLatency + 2));
@@ -71,8 +72,8 @@ namespace wubansia::engine::mix
 
         clip.setCurve (static_cast<double> (m.clipCeilingMdb) / 1000.0, static_cast<double> (m.clipKneeMdb) / 1000.0);
         dc.setup (static_cast<double> (std::max (m.dcHz, 1)), fs);
-        limiter.setup (limiterSettings (m), fx::Limiter::Hold::lookBack);
-        pad = std::max (limiterBudget (fs) - limiter.latency(), 0);
+        limiter.setup (limiterSettings (m), holdMode);
+        pad = std::max (limiterBudget (fs, holdMode) - limiter.latency(), 0);
         reset (controls);
     }
 
