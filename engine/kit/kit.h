@@ -121,6 +121,13 @@ namespace wubansia::engine
     };
     inline constexpr std::array<std::string_view, 2> kChokeCurveIds { "linear", "cos2" };
 
+    // How a phrase's slice notes reach the throw sends (CC91 Space, CC94 Echo).
+    enum class PhraseThrow : std::uint8_t {
+        live, // the engine sends their throws live, as for any note (most stems)
+        baked // the stem has its throw in the audio: no live throw for its slice notes
+    };
+    inline constexpr std::array<std::string_view, 2> kPhraseThrowIds { "live", "baked" };
+
     // An A/B switch's two labels for the editor. Both empty: the kit has no such switch.
     struct AbLabels
     {
@@ -250,6 +257,7 @@ namespace wubansia::engine
         std::int8_t ab = -1; // an AbSwitch value choosing the stem, or -1
         std::uint8_t mixChannel = 0;
         std::int32_t gainMdb = 0; // the stem's own gain, before its mix channel
+        PhraseThrow throwMode = PhraseThrow::live;
         std::array<std::uint16_t, 2> stem {}; // file index per character (A, B); B == A without an alternative
         std::int32_t cycle16ths = 32; // 32 or 64, aligned to the song grid
         std::int32_t tolerancePm = 20; // slices play while |host BPM / kit BPM - 1| <= tolerancePm / 1000
@@ -272,8 +280,9 @@ namespace wubansia::engine
         std::int32_t step = 0; // the 16th in the cycle where its note starts
         std::uint8_t key = 0;
         std::int64_t start = 0; // the onset (phrase.Grid.at (step)) less lead
-        std::int64_t end = 0; // exclusive
-        std::int64_t fade = 0; // where it fades out when no slice follows it
+        std::int64_t end = 0; // exclusive. A looped stem's last slice may end past the stem's frames, up to
+                              // frames + slice 0's start: it wraps, read modulo the stem's length
+        std::int64_t fade = 0; // where it fades out when no slice follows it (past frames too, when it wraps)
         std::int32_t lead = 0; // frames of pre-roll before the onset
         std::array<std::uint8_t, kMaxHolds> holds {}; // keys, in order; entries from holdCount on are 0
         std::uint8_t holdCount = 0;
