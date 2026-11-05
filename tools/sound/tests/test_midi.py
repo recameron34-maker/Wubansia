@@ -616,7 +616,11 @@ class TestExtendedMix(unittest.TestCase):
 
     def test_the_regions_tile_the_whole_mix(self):
         """Every region has the whole mix's tracks in the same order and ends on its last bar line; its notes,
-        controllers, marker and cues, shifted to its start bar, are the whole mix's."""
+        controllers, marker and cues, shifted to its start bar, are the whole mix's, but for a note held over the
+        section line: the region stops it on the line, the whole mix holds it (its throw's return to 0 follows it,
+        checked file by file in test_ccs)."""
+        def not_a_return(cc):
+            return not (cc[2] in (91, 94) and cc[3] == 0)
         for kit in KITS:
             for v in VARIANTS:
                 made, R = ext(kit, v)
@@ -625,6 +629,7 @@ class TestExtendedMix(unittest.TestCase):
                 got = {n: [] for n in names}
                 gcc = {n: [] for n in names}
                 marks = []
+                ends = [(s['start_bar'] - 1 + s['bars']) * BAR for s in R['sections']]
                 for s in R['sections']:
                     _, _, reg = parse(made[s['file']])
                     off = (s['start_bar'] - 1) * BAR
@@ -635,12 +640,33 @@ class TestExtendedMix(unittest.TestCase):
                             self.assertEqual(s['bars'] * BAR, t['end'])
                     for t in reg[1:]:
                         got[t['name']] += [(a + off, b + off, c, d, e) for a, b, c, d, e in t['notes']]
-                        gcc[t['name']] += [(a + off, b, c, d) for a, b, c, d in t['ccs']]
+                        gcc[t['name']] += [(a + off, b, c, d) for a, b, c, d in t['ccs'] if not_a_return((a, b, c, d))]
                     marks += [(tick + off, k, b) for tick, k, b in reg[0]['meta'] if k in (MARKER, CUE)]
                 for t in wtracks[1:]:
-                    self.assertEqual(t['notes'], sorted(got[t['name']]), (kit, v, t['name']))
-                    self.assertEqual(sorted(t['ccs']), sorted(gcc[t['name']]), (kit, v, t['name']))
+                    cut = [(a, min(b, next(e for e in ends if e > a)), c, d, e) for a, b, c, d, e in t['notes']]
+                    self.assertEqual(sorted(cut), sorted(got[t['name']]), (kit, v, t['name']))
+                    self.assertEqual(sorted(filter(not_a_return, t['ccs'])), sorted(gcc[t['name']]),
+                                     (kit, v, t['name']))
                 self.assertEqual([m for m in wtracks[0]['meta'] if m[1] in (MARKER, CUE)], marks)
+
+    def test_the_whole_mix_holds_a_note_over_a_section_line(self):
+        """A note held over a section line keeps its whole length in the whole mix (FUT04's noise sweep, a one-bar
+        one-shot, on the last 16th of a section) and stops on the line in its region, as a region must."""
+        k = Mi.kit_of('FUT04')
+        sweep = Mi.Hit(127, 'AccentNoiseSweepE')
+        role, note = k.hit_note(sweep)
+        form = (Mi.section('Drop', 'drop', (Mi.line(Mi.GROOVE),) * 3 + (Mi.line(Mi.GROOVE, hits=(sweep,)),)),
+                Mi.section('Outro', 'outro', (Mi.line(Mi.DRUMS),) * 4))
+        made = Mi.extended_of(Mi.Kit('FUT04', k.K, {**k.P, 'form': form}, items=k.items), 'vox')
+        R = json.loads(made['regions.json'])
+        line = 32 * BAR
+        on = line - 240 + late('FUT04')
+        for name, end, file in ((R['file'], on + note.ticks, 'whole'), (R['sections'][0]['file'], line, 'region')):
+            tracks = {t['name']: t for t in parse(made[name])[2][1:]}
+            with self.subTest(file=file):
+                self.assertEqual('accents', role)
+                self.assertGreater(on + note.ticks, line)
+                self.assertIn((on, end), {(a, b) for a, b, *_ in tracks['Accents']['notes']})
 
     def test_a_marker_names_every_section_at_its_start(self):
         for kit in KITS:
