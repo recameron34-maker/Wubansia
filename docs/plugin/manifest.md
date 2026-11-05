@@ -335,9 +335,17 @@ keys are exactly `variant`, `ab`, `is`:
 At least one of `variant` and `ab` restricts. An inactive insert is bypassed; switching crossfades over 10 ms.
 Without `when`, an insert is always active.
 
-`band`, inside highpass, lowpass, cc_filter and duck, is `{"lo_hz", "hi_hz"}`, each 0-24 000. The insert works between `lo_hz` and
-`hi_hz`, split off with LR4 crossovers, and the rest passes untouched. `0` leaves that side open, so
-`{"lo_hz": 0, "hi_hz": 0}` is the whole signal. When both are set, `lo_hz` < `hi_hz`.
+`band`, inside highpass, lowpass, cc_filter and duck, is `{"lo_hz", "hi_hz"}`, each 0-24 000. `0` leaves that side
+open. When both are set, `lo_hz` < `hi_hz`. The filters and the duck apply their band differently:
+- **highpass, lowpass and cc_filter: the crossover form.** LR4 crossovers at `lo_hz` and `hi_hz` (each only if set)
+  split the signal into the band and the rest. The filter runs on the band, and the rest is added back unfiltered:
+  rest + f(band). `{"lo_hz": 0, "hi_hz": 0}` filters the whole signal, with no split.
+- **duck: the additive form.** The duck scales the band (an LR4 high-pass at `lo_hz`, then a low-pass at `hi_hz`,
+  each only if set) and adds the difference to the signal: x + (g − 1)·band(x). Outside its band, and while it
+  rests (g = 1), the signal passes untouched. A band of `{0, 0}` scales the whole signal: x·g. This is how the
+  recipes' band ducks work (FUT02's snap and carve, FUT04's sidechain and dips, with a zero-phase band). The
+  crossover form would all-pass the whole channel even at rest, which moved the pre-master kick crest by 1-2.9 dB
+  and the true peak by up to 0.85 dB on FUT02-04 in P3's measurements.
 
 | `type` | Fields, in order | Ranges | What it is |
 |---|---|---|---|

@@ -83,8 +83,14 @@ namespace wubansia::engine
     };
     inline constexpr std::array<std::string_view, 2> kDuckModeIds { "onset", "level" };
 
-    // A band an insert works in, split off with LR4 crossovers: [loHz, hiHz). 0 leaves that side
-    // open, so {0, 0} is the whole signal (no split), {0, 120} is under 120 Hz, {500, 0} above 500 Hz.
+    // A band an insert works in: [loHz, hiHz), 0 leaving that side open ({0, 120} is under 120 Hz,
+    // {500, 0} above 500 Hz). The inserts apply it in one of two forms:
+    // - highpass, lowpass and cc_filter, the crossover form: LR4 crossovers (each only if set) split
+    //   off the band; the filter runs on it and the rest is added back unfiltered, rest + f (band).
+    //   {0, 0} filters the whole signal, with no split.
+    // - duck, the additive form: x + (g - 1) * band (x), band (x) an LR4 high-pass at loHz then a
+    //   low-pass at hiHz (each only if set). Outside the band, and while the duck rests (g = 1), the
+    //   signal passes untouched. {0, 0} scales the whole signal, x * g.
     struct Band
     {
         std::int32_t loHz = 0;
@@ -148,7 +154,7 @@ namespace wubansia::engine
         std::int32_t order = 2; // Butterworth order 1-8 (dsp48.bfilt)
         std::int32_t qPm = 0; // 0: Butterworth; else order is 2 and this is the RBJ biquad's Q x 1000
         std::int32_t stages = 1; // 1-2: the filter applied that many times in series
-        Band band; // where the filter works; the rest passes dry
+        Band band; // the crossover form: rest + f (band); {0, 0}: the whole signal
 
         friend bool operator== (const PassParams&, const PassParams&) = default;
     };
@@ -168,7 +174,7 @@ namespace wubansia::engine
         std::int32_t cc71LoPm = 707;
         std::int32_t cc71HiPm = 707;
         std::int32_t cc71Default = 0; // 0-127
-        Band band; // where the filter works; the rest passes dry
+        Band band; // the crossover form: rest + f (band); {0, 0}: the whole signal
 
         friend bool operator== (const CcFilterParams&, const CcFilterParams&) = default;
     };
@@ -229,7 +235,7 @@ namespace wubansia::engine
 
         // both
         std::int32_t depthMdb = 0;
-        Band band; // where the duck works; the rest passes untouched
+        Band band; // the additive form: x + (g - 1) * band (x); {0, 0}: x * g
         bool pump = false;
 
         friend bool operator== (const DuckParams&, const DuckParams&) = default;
