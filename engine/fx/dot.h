@@ -4,26 +4,23 @@
 // times the speed of one running sum (whose every add waits for the last), and the same bytes on every run and every
 // IEEE platform, because the order is in the code, not left to the compiler (no fast math).
 
+#include <array>
+#include <cstddef>
+
 namespace wubansia::engine::fx
 {
-    // sum over m < n of taps[m] x[-m] (x points at the newest sample of a History).
-    inline double dotBack (const double* taps, const double* x, int n) noexcept
+    // Whether a FIR's taps are symmetric (h[k] = h[N - 1 - k]), as the dot products below take them to be.
+    template <std::size_t N>
+    constexpr bool symmetricTaps (const std::array<double, N>& h) noexcept
     {
-        double a0 = 0.0, a1 = 0.0, a2 = 0.0, a3 = 0.0;
-        int m = 0;
-        for (; m + 3 < n; m += 4)
-        {
-            a0 += taps[m] * x[-m];
-            a1 += taps[m + 1] * x[-m - 1];
-            a2 += taps[m + 2] * x[-m - 2];
-            a3 += taps[m + 3] * x[-m - 3];
-        }
-        for (; m < n; ++m)
-            a0 += taps[m] * x[-m];
-        return (a0 + a1) + (a2 + a3);
+        for (std::size_t k = 0; k < N; ++k)
+            if (h[k] < h[N - 1 - k] || h[N - 1 - k] < h[k])
+                return false;
+        return true;
     }
 
-    // A symmetric FIR of 2 half + 1 taps: sum over k < half of taps[k] (x[-k] + x[-(2 half - k)]) + taps[half] x[-half].
+    // A symmetric FIR of 2 half + 1 taps, x pointing at the newest sample of a History:
+    // sum over k < half of taps[k] (x[-k] + x[-(2 half - k)]) + taps[half] x[-half].
     inline double dotSymmetric (const double* taps, const double* x, int half) noexcept
     {
         const int last = 2 * half;
@@ -38,6 +35,25 @@ namespace wubansia::engine::fx
         }
         for (; k < half; ++k)
             a0 += taps[k] * (x[-k] + x[-(last - k)]);
+        return (a0 + a1) + (a2 + a3);
+    }
+
+    // A symmetric FIR of an even n taps (taps[j] = taps[n - 1 - j]; only the first n / 2 are read):
+    // sum over j < n / 2 of taps[j] (x[-j] + x[-(n - 1 - j)]).
+    inline double dotSymmetricEven (const double* taps, const double* x, int n) noexcept
+    {
+        const int half = n / 2, last = n - 1;
+        double a0 = 0.0, a1 = 0.0, a2 = 0.0, a3 = 0.0;
+        int j = 0;
+        for (; j + 3 < half; j += 4)
+        {
+            a0 += taps[j] * (x[-j] + x[-(last - j)]);
+            a1 += taps[j + 1] * (x[-j - 1] + x[-(last - j - 1)]);
+            a2 += taps[j + 2] * (x[-j - 2] + x[-(last - j - 2)]);
+            a3 += taps[j + 3] * (x[-j - 3] + x[-(last - j - 3)]);
+        }
+        for (; j < half; ++j)
+            a0 += taps[j] * (x[-j] + x[-(last - j)]);
         return (a0 + a1) + (a2 + a3);
     }
 }
