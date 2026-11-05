@@ -2,8 +2,8 @@
 
 Every MIDI file in `content/midi/` follows this map, and so does Wubansia: its player plays those files, its drag strip
 hands them out, and its MIDI input reads the same channels. The table lives in code as `tools/sound/channels.py`, which
-`tools/sound/midi.py` and the manifest exporters import, and as its C++ copy in the engine. ADR 0019 records the
-decision (status: Proposed).
+`tools/sound/midi.py` and the manifest exporters import, and as its C++ copy in the engine; change a number only there,
+through ADR 0019 (status: Proposed), and re-export.
 
 ## Channels
 
@@ -54,34 +54,49 @@ instrument, and the sound on each key of channels 6, 7 and 8.
 - **Key.** Every file carries a key signature (FF 59) at tick 0: F# minor, D minor, G minor, E minor.
 - **On a tick:** note-offs first, then controllers, then note-ons. No note overlaps another on its own key; tracks
   end on a bar line; no note runs past its track's end.
-- **Gates.** A note's length is its gate. Swing never makes a note overlap the next one on its track unless it was
-  written to (a slide): where a written slide glides into a note, the note before is held 12 ticks into it, so a mono
-  synth set to legato glides there.
-- **Velocity.** velocity = round(v x 127) for the recipe's velocity v, and it picks the sample layer the recipe picked
-  (the nearest layer, the louder on a tie; the exporter checks it). One-shots the recipes place by layer carry that
-  layer's velocity, round(layer x 127). On the vox synths the velocity picks the vowel.
+- **Gates.** A note's length is its gate. Swing never makes a note overlap a note it didn't overlap as written, and on a
+  bass or vox track (a mono line) no note runs into the next one unless that note is a written slide: then the note
+  before is held 12 ticks into it, so a mono synth set to legato glides there. A glide inside one note (FUT03's rubber
+  bass) is written the same way: the note, then its target slid into from the glide's start. FUT04's blip ratchets are
+  retriggers a 16th / n apart.
+- **Velocity.** round(v x 127) for the recipe's velocity v, unless that would pick another sample layer than the
+  recipe picks from v (the nearest layer, the louder on a tie): then the integer nearest v x 127 that picks the
+  recipe's layer (FUT01's 0.9 kicks, halfway between its 0.8 and 1.0 layers, are 115, not 114). The exporter refuses
+  anything else. One-shots the recipes place by layer carry round(layer x 127); on the vox synths the velocity picks
+  the vowel (FUT02: 64 'oh', 95 'ah', 127 'ee'; FUT04: 64 'oo', 127 'oh').
 - **End-aligned sounds** (reverse swells, risers, uplifters, sweeps, fills) end on their target: the note starts at
   the target less the sample's length at the kit's tempo and ends on the target, a bar or beat line. A plain sampler
   lands them there at the kit's tempo; Wubansia at any tempo.
 - **One-shots** on channels 6, 7 and 8 last their sample's length (or the gate the recipe gives, like FUT01's warp
-  stab at 1.75 16ths), cut at the clip's end.
+  stab at 1.75 16ths), cut at the clip's end. A key may start its file part-way: FUT01's loop fill plays Glitch Fill
+  Lift from its 16th 4 (the kit manifest's start offset); its whole file is the key below it.
 
 ## Controllers
-- **Filter rides:** CC74 (cutoff) and CC71 (resonance), every 60 ticks while the ride moves, on the channel whose
-  filter rides: FUT01's bass wobble (channel 1), FUT02's arp ride (channel 2), FUT03's dub stab low-pass (channel 4),
-  FUT04's acid cutoff and resonance (channel 1). Each kit's README gives the range a value maps to (a cutoff is
-  logarithmic between two frequencies, a resonance linear between two values), and so do the extended mixes'
-  `regions.json`.
+- **Filter rides:** CC74 (cutoff) and CC71 (resonance), every 60 ticks (unswung) while the ride moves, read off the
+  recipe's own curve, on the channel whose filter rides. One law on both sides (`channels.cc_value` and `cc_hz`): a
+  cutoff's value is round(127 ln(f / lo) / ln(hi / lo)), held to 0-127, and stands for lo x (hi / lo)^(v / 127); a
+  resonance's is linear (`cc_linear`). The maps, the mix manifests' (`plugin_mix`):
+
+  | Kit | Channel | Ride | CC74 range | CC71 |
+  |---|---|---|---|---|
+  | FUT01 | 1 | the warp bass's wobble, once an 8th, deeper in bars 2 and 4 | 650-2210 Hz | none (Q 1.6) |
+  | FUT02 | 2 | the arp's ride, open at 16th 46 | 1600-16000 Hz | none (Q 1.4) |
+  | FUT03 | 4 | the dub stab's low-pass, open mid-loop | 900-5000 Hz | none (Q 0.9) |
+  | FUT04 | 1 | the acid's 4-bar ride: its cutoff multiplier x1-x2.6 | 5400-14040 Hz | 0.90-0.96 (Q 0.707-2.5) |
+
+  FUT04's values are 0 at rest, where the samples play as they are. Each kit's README and the extended mixes'
+  `regions.json` give the same ranges.
 - **Throws:** CC91 (Space) and CC94 (Echo) go to 127 on a thrown note's tick, before its note-on, and back to 0 at its
   note-off: FUT02's vox throw, FUT04's vox throws and thrown accents, and every vox note an extended mix throws.
   Wubansia latches them per note (send = base + (1 - base) x value / 127). They are the GS send controllers, so other
   samplers either use them or ignore them.
 
 ## Tracks
-One track per instrument, each resolving to one Wubansia lane: Kick, Rumble, Snare (or Clap), Hats, Perc, Bass, Lead,
-Chords, Chord voicing, Vox, Vox chops, Accents, FX, plus the kit's extras by name. The first track (the conductor)
-holds the file's name, the tempo, 4/4, the key, and in the extended mixes a marker (FF 06) at every section start and a
-cue point (FF 07) at every riser, fill and vox entry. The cues are labels for the reader: the notes play.
+One track per instrument, each resolving to one Wubansia lane (`channels.track_lane`): Kick and Rumble (kick), Snare,
+Clap or Snare/Clap (snare), Hats, Perc, Bass, Lead, Chords and Chord voicing (chords), Vox and Vox chops (vox),
+Accents, FX, plus the kit's extras by name on the lanes in the table above. The first track (the conductor) holds the
+file's name, the tempo, 4/4, the key, and in the extended mixes a marker (FF 06) at every section start and a cue point
+(FF 07) at every riser, fill and vox entry. The cues are labels for the reader: the notes play.
 
 ## Files per kit
 - `<KIT>_Loop_Vox_4bars.mid` and `<KIT>_Loop_NoVox_4bars.mid`: the kit's context loop as its club master plays it,
@@ -91,7 +106,21 @@ cue point (FF 07) at every riser, fill and vox entry. The cues are labels for th
   `<KIT>_Accents_Vox_4bars.mid`, `<KIT>_Accents_NoVox_4bars.mid`, `<KIT>_FX_4bars.mid`; and the synth phrases,
   `<KIT>_Phrase_<Name>_<n>bars.mid`, each on its instrument's channel.
 - `extended/vox/` and `extended/novox/`: the 224-bar extended mix (`<KIT>_ExtendedMix_Vox_224bars.mid`, or `_NoVox_`),
-  one region file per section, and `regions.json` (integers and strings only).
+  one region file per section, and `regions.json` (integers and strings only: the tempo, the swing in permille, the
+  length in ms, 1-based start bars, each line's lanes and moves, the cues, the tracks and the rides' ranges). The two
+  differ only in the Vox track, the accents (and their throws) and the chord stabs the no-vox accents take over
+  (FUT01's at 16th 30).
+
+## The extended mix
+Each kit declares its music and its arrangement as data (`PARTS`, `tools/sound/README.md`, "MIDI"). A line is 8 bars;
+each lane plays its loop block twice, the fill block where the line ends on a fill. The genres' default forms (sci-fi
+club, house, techno, UK garage) give every kit 32 bars of drums at each end, the bass from bar 33, the harmony, lead
+and vox coming in line by line, a break with the pad and the vox riff, a per-genre build that rolls up to the fill's
+start (its velocity rising hit by hit), a drop that isn't the groove (the vox's loop pattern, the accents in every
+block, an impact on its first beat, busier hats in its third line), a switch-up on another bassline, a second break,
+drop 2 stripping into the outro, turnarounds every 16 bars where no fill falls, and the accents' rules (the loop's in
+the drops, every other block in the grooves, lead-ins into the breaks' ends, none in the drum-only ends). Each kit's
+engineer replaces these with the kit's own form.
 
 ## In a DAW
 - **Ableton Live.** A dragged file's tracks come in as clips on consecutive MIDI tracks; Live keeps the notes but not
