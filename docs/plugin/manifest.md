@@ -231,7 +231,9 @@ extra's lane. A track of the kit's MIDI resolves to a lane by `channels.py`'s `T
 ### 2.6 `phrases[]`
 
 A phrase lane plays a recorded line (a stem) sliced per note instead of the multisample, while the host tempo is
-near the kit's (ADR 0020).
+near the kit's (ADR 0020). At the kit's tempo and 48 kHz it is sample-exact against the recipe's lane over a loop's
+first pass. After that the voice re-syncs at each cycle wrap, with a 1 ms crossfade when it is a frame or more off,
+because at the exact BPM a cycle isn't a whole number of samples. FUT03's is: 360 000 frames for 4 bars at 128 BPM.
 
 | Key | Type | Range | Meaning |
 |---|---|---|---|
@@ -240,6 +242,7 @@ near the kit's (ADR 0020).
 | `ab` | string | `kick`, `bass`, `stab`, or `""` | the switch that chooses the stem; `""` exactly when `stems.b` is −1, and only a switch the kit has (its `kit.ab` labels aren't empty) |
 | `mix_channel` | string | a `mix.json` channel id | where the stem plays; its lane is `lane` |
 | `gain_mdb` | integer | −60 000 to 24 000 | the stem's own gain, before its mix channel, as instruments have. Every `Loops/` stem has 0; FUT02's derived vox stem is stored 3 dB down and plays with 3000. |
+| `throw` | string | `live`, `baked` | `live` (most stems): the engine sends its slice notes' CC91/CC94 throws live, as for any note. `baked`: the stem has its throw in the audio, and the engine sends no live throw for its slice notes. |
 | `stems` | object | | `{"a": file, "b": file or -1}`: the stem per A/B side |
 | `cycle_16ths` | integer | 16-256, a multiple of 16 | the phrase's length; cycles start every `cycle_16ths` from song 16th 0 |
 | `tolerance_pm` | integer | 0-100 | slices play while abs(host BPM ÷ kit BPM − 1) × 1000 ≤ this (20: 2 %) |
@@ -254,7 +257,7 @@ near the kit's (ADR 0020).
 | `step` | integer | 0 to `cycle_16ths` − 1 | the 16th in the cycle where its note starts |
 | `key` | integer | 0-127 | its note's key; (`step`, `key`) is unique in a phrase |
 | `start` | integer | ≥ 0 | the first frame: the onset (`phrase.Grid.at(step)`) less `lead` |
-| `end` | integer | `start` + 1 to the shorter stem's frames | the frame after the last |
+| `end` | integer | `start` + 1 to the shorter stem's frames; a looped stem's last slice up to frames + slice 0's `start` | the frame after the last (below, for a wrapping slice) |
 | `fade` | integer | `start` to `end` | where it starts fading when no slice follows it (the recipe's mute edge) |
 | `lead` | integer | 0-48 000 | frames of the slice before its onset |
 | `holds` | array of integers | 0-8 keys, each 0-127 | the notes after the slice's own that it plays itself (below); `[]` for most slices |
@@ -267,6 +270,13 @@ near the kit's (ADR 0020).
 Each held note starts after the slice's note and before the next note the phrase's pattern matches on that channel.
 The matcher gives held notes no sound of their own: the stem already has them. A note that fits neither a slice nor
 a hold stays on the multisample.
+
+A looped stem (one the phrase plays cycle after cycle) may hold its last slice's tail at its start. That slice wraps
+through the stem's end:
+- its `end`, and its `fade`, may exceed the stem's frames, up to frames + slice 0's `start`;
+- the voice reads it modulo the stem's length;
+- the last slice owns the wrapped tail, and slice 0 starts at its own pre-roll (its onset less its `lead`);
+- the last slice continues into the next cycle's slice 0 when its `end` − frames == slice 0's `start`.
 
 `ride` has the keys `cc74` and `cc71`, in that order. Each is an array of either 0 or `cycle_16ths` × 4 integers,
 each 0-127.
