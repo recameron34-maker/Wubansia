@@ -701,7 +701,8 @@ def rumble(take):
 
 
 # ------------------------------------------------------------------ the items
-R23 = ('r2', 'r3')                  # round 3 changes these sounds and keeps them in both sets
+R23 = ('r2', 'r3', 'r5')            # round 3 changes these sounds and keeps them in both sets; round 5 keeps
+                                    # them as they are
 WARM = {'mud': 'bass-body', 'why': 'B, warm: the proposed bass-body rule (ADR 0011); the voice from 120 Hz over a mono '
                                    'sine sub'}
 HELD = (ATTACK_S + 0.05, ATTACK_S + 1.15)   # the alias check's window on a held note: the loop, after the attack
@@ -734,7 +735,7 @@ ITEMS = [
                f'the kit swing against four on the floor: {ln.about}')
     for ln in LINES for char, fn in (('clean', acid_line_clean), ('warm', acid_line_warm))
 ] + [
-    Item('Loops', f'{name}Ride{char.title()}', 'loop', fn, loop=True, sets=('r3',), hp_hz=None,
+    Item('Loops', f'{name}Ride{char.title()}', 'loop', fn, loop=True, sets=('r3', 'r5'), hp_hz=None,
          level=RIDE_LUFS.get(f'{name}Ride{char.title()}'),
          qa=WARM if char == 'warm' else {'mud': 'gate', 'why': 'A, clean: a bass phrase, gated like the bass, in '
                                                                'every gap between its kicks'},

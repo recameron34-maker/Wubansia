@@ -10,6 +10,10 @@ kit's recipes (`tools/sound/recipes/fut04/midi.py`); a test keeps these files eq
 - `FUT04_Drums_4bars.mid`
 - `FUT04_FullLoop_4bars.mid`
 - `FUT04_Lead_ModBlip_2bars.mid`
+- `FUT04_Phrase_AccentAcidStabE4_2bars.mid`
+- `FUT04_Phrase_AccentMetalChordEm_4bars.mid`
+- `FUT04_Phrase_AccentRaveStabEm_2bars.mid`
+- `FUT04_Phrase_VoxSynth_2bars.mid`
 
 **Drums** (channel 10): a drum rack with the kit's samples on these notes (C1 = 36).
 
@@ -35,6 +39,13 @@ with the sample trigger file: one note on C3 (MIDI 60), where Ableton's Simpler 
 play a sample at its own pitch.
 
 **Full loop** (4 bars): all of the above in one file, the bassline and lead played twice.
+
+**Synth phrases** (channel 4): the kit's synth riffs as MIDI, each on its own sample:
+
+- `FUT04_Phrase_VoxSynth_2bars.mid`: Vox synth riff (2 bars), on Vox Synth, rooted at E3, G3, B3, D4, E4, G4, B4 (MIDI 52, 55, 59, 62, 64, 67, 71)
+- `FUT04_Phrase_AccentAcidStabE4_2bars.mid`: Acid stab riff (2 bars), on Accent Acid Stab E4, rooted at E4 (MIDI 64)
+- `FUT04_Phrase_AccentMetalChordEm_4bars.mid`: Metal chords, Em Em Am Bm (4 bars), on Accent Metal Chord Em, rooted at E4 (A4 plays Am, B4 Bm) (MIDI 64, 69, 71)
+- `FUT04_Phrase_AccentRaveStabEm_2bars.mid`: Rave stab riff (2 bars), on Accent Rave Stab Em, rooted at E4 (A4 plays Am, B4 Bm) (MIDI 64, 69, 71)
 
 **Extended mix** (`extended/`): these parts arranged as a DJ-friendly extended mix, 224 bars
 (6:35 at 136 BPM), as one file and one region per section, with `regions.json` and a README on

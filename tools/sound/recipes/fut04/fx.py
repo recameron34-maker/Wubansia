@@ -202,11 +202,11 @@ def _svf_bp(x, fc, q):
     return out
 
 ITEMS = [
-    Item('FX', 'StutterFill', 'fx', stutter_fill, root=E4, sets=('r2', 'r3'), flags={'cut_end'}, tags=('fill',),
+    Item('FX', 'StutterFill', 'fx', stutter_fill, root=E4, sets=('r2', 'r3', 'r5'), flags={'cut_end'}, tags=('fill',),
          qa={'why': 'it ends on the next downbeat: the last 64th roll on E5 runs into the drop'},
          about='one-bar stutter fill at 136 BPM: metallic noise on the anvil modes in slices that halve every beat, '
                'climbing E4 G4 A4 B4 D5 E5 and landing on the downbeat'),
-    Item('FX', 'IronRiser', 'fx', iron_riser, level=-14.0, sets=('r2', 'r3'), flags={'cut_end'}, tags=('riser',),
+    Item('FX', 'IronRiser', 'fx', iron_riser, level=-14.0, sets=('r2', 'r3', 'r5'), flags={'cut_end'}, tags=('riser',),
          qa={'why': 'end-aligned: it stays loud to the downbeat, where the next section takes over'},
          about='8-bar iron riser at 136 BPM: noise through the anvil modes climbing the E minor scale a degree a bar, '
                'an air band sweeping up, 16th pulses in the last bar; it ends on the downbeat'),

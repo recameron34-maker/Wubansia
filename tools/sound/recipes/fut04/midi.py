@@ -1,10 +1,12 @@
 """FUT04's written loop for the MIDI export (tools/sound/midi.py): the round 3 context loop's drums (the ride on the
-off-beats among them), the two acid lines (with their squelch ticks on the kick), the blip sequence and the drone.
+off-beats among them), the two acid lines (with their squelch ticks on the kick), the blip sequence and the drone, and
+round 5's synth phrases (channel 4): the vox synth riff (voxsynth.RIFF: velocity picks the vowel, 1.0 "oh", 0.5 "oo",
+as on the multisample) and the three accent phrases (accents.midi_phrases).
 Notes are (16th, MIDI note, length in 16ths, velocity 0-1, slide). The sequence's ratchets play as single notes here.
 The context loop's 4-bar cutoff and resonance ride on the acid (bass.RIDES) is knob automation, not notes: the lines
 are written as they play in bars 1 and 2."""
 from tools.sound.midi import hits
-from tools.sound.recipes.fut04 import bass as B, context as C, lead as L, pad as P
+from tools.sound.recipes.fut04 import accents as A, bass as B, context as C, lead as L, pad as P, voxsynth as V
 
 
 def line_notes(line):
@@ -28,4 +30,6 @@ PARTS = dict(
               notes=[(s, n, ln, v, False) for s, n, ln, v, _ in L.PHRASE]),
     chords=dict(name='Drone Em(add9), held', sample='Drone Em Add 9',
                 notes=[(0, n, 64, 0.7, False) for n in P.CHORD]),
+    phrases=[dict(name='Vox synth riff', sample='Vox Synth', zones='E3, G3, B3, D4, E4, G4, B4', notes=V.riff_midi(),
+                  bars=2)] + A.midi_phrases(),
 )

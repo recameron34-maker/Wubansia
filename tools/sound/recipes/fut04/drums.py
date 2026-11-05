@@ -396,22 +396,22 @@ def hat_loop(take):
 
 
 ITEMS = [
-    Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('r2', 'r3'),
+    Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('r2', 'r3', 'r5'),
          about='split kick on E1: a clean sub zero before the next beat, a clean knock above 110 Hz and its low knock '
                'at 80-140 Hz (the sweep\'s octave), the 8x drive chain only above 300 Hz (a 50-60 ms crunch, a hot '
                'iron click and ring above 1 kHz)'),
-    Item('Drums', 'SnareGated', 'snare', snare_gated, layers=LAYERS, rr=2, sets=('r2', 'r3'),
+    Item('Drums', 'SnareGated', 'snare', snare_gated, layers=LAYERS, rr=2, sets=('r2', 'r3', 'r5'),
          about='gated iron snare: the anvil modes on B3, a four-hand clap and bright wires, soft-clipped, in the '
                'dark concrete room chopped by a gate after 150-185 ms'),
-    Item('Drums', 'ClosedHat', 'hat', closed_hat, layers=LAYERS, rr=3, sets=('r2', 'r3'),
+    Item('Drums', 'ClosedHat', 'hat', closed_hat, layers=LAYERS, rr=3, sets=('r2', 'r3', 'r5'),
          about='closed hat, dark: seven squares on the anvil ratios over E4 in a 4.5-16 kHz band, 30 dB down inside a '
                '16th; chokes the open hat'),
-    Item('Drums', 'OpenHat', 'hat', open_hat, layers=LAYERS, rr=3, sets=('r2', 'r3'),
+    Item('Drums', 'OpenHat', 'hat', open_hat, layers=LAYERS, rr=3, sets=('r2', 'r3', 'r5'),
          about='open hat: the same dark iron metal as a sizzle about a beat long, wider, choked by the closed hat'),
-    Item('Drums', 'Ride', 'hat', ride, layers=LAYERS, rr=2, sets=('r3',),
+    Item('Drums', 'Ride', 'hat', ride, layers=LAYERS, rr=2, sets=('r3', 'r5'),
          about='iron ride for the off-beats: a ping of the anvil modes on E6 over a noise wash, 5-14 kHz through '
                'resonators on the anvil ratios, 20 dB down by 0.4 s, driven at 4x, wide; not choked'),
-    Item('Loops', 'HatLoop', 'loop', hat_loop, loop=True, sets=('r2', 'r3'), tags=('preview',),
+    Item('Loops', 'HatLoop', 'loop', hat_loop, loop=True, sets=('r2', 'r3', 'r5'), tags=('preview',),
          qa={'mud': 'lowcut', 'why': 'a hat loop: the low cut, like the hats'},
          about='2-bar hat preview at 136 BPM on the kit swing: closed 16ths driving round an open hat on every '
                'off-beat, choked by the next closed hat, with the ride on the off-beats'),

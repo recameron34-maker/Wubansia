@@ -128,7 +128,7 @@ def riser_preview(take):
     return Out(y, meta=meta)
 
 
-R23 = ('r2', 'r3')
+R23 = ('r2', 'r3', 'r5')            # round 5 keeps them as they are
 PREVIEW_MIX = 'a listening preview: its kick is gated as KickSplit, '
 FILL_PREVIEW_QA = {'mud': 'off', 'why': PREVIEW_MIX + 'every other part passed its own low cut'}
 RISER_PREVIEW_QA = {'mud': 'off', 'why': PREVIEW_MIX + 'its bass as its own line (AcidLine1Warm), every other part '

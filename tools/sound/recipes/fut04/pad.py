@@ -98,7 +98,7 @@ def drone(take):
 
 
 ITEMS = [
-    Item('Pad', 'DroneEmAdd9', 'pad', drone, root=CHORD[0], loop=True, sets=('r2', 'r3'),
+    Item('Pad', 'DroneEmAdd9', 'pad', drone, root=CHORD[0], loop=True, sets=('r2', 'r3', 'r5'),
          about='dark drone, Em(add9) (E3 B3 E4 G4 F#5): detuned saws under a resonant 4-bar filter rise, the anvil '
                'modes humming on E4; high-passed at 100 Hz, mono under 450 Hz; a 4-bar loop'),
 ]

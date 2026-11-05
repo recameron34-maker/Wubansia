@@ -720,12 +720,13 @@ ITEMS = [
          qa=FULL_MIX,
          about=f'{ABOUT}, wet, bass B (warm, the integrator\'s pick): Space (the kit\'s dark 5 s hall), Echo (a dub '
                'ping-pong) and the resonator on the iron ratios, a throw on the last chop; the engine\'s target'),
-    Item('Loops', 'ContextLoopLow', 'loop', context_low, loop=True, sets=R23, tags=('with_kick',),
+    Item('Loops', 'ContextLoopLow', 'loop', context_low, loop=True, sets=R23 + ('r5',), tags=('with_kick',),
          qa={'mud': 'gate', 'why': 'the kick and bass A lanes (acid ride and rumble) as mixed: gated over the loop and '
                                    'in every gap between its kicks'},
          about=f'{ABOUT}: the kick and bass A (clean) lanes alone, with the rumble, mud-gated in every gap between '
                'kicks'),
-    Item('Loops', 'ContextLoopLowWarm', 'loop', context_low_warm, loop=True, sets=R23, tags=('with_kick',),
+    Item('Loops', 'ContextLoopLowWarm', 'loop', context_low_warm, loop=True, sets=R23 + ('r5',),
+         tags=('with_kick',),
          qa={'mud': 'bass-body', 'why': 'B, warm: the proposed bass-body rule (ADR 0011) on the kick and bass B lanes '
                                        '(acid ride and rumble) as mixed, in every gap between the kicks the loop '
                                        'holds'},
