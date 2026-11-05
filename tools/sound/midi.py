@@ -26,9 +26,9 @@ note-offs come first, then controllers, then note-ons; no note overlaps its own 
 are note lengths, and swing never runs a note into the next one on its track unless it was written to: where a note
 slides (a written glide), the note before is held SLIDE_TICKS into it, so a mono synth set to legato glides there.
 Velocities are round(v x 127), moved to the nearest integer that plays the recipe's layer where that would not
-(written_velocity: the engine plays the layer whose round(layer x 127) is nearest, the louder on a tie). End-aligned sounds end on their target, starting the sample's length (PARTS['frames']) before it. Filter
-rides are CC74/CC71 every CC_STEP ticks while they move; a thrown note has CC91 and CC94 at 127 on its tick and back
-to 0 at its end.
+(written_velocity: the engine plays the layer whose round(layer x 127) is nearest, the louder on a tie). End-aligned
+sounds end on their target, starting the sample's length (PARTS['frames']) before it. Filter rides are CC74/CC71 every
+CC_STEP ticks while they move; a thrown note has CC91 and CC94 at 127 on its tick and back to 0 at its end.
 
 The extended mix is built line by line (8 bars each) from the kit's material: each lane plays the loop's 4-bar block,
 its fill bar where a line ends on a fill and its groove block (by default bar 2 again in place of bar 4) elsewhere;
@@ -222,16 +222,24 @@ def line(lanes, **opt):
     - hats: 'full' (as written), 'thin' (the off-beat 8ths), 'busy' (the kit's own busy pattern, PARTS['drums']['busy'],
       else a closed hat of at least 0.35 on every empty 16th) or '16ths' (the closed hat on every 16th); a pair gives
       each 4-bar block its own;
-    - drums: a drum variant, PARTS['drums']['variants'][name] ({lane: 1- or 4-bar notes}), in place of the loop's;
+    - drums: a drum variant, PARTS['drums']['variants'][name] ({lane: 1- or 4-bar notes}, and optionally 'fill':
+      {lane: a bar of notes}), in place of the loop's lanes it names. On a line that ends on a fill, a variant lane
+      plays its bars 1-3, then the variant's own fill bar for that lane if it gives one, else the kit's fill bar for
+      that lane (which leaves room for the kit's fill); nothing is cut, except under the line's own fill (fill=);
     - bass: a line of PARTS['bass']['lines'], or 'main' (the pick, the default), 'switch' or 'drop2' (the kit's picks
       for those sections, PARTS['bass']['switch'] and ['drop2']);
-    - lead: 'phrase' (the default), 'call' (its first bar), 'skeleton' (PARTS['lead']['skeleton']);
-    - chords: a chord block, PARTS['chords']['blocks'] (the default 'main', the loop's): harmony that moves;
+    - lead: 'phrase' (the default), 'call' (its first bar), 'answer' (its second bar), 'skeleton'
+      (PARTS['lead']['skeleton']); on a fill line the call, the answer and the skeleton rest from the fill bar where
+      the loop's own lead rests there (FUT02's arp);
+    - chords: a chord block, PARTS['chords']['blocks'] (the default 'main', the loop's): harmony that moves; the pad
+      plays its own block of that name (PARTS['pad']['blocks']), else its main one;
     - vox: 'off' (the default), 'loop' (the loop's 4-bar vox pattern), 'riff' (the riff every 2 bars), 'call' (its
       first bar), 'answer' (its second bar); throw=True adds the riff's last note on the line's last 'and' of 4,
       thrown (CC91/CC94);
     - phrases: names of PARTS['phrases'] that play over the line, each on its instrument's channel in place of that
-      channel's part;
+      channel's part (a phrase on the vox synth's channel plays in the vox mix only, in place of the line's vox mode);
+      phrases_rest=True: on a line that ends on a fill, its phrases rest from the kit's fill start, a note held over
+      it cut there (else they play on under the fill, as FUT01's lead and bass play under its glitch fill);
     - accents: 'loop' (the variant's loop accents in every 4-bar block), 'alternate' (in the line's second block),
       'lead-in' (only the loop's end-aligned accents that end on a block's end, at the line's end, in a section's last
       line) or None (the default); stab: the 'stab' cue's sound on the 'and' of 4 of the line's last bar; into: a cue
@@ -239,14 +247,23 @@ def line(lanes, **opt):
     - roll: a build roll, dict(lane, bars, every=((bars, 16ths), ...), last=16ths, ramp=(from, to)): the lane's own
       note every so many 16ths over the `bars` bars before the line's last bar, then every `last` 16ths in the last
       bar up to the fill's start, its velocity rising hit by hit from `from` to `to` times its loudest written
-      velocity; the drums rest from the fill's start;
+      velocity; rest='all' (the default): every drum rests from the fill's start; rest='lane': the rolled lane alone,
+      the others playing the kit's fill bar under the fill (FUT03's one-bar Build Fill);
     - rise: (lane, from, to): the lane's velocities scaled bar by bar from `from` to `to`;
+    - fill: on a line that ends on a fill, a sound (channel 6 or 7) end-aligned on the line's end in place of the
+      kit's fill: every drum lane (busy hats and a roll included) rests from its start (FUT01's build: the whole glitch
+      fill from beat 3, where the loop plays its beat 4 only);
     - end: 'fill' (the last bar is the loop's fill bar, with the kit's fill: a Fill cue), 'turn' (a turnaround in the
       last bar: PARTS['drums']['turn'], else a pickup roll on the last beat of the snare, the perc or the hats, the
-      first with room for it) or 'drop' (the drums sit out the last bar);
+      first with room for it) or 'drop' (the drums sit out the last bar); turn: a named turnaround,
+      PARTS['drums']['turns'][name], in place of PARTS['drums']['turn'];
+    - hits: one-shots placed by hand on channels 6 and 7, Hits on whole 16ths from the line's start (or end-aligned
+      on them), a tuple for both variants or {'vox': hits, 'novox': hits};
     - cue: 'Riser' (the kit's riser, end-aligned on the line's end: put it on a section's last line) or 'Vox' (a
       label: the vox notes play);
-    - ride: {track: 'loop' (the default) | ('hold', value) | ('ramp', from, to)}: the filter rides."""
+    - ride: {track: 'loop' (the default) | ('hold', value) | ('ramp', from, to) | ('points', ((bar, value), ...))}:
+      the filter rides on the track (every one of its controllers): the loop's curve, held, ramped over the line, or
+      breakpoints on whole bars 0-8 joined linearly, held before the first and after the last."""
     return Line(lanes=tuple(lanes.split()), **opt)
 
 
@@ -1021,19 +1038,22 @@ def cue_hits(k, role):
     return () if not got else ((got,) if isinstance(got, str) else tuple(got))
 
 
-def fill_hits(k):
-    """The kit's fill, as hits on the fill bar (16ths of a 4-bar block): the loop's FX in its last bar, else the 'fill'
-    cue's sound end-aligned on the block's end."""
+def fill_hits(k, ln=None):
+    """The fill a line ends on, as hits on the fill bar (16ths of a 4-bar block): the line's own (ln['fill'], a sound
+    end-aligned on the block's end), else the loop's FX in its last bar, else the 'fill' cue's sound end-aligned on the
+    block's end."""
+    if ln is not None and ln.get('fill'):
+        return [Hit(BLOCK * BAR, ln['fill'], align='end')]
     loop_fx = [h for h in k.P.get('loop', {}).get('fx', ()) if h.step >= (BLOCK - 1) * BAR]
     if loop_fx:
         return list(loop_fx)
     return [Hit(BLOCK * BAR, s, align='end') for s in cue_hits(k, 'fill')]
 
 
-def fill_start(k):
-    """The 16th of the fill bar (0-16) where the kit's fill starts sounding."""
+def fill_start(k, ln=None):
+    """The 16th of the fill bar (0-16) where the line's fill (fill_hits()) starts sounding."""
     starts = []
-    for h in fill_hits(k):
+    for h in fill_hits(k, ln):
         _, note = k.hit_note(h)
         on = k.tick(note.step) - (note.ticks if note.end else 0)
         starts.append(on / S16 - (BLOCK - 1) * BAR)
@@ -1124,11 +1144,18 @@ def pickup_lane(k, lanes, out, bar_lo):
     return None
 
 
-def turnaround(k, part, notes, bar_lo, pickup=None):
-    """The line's last bar as a turnaround: PARTS['drums']['turn'][part] (a bar of notes) in place of the bar, else on
-    the pickup lane (pickup_lane()) a pickup roll on its most written note, the last beat's 'e', 'and' and 'a' at 0.45,
-    0.6 and 0.75 of the lane's loudest velocity, in place of that note's own there; every other note kept."""
-    authored = k.P['drums'].get('turn')
+def turnaround(k, part, notes, bar_lo, pickup=None, name=None):
+    """The line's last bar as a turnaround: PARTS['drums']['turn'][part] (a bar of notes; a named one,
+    PARTS['drums']['turns'][name], where the line asks for it) in place of the bar, else on the pickup lane
+    (pickup_lane()) a pickup roll on its most written note, the last beat's 'e', 'and' and 'a' at 0.45, 0.6 and 0.75 of
+    the lane's loudest velocity, in place of that note's own there; every other note kept."""
+    if name is not None:
+        turns = k.P['drums'].get('turns', {})
+        if name not in turns:
+            raise ValueError(f"{k.kit}: no turnaround called {name!r} in PARTS['drums']['turns']")
+        authored = turns[name]
+    else:
+        authored = k.P['drums'].get('turn')
     if authored is not None:
         if part not in authored:
             return notes
@@ -1178,6 +1205,68 @@ def chord_block(k, name, kind, variant):
     return as_notes(b['trigger']), as_notes(b['voicing'])
 
 
+def rest_from(k, notes, step):
+    """The notes that start before `step` (a 16th), a note held over it cut there, to the tick: where the drums rest
+    (a roll's fill, a drum drop, a line's own fill) nothing sounds past the rest (FUT04's 2-bar rumble notes)."""
+    out = []
+    for n in notes:
+        if n.step < step:
+            dur = n.ticks or max(1, round(n.length * S16))
+            out.append(n._replace(ticks=max(1, min(dur, k.tick(step) - k.tick(n.step)))))
+    return out
+
+
+def lead_rests_in_fill(k):
+    """Whether the loop's lead rests in its fill bar (FUT02's arp, context.ARP_REST): then the lead's call and
+    skeleton rest there too, where a line ends on a fill."""
+    return not [n for n in k.block('lead', 'fill') if n.step >= (BLOCK - 1) * BAR]
+
+
+def playing_phrases(k, ln, variant):
+    """The phrases a line plays in a variant ({track: phrase}): a phrase on the vox synth's lane plays in the vox mix
+    only."""
+    out = {}
+    for name in ln.get('phrases', ()):
+        ph = next((p for p in k.phrases if p['name'] == name), None)
+        if ph is None:
+            raise ValueError(f'{k.kit}: a line plays a phrase PARTS does not have: {name!r}')
+        track = phrase_track(k, ph)
+        if CH.track_lane(k.kit, track) == 'vox' and variant != 'vox':
+            continue
+        out[track] = ph
+    return out
+
+
+def variant_block(k, variant, part, kind):
+    """A drum variant's 4-bar block for a lane: its notes (a bar is played 4 times); in a fill block its bars 1-3,
+    then its own fill bar for the lane (variant['fill'][lane]) if it gives one, else the kit's fill bar for the lane,
+    which leaves room for the kit's fill."""
+    src = as_notes(variant[part])
+    if max((n.step for n in src), default=0) < BAR:
+        src = [n for r in range(BLOCK) for n in shifted(src, BAR * r)]
+    if kind != 'fill':
+        return src
+    last = (BLOCK - 1) * BAR
+    own = variant.get('fill', {}).get(part)
+    bar = shifted(as_notes(own), last) if own is not None else [
+        n for n in k.block('drums', 'fill', part) if n.step >= last]
+    return sorted([n for n in src if n.step < last] + bar)
+
+
+def line_hits(k, ln, variant):
+    """A line's own one-shots in a variant (ln['hits']: Hits, or {'vox': ..., 'novox': ...}), checked: accents or FX
+    (channels 6 and 7) on whole 16ths."""
+    got = ln.get('hits', ())
+    hits_ = got.get(variant, ()) if isinstance(got, dict) else got
+    for h in hits_:
+        role = k.sound(h.sound)[0]
+        if role not in ('accents', 'fx'):
+            raise ValueError(f'{k.kit}: a line hit plays accents or FX (channels 6 and 7), not {h.sound!r} ({role})')
+        if float(h.step) != int(h.step):
+            raise ValueError(f'{k.kit}: a line hit sits on a 16th, not {h.step}')
+    return tuple(hits_)
+
+
 def line_notes(k, ln, ctx, variant):
     """One line as ({track: notes, 16ths from its start}, {track: [(tick from its start, controller, value)]})."""
     P = k.P
@@ -1188,11 +1277,8 @@ def line_notes(k, ln, ctx, variant):
     blocks = LINE // BLOCK
     stab_drop = set(P.get('loop', {}).get('stab_drop', {}).get(variant, ()))
     acc_blocks = {'loop': set(range(blocks)), 'alternate': {blocks - 1}}.get(ln.get('accents'), set())
-    phrase_on = {}
-    for name in ln.get('phrases', ()):
-        ph = next(p for p in k.phrases if p['name'] == name)
-        phrase_on[phrase_track(k, ph)] = ph
-    variant_drums = P['drums'].get('variants', {}).get(ln.get('drums'), {}) if ln.get('drums') else {}
+    phrase_on = playing_phrases(k, ln, variant)
+    variant_drums = P['drums']['variants'][ln['drums']] if ln.get('drums') else {}
     for b in range(blocks):
         kind = 'fill' if fill and b == blocks - 1 else 'groove'
         off = b * BLOCK * BAR
@@ -1201,14 +1287,11 @@ def line_notes(k, ln, ctx, variant):
             if part not in lanes:
                 continue
             if part in variant_drums:
-                src = as_notes(variant_drums[part])
-                if max((n.step for n in src), default=0) < BAR:
-                    src = [n for r in range(BLOCK) for n in shifted(src, BAR * r)]
-                notes = src
+                notes = variant_block(k, variant_drums, part, kind)
             else:
                 notes = k.block('drums', kind, part)
             if part == 'hats':
-                until = (BLOCK - 1) * BAR + fill_start(k) if kind == 'fill' else None
+                until = (BLOCK - 1) * BAR + fill_start(k, ln) if kind == 'fill' else None
                 notes = hat_density(k, notes, hats_mode(ln, b), until)
             add(k.part_track(part), shifted(notes, off))
         # bass
@@ -1229,10 +1312,14 @@ def line_notes(k, ln, ctx, variant):
                 notes = k.block('lead', kind)
             elif mode == 'call':
                 notes = twice([n for n in as_notes(P['lead']['notes']) if n.step < BAR])
+            elif mode == 'answer':
+                notes = twice([n for n in as_notes(P['lead']['notes']) if BAR <= n.step < 2 * BAR])
             elif mode == 'skeleton':
                 notes = twice(P['lead'].get('skeleton') or [n for n in as_notes(P['lead']['notes']) if n.step < BAR])
             else:
                 raise ValueError(f'lead mode {mode!r}')
+            if mode != 'phrase' and kind == 'fill' and lead_rests_in_fill(k):
+                notes = rest_from(k, notes, (BLOCK - 1) * BAR)     # the fill bar is the fill's, as in the loop
             add('Lead', shifted(notes, off))
         # chords and the pad
         if 'chords' in lanes and 'Chords' not in phrase_on:
@@ -1254,13 +1341,16 @@ def line_notes(k, ln, ctx, variant):
         # accents: the variant's loop pattern
         if b in acc_blocks:
             add('Accents', shifted(k.loop_accents(variant), off))
-    # phrases
+    # phrases (a vox phrase plays in the vox mix only, in place of the line's vox mode)
     for track, ph in phrase_on.items():
         period = ph.get('bars', 2) * BAR
         notes = as_notes(ph['notes'])
-        add(track, [n for r in range(LINE * BAR // period) for n in shifted(notes, r * period)])
+        notes = [n for r in range(LINE * BAR // period) for n in shifted(notes, r * period)]
+        if fill and ln.get('phrases_rest'):
+            notes = rest_from(k, notes, (LINE - 1) * BAR + fill_start(k, ln))   # the fill alone from its start
+        add(track, notes)
     # vox
-    if 'vox' in lanes or ln.get('vox', 'off') != 'off':
+    if ('vox' in lanes or ln.get('vox', 'off') != 'off') and 'Vox' not in phrase_on:
         add('Vox', vox_notes(k, ln.get('vox', 'off'), variant))
     if ln.get('throw') and variant == 'vox' and k.riff():
         add('Vox', [throw_note(k)])
@@ -1282,32 +1372,42 @@ def line_notes(k, ln, ctx, variant):
             role, n = k.hit_note(Hit(0, s))
             add(track_of_role(role), [n])
     if fill:
-        for h in fill_hits(k):
+        for h in fill_hits(k, ln):
             role, n = k.hit_note(h)
             add(track_of_role(role), [n._replace(step=n.step + (LINE - BLOCK) * BAR)])
+    for h in line_hits(k, ln, variant):
+        role, n = k.hit_note(h)
+        add(track_of_role(role), [n])
     if ln.get('cue') == 'Riser':
         for s in cue_hits(k, 'riser'):
             role, n = k.hit_note(Hit(LINE * BAR, s, align='end'))
             add(track_of_role(role), [n])
     # the line's moves: rolls, rises, turnarounds, drum drops
     last_bar = (LINE - 1) * BAR
+    if fill and ln.get('fill') and not ln.get('roll'):      # the line's own fill: the drums out from its start
+        until = last_bar + fill_start(k, ln)
+        for part in DRUM_PARTS:
+            t = k.part_track(part)
+            if t in out:
+                out[t] = rest_from(k, out[t], until)
     if ln.get('roll'):
         roll = ln['roll']
-        until = last_bar + fill_start(k) if fill else LINE * BAR
+        until = last_bar + fill_start(k, ln) if fill else LINE * BAR
         track = k.part_track(roll['lane'])
         src = out.get(track) or [n for b in range(blocks)
                                  for n in shifted(k.block('drums', 'groove', roll['lane']), b * BLOCK * BAR)]
         out[track] = rolled(k, src, roll, until, keep=roll['lane'] in lanes)
-        for part in DRUM_PARTS:
-            t = k.part_track(part)
-            if t in out:
-                out[t] = [n for n in out[t] if n.step < until]
+        if roll.get('rest', 'all') == 'all':                 # every drum rests from the fill's start
+            for part in DRUM_PARTS:
+                t = k.part_track(part)
+                if t in out:
+                    out[t] = rest_from(k, out[t], until)
     if ln.get('end') == 'turn':
         pickup = pickup_lane(k, lanes, out, last_bar)
         for part in DRUM_PARTS:
             t = k.part_track(part)
             if part in lanes and t in out:
-                out[t] = turnaround(k, part, out[t], last_bar, pickup)
+                out[t] = turnaround(k, part, out[t], last_bar, pickup, ln.get('turn'))
     if 'rise' in ln:
         lane, a, z = ln['rise']
         for t in ([k.part_track(lane)] if lane in DRUM_PARTS else [lane]):
@@ -1317,7 +1417,7 @@ def line_notes(k, ln, ctx, variant):
         for part in DRUM_PARTS:
             t = k.part_track(part)
             if t in out:
-                out[t] = [n for n in out[t] if n.step < last_bar]
+                out[t] = rest_from(k, out[t], last_bar)
     # the rides
     ccs = {}
     for ride in k.rides:
@@ -1338,11 +1438,43 @@ def line_notes(k, ln, ctx, variant):
                 v = mode[1]
             elif mode[0] == 'ramp':
                 v = round(mode[1] + (mode[2] - mode[1]) * i / (LINE * BAR * S16 // CC_STEP - 1))
+            elif mode[0] == 'points':
+                v = ride_point(mode[1], i * CC_STEP / (BAR * S16))
             else:
                 raise ValueError(f'ride mode {mode!r}')
             pts.append((i * CC_STEP, v))
         ccs.setdefault(track, []).extend((t, ride['cc'], v) for t, v in pts)
     return out, ccs
+
+
+def ride_point(points, x):
+    """A 'points' ride's value x bars into its line: (bar, value) breakpoints joined linearly, held before the first
+    and after the last."""
+    if x <= points[0][0]:
+        return points[0][1]
+    for (x0, v0), (x1, v1) in zip(points, points[1:]):
+        if x <= x1:
+            return round(v0 + (v1 - v0) * (x - x0) / (x1 - x0))
+    return points[-1][1]
+
+
+def ride_mode(k, mode):
+    """A line's ride mode, checked, as regions.json records it: 'loop', or a list of integers and strings: ['hold',
+    v], ['ramp', a, b], ['points', [[bar, v], ...]] (whole bars 0-8, ascending; values 0-127)."""
+    if mode == 'loop':
+        return mode
+    kind, *rest = mode
+    if kind == 'points':
+        pts = [list(p) for p in rest[0]]
+        bars_ = [b for b, _ in pts]
+        ok = (pts and all(isinstance(b, int) and isinstance(v, int) and 0 <= b <= LINE and 0 <= v <= 127
+                          for b, v in pts) and bars_ == sorted(set(bars_)))
+        if not ok:
+            raise ValueError(f'{k.kit}: a points ride is ((whole bar 0-8, value 0-127), ...), ascending: {rest[0]!r}')
+        return [kind, pts]
+    if kind not in ('hold', 'ramp') or not all(isinstance(v, int) and 0 <= v <= 127 for v in rest):
+        raise ValueError(f'{k.kit}: ride mode {mode!r}')
+    return [kind, *rest]
 
 
 def track_of_role(role):
@@ -1364,12 +1496,12 @@ def bass_line(k, choice):
 
 def plan(k, variant):
     """The extended mix's sections: dicts of index, name, kind, start bar, bars, region file, notes {track: notes,
-    16ths from the section's start}, ccs {track: [(tick, controller, value)]}, lanes, lines (regions.json's) and cues
-    ({bar, cue})."""
+    16ths from the section's start}, ccs {track: [(tick, controller, value)]}, lanes, lines (regions.json's), said
+    (each line in words, for the README) and cues ({bar, cue})."""
     form = arrangement(k.K, k.P)
     out, at = [], 1
     for i, (name, kind, lines) in enumerate(form, 1):
-        notes, ccs, info, cues = {}, {}, [], []
+        notes, ccs, info, said, cues = {}, {}, [], [], []
         for j, ln in enumerate(lines):
             ctx = Context(kind, j == len(lines) - 1, j == 0, variant)
             got, cc = line_notes(k, ln, ctx, variant)
@@ -1378,7 +1510,8 @@ def plan(k, variant):
                 notes.setdefault(t, []).extend(shifted(v, j * LINE * BAR))
             for t, v in cc.items():
                 ccs.setdefault(t, []).extend((tick + j * LINE * BAR * S16, c, val) for tick, c, val in v)
-            info.append(line_info(k, ln, got, start))
+            info.append(line_info(k, ln, got, start, variant))
+            said.append(describe_line(k, ln, info[-1], got, variant))
             if ln.get('cue') in ('Vox', 'Riser'):
                 cues.append(dict(bar=start, cue=ln['cue']))
             if ln.get('end') == 'fill':
@@ -1394,28 +1527,56 @@ def plan(k, variant):
         lanes = [lane for lane in CH.LANES if any(lane in x['lanes'] for x in info)]
         out.append(dict(index=i, name=name, kind=kind, start_bar=at, bars=bars_,
                         file=f'{i:02d}_{stem(name)}_{bars_}bars.mid', notes=notes, ccs=ccs, lanes=lanes, lines=info,
+                        said=said,
                         cues=sorted(cues, key=lambda c: (c['bar'], c['cue'] != 'Fill' and c['cue'] != 'Riser'))))
         at += bars_
     return out
 
 
-def line_info(k, ln, got, start):
-    """regions.json's entry for a line: where it starts, the lanes with notes in it, and how they play."""
+def own_parts(k, ln, variant):
+    """The line's own parts that play in a variant, keyed on the line naming them, not on their lane having notes (a
+    phrase or an extra on the lane is not the part: FUT01's organ riff on channel 12 is not the lead): 'bass', 'lead'
+    and 'chords' where the line names them and no phrase plays in place of them; 'pad' where it names the pad and the
+    kit has one; 'vox' where its vox mode plays (the vox mix only) and no phrase replaces it; 'throw' where it throws
+    the riff's last note (the vox mix only)."""
+    phrase_on = playing_phrases(k, ln, variant)
+    named = set(ln['lanes'])
+    out = {part for part, track in (('bass', 'Bass'), ('lead', 'Lead'), ('chords', 'Chords'))
+           if part in named and track not in phrase_on}
+    if 'pad' in named and k.P.get('pad'):
+        out.add('pad')
+    if variant == 'vox' and ln.get('vox', 'off') != 'off' and 'Vox' not in phrase_on:
+        out.add('vox')
+    if variant == 'vox' and ln.get('throw') and k.riff():
+        out.add('throw')
+    return out
+
+
+def line_info(k, ln, got, start, variant='vox'):
+    """regions.json's entry for a line: where it starts, the lanes with notes in it, and how the line's own parts play
+    (own_parts(): only where the part plays, not where its lane plays a phrase or an extra): the bassline, the lead's
+    mode, the vox's, a throw, a chord block and the pad's own; then only the phrases that play in the variant."""
     lanes = [lane for lane in CH.LANES if any(got.get(t) for t in got if CH.track_lane(k.kit, t) == lane)]
     info = dict(start_bar=start, bars=LINE, lanes=lanes)
+    phrase_on = playing_phrases(k, ln, variant)
+    parts_ = own_parts(k, ln, variant)
     if 'hats' in lanes:
         mode = ln.get('hats', 'full')
         info['hats'] = '/'.join(mode) if isinstance(mode, tuple) else mode
-    if 'bass' in lanes and 'bass' in ln['lanes']:
+    if 'bass' in parts_:
         info['bass'] = bass_line(k, ln.get('bass', 'main'))
-    if 'lead' in lanes:
+    if 'lead' in parts_:
         info['lead'] = ln.get('lead', 'phrase')
-    if ln.get('vox', 'off') != 'off' and 'vox' in lanes:
+    if 'vox' in parts_:
         info['vox'] = ln['vox']
-    if ln.get('chords') and 'chords' in lanes:
+    if 'throw' in parts_:
+        info['throw'] = 1                       # a flag, as the integer 1: regions.json is integers and strings only
+    if 'chords' in parts_ and ln.get('chords'):
         info['chords'] = ln['chords']
-    if ln.get('phrases'):
-        info['phrases'] = list(ln['phrases'])
+    if 'pad' in parts_ and ln.get('chords') not in (None, 'main') and ln['chords'] in k.P['pad']['blocks']:
+        info['pad'] = ln['chords']             # the pad's own block for the line's chords (else its main one)
+    if phrase_on:
+        info['phrases'] = [name for name in ln['phrases'] if name in {ph['name'] for ph in phrase_on.values()}]
     if ln.get('roll'):
         info['roll'] = ln['roll']['lane']
         info['roll_bars'] = ln['roll']['bars'] + 1
@@ -1424,8 +1585,18 @@ def line_info(k, ln, got, start):
                         'to_pm': round(ln['rise'][2] * 1000)}
     if ln.get('accents'):
         info['accents'] = ln['accents']
+    if ln.get('drums'):
+        info['drums'] = ln['drums']
     if ln.get('end'):
         info['end'] = ln['end']
+    if ln.get('fill') and ln.get('end') == 'fill':
+        info['fill'] = ln['fill']
+    if ln.get('turn') and ln.get('end') == 'turn':
+        info['turn'] = ln['turn']
+    if line_hits(k, ln, variant):
+        info['hits'] = [[int(h.step), h.sound] for h in line_hits(k, ln, variant)]
+    if ln.get('ride'):
+        info['ride'] = {t: ride_mode(k, m) for t, m in ln['ride'].items()}
     return info
 
 
@@ -1476,8 +1647,7 @@ def extended_of(k, variant):
     R = dict(kit=kit, title=K.TITLE, variant=variant, bpm=int(K.BPM), tempo_us=tempo_us(K.BPM), key=K.KEY,
              camelot=K.CAMELOT, swing_pm=round(K.SWING * 1000), ppq=PPQ, bars=total,
              length_ms=round(total * 240_000 / K.BPM), length=length(total, K.BPM), file=whole_name,
-             note_names='C4 = 60, as the sample names', basslines={c: bass_line(k, c) for c in ('main', 'switch',
-                                                                                              'drop2')},
+             note_names='C4 = 60, as the sample names',
              tracks=[dict(track=t, lane=CH.track_lane(kit, t), channel=k.channel(t),
                           notes=track_notes(k, secs, t)) for t in used],
              rides=ride_meta(k),
@@ -1660,8 +1830,10 @@ integer nearest {K.BPM:g} BPM) and the key signature (FF 59: {signature_words(sf
 |---|---|---|
 {file_rows(k, names)}
 
-The extended mix: `{EXTENDED}/vox/` (with the vox synth) and `{EXTENDED}/novox/` (without), each a 224-bar mix in the
-genre's form, one region file per section, `regions.json` and a README.
+The extended mix: `{EXTENDED}/vox/` (with the vox synth) and `{EXTENDED}/novox/` (without), each a \
+{arrangement_bars(arrangement(K, P))}-bar mix in {"the kit's" + chr(10) + 'own form' if P.get('form') else
+                                                  'the' + chr(10) + "genre's form"}, one region file per section, \
+`regions.json` and a README.
 
 ## Drums (channel 10)
 
@@ -1709,35 +1881,90 @@ these files' notes; away from it, and always from MIDI in, they play the multisa
 """
 
 
-def describe_line(k, ln):
-    """What a line plays, in words."""
-    parts = []
-    for lane in ln['lanes']:
+def phrase_words(ph):
+    """A phrase in a sentence: 'Vox choir chords, the velocity picks the vowel' -> 'the vox choir chords'."""
+    name = ph['name'].split(',')[0]
+    return 'the ' + name[:1].lower() + name[1:]
+
+
+def describe_line(k, ln, info, got, variant):
+    """A line in words (`ln` the line, `info` its regions.json entry, `got` its notes by track), lane by lane: the
+    line's own parts on the lane (own_parts(): FUT01's organ riff on channel 12 is not the lead), then the phrases
+    playing on it: '<lane> (<phrase>)' where a phrase plays alone on its lane (FUT03's 'lead (the keys arp)', FUT02's
+    'chords (the laser stab riff)'), '<part> with <phrase>' beside the lane's part; then the line's moves."""
+    parts_ = own_parts(k, ln, variant)
+    on = playing_phrases(k, ln, variant)
+    phrases = {}                                    # lane: the words of the phrases playing on it
+    for track, ph in on.items():
+        phrases.setdefault(CH.track_lane(k.kit, track), []).append(phrase_words(ph))
+    played = {t for t, v in got.items() if v}
+    said = []
+    for lane in info['lanes']:
+        own, phr = [], phrases.get(lane, [])
         if lane == 'hats':
-            parts.append({'thin': 'off-beat hats', 'busy': 'busy hats', '16ths': '16th hats'}.get(ln.get('hats'),
-                                                                                                 'hats'))
-        elif lane == 'bass':
-            parts.append(f"bass ({ln.get('bass', '')})" if ln.get('bass') else 'bass')
-        elif lane == 'lead':
-            parts.append({'call': "the lead's call", 'skeleton': "the lead's skeleton"}.get(ln.get('lead'), 'lead'))
-        elif lane == 'vox':
-            parts.append(f"vox ({ln.get('vox', 'loop')})")
-        elif lane == 'chords' and ln.get('chords'):
-            parts.append(f"chords ({ln['chords']})")
+            whole = {'thin': 'off-beat hats', 'busy': 'busy hats', '16ths': '16th hats'}
+            first, _, second = (info.get('hats') or 'full').partition('/')
+            own = [whole.get(first, 'hats')]
+            if second and second != first:      # a mode per 4-bar block
+                half = {'full': 'full', 'thin': 'off-beat', 'busy': 'busy', '16ths': '16ths'}[second]
+                own[0] += f', {half} in its second half'
         elif lane == 'snare':
-            parts.append(k.snare_name().lower())
+            own = [k.snare_name().lower()]
+        elif lane in ('kick', 'perc'):
+            own = [lane]
+        elif lane == 'bass' and 'bass' in parts_:
+            own = [f"bass ({info['bass']})"]
+        elif lane == 'lead' and 'lead' in parts_:
+            own = [{'call': "the lead's call", 'answer': "the lead's answer",
+                    'skeleton': "the lead's skeleton"}.get(info['lead'], 'lead')]
+        elif lane == 'chords':
+            if 'chords' in parts_:
+                own.append(f"chords ({info['chords']})" if info.get('chords') else 'chords')
+            if 'pad' in parts_:
+                own.append(f"pad ({info['pad']})" if info.get('pad') else 'pad')
+        elif lane == 'vox':                     # a phrase on the vox synth plays in place of the vox mode
+            vox = (f"vox ({info['vox']})" if 'vox' in parts_ else
+                   f"vox ({phrase_words(on['Vox'])})" if 'Vox' in on else None)
+            if 'throw' in parts_:
+                vox = f'{vox}, thrown' if vox else "the vox's last note thrown"
+            own = ([vox] if vox else []) + (['vox chops'] if 'Vox chops' in played and 'Vox chops' not in on else [])
+            phr = [phrase_words(on['Vox chops'])] if 'Vox chops' in on else []
+        elif lane in ('accents', 'fx'):
+            track = track_of_role(lane)
+            own = [lane] if track in played and track not in on else []
+        if own and phr:
+            own[-1] += ' with ' + ' and '.join(phr)
+        elif phr:
+            own = [f"{lane} ({' and '.join(phr)})"]
+        said += own or [lane]
+    words_ = [', '.join(said) or 'nothing']
+    if info.get('drums'):
+        words_.append(f"the drums' {info['drums']} variant")
+    for track, m in info.get('ride', {}).items():
+        if m == 'loop':
+            how = "as the loop's"
+        elif m[0] == 'hold':
+            how = f'held at {m[1]}'
+        elif m[0] == 'ramp':
+            how = f'from {m[1]} to {m[2]}'
         else:
-            parts.append(lane)
-    words_ = [', '.join(parts) or 'nothing']
-    if ln.get('roll'):
-        lane = k.snare_name().lower() if ln['roll'] == 'snare' else ln['roll']
-        words_.append(f"the {lane} rolls over the line's last {ln['roll_bars']} bars up to the fill, rising hit by hit")
-    if ln.get('rise'):
-        r = ln['rise']
+            how = ' then '.join(f'{v} at bar {b}' for b, v in m[1])
+        words_.append(f'the {track} filter ride {how}')
+    if ln.get('phrases_rest') and info.get('end') == 'fill' and on:
+        words_.append('the phrases rest from the fill')
+    if info.get('roll'):
+        lane, bars_ = k.snare_name().lower() if info['roll'] == 'snare' else info['roll'], info['roll_bars']
+        words_.append(f"the {lane} rolls over the line's last {bars_} bars up to the fill, rising hit by hit")
+    if info.get('rise'):
+        r = info['rise']
         words_.append(f"the {r['lane']} rise from {r['from_pm'] / 10:g}% to {r['to_pm'] / 10:g}% velocity")
-    if ln.get('end'):
+    if info.get('end'):
         words_.append({'fill': 'the fill in its last bar', 'turn': 'a turnaround in its last bar',
-                       'drop': 'the drums out in its last bar'}[ln['end']])
+                       'drop': 'the drums out in its last bar'}[info['end']])
+    if info.get('fill'):
+        words_[-1] = f"the fill ({words(info['fill'])}) in its last bar, the drums out from its start"
+    if info.get('turn'):
+        words_[-1] = f"a turnaround ({info['turn']}) in its last bar"
     return '; '.join(words_)
 
 
@@ -1750,8 +1977,8 @@ def extended_text(k, variant, secs, R):
         rows.append(f"| {s['start_bar']}-{last} | {s['name']} | {s['kind']} | `{s['file']}` | "
                     f"{', '.join(s['lanes'])} |")
         detail.append(f"**{s['index']}. {s['name']}** (bars {s['start_bar']}-{last})")
-        for ln in s['lines']:
-            detail.append(f"- {ln['start_bar']}-{ln['start_bar'] + LINE - 1}: {describe_line(k, ln)}")
+        for ln, said in zip(s['lines'], s['said']):
+            detail.append(f"- {ln['start_bar']}-{ln['start_bar'] + LINE - 1}: {said}")
         detail.append('')
     cue_rows = '\n'.join(f"- bar {c['bar']}: {c['cue']}" for s in secs for c in s['cues'])
     tracks = '\n'.join(f"| {t['track']} | {t['channel']} | {t['lane']} | "
