@@ -215,10 +215,11 @@ namespace wubansia::engine
                 p.cycle16ths = e.cycle16ths;
                 p.tolerancePm = e.tolerancePm;
                 p.fadeUs = e.fadeUs;
+                p.fadeInUs = e.fadeInUs;
                 p.firstSlice = static_cast<std::uint16_t> (kit.slices.size());
                 p.sliceCount = static_cast<std::uint16_t> (e.slices.size());
-                // The voice reads a slice in its stem, the last one modulo the stem's length: every slice ends inside
-                // the shorter stem, but the last may wrap once, to slice 0's start (docs/plugin/manifest.md 2.6).
+                // The voice reads a slice modulo its stem's length: it starts inside the shorter stem and is at most
+                // that long, so it wraps at most once (docs/plugin/manifest.md 2.6).
                 auto frames = m.files[static_cast<std::size_t> (e.stemA)].frames;
                 if (e.stemB >= 0)
                     frames = std::min (frames, m.files[static_cast<std::size_t> (e.stemB)].frames);
@@ -227,11 +228,10 @@ namespace wubansia::engine
                     const auto& s = e.slices[si];
                     if (s.holdCount < 0 || s.holdCount > kMaxHolds || s.key < 0 || s.key > 127)
                         return refuse (where + "." + at ("slices", si) + ".holds: more than " + std::to_string (kMaxHolds) + " holds, or a key out of 0-127");
-                    const auto limit = si + 1 == e.slices.size() ? frames + e.slices.front().start : frames;
-                    if (s.start < 0 || s.start >= frames || s.end <= s.start || s.end > limit || s.fade < s.start || s.fade > s.end)
+                    if (s.start < 0 || s.start >= frames || s.end <= s.start || s.end > s.start + frames || s.fade < s.start || s.fade > s.end)
                         return refuse (where + "." + at ("slices", si) + ": frames " + std::to_string (s.start) + " to " + std::to_string (s.end) + " (fade "
-                                       + std::to_string (s.fade) + ") don't fit its " + std::to_string (frames) + "-frame stem"
-                                       + (si + 1 == e.slices.size() ? ", wrapping at most to slice 0's start" : ""));
+                                       + std::to_string (s.fade) + ") don't fit its " + std::to_string (frames)
+                                       + "-frame stem: a slice starts inside it and is at most that long");
                     PhraseSlice slice; // holds past holdCount stay 0
                     slice.step = s.step;
                     slice.key = static_cast<std::uint8_t> (s.key);
