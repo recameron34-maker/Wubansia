@@ -522,8 +522,9 @@ class TestExtendedMix(unittest.TestCase):
                         self.assertRegex(s['file'], rf'^{i:02d}_[A-Z][A-Za-z0-9]*_{s["bars"]}bars\.mid$')
 
     def test_regions_json_is_integers_and_strings_only(self):
-        """core's strict reader takes integers (no fraction, no exponent, no -0, no leading zeros), strings, booleans,
-        null, arrays and objects with no key twice."""
+        """Integers (no fraction, no exponent, no -0, no leading zeros), strings, arrays and objects with no key twice:
+        what core's strict reader takes, less its booleans and null (the content JSON's rule: a flag is the integer
+        1)."""
         def no_float(text):
             raise AssertionError(f'a float in regions.json: {text}')
 
@@ -535,7 +536,9 @@ class TestExtendedMix(unittest.TestCase):
             for v in VARIANTS:
                 text = ext(kit, v)[0]['regions.json'].decode()
                 R = json.loads(text, parse_float=no_float, parse_constant=no_float, object_pairs_hook=pairs)
-                self.assertIsNone(re.search(r'(?<![\w.])-0(?![\d])|(?<![\w.])0\d', re.sub(r'"[^"]*"', '', text)))
+                bare = re.sub(r'"[^"]*"', '', text)
+                self.assertIsNone(re.search(r'(?<![\w.])-0(?![\d])|(?<![\w.])0\d', bare))
+                self.assertIsNone(re.search(r'true|false|null', bare))
                 K = kits.load(kit)
                 with self.subTest(kit=kit, variant=v):
                     self.assertEqual((int(K.BPM), round(K.SWING * 1000), 960, v), (R['bpm'], R['swing_pm'], R['ppq'],
@@ -1159,7 +1162,7 @@ class TestLineRules(unittest.TestCase):
 
     def test_the_pad_and_a_thrown_vox_note_are_named(self):
         """The pad is named as the pad, not as the chords whose lane it plays on (FUT03's Pad Warm), and regions.json
-        records the chord block it plays where that is its own ('pad'); a thrown vox note is recorded (throw: true) and
+        records the chord block it plays where that is its own ('pad'); a thrown vox note is recorded (throw: 1) and
         reads "the vox's last note thrown" on a line with no vox mode (FUT04's groove throws its D4 into the break),
         "vox (call), thrown" beside one, and neither in the no-vox mix."""
         k = Mi.kit_of('FUT03')
@@ -1175,8 +1178,9 @@ class TestLineRules(unittest.TestCase):
                  Mi.line(DRUMS_RUMBLE_BASS, vox='call'), Mi.line(Mi.GROOVE))
         R, _, text = self.mix('FUT04', lines, 'vox')
         info = R['sections'][0]['lines']
-        self.assertEqual([(True, None), (True, 'call'), (None, 'call')],
+        self.assertEqual([(1, None), (1, 'call'), (None, 'call')],
                          [(info[line].get('throw'), info[line].get('vox')) for line in range(3)])
+        self.assertEqual({int}, {type(info[line]['throw']) for line in range(2)})      # 1, not true
         self.assertIn("the vox's last note thrown", self.said(text, 0))
         self.assertNotIn('vox (', self.said(text, 0))
         self.assertIn('vox (call), thrown', self.said(text, 1))
