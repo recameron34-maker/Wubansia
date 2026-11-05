@@ -134,8 +134,9 @@ namespace wubansia::engine
 
     // Mono legato glide: a new note while one is held moves the held voice to its pitch instead of
     // starting a voice, keeping the first note's zone and layer. A dip is a legato note whose next legato
-    // note returns to the pitch before it (FUT01's 30 ms pitch dip): it glides over dipUs. Every other
-    // legato note is a slide, over us.
+    // note returns to the pitch before it (FUT01's 30 ms pitch dip): the dip and that returning note
+    // glide over dipUs (the timeline marks both with NoteFlag::dip). Every other legato note is a slide,
+    // over us.
     struct Glide
     {
         GlideCurve curve = GlideCurve::none;
