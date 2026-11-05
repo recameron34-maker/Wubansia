@@ -23,6 +23,23 @@ Loads · sync and loop wrap · tempo 128/134/140 · robot phrases on the grid at
 
 \*Condition: L = legacy generator, N = new generator, N0 = new generator with feel off.
 
+### Template: v0.1, the plugin
+
+v0.1 has no listening round. The fidelity report stands in for one: `python3 tools/sound/compare_render.py --groovecore build/release/cli/groovecore` measures every kit's renders against the approved round 5 loops and writes `build/v0.1-fidelity/report.md`. This entry records those numbers at the build you get, and what you find when you play it in your DAW.
+
+```markdown
+## 2026-11-xx · v0.1 · build <sha> · Listener … · DAW … (version, VST3/AU/CLAP) · Mac … (chip, macOS) · Monitoring … · Mono check y/n
+### A. Fidelity (measured at <sha>, before anyone listens)
+| Kit | Club loop: LUFS-I / short-term / worst 1/3 oct / true peak / kick crest | Wet loop (same) | Dry A / Dry B | Phrase lanes, worst null (pass 1 / 2) | Sampled lanes, worst band | Song sections over the ceiling | Gaps, explained |
+Gates: ±0.3 LU, ±0.5 LU, ±0.75 dB, ±0.5 dB, ±0.5 dB; phrase lanes ≤ −40 dB; sampled lanes ±1 dB per 1/3 octave; sections ≤ −0.9 dBTP.
+Look-back master against master.py's exact one, per kit: LUFS-I …, true peak … · CPU at 48 kHz / 128 samples, 64 voices, every effect: … % of one core (macos-15 runner; gate 15 %) · your Mac: …
+### B. In your DAW (the checklist; not a listening test)
+Loads in VST3 / AU / CLAP · content found (status ready) · Loop in sync from bar 1, wraps without a click · Song from any bar (chased) · the kit's tempo, ±1 %, ±5 % (phrase lanes tagged recorded or multisample) · vox/no-vox and A/B mid-bar · lane levels and mutes · Space, Echo, Pump, Club · automation both ways · save/reopen identical · offline bounce right after opening · drag MIDI (Loop, Song, a lane) into a track · CPU meter · editor open/close ×10
+### C. What you said
+Your words, per kit: keep, or fix (what, where).
+### D. Action
+```
+
 ## 2026-10-29 · FUT01 · round 0 · Listener: you · Monitoring: not reported · DAW: not reported · Level: not reported · Mono check: not reported
 
 Prototype sounds (17). Not blind: the sounds were named. No per-sound ratings.
