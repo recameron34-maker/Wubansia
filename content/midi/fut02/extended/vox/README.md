@@ -47,7 +47,7 @@ Line by line (bars of the whole mix):
 
 **4. Build** (bars 81-96)
 - 81-88: kick, clap, off-beat hats, bass (Orbit), chords; a turnaround in its last bar
-- 89-96: clap, off-beat hats, chords, fx; the snare rolls over its last 8 bars up to the fill, rising hit by hit; the fill in its last bar
+- 89-96: clap, off-beat hats, chords, fx; the clap rolls over the line's last 8 bars up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 97-128)
 - 97-104: kick, clap, hats, perc, bass (Orbit), lead, chords, vox (loop), accents, fx; a turnaround in its last bar
