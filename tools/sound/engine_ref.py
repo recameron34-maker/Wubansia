@@ -604,10 +604,11 @@ def wet_file(kit, premaster, item_report, mix):
 
 def gates(kit, variant, master='exact', passes=3):
     """engine_ref against the kit's committed Wet and Club loops on the second pass: {'wet': compare(), 'club':
-    compare(), 'lookback': the look-back master's difference from the exact one}."""
-    L, _ = __import__('tools.sound.plugin_mix', fromlist=['loop_info']).loop_info(kit)
-    wet_item, club_item = items(kit, variant)
+    compare(), 'latency': the render's latencies}. The references are round 5's FLAC masters, sample for sample the
+    committed WAVs."""
     from tools.sound import plugin_mix as PM
+    L, _ = PM.loop_info(kit)
+    wet_item, club_item = items(kit, variant)
     mix = PM.load(kit)
     out, meta = render(kit, variant, passes=passes, master=master, mix=mix)
     kicks = full_kicks(kit)

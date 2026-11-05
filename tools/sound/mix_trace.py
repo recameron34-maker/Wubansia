@@ -409,9 +409,10 @@ COMMON = (
     Rule('master.dc_clean', 'dropped', "the second DC clean, after the limiter: live, a filter there moves the peaks "
                                        "over the ceiling, and the blocker before the limiter takes the ripple",
          under='master._chain', when=nth(1)),
-    Rule('master.limit', 'causal', 'master.limiter: its 60 ms hold looks back, reaching forward only over the '
-                                   "true peak's FIR (rt_ref.limit_db, latency 289 against 3145); the two-sided hold "
-                                   'stays for renders', under='master._chain'),
+    Rule('master.limit', 'causal', "master.limiter: its 60 ms hold looks back over the two-sided window's length "
+                                   "(120 ms), reaching forward only over the true peak's FIR (rt_ref.limit_db, "
+                                   'latency 289 against 3145); the two-sided hold stays for renders',
+         under='master._chain'),
     Rule('mixmeter.true_peak_db', 'dropped', "the trim's reading", under='master._chain'),
     Rule('mixmeter.(true_peak_db|lufs_i)', 'fixed', "the drive solve's readings (the drive is exported)",
          under='master.master'),
