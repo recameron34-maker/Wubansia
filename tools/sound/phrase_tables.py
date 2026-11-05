@@ -17,6 +17,11 @@ match the notes the MIDI plays, cycle by cycle, and the phrase voice (engine/sam
 - holds: the notes after the slice's own that it plays itself, by key, in order: retriggers of its key (FUT04's
   ratchets, which MIDI v2 retriggers) and the targets its note glides to inside it (FUT03's in-note glides, which MIDI
   v2 writes as legato notes). They make no sound of their own.
+- ride: a stem with a filter ride baked in (FUT04's Acid Line 1 Ride) carries the CC74 and CC71 values it was rendered
+  with, one per 60 ticks over its cycle, as the MIDI files write them; a stem rendered at rest where the channel's
+  controllers would move the filter (FUT04's other acid stems) carries its rest values (0). A cycle matches such a
+  phrase only where its own CC values equal these within 1: an arranged ride plays the multisample through the
+  channel's live filter instead. Empty: the stem follows no controller (a live filter on its mix channel rides it).
 
 play() and resolve() are the Python model of the engine's phrase voice and matcher, the reference its tests (P6) and
 the fidelity checks (P12) use.
@@ -24,6 +29,7 @@ the fidelity checks (P12) use.
     python3 tools/sound/phrase_tables.py --kit FUT02 --render-stems content/samples     # the derived stems
 """
 import argparse
+import bisect
 import functools
 import hashlib
 import math
@@ -48,6 +54,8 @@ FADE_US = 5000                # a slice with no follower fades over this, unless
 XFADE_US = 3000               # the phrase voice's crossfade into a slice that doesn't continue the one before
 MAX_LEAD = 48000              # docs/plugin/manifest.md: a slice's lead, at most 1 s
 PPQ, TICKS_16 = 960, 240      # the MIDI files' grid
+RIDE_TICKS = 60               # a ride's grid: midi.CC_STEP, one controller value per 60 ticks while it moves
+RIDE_SLACK = 1                # a cycle's controller values match a stem's ride within this
 
 
 def cycle_frames(K, cycle):
@@ -82,6 +90,8 @@ class Spec:
     gain_mdb: int = 0         # the stem's own gain: a derived stem stored under the lane's level gets it back
     derived: bool = False     # a stem rendered for the plugin (Stems/), not a Loops/ file
     frames: int = 0           # a derived stem's length (a Loops/ stem is its cycle long)
+    looped: bool = True       # the stem is a loop of its cycle (its tail wraps round to its start)
+    ride: tuple = None        # ((CC74 values), (CC71 values)) the stem was rendered with, one per 60 ticks; None: none
 
     def pre_of(self, step):
         return self.pre.get(step, 0) if isinstance(self.pre, dict) else self.pre
@@ -115,7 +125,7 @@ def _fut02():
         Spec('FUT02', 'vox', 'vox', 5, ('Stems/Context Vox Riff.wav', None), '', 64,
              tuple((s + C5.RIFF_AT, n, ()) for s, n, _, _ in Vs.RIFF), int(0.05 * SR), 'vox',
              'tools.sound.recipes.fut02.voxsynth.sung_parts', gain_mdb=-1000 * STEM_GAIN_DB['FUT02'], derived=True,
-             frames=C5.L),
+             frames=C5.L, looped=False),
     )
 
 
@@ -131,7 +141,7 @@ def _fut03():
         Spec('FUT03', 'vox', 'vox', 5, ('Stems/Context Vox Riff.wav', None), '', 64,
              tuple((s + C5.VOX_AT, m, ()) for s, m, _, _ in VS.VOX_RIFF), int(np.floor(VS.LEAD * SR + 0.5)), 'vox',
              'tools.sound.recipes.fut03.voxsynth.riff_tail', gain_mdb=-1000 * STEM_GAIN_DB['FUT03'], derived=True,
-             frames=C5.G.at(C5.VOX_AT) + _riff_tail_frames()),
+             frames=C5.G.at(C5.VOX_AT) + _riff_tail_frames(), looped=False),
     )
 
 
@@ -144,22 +154,38 @@ def _riff_tail_frames():
 
 
 def _fut04():
-    from tools.sound.recipes.fut04 import bass as B, lead as Ld
-    line = B.LINE_BY_NAME[B.PICK]
-    ev = sorted([(s, n) for s, n, *_ in line.notes] + [(s, n) for s, n, *_ in line.ticks])
-    ride = B.RIDE_PASSES * B.LOOP_STEPS
-    return (
-        Spec('FUT04', 'acid', 'bass', 1, (loops_path(f'{B.PICK}RideClean'), loops_path(f'{B.PICK}RideWarm')), 'bass',
-             ride, tuple((s + B.LOOP_STEPS * p, n, ()) for p in range(B.RIDE_PASSES) for s, n in ev), 0, 'bass_stem',
-             'tools.sound.recipes.fut04.bass.play_line', kicks=tuple(range(0, ride, 4))),
+    from tools.sound.kits import fut04 as K
+    from tools.sound.recipes.fut04 import bass as B, lead as Ld, midi as Md
+    cyc = B.RIDE_PASSES * B.LOOP_STEPS          # the ride's 4 bars: every acid phrase on channel 1 is one cycle long
+
+    def notes(name):
+        line = B.LINE_BY_NAME[name]
+        ev = sorted([(s, n) for s, n, *_ in line.notes] + [(s, n) for s, n, *_ in line.ticks])
+        return tuple((s + B.LOOP_STEPS * p, n, ()) for p in range(B.RIDE_PASSES) for s, n in ev)
+
+    rest = ((0,) * (cyc * 4), (0,) * (cyc * 4))   # midi.acid_rides: 0 and 0 at rest, where the samples play as they are
+    acid = dict(kicks=tuple(range(0, cyc, 4)), why='tools.sound.recipes.fut04.bass.play_line')
+    lines = (Spec('FUT04', 'acid', 'bass', 1, (loops_path(f'{B.PICK}RideClean'), loops_path(f'{B.PICK}RideWarm')),
+                  'bass', cyc, notes(B.PICK), 0, 'bass_stem', ride=tuple(map(tuple, Md.RIDES[B.PICK])), **acid),)
+    for i, ln in enumerate(B.LINES, 1):         # each line at rest, its 2-bar Loops/ file twice (Stems/)
+        lines += (Spec('FUT04', f'line{i}', 'bass', 1, tuple(f'Stems/{_words(ln.name)} {c} 4 Bars.wav'
+                                                             for c in ('Clean', 'Warm')),
+                       'bass', cyc, notes(ln.name), 0, 'bass_stem', ride=rest, derived=True,
+                       frames=cycle_frames(K, cyc), **acid),)
+    return lines + (
         Spec('FUT04', 'blip', 'lead', 2, (loops_path('ModBlipPhrase'), None), '', Ld.PHRASE_STEPS,
              tuple((s, n, (n,) * (r - 1)) for s, n, _, _, r in Ld.PHRASE), 0, 'lead',
              'tools.sound.recipes.fut04.lead.blip_phrase'),
     )
 
 
-STEM_GAIN_DB = {'FUT02': -3, 'FUT03': 0}   # each derived stem's level under its lane, whole dB: true peak <= -1 dBTP
-DERIVED = {'FUT02': ('Stems/Context Vox Riff.wav',), 'FUT03': ('Stems/Context Vox Riff.wav',)}
+def _words(name):
+    return ' '.join(listen.note(w) for w in listen.WORD.findall(name))
+
+
+STEM_GAIN_DB = {'FUT02': -3, 'FUT03': 0}   # each derived vox stem's level under its lane, whole dB: true peak <= -1
+DERIVED = {'FUT02': ('Stems/Context Vox Riff.wav',), 'FUT03': ('Stems/Context Vox Riff.wav',),
+           'FUT04': tuple(f'Stems/Acid Line {n} {c} 4 Bars.wav' for n in (1, 2) for c in ('Clean', 'Warm'))}
 _SPECS = {'FUT01': _fut01, 'FUT02': _fut02, 'FUT03': _fut03, 'FUT04': _fut04}
 
 
@@ -181,7 +207,7 @@ def slices(spec, frames):
         b = on[i] - spec.pre_of(s)
         ks = [k for k in kick if (on[i - 1] if i else -1) < k <= b]
         starts.append(ks[-1] if ks else b)
-    if not spec.derived:
+    if spec.looped:
         starts[0] = 0         # a looped stem: the first slice holds the tail wrapped round from the stem's end
     ends = starts[1:] + [frames]
     fade = spec.fade_us * SR // 1_000_000
@@ -198,20 +224,52 @@ def slices(spec, frames):
 def table(spec, index, frames):
     """The phrase as kit.json holds it. index: {stem path: file index}; frames: {stem path: frames}."""
     stems = [p for p in spec.stems if p]
+    cc74, cc71 = spec.ride or ((), ())
+    if spec.ride and not len(cc74) == len(cc71) == spec.cycle * TICKS_16 // RIDE_TICKS:
+        raise ValueError(f'{spec.kit} {spec.line}: a ride is one value per {RIDE_TICKS} ticks over the cycle')
     return {'lane': spec.lane, 'ch': spec.ch, 'ab': spec.ab, 'mix_channel': spec.mix_channel,
             'gain_mdb': spec.gain_mdb,
             'stems': {'a': index[spec.stems[0]], 'b': index[spec.stems[1]] if spec.stems[1] else -1},
             'cycle_16ths': spec.cycle, 'tolerance_pm': TOLERANCE_PM, 'fade_us': spec.fade_us,
+            'ride': {'cc74': list(cc74), 'cc71': list(cc71)},
             'slices': slices(spec, min(frames[p] for p in stems))}
 
 
 # ------------------------------------------------------------------ the matcher and the voice, as models
-def resolve(K, notes, tables):
+def ride_values(ccs, start, n):
+    """A controller's values on the ride grid: n values from tick `start`, every RIDE_TICKS, each the last value at or
+    before its tick (0 before the first). ccs: [(tick, value)], by tick."""
+    ticks = [t for t, _ in ccs]
+    out = []
+    for i in range(n):
+        j = bisect.bisect_right(ticks, start + i * RIDE_TICKS) - 1
+        out.append(ccs[j][1] if j >= 0 else 0)
+    return out
+
+
+def rides_match(t, ccs, c):
+    """Whether cycle c's controllers (ccs: {74: [(tick, value)], 71: [...]}, or None to ignore them) fit table t's
+    ride: an empty ride fits any; otherwise each value within RIDE_SLACK."""
+    if ccs is None:
+        return True
+    cyc = t['cycle_16ths']
+    for cc in (74, 71):
+        want = t['ride'][f'cc{cc}']
+        if want:
+            got = ride_values(ccs.get(cc, []), c * cyc * TICKS_16, len(want))
+            if any(abs(a - b) > RIDE_SLACK for a, b in zip(got, want)):
+                return False
+    return True
+
+
+def resolve(K, notes, tables, ccs=None):
     """The matcher (engine/sched/phrase_match), as a model. notes: [(16th, key)] on one channel, the 16th a number
-    whose fraction places a note inside its 16th (tick_16th). Cycle by cycle, from 16th 0, the table with the most
-    (16th in the cycle, key) matches wins. Its matched notes get their slice; after one, the notes its slice holds
-    (by key, in order, each on a cell that is the slice's own or no slice's) are the slice's; every other note stays
-    on the multisample. Returns ([(16th, table, slice)], [unmatched (16th, key)])."""
+    whose fraction places a note inside its 16th (tick_16th); ccs: the channel's controllers, {74: [(tick, value)],
+    71: [...]} (None: ignore them). Cycle by cycle, from 16th 0, among the tables whose ride fits the cycle's
+    controllers (rides_match), the one with the most (16th in the cycle, key) matches wins. Its matched notes get their
+    slice; after one, the notes its slice holds (by key, in order, each on a cell that is the slice's own or no
+    slice's) are the slice's; every other note stays on the multisample. Returns ([(16th, table, slice)], [unmatched
+    (16th, key)])."""
     cycles = {t['cycle_16ths'] for t in tables}
     if len(cycles) > 1:
         raise ValueError(f'one channel, one cycle length: {sorted(cycles)}')
@@ -225,15 +283,16 @@ def resolve(K, notes, tables):
         by_cycle.setdefault(math.floor(pos) // cyc, []).append((pos, key))
     for c, ns in sorted(by_cycle.items()):
         cells = [(math.floor(p) - c * cyc, k) for p, k in ns]
-        score = [len(set(cells) & set(pat)) for pat in pattern]
+        score = [len(set(cells) & set(pat)) if rides_match(t, ccs, c) else -1
+                 for t, pat in zip(tables, pattern)]
         best = max(range(len(tables)), key=lambda i: (score[i], -i))
         pat, sl = pattern[best], tables[best]['slices']
         used, pending, own = set(), [], None
         for (pos, key), cell in zip(ns, cells):
-            if score[best] and pending and key == pending[0] and (cell == own or cell not in pat):
+            if score[best] > 0 and pending and key == pending[0] and (cell == own or cell not in pat):
                 pending.pop(0)
                 continue
-            j = pat.get(cell) if score[best] else None
+            j = pat.get(cell) if score[best] > 0 else None
             if j is None or cell in used:
                 unmatched.append((pos, key))
                 continue
@@ -299,7 +358,21 @@ def _vlq(d, j):
 
 
 def smf_notes(data):
-    """A Standard MIDI File's note-ons: [(tick, channel 1-16, key, velocity)], in tick order (track by track)."""
+    """A Standard MIDI File's note-ons: [(tick, channel 1-16, key, velocity)], in tick order."""
+    return [e[1:] for e in smf_events(data) if e[0] == 'note']
+
+
+def smf_ccs(data):
+    """A Standard MIDI File's controllers: {channel: {controller: [(tick, value)]}}, by tick."""
+    out = {}
+    for _, t, ch, cc, v in (e for e in smf_events(data) if e[0] == 'cc'):
+        out.setdefault(ch, {}).setdefault(cc, []).append((t, v))
+    return out
+
+
+def smf_events(data):
+    """A Standard MIDI File's note-ons and controllers: [('note' or 'cc', tick, channel 1-16, key or controller,
+    velocity or value)], in tick order (track by track, stably)."""
     if data[:4] != b'MThd':
         raise ValueError('not a Standard MIDI File')
     _, _, ntrk, ppq = struct.unpack('>IHHH', data[4:14])
@@ -328,9 +401,11 @@ def smf_notes(data):
             kind, ch = status & 0xF0, (status & 0x0F) + 1
             size = 1 if kind in (0xC0, 0xD0) else 2
             if kind == 0x90 and d[j + 1] > 0:
-                out.append((t, ch, d[j], d[j + 1]))
+                out.append(('note', t, ch, d[j], d[j + 1]))
+            elif kind == 0xB0:
+                out.append(('cc', t, ch, d[j], d[j + 1]))
             j += size
-    return sorted(out, key=lambda e: e[0])
+    return sorted(out, key=lambda e: e[1])
 
 
 def step_tick(K, step):
@@ -351,6 +426,11 @@ def tick_16th(K, tick):
     return s + (tick - start(s)) / (start(s + 1) - start(s))
 
 
+def file_ccs(path):
+    """{channel: {controller: [(tick, value)]}}: a MIDI file's controllers."""
+    return smf_ccs(Path(path).read_bytes())
+
+
 def file_notes(K, path):
     """{channel: [(16th, key)]}: a MIDI file's notes as 16th positions (tick_16th)."""
     out = {}
@@ -361,8 +441,9 @@ def file_notes(K, path):
 
 # ------------------------------------------------------------------ the derived stems
 def render_derived(kit):
-    """The kit's derived stems, rendered from their recipes: {path: (n, 2) float audio at the stem's level}. Each is
-    the loop's lane before its inserts, cycle-aligned (frame 0 is the cycle's 16th 0), at STEM_GAIN_DB."""
+    """The kit's derived stems, rendered from their recipes: {path: (n, 2) float audio at the stem's level}, each
+    cycle-aligned (frame 0 is the cycle's 16th 0): FUT02's and FUT03's vox, the loop's lane before its inserts at
+    STEM_GAIN_DB; FUT04's acid lines at rest, each 2-bar line as render.py writes it (phrase.kit_files), twice."""
     out = {}
     if kit == 'FUT02':
         from tools.sound.kits import fut02 as K
@@ -378,6 +459,12 @@ def render_derived(kit):
         y = np.zeros((at + len(tail), 2))
         y[at:] = tail                                       # unwrapped: its echoes run 2 bars past the cycle
         out[DERIVED[kit][0]] = y * D.undb(STEM_GAIN_DB[kit])
+    elif kit == 'FUT04':
+        from tools.sound.kits import fut04 as K
+        for path in DERIVED[kit]:                           # each acid line at rest, its 2-bar Loops/ file twice
+            n, char = path.split('Acid Line ')[1].split(' ')[:2]
+            x = Ph.kit_files(K, f'AcidLine{n}{char}')[1][(None, 1, 1)].audio
+            out[path] = np.concatenate([x, x])
     return out
 
 
@@ -391,7 +478,10 @@ def write_derived(kit, root):
         dest.parent.mkdir(parents=True, exist_ok=True)
         if np.max(np.abs(audio)) >= 1.0:
             raise ValueError(f'{kit} {path} clips at 24 bits: lower STEM_GAIN_DB')
-        sf.write(dest, np.asarray(audio, dtype=float), SR, subtype='PCM_24', format='WAV')
+        audio = np.asarray(audio, dtype=float)
+        if audio.ndim == 2 and np.array_equal(audio[:, 0], audio[:, 1]):
+            audio = audio[:, 0]                             # mono where L = R, as render.py stores its masters
+        sf.write(dest, audio, SR, subtype='PCM_24', format='WAV')
         out[path] = hashlib.sha256(dest.read_bytes()).hexdigest()
     return out
 
