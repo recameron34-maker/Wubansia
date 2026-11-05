@@ -282,10 +282,13 @@ namespace wubansia::engine
     {
         std::int32_t step = 0; // the 16th in the cycle where its note starts
         std::uint8_t key = 0;
-        std::int64_t start = 0; // the onset (phrase.Grid.at (step)) less lead
-        std::int64_t end = 0; // exclusive. A looped stem's last slice may end past the stem's frames, up to
-                              // frames + slice 0's start: it wraps, read modulo the stem's length
-        std::int64_t fade = 0; // where it fades out when no slice follows it (past frames too, when it wraps)
+        // The onset (phrase.Grid.at (step)) less lead; in a looped stem, modulo the stem's frames (a slice 0
+        // whose pre-roll falls before its cycle starts at frames + onset - lead and wraps).
+        std::int64_t start = 0;
+        // Exclusive. In a looped stem, read modulo its frames, the end may run past the stem's frames, up
+        // to start + frames; the last slice ends where the next cycle's slice 0 starts.
+        std::int64_t end = 0;
+        std::int64_t fade = 0; // where it fades out when no slice follows it; up to start + frames too
         std::int32_t lead = 0; // frames of pre-roll before the onset
         std::array<std::uint8_t, kMaxHolds> holds {}; // keys, in order; entries from holdCount on are 0
         std::uint8_t holdCount = 0;

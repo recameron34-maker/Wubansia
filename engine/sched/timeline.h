@@ -46,8 +46,11 @@ namespace wubansia::engine
     // A note is one of three kinds, by (phrase, slice):
     // - phrase < 0: an ordinary note.
     // - phrase >= 0 and slice >= 0: a slice note. It plays its slice (slice is the global Kit::slices
-    //   index) only while phrase `phrase` plays slices. It has no note-off. It is placed from its slice's
-    //   start frame, and never sits before its cycle's start.
+    //   index) only while phrase `phrase` plays slices. It has no note-off. It is placed at its slice's
+    //   start frame on the stem's own timeline. A slice whose start precedes its cycle (a wrapping slice 0,
+    //   FUT02's riff twice) is placed in the previous cycle: in a loop its pos wraps to the loop's end and
+    //   its preroll stays unwrapped, so pos + preroll is still its onset. At a song's start the part before
+    //   bar 1 is dropped.
     // - phrase >= 0 and slice < 0: a matched note's multisample twin, or a note a slice holds
     //   (NoteFlag::held). It plays the multisample only while phrase `phrase` doesn't play slices.
     // Whether a phrase plays slices is decided once per phrase per onset cycle.
