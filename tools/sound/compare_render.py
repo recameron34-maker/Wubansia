@@ -895,6 +895,12 @@ def report_md(checks, kits):
     return '\n'.join(lines) + '\n'
 
 
+def read_report(folder):
+    """The checks a report.json holds, as Checks (for --rewrite: a report again after KNOWN changes)."""
+    rows = json.loads((Path(folder) / 'report.json').read_text())
+    return [Check(r['kit'], r['group'], r['name'], r['values'], r['ok'], r['note']) for r in rows]
+
+
 def write_report(checks, kits, out):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
@@ -915,9 +921,16 @@ def main(argv=None):
                     help="which Song renders to make: all (both variants, bass A and B), some (vox with B, no-vox with A), none")
     ap.add_argument('--out', default='build/v0.1-fidelity')
     ap.add_argument('--only', action='append', choices=GROUPS)
+    ap.add_argument('--rewrite', action='store_true', help="write the report again from <out>/report.json (after KNOWN changes)")
     a = ap.parse_args(argv)
     root = Path(__file__).resolve().parents[2]
     kits = a.kit or list(KITS)
+    if a.rewrite:
+        checks = [c for c in read_report(a.out) if c.kit in kits]
+        path = write_report(checks, kits, a.out)
+        failed = mark_known(checks)
+        print(f'{len(failed)} failing of {sum(c.ok is not None for c in checks)} gated checks: {path}')
+        return 1 if failed else 0
     from tools.sound import engine_ref as E
     missing = [k for k in kits if E.r5_dir(k) is None]
     if missing:

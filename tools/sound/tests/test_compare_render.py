@@ -308,6 +308,10 @@ class Files(unittest.TestCase):
             data = json.loads((Path(d) / 'report.json').read_text())
             self.assertEqual(3, len(data))
             self.assertEqual([1000.0, 0.3], data[0]['values']['bands'])
+            again = C.read_report(d)                                  # --rewrite: the same report from its JSON
+            self.assertEqual([(c.kit, c.group, c.name, c.ok, c.note) for c in checks],
+                             [(c.kit, c.group, c.name, c.ok, c.note) for c in again])
+            self.assertEqual(text, C.report_md(again, ['FUT09']))
 
 
 @unittest.skipUnless(os.environ.get('WUBANSIA_RENDERS'), 'set WUBANSIA_RENDERS to a folder of groovecore renders')
