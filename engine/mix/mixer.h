@@ -15,6 +15,7 @@
 #include "mix/mix_config.h"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -86,6 +87,14 @@ namespace wubansia::engine
         std::size_t stride = 0;
     };
 
+    // What the editor's meters show, from the last process (): each lane's post-fader peak (linear), and
+    // the club master's total gain reduction in dB (>= 0).
+    struct MixMeters
+    {
+        std::array<float, kLanes> lanePeak {};
+        float gainReduction = 0.0f;
+    };
+
     class Mixer
     {
     public:
@@ -116,6 +125,9 @@ namespace wubansia::engine
 
         int latencySamples() const noexcept; // constant after prepare (), whatever the config
         double tailSeconds() const noexcept;
+
+        // The meters of the last process () (zeros from the pass-through mixer).
+        const MixMeters& meters() const noexcept;
 
     private:
         struct Impl; // the mixer's own: mixer_passthrough.cpp's, then P8's
