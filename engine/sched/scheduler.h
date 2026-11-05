@@ -120,6 +120,7 @@ namespace wubansia::engine
         std::int64_t sampleIndex() const noexcept { return now_; } // the next sample, from prepare () or reset ()
         int sounding() const noexcept { return count_; }
         std::uint32_t epoch() const noexcept { return epoch_; } // bumped at every start, jump, wrap and restart
+        const Timeline* timeline() const noexcept { return current_; } // the one its events come from
         Position position() const noexcept;
 
         // The position of a sample and the sample of a position, under the current anchor.

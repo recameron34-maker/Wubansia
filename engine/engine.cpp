@@ -18,9 +18,9 @@ namespace wubansia::engine
 
     Engine::~Engine() = default;
 
-    void Engine::prepare (double sampleRate, int maxBlock, int numOutputs)
+    void Engine::prepare (double sampleRate, int maxBlock, int numOutputs, MasterHold hold)
     {
-        impl->loop.prepare (sampleRate, maxBlock, numOutputs);
+        impl->loop.prepare (sampleRate, maxBlock, numOutputs, hold);
     }
 
     void Engine::reset() noexcept

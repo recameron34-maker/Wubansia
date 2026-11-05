@@ -311,6 +311,9 @@ namespace wubansia::engine::mix
             return; // a level duck without its key (a cycle): bypassed
 
         const bool whole = band.whole();
+        if (onset && whole && count == 0 && envelope.idle())
+            return; // at rest the whole band passes as it is: 10^0 x = x
+
         int e = 0;
         for (int i = 0; i < n; ++i)
         {
@@ -330,6 +333,8 @@ namespace wubansia::engine::mix
                 const double k = t >= 0 ? static_cast<double> (key[static_cast<std::size_t> (t) & (kKeyRing - 1)]) : 0.0;
                 share = detector.tick (k);
             }
+            if (whole && ! (share > 0.0))
+                continue; // at rest: exactly the input
             const double depth = params.pump && ctx.pump != nullptr ? depthDb * static_cast<double> (ctx.pump[i]) : depthDb;
             const double g = std::exp (-kDbToLog * depth * share);
             if (whole)

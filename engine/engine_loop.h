@@ -5,14 +5,15 @@
 // calls is noexcept and real-time safe.
 //
 // Per host block:
-// 1. sync: the scheduler follows the transport (a start, stop, jump, wrap or tempo change);
-// 2. a kit switch, when one is due (below);
+// 1. offline (TransportInfo::nonRealtime), a pending Kit is adopted at once (below);
+// 2. sync: the scheduler follows the transport (a start, stop, jump, wrap or tempo change), and the voices
+//    get its tempo (Sampler::setTempo) and the lane levels;
 // 3. pieces: the block is played in pieces that never cross a multiple of 32 samples, counted from the
 //    last prepare () or reset () (the design's 32-sample control frames: per-piece work in the voices
-//    and the mixer then lands on the same samples whatever the host's block size). Per piece: the bus
-//    and sends are cleared, the scheduler plays the timeline into the voices, the duck keys and the
-//    controllers into the mixer; the router plays the piece's MIDI in; the voices render; the mixer
-//    mixes into the output;
+//    and the mixer then lands on the same samples whatever the host's block size). Per piece: a kit
+//    switch, when one is due (below); the bus and sends are cleared; the scheduler plays the timeline
+//    into the voices, the duck keys and the controllers into the mixer; the router plays the piece's
+//    MIDI in; the voices render; the mixer mixes into the output;
 // 4. retired kits and the telemetry.
 //
 // Kit switches. A Kit the service publishes is adopted:
@@ -36,18 +37,20 @@
 //   instrument has beyond what the timeline moved the note (an A/B pair moves by the smaller); a live
 //   note skips its pre-roll, starting on its onset, since it can't be anticipated;
 // - lengthSamples for align=end instruments; rr and panIndex; dip and continues from the note's flags;
-// - throws: (1 - the channel's send level) x cc / 127 x the channel's static gain;
+// - throws: (1 - the channel's send level) x cc / 127 x the channel's static gain (P8's staticGain);
 // - phrase lanes (sched/timeline.h's three kinds of note): a phrase decides once per onset cycle whether
 //   it plays slices (playsSlices: phrase lanes on Auto and the tempo within the phrase's tolerance of
 //   the kit's), latched per phrase on (the scheduler's epoch, the cycle of the note's onset as a host
 //   position), so a tempo change never splits a cycle and a start, jump or wrap decides afresh. A slice
 //   note plays its slice (the stem its A/B picks) only when the phrase does, with no note-off; its
-//   throws come from the phrase's channel (none for a "baked" phrase), and it continues into the next
-//   slice only within 20 ppm of the kit's tempo. A multisample twin, or a note a slice holds, plays the
+//   throws come from the phrase's channel (none for a "baked" phrase), held to the end of the note it
+//   slices (lengthSamples, from Timeline::sliceThrough), and it continues into the next slice only within
+//   20 ppm of the kit's tempo. A multisample twin, or a note a slice holds, plays the
 //   multisample only when the phrase doesn't, and lights its lane either way; a slice note never does.
 //   Live notes never play slices.
 
 #include "engine.h"
+#include "mix/channel.h"
 #include "mix/mixer.h"
 #include "rt/pending_slot.h"
 #include "rt/retire_fifo.h"
@@ -69,26 +72,6 @@ namespace wubansia::engine
 {
     namespace detail
     {
-        // The product of a channel's gain inserts that are active for the variant and A/B switches: what
-        // a thrown voice's direct send passes, as the channel's own send does (until P8's staticGain).
-        inline float channelStaticGain (const Channel& channel, Variant variant, const std::array<std::uint8_t, kAbSwitches>& ab) noexcept
-        {
-            double gain = 1.0;
-            for (const auto& insert : channel.inserts)
-            {
-                if (insert.type != InsertType::gain)
-                    continue;
-                const When& w = insert.when;
-                if (w.variant >= 0 && w.variant != static_cast<std::int8_t> (variant))
-                    continue;
-                if (w.ab >= 0 && w.ab < kAbSwitches && ab[static_cast<std::size_t> (w.ab)] != static_cast<std::uint8_t> (w.is))
-                    continue;
-                if (const auto* g = std::get_if<GainParams> (&insert.params))
-                    gain *= std::pow (10.0, g->gainMdb / 20000.0);
-            }
-            return static_cast<float> (gain);
-        }
-
         // An instrument's pre-roll at a key, in 48 kHz frames of time (its files' played at the key's pitch).
         inline double prerollAt (const Kit& kit, int instrument, int key) noexcept
         {
@@ -143,15 +126,16 @@ namespace wubansia::engine
         static constexpr int kMaxLatchedPhrases = 32; // phrases with a latched decision; any further decide per note
         static constexpr double kContinuePpm = 20.0; // slice notes continue within this of the kit's tempo
 
-        // Message thread, the audio thread stopped: sizes everything for this rate and 1 or 2 outputs.
-        // Voices, position and fades reset; the adopted Kit stays.
-        void prepare (double sampleRate, int maxBlock, int numOutputs)
+        // Message thread, the audio thread stopped: sizes everything for this rate and 1 or 2 outputs, with
+        // the club master's limiter holding as `hold` says. Voices, position and fades reset; the adopted
+        // Kit stays.
+        void prepare (double sampleRate, int maxBlock, int numOutputs, MasterHold hold = MasterHold::lookBack)
         {
             rate_ = sampleRate > 0.0 && std::isfinite (sampleRate) ? sampleRate : 48000.0;
             (void) maxBlock; // pieces are at most kControlFrame, whatever the host's block
             outputs_ = std::clamp (numOutputs, 1, 2);
             voices_.prepare (rate_, kControlFrame);
-            mixer_.prepare (rate_, kControlFrame, outputs_);
+            mixer_.prepare (rate_, kControlFrame, outputs_, hold);
             mixer_.setConfig (kit_ != nullptr ? &kit_->mix : nullptr);
             stopFadeSamples_ = std::max (1, static_cast<int> (std::lround (kStopFadeSeconds * rate_)));
             kitFadeSamples_ = std::max (1, static_cast<int> (std::lround (kKitFadeSeconds * rate_)));
@@ -265,6 +249,22 @@ namespace wubansia::engine
             return instrument >= 0 && static_cast<std::size_t> (instrument) < kit_->instruments.size() ? instrument : -1;
         }
 
+        // A slice note's samples from its note-on to its twin's end (Timeline::sliceThrough), or 0. The note
+        // is an element of the scheduler's timeline, so its index is where it sits there.
+        std::int64_t throughSamples (const Note& note, std::int64_t startH, int offset) const noexcept
+        {
+            const Timeline* t = scheduler_.timeline();
+            if (t == nullptr || t->notes.empty() || &note < t->notes.data() || &note >= t->notes.data() + t->notes.size())
+                return 0;
+            const auto index = static_cast<std::uint32_t> (&note - t->notes.data());
+            const auto it = std::lower_bound (t->sliceThrough.begin(), t->sliceThrough.end(), index,
+                [] (const SliceThrough& s, std::uint32_t i) { return s.note < i; });
+            if (it == t->sliceThrough.end() || it->note != index)
+                return 0;
+            const std::int64_t end = scheduler_.sampleAt (static_cast<double> (startH + it->through));
+            return std::max<std::int64_t> (0, end - (scheduler_.sampleIndex() + offset));
+        }
+
         // Whether phrase p plays slices for the note whose onset is onsetH: decided once per (epoch, onset
         // cycle) and latched.
         bool phraseDecides (int p, std::int64_t onsetH, const Controls& controls) noexcept
@@ -288,7 +288,7 @@ namespace wubansia::engine
             if ((space == 0 && echo == 0) || mixChannel < 0 || static_cast<std::size_t> (mixChannel) >= kit_->mix.channels.size())
                 return;
             const Channel& channel = kit_->mix.channels[static_cast<std::size_t> (mixChannel)];
-            const float gain = detail::channelStaticGain (channel, controls.variant, controls.ab);
+            const float gain = mix::staticGain (channel, controls.variant, controls.ab);
             auto send = [&] (Send which, std::uint8_t value) {
                 const float base = static_cast<float> (channel.sendsPm[static_cast<std::size_t> (which)]) / 1000.0f;
                 return (1.0f - base) * static_cast<float> (value) / 127.0f * gain;
@@ -346,6 +346,8 @@ namespace wubansia::engine
                                && std::abs (scheduler_.bpm() - kit.info.bpm) <= kContinuePpm * 1.0e-6 * kit.info.bpm;
                 mixChannel = phrase.mixChannel;
                 throwsLive = phrase.throwMode != PhraseThrow::baked;
+                if (throwsLive)
+                    on.lengthSamples = throughSamples (note, startH, offset);
             }
             else
             {
@@ -572,6 +574,7 @@ namespace wubansia::engine
         }
         voices_.setLaneGains (controls.laneGain);
         const double bpm = scheduler_.bpm();
+        voices_.setTempo (bpm); // the same tempo playsSlices decides with
 
         // 3. The pieces.
         int done = 0;

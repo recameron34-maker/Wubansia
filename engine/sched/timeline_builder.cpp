@@ -10,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <limits>
+#include <map>
 #include <string>
 #include <tuple>
 #include <variant>
@@ -407,6 +408,40 @@ namespace wubansia::engine
                 timeline.chase.push_back (static_cast<std::uint32_t> (i));
         }
 
+        // 10. The slice notes' twins' ends.
+        buildSliceThrough (timeline);
+
         return util::Result<Timeline>::success (std::move (timeline));
+    }
+
+    void buildSliceThrough (Timeline& timeline)
+    {
+        timeline.sliceThrough.clear();
+        const bool loop = timeline.loops && timeline.length > 0;
+        auto onsetOf = [&] (const Note& n) {
+            const std::int64_t onset = n.pos + n.preroll;
+            return loop ? util::floorMod (onset, timeline.length) : onset;
+        };
+        // The twins by (channel, key, onset): matched notes, not the notes a slice holds.
+        std::map<std::tuple<std::uint8_t, std::uint8_t, std::int64_t>, std::size_t> twins;
+        for (std::size_t i = 0; i < timeline.notes.size(); ++i)
+        {
+            const Note& n = timeline.notes[i];
+            if (n.phrase >= 0 && n.slice < 0 && (n.flags & NoteFlag::held) == 0)
+                twins.emplace (std::make_tuple (n.channel, n.key, onsetOf (n)), i);
+        }
+        for (std::size_t i = 0; i < timeline.notes.size(); ++i)
+        {
+            const Note& n = timeline.notes[i];
+            if (n.phrase < 0 || n.slice < 0)
+                continue;
+            const auto twin = twins.find (std::make_tuple (n.channel, n.key, onsetOf (n)));
+            if (twin == twins.end())
+                continue;
+            const Note& t = timeline.notes[twin->second];
+            const std::int64_t through = std::int64_t { n.preroll } - std::int64_t { t.preroll } + t.len;
+            if (through > 0)
+                timeline.sliceThrough.push_back ({ static_cast<std::uint32_t> (i), through });
+        }
     }
 }

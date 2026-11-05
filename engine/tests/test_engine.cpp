@@ -301,6 +301,7 @@ namespace
         for (std::size_t i = 0; i < t.notes.size(); ++i)
             if ((t.notes[i].flags & NoteFlag::chase) != 0)
                 t.chase.push_back (static_cast<std::uint32_t> (i));
+        buildSliceThrough (t);
         Kit kit = assemble (m, mix, { t, t, t, t });
         Phrase phrase;
         phrase.lane = Lane::bass;
@@ -343,7 +344,11 @@ TEST_CASE ("a phrase plays its slice notes near the kit's tempo and its twins el
                 CHECK (i.note.phrase == 0);
                 CHECK (i.note.slice >= 0);
                 CHECK (i.note.character == 1); // bass B
-                CHECK (i.note.lengthSamples == 0);
+                // To its twin's end: 200 ticks at the kit's tempo (5005 where the swung start moved 0.2 earlier).
+                if (factor > 0.99999 && factor < 1.00001)
+                    CHECK ((i.note.lengthSamples == 5000 || i.note.lengthSamples == 5005));
+                else
+                    CHECK (i.note.lengthSamples > 0);
             }
             for (const auto& i : played.log)
                 CHECK_FALSE ((i.kind == Item::Kind::off && i.instrument == inst::bass));
@@ -424,15 +429,23 @@ TEST_CASE ("a phrase plays its slice notes near the kit's tempo and its twins el
         CHECK (after >= 4);
     }
 
-    SECTION ("throws: a slice note's from the phrase's channel, none for a baked phrase; twins keep theirs")
+    SECTION ("throws: a slice note's from the phrase's channel, held to its twin's end; none for a baked phrase; twins keep theirs")
     {
         const auto live = bassOns (playKit (kit, Controls {}, 120.0, 0.0, 30000).log);
         REQUIRE_FALSE (live.empty());
         CHECK (live.front().note.throwSpace > 0.0f);
+        CHECK (live.front().note.slice >= 0);
+        CHECK (live.front().note.lengthSamples == 200 * 25); // its twin, 200 ticks long at 25 samples a tick
+        // Chased 0.05 quarters (1200 samples) into it: what is left of its twin.
+        const auto chased = bassOns (playKit (kit, Controls {}, 120.0, 0.05, 30000).log);
+        REQUIRE_FALSE (chased.empty());
+        CHECK (chased.front().note.startFrame == 1200);
+        CHECK (chased.front().note.lengthSamples == 200 * 25 - 1200);
         const Kit baked = phraseKit (PhraseThrow::baked);
         const auto none = bassOns (playKit (baked, Controls {}, 120.0, 0.0, 30000).log);
         REQUIRE_FALSE (none.empty());
         CHECK_FALSE (none.front().note.throwSpace > 0.0f);
+        CHECK (none.front().note.lengthSamples == 0);
         const auto twins = bassOns (playKit (baked, Controls {}, 130.0, 0.0, 30000).log);
         REQUIRE_FALSE (twins.empty());
         CHECK (twins.front().note.slice < 0);
@@ -833,11 +846,15 @@ TEST_CASE ("kits published from a service thread are adopted, faded and handed b
             {
                 if (const Kit* back = engine.publish (kits[static_cast<std::size_t> (i)].get()))
                     unadopted.push_back (back);
-                for (int wait = 0; wait < 20; ++wait)
+                // Until the engine adopts it, or 100 ms: at any speed (a sanitizer's too) kits are adopted in
+                // turn, and a slow audio thread still sees later publishes replace earlier ones.
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds (100);
+                while (engine.telemetry().kitIndex.load() != i && std::chrono::steady_clock::now() < deadline)
                 {
                     engine.collectRetired ([&retired] (const Kit* k) { retired.push_back (k); });
                     std::this_thread::sleep_for (std::chrono::microseconds (100));
                 }
+                engine.collectRetired ([&retired] (const Kit* k) { retired.push_back (k); });
             }
             done.store (true);
         });
@@ -1035,4 +1052,68 @@ TEST_CASE ("an offline render adopts a pending kit on the block's first sample, 
     host.render (h, Controls {}, 256, out);
     CHECK (h.telemetry.kitIndex.load() == 0);
     CHECK (onOf (h.loop.voices().log, inst::kickB, 0) != nullptr);
+}
+
+TEST_CASE ("the voices get the scheduler's tempo once per block: the host's, or the kit's without one", "[engine][phrase]")
+{
+    const Kit kit = synKit();
+    for (const double hostBpm : { 125.0, 0.0 })
+    {
+        CAPTURE (hostBpm);
+        Harness h;
+        FakeHost host (48000.0, 256);
+        host.prepare (h);
+        h.pending.publish (&kit);
+        host.setTempo (hostBpm);
+        host.play (0.0);
+        FakeHost::Output out;
+        host.render (h, Controls {}, 256 * 10, out);
+        CHECK (h.loop.voices().tempoCalls == 10);
+        CHECK (h.loop.voices().tempo == Catch::Approx (hostBpm > 0.0 ? hostBpm : 120.0));
+    }
+}
+
+TEST_CASE ("the engine reports its mixer's latency for either limiter hold: 424 looking back, 3280 two-sided at 48 kHz", "[engine][latency]")
+{
+    for (const double rate : { 44100.0, 48000.0, 96000.0 })
+        for (const auto hold : { MasterHold::lookBack, MasterHold::twoSided })
+        {
+            CAPTURE (rate, static_cast<int> (hold));
+            Engine engine;
+            engine.prepare (rate, 512, 2, hold);
+            Mixer mixer;
+            mixer.prepare (rate, 32, 2, hold);
+            CHECK (engine.latencySamples() == mixer.latencySamples());
+            if (rate > 47999.0 && rate < 48001.0)
+                CHECK (engine.latencySamples() == (hold == MasterHold::lookBack ? 424 : 3280));
+        }
+
+    // The default is the look-back hold, as the plugin prepares it.
+    Engine plugin;
+    plugin.prepare (48000.0, 512, 2);
+    CHECK (plugin.latencySamples() == 424);
+
+    // And a note's impulse comes out that late with either hold (club off, a mix with no inserts).
+    const Kit kit = synKit (0, true);
+    for (const auto hold : { MasterHold::lookBack, MasterHold::twoSided })
+    {
+        CAPTURE (static_cast<int> (hold));
+        LoopHarness<RecordingVoices> h;
+        h.loop.prepare (48000.0, 512, 2, hold);
+        Controls controls;
+        controls.club = false;
+        std::vector<float> left (8192), right (8192);
+        float* out[2] { left.data(), right.data() };
+        TransportInfo t;
+        h.loop.process (out, 2, 64, t, controls, nullptr, 0, h.pending, h.retired, h.telemetry);
+        h.pending.publish (&kit);
+        const MidiEvent kick { 0, 0x99, 36, 100 };
+        h.loop.process (out, 2, 8192, t, controls, &kick, 1, h.pending, h.retired, h.telemetry);
+        const auto latency = static_cast<std::size_t> (h.loop.latencySamples());
+        REQUIRE (latency < left.size());
+        for (std::size_t s = 0; s < left.size(); ++s)
+            if (s != latency)
+                CHECK_FALSE ((left[s] > 1.0e-9f || left[s] < -1.0e-9f));
+        CHECK (left[latency] > 0.0f);
+    }
 }
