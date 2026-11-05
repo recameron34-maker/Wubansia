@@ -39,34 +39,34 @@ Line by line (bars of the whole mix):
 - 33-40: kick, clap, hats, perc, bass (Rubber); a turnaround in its last bar
 - 41-48: kick, clap, hats, perc, bass (Rubber), chords, accents, fx; the fill in its last bar
 - 49-56: kick, clap, hats, perc, bass (Rubber), the lead's call, chords, accents; a turnaround in its last bar
-- 57-64: kick, clap, hats, perc, bass (Rubber), the lead's call, chords, vox (call), accents, fx; the fill in its last bar
+- 57-64: kick, clap, hats, perc, bass (Rubber), the lead's call, chords, vox (call), thrown, accents, fx; the fill in its last bar
 
 **3. Break** (bars 65-80)
-- 65-72: the lead's call, chords, vox (riff)
-- 73-80: off-beat hats, lead, chords, vox (riff), accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
+- 65-72: the lead's call, chords, pad, vox (riff)
+- 73-80: off-beat hats, lead, chords, pad, vox (riff), accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **4. Build** (bars 81-96)
 - 81-88: kick, clap, off-beat hats, perc, bass (Rubber), chords; a turnaround in its last bar
 - 89-96: kick, clap, off-beat hats, chords, fx; the clap rolls over the line's last 4 bars up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 97-128)
-- 97-104: kick, clap, hats, perc, bass (Rubber), lead, chords, vox (loop), accents, fx; a turnaround in its last bar
-- 105-112: kick, clap, hats, perc, bass (Rubber), lead, chords, vox (loop), accents, fx; the fill in its last bar
-- 113-120: kick, clap, busy hats, perc, bass (Rubber), lead, chords, accents; a turnaround in its last bar
-- 121-128: kick, clap, hats, perc, bass (Rubber), lead, chords, vox (loop), accents; the drums out in its last bar
+- 97-104: kick, clap, hats, perc, bass (Rubber), lead, chords, pad, vox (loop), accents, fx; a turnaround in its last bar
+- 105-112: kick, clap, hats, perc, bass (Rubber), lead, chords, pad, vox (loop), accents, fx; the fill in its last bar
+- 113-120: kick, clap, busy hats, perc, bass (Rubber), lead, chords, pad, accents; a turnaround in its last bar
+- 121-128: kick, clap, hats, perc, bass (Rubber), lead, chords, pad, vox (loop), accents; the drums out in its last bar
 
 **6. Switch-up** (bars 129-144)
 - 129-136: kick, clap, busy hats, perc, bass (Deep), accents; a turnaround in its last bar
 - 137-144: kick, clap, busy hats, perc, bass (Deep), chords, accents, fx; the fill in its last bar
 
 **7. Break 2** (bars 145-160)
-- 145-152: the lead's call, chords, vox (riff)
-- 153-160: off-beat hats, lead, chords, vox (riff), accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
+- 145-152: the lead's call, chords, pad, vox (riff)
+- 153-160: off-beat hats, lead, chords, pad, vox (riff), accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **8. Drop 2** (bars 161-192)
-- 161-168: kick, clap, busy hats, perc, bass (Rubber), lead, chords, vox (loop), accents, fx; a turnaround in its last bar
-- 169-176: kick, clap, busy hats, perc, bass (Rubber), lead, chords, vox (loop), accents, fx; the fill in its last bar
-- 177-184: kick, clap, busy hats, perc, bass (Rubber), lead, chords, vox (answer), accents; a turnaround in its last bar
+- 161-168: kick, clap, busy hats, perc, bass (Rubber), lead, chords, pad, vox (loop), accents, fx; a turnaround in its last bar
+- 169-176: kick, clap, busy hats, perc, bass (Rubber), lead, chords, pad, vox (loop), accents, fx; the fill in its last bar
+- 177-184: kick, clap, busy hats, perc, bass (Rubber), lead, chords, pad, vox (answer), accents; a turnaround in its last bar
 - 185-192: kick, clap, hats, perc, bass (Rubber), chords, accents, fx; the fill in its last bar
 
 **9. Outro** (bars 193-224)
@@ -125,8 +125,9 @@ Set the project to 128 BPM in 4/4 first: every file carries the tempo, but a DAW
 dropped file.
 - **The whole mix:** drop `FUT03_ExtendedMix_Vox_224bars.mid` on bar 1: a track per instrument, in the order above.
 - **Your own order:** drop the region files on bar lines, each where you want its section. A region starts on its first
-  downbeat and ends on its last bar line, so regions laid end to end play exactly like the whole mix. Every region has
-  the same tracks; if a DAW leaves an empty one out, move the clips under it onto the tracks of the same name.
+  downbeat and ends on its last bar line, so regions laid end to end play like the whole mix, except that a note held
+  over a section line there (a vox throw into a break, a long one-shot) stops on the line. Every region has the same
+  tracks; if a DAW leaves an empty one out, move the clips under it onto the tracks of the same name.
 - **Ableton Live:** drag the files into the Arrangement view: a file's tracks come in as clips on consecutive MIDI
   tracks. Clips keep the notes, not their channels: route each track to its instrument (`docs/midi-map.md`).
 - **Logic Pro:** File > Open on the whole-mix file brings its tempo, key and section markers with it (an import

@@ -13,11 +13,6 @@
   "length": "6:54",
   "file": "FUT02_ExtendedMix_Vox_224bars.mid",
   "note_names": "C4 = 60, as the sample names",
-  "basslines": {
-    "main": "Orbit",
-    "switch": "Relay",
-    "drop2": "Orbit"
-  },
   "tracks": [
     {
       "track": "Kick",
@@ -310,6 +305,7 @@
           "bass": "Orbit",
           "lead": "call",
           "vox": "call",
+          "throw": 1,
           "accents": "alternate",
           "end": "fill"
         }

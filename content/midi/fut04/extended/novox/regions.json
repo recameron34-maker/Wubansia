@@ -13,11 +13,6 @@
   "length": "6:35",
   "file": "FUT04_ExtendedMix_NoVox_224bars.mid",
   "note_names": "C4 = 60, as the sample names",
-  "basslines": {
-    "main": "AcidLine1",
-    "switch": "AcidLine2",
-    "drop2": "AcidLine1"
-  },
   "tracks": [
     {
       "track": "Kick",
