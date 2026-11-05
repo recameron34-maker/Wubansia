@@ -134,6 +134,45 @@ def whole(kit, variant):
     return R, {t['name']: t for t in tracks[1:]}, tracks[0]
 
 
+def genre_kit(kit):
+    """The kit with its own form taken out of its PARTS: the kit on its genre's default form, whatever form it plays,
+    so the default forms keep their tests as each kit's own form lands."""
+    k = Mi.kit_of(kit)
+    return Mi.Kit(kit, k.K, {key: v for key, v in k.P.items() if key != 'form'}, items=k.items)
+
+
+@functools.lru_cache(maxsize=None)
+def genre_ext(kit, variant):
+    """ext() of genre_kit(): the kit's extended mix on its genre's default form."""
+    if not Mi.kit_of(kit).P.get('form'):
+        return ext(kit, variant)                      # it plays its genre's form already
+    made = Mi.extended_of(genre_kit(kit), variant)
+    return made, json.loads(made['regions.json'])
+
+
+def genre_whole(kit, variant):
+    """whole() of genre_kit()."""
+    made, R = genre_ext(kit, variant)
+    _, _, tracks = parse(made[R['file']])
+    return R, {t['name']: t for t in tracks[1:]}, tracks[0]
+
+
+def forms(kit):
+    """The forms a kit's extended mix is tested on: 'own' (PARTS['form']) where it has one, and always 'genre' (its
+    genre's default form, genre_kit())."""
+    return (['own'] if Mi.kit_of(kit).P.get('form') else []) + ['genre']
+
+
+def form_ext(kit, form, variant):
+    """ext() on a form of forms()."""
+    return ext(kit, variant) if form == 'own' else genre_ext(kit, variant)
+
+
+def form_whole(kit, form, variant):
+    """whole() on a form of forms()."""
+    return whole(kit, variant) if form == 'own' else genre_whole(kit, variant)
+
+
 def ons(track, lo=0, hi=None):
     """A track's notes starting in [lo, hi): (on, key, vel)."""
     return [(on, key, vel) for on, _, _, key, vel in track['notes'] if lo <= on and (hi is None or on < hi)]

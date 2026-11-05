@@ -13,8 +13,9 @@ What these tests pin (the design's midi_plan section 9, and the guarantees the v
 - the vox and no-vox files differ only where they should; end-aligned notes end on beat lines; CC74/71 rides only on
   the channels whose filter rides, on the shared law, CC91/94 only around thrown notes;
 - the extended mixes: regions that tile them, an integer-only regions.json, 32-bar drums-only ends, cues with their
-  notes, builds that roll up to the fill, busier hats that are busier, turnarounds, drops that aren't grooves; and,
-  while a kit plays its genre's default form, that form's own rules.
+  notes, rolls that rise up to the fill, busier hats that are busier, turnarounds, drops that aren't grooves; and the
+  genres' default forms' own rules, on every kit with its own form taken out (genre_kit()), so they hold whatever form
+  a kit plays.
 """
 import hashlib
 import json
@@ -33,8 +34,8 @@ from tools.sound import midi as Mi
 from tools.sound import qa as Q
 from tools.sound.item import Item
 from tools.sound.tests.midi_testlib import (BAR, CUE, KEYSIG, KITS, MARKER, METER, NAME, REPO, TEMPO, VARIANTS, at,
-                                            bars, ext, int_layer, kit_files, lane_ons, lane_tracks, late, loop, mids,
-                                            nearest, ons, parse, parsed, whole)
+                                            bars, ext, form_ext, form_whole, forms, genre_kit, int_layer, kit_files,
+                                            lane_ons, lane_tracks, late, loop, mids, nearest, ons, parse, parsed, whole)
 
 MINOR = ('A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#')      # the minor keys with 0-7 sharps
 MINOR_FLATS = ('A', 'D', 'G', 'C', 'F', 'Bb', 'Eb', 'Ab')  # ... and with 0-7 flats
@@ -49,9 +50,16 @@ def signature(key):
 DRUMS_RUMBLE_BASS = Mi.DRUMS + ' rumble bass'
 
 
-def own_form(kit):
-    """Whether the kit plays its own form (PARTS['form']) rather than its genre's default."""
-    return bool(Mi.kit_of(kit).P.get('form'))
+def fill_notes(kit, tracks, ln):
+    """In a whole mix's tracks, the notes of the fill a line (regions.json's) ends on, ending on the line's end and
+    starting in its last bar: its own (fill=<sound>, on that sound's channel) or the kit's (FX)."""
+    lo = (ln['start_bar'] - 1) * BAR
+    if ln.get('fill'):
+        role, key = Mi.kit_of(kit).sounds[ln['fill']]
+        pool = [n for n in tracks.get(Mi.track_of_role(role), {'notes': []})['notes'] if n[3] == key]
+    else:
+        pool = tracks.get('FX', {'notes': []})['notes']
+    return [n for n in pool if n[1] == lo + 8 * BAR and n[0] >= lo + 7 * BAR]
 
 
 class TestChannels(unittest.TestCase):
@@ -566,30 +574,32 @@ class TestExtendedMix(unittest.TestCase):
         'future garage / 2-step': ['intro', 'groove', 'break', 'build', 'drop', 'switch', 'break', 'drop2', 'outro']}
 
     def test_the_form(self):
-        """Every form: a 32-bar intro and outro, every section and line on an 8-bar line, the sections tiling the mix;
-        both variants share it. A kit on its genre's default form plays that form's sections."""
+        """Every form, a kit's own or its genre's: a 32-bar intro and outro, every section and line on an 8-bar line,
+        the sections tiling the mix; both variants share it. On its genre's default form (genre_kit()) a kit plays
+        that form's sections."""
         self.assertEqual(set(self.FORM_KINDS), set(Mi.FORMS))
         for genre, form in Mi.FORMS.items():
             self.assertEqual(self.FORM_KINDS[genre], [kind for _, kind, _ in form], genre)
         for kit in KITS:
             K = kits.load(kit)
-            for v in VARIANTS:
-                R = ext(kit, v)[1]
-                with self.subTest(kit=kit, variant=v):
-                    if not own_form(kit):
-                        self.assertEqual(self.FORM_KINDS.get(K.DIRECTION, self.FORM_KINDS['default']),
-                                         [s['kind'] for s in R['sections']])
-                    self.assertEqual(32, R['sections'][0]['bars'])
-                    self.assertEqual(32, R['sections'][-1]['bars'])
-                    start = 1
-                    for s in R['sections']:
-                        self.assertEqual(start, s['start_bar'])
-                        self.assertEqual([s['start_bar'] + 8 * i for i in range(s['bars'] // 8)],
-                                         [ln['start_bar'] for ln in s['lines']])
-                        start += s['bars']
-                    self.assertEqual(R['bars'] + 1, start)
-            self.assertEqual([s['name'] for s in ext(kit, 'vox')[1]['sections']],
-                             [s['name'] for s in ext(kit, 'novox')[1]['sections']])
+            for form in forms(kit):
+                for v in VARIANTS:
+                    R = form_ext(kit, form, v)[1]
+                    with self.subTest(kit=kit, form=form, variant=v):
+                        if form == 'genre':
+                            self.assertEqual(self.FORM_KINDS.get(K.DIRECTION, self.FORM_KINDS['default']),
+                                             [s['kind'] for s in R['sections']])
+                        self.assertEqual(32, R['sections'][0]['bars'])
+                        self.assertEqual(32, R['sections'][-1]['bars'])
+                        start = 1
+                        for s in R['sections']:
+                            self.assertEqual(start, s['start_bar'])
+                            self.assertEqual([s['start_bar'] + 8 * i for i in range(s['bars'] // 8)],
+                                             [ln['start_bar'] for ln in s['lines']])
+                            start += s['bars']
+                        self.assertEqual(R['bars'] + 1, start)
+                self.assertEqual([s['name'] for s in form_ext(kit, form, 'vox')[1]['sections']],
+                                 [s['name'] for s in form_ext(kit, form, 'novox')[1]['sections']])
 
     def test_the_default_forms_use_the_machinery(self):
         """Every genre's default form has busy hats, turnarounds, a roll in its build's last line, vox modes, the
@@ -644,184 +654,208 @@ class TestExtendedMix(unittest.TestCase):
         garage's 2-step also the hats and the perc, which carry its pulse)."""
         for kit in KITS:
             garage = kits.load(kit).DIRECTION == 'future garage / 2-step'
-            for v in VARIANTS:
-                R, tracks, conductor = whole(kit, v)
-                end = conductor['end']
-                for name, t in tracks.items():
-                    lane = CH.track_lane(kit, name)
-                    with self.subTest(kit=kit, variant=v, track=name):
-                        if CH.track_channel(kit, name) == 10:
-                            continue
-                        self.assertFalse([n for n in t['notes'] if n[0] < 32 * BAR or n[1] > end - 32 * BAR])
-                kick = lane_tracks(kit, {k: t for k, t in tracks.items() if k == 'Kick'}, 'kick')[0]
-                for lo in (0, end - 8 * BAR):
-                    self.assertEqual(set(range(8)), {(on - lo) // BAR for on, *_ in ons(kick, lo, lo + 8 * BAR)}, kit)
-                    if garage:
-                        for lane in ('hats', 'perc'):
-                            got = {(on - lo) // BAR for on, *_ in lane_ons(kit, tracks, lane, lo, lo + 8 * BAR)}
-                            self.assertEqual(set(range(8)), got, lane)
+            for form in forms(kit):
+                for v in VARIANTS:
+                    R, tracks, conductor = form_whole(kit, form, v)
+                    end = conductor['end']
+                    for name, t in tracks.items():
+                        with self.subTest(kit=kit, form=form, variant=v, track=name):
+                            if CH.track_channel(kit, name) == 10:
+                                continue
+                            self.assertFalse([n for n in t['notes'] if n[0] < 32 * BAR or n[1] > end - 32 * BAR])
+                    kick = lane_tracks(kit, {k: t for k, t in tracks.items() if k == 'Kick'}, 'kick')[0]
+                    for lo in (0, end - 8 * BAR):
+                        self.assertEqual(set(range(8)), {(on - lo) // BAR for on, *_ in ons(kick, lo, lo + 8 * BAR)},
+                                         (kit, form))
+                        if garage:
+                            for lane in ('hats', 'perc'):
+                                got = {(on - lo) // BAR for on, *_ in lane_ons(kit, tracks, lane, lo, lo + 8 * BAR)}
+                                self.assertEqual(set(range(8)), got, (kit, form, lane))
 
     def test_the_intro_brings_the_drums_in_on_8_bar_lines_and_the_bass_after_it(self):
+        """The kick from the first bar, the other drums within the 32-bar intro on 8-bar lines, the bass after it on a
+        line and the chords from it on; in the genres' default forms the bass at bar 33."""
         for kit in KITS:
-            R, tracks, _ = whole(kit, 'vox')
-            first = {}
-            for name, t in tracks.items():
-                if t['notes']:
-                    lane = CH.track_lane(kit, name)
-                    first[lane] = min(first.get(lane, 10 ** 9), t['notes'][0][0] // BAR)
-            with self.subTest(kit=kit):
-                self.assertEqual(0, first['kick'])
-                for lane in ('snare', 'hats', 'perc'):
-                    self.assertLess(first[lane], 32)
-                    self.assertEqual(0, first[lane] % 8, lane)
-                self.assertGreaterEqual(first['bass'], 32)
-                self.assertEqual(0, first['bass'] % 8)
-                if not own_form(kit):
-                    self.assertEqual(32, first['bass'])          # the default forms: the bass at 33
-                self.assertLessEqual(first['bass'], first['chords'])
-                self.assertEqual(0, first['chords'] % 8)
+            for form in forms(kit):
+                R, tracks, _ = form_whole(kit, form, 'vox')
+                first = {}
+                for name, t in tracks.items():
+                    if t['notes']:
+                        lane = CH.track_lane(kit, name)
+                        first[lane] = min(first.get(lane, 10 ** 9), t['notes'][0][0] // BAR)
+                with self.subTest(kit=kit, form=form):
+                    self.assertEqual(0, first['kick'])
+                    for lane in ('snare', 'hats', 'perc'):
+                        self.assertLess(first[lane], 32)
+                        self.assertEqual(0, first[lane] % 8, lane)
+                    self.assertGreaterEqual(first['bass'], 32)
+                    self.assertEqual(0, first['bass'] % 8)
+                    if form == 'genre':
+                        self.assertEqual(32, first['bass'])
+                    self.assertLessEqual(first['bass'], first['chords'])
+                    self.assertEqual(0, first['chords'] % 8)
 
     def test_the_breaks_have_no_kick_and_the_drops_every_lane(self):
         for kit in KITS:
-            for v in VARIANTS:
-                made, R = ext(kit, v)
-                for s in R['sections']:
-                    tracks = {t['name']: t for t in parse(made[s['file']])[2][1:]}
-                    with self.subTest(kit=kit, variant=v, section=s['name']):
-                        if s['kind'] == 'break':
-                            self.assertEqual([], lane_ons(kit, {'Kick': tracks['Kick']}, 'kick'))
-                            self.assertIn('chords', s['lanes'])
-                        if s['kind'] in ('drop', 'drop2'):
-                            for lane in ('kick', 'hats', 'bass', 'accents'):
-                                self.assertIn(lane, s['lanes'])
-                            self.assertEqual(v == 'vox', 'vox' in s['lanes'])
+            for form in forms(kit):
+                for v in VARIANTS:
+                    made, R = form_ext(kit, form, v)
+                    for s in R['sections']:
+                        tracks = {t['name']: t for t in parse(made[s['file']])[2][1:]}
+                        with self.subTest(kit=kit, form=form, variant=v, section=s['name']):
+                            if s['kind'] == 'break':
+                                self.assertEqual([], lane_ons(kit, {'Kick': tracks['Kick']}, 'kick'))
+                                self.assertIn('chords', s['lanes'])
+                            if s['kind'] in ('drop', 'drop2'):
+                                for lane in ('kick', 'hats', 'bass', 'accents'):
+                                    self.assertIn(lane, s['lanes'])
+                                self.assertEqual(v == 'vox', 'vox' in s['lanes'])
 
     def test_the_drop_is_not_the_groove(self):
         """Audit B, headline 1: the drop's first line differs from the groove's last line beyond the drums: the lead,
-        the vox or the accents change; drop 2 plays a bassline other than the switch-up's (cross-kit issue 4)."""
+        the vox or the accents change; in the form a kit plays (its own, else its genre's), drop 2 plays a bassline
+        other than the switch-up's (cross-kit issue 4: a kit picks its switch-up's and drop 2's basslines for the form
+        it plays)."""
         for kit in KITS:
-            R, tracks, _ = whole(kit, 'vox')
-            groove = next((s for s in R['sections'] if s['kind'] == 'groove'), None)
-            drop = next((s for s in R['sections'] if s['kind'] == 'drop'), None)
-            if groove is None or drop is None:
-                continue
-            g0 = (groove['lines'][-1]['start_bar'] - 1) * BAR
-            d0 = (drop['start_bar'] - 1) * BAR
-            changed = []
-            for lane in ('lead', 'vox', 'accents'):
-                a = [(on - g0, key) for on, key, _ in lane_ons(kit, tracks, lane, g0, g0 + 8 * BAR)]
-                b = [(on - d0, key) for on, key, _ in lane_ons(kit, tracks, lane, d0, d0 + 8 * BAR)]
-                if a != b:
-                    changed.append(lane)
-            self.assertTrue(changed, kit)
-            secs = {s['kind']: s for s in R['sections']}
-            if 'switch' in secs:
-                self.assertNotEqual({ln.get('bass') for ln in secs['switch']['lines'] if ln.get('bass')},
-                                    {ln.get('bass') for ln in secs['drop2']['lines'] if ln.get('bass')}, kit)
+            for form in forms(kit):
+                R, tracks, _ = form_whole(kit, form, 'vox')
+                groove = next((s for s in R['sections'] if s['kind'] == 'groove'), None)
+                drop = next((s for s in R['sections'] if s['kind'] == 'drop'), None)
+                if groove is None or drop is None:
+                    continue
+                g0 = (groove['lines'][-1]['start_bar'] - 1) * BAR
+                d0 = (drop['start_bar'] - 1) * BAR
+                changed = []
+                for lane in ('lead', 'vox', 'accents'):
+                    a = [(on - g0, key) for on, key, _ in lane_ons(kit, tracks, lane, g0, g0 + 8 * BAR)]
+                    b = [(on - d0, key) for on, key, _ in lane_ons(kit, tracks, lane, d0, d0 + 8 * BAR)]
+                    if a != b:
+                        changed.append(lane)
+                self.assertTrue(changed, (kit, form))
+                secs = {s['kind']: s for s in R['sections']}
+                if 'switch' in secs and form == forms(kit)[0]:
+                    self.assertNotEqual({ln.get('bass') for ln in secs['switch']['lines'] if ln.get('bass')},
+                                        {ln.get('bass') for ln in secs['drop2']['lines'] if ln.get('bass')},
+                                        (kit, form))
 
     def test_the_cues_have_their_notes(self):
         """Every Vox cue has vox notes in its line in the vox file and none in the no-vox file; every Riser cue an
-        FX note ending on the next section's first beat; every Fill cue an FX note ending on the next downbeat."""
+        FX note ending on the next section's first beat; every Fill cue its fill's note (FX, or the line's own fill
+        sound) ending on the next downbeat. The genres' default forms have risers."""
         for kit in KITS:
-            for v in VARIANTS:
-                R, tracks, conductor = whole(kit, v)
-                starts = {(s['start_bar'] - 1) * BAR for s in R['sections']}
-                fx = tracks.get('FX', {'notes': []})['notes']
-                cues = [(t, b.decode()) for t, k, b in conductor['meta'] if k == CUE]
-                self.assertEqual([((c['bar'] - 1) * BAR, c['cue']) for s in R['sections'] for c in s['cues']], cues)
-                self.assertTrue(any(c == 'Riser' for _, c in cues))
-                for t, c in cues:
-                    with self.subTest(kit=kit, variant=v, cue=c, bar=t // BAR + 1):
-                        self.assertEqual(0, t % BAR)
-                        if c == 'Vox':
-                            got = [n for n in tracks.get('Vox', {'notes': []})['notes'] if t <= n[0] < t + 8 * BAR]
-                            self.assertEqual(v == 'vox', bool(got))
-                        if c == 'Riser':
-                            self.assertIn(t + 8 * BAR, starts)
-                            self.assertTrue([n for n in fx if n[1] == t + 8 * BAR and n[1] - n[0] >= 4 * BAR])
-                        if c == 'Fill':
-                            self.assertTrue([n for n in fx if n[1] == t + BAR and n[0] >= t])
+            for form in forms(kit):
+                for v in VARIANTS:
+                    R, tracks, conductor = form_whole(kit, form, v)
+                    starts = {(s['start_bar'] - 1) * BAR for s in R['sections']}
+                    fx = tracks.get('FX', {'notes': []})['notes']
+                    lines = {ln['start_bar']: ln for s in R['sections'] for ln in s['lines']}
+                    cues = [(t, b.decode()) for t, k, b in conductor['meta'] if k == CUE]
+                    self.assertEqual([((c['bar'] - 1) * BAR, c['cue']) for s in R['sections'] for c in s['cues']],
+                                     cues)
+                    if form == 'genre':
+                        self.assertTrue(any(c == 'Riser' for _, c in cues))
+                    for t, c in cues:
+                        with self.subTest(kit=kit, form=form, variant=v, cue=c, bar=t // BAR + 1):
+                            self.assertEqual(0, t % BAR)
+                            if c == 'Vox':
+                                got = [n for n in tracks.get('Vox', {'notes': []})['notes'] if t <= n[0] < t + 8 * BAR]
+                                self.assertEqual(v == 'vox', bool(got))
+                            if c == 'Riser':
+                                self.assertIn(t + 8 * BAR, starts)
+                                self.assertTrue([n for n in fx if n[1] == t + 8 * BAR and n[1] - n[0] >= 4 * BAR])
+                            if c == 'Fill':
+                                self.assertTrue(fill_notes(kit, tracks, lines[t // BAR + 1 - 7]))
 
     def test_the_builds_roll_up_to_the_fill(self):
-        """A build's roll: its last hit falls before its fill starts, inside the fill's bar or the bar before, its
-        velocities rise hit by hit. In the default forms the kick sits the roll out in sci-fi club and plays on in
-        house, techno and UK garage."""
+        """A roll, in any form: where its line ends on a fill, its last hit falls before the fill starts, inside the
+        fill's bar or the bar before; its velocities rise hit by hit. The genres' default forms roll in their build's
+        last line up to its fill, the kick sitting the roll out in sci-fi club and playing on in house, techno and UK
+        garage."""
         for kit in KITS:
             K = kits.load(kit)
-            R, tracks, _ = whole(kit, 'vox')
-            build = next(s for s in R['sections'] if s['kind'] == 'build')
-            ln = build['lines'][-1]
-            lo = (ln['start_bar'] - 1) * BAR
-            fills = [n for n in tracks['FX']['notes'] if n[1] == lo + 8 * BAR and n[0] >= lo + 7 * BAR]
-            roll = ln['roll']
-            hits = lane_ons(kit, tracks, roll, lo, lo + 8 * BAR)
-            rolled = [h for h in hits if h[0] >= lo + (8 - ln['roll_bars']) * BAR]
-            with self.subTest(kit=kit):
-                self.assertTrue(fills)
-                fill_on = min(n[0] for n in fills)
-                self.assertLess(max(h[0] for h in rolled), fill_on)
-                self.assertGreaterEqual(max(h[0] for h in rolled), fill_on - BAR)
-                vels = [vel for _, _, vel in rolled]
-                self.assertEqual(sorted(vels), vels)
-                self.assertGreater(vels[-1], vels[0])
-                if not own_form(kit):           # the default builds: the kick sits the roll out in sci-fi club only
-                    kick = lane_ons(kit, tracks, 'kick', lo, lo + 7 * BAR)
-                    self.assertEqual(K.DIRECTION == 'sci-fi club', not kick)
+            for form in forms(kit):
+                R, tracks, _ = form_whole(kit, form, 'vox')
+                rolls = [ln for s in R['sections'] for ln in s['lines'] if ln.get('roll')]
+                build = next((s for s in R['sections'] if s['kind'] == 'build'), None)
+                if form == 'genre':
+                    self.assertIn(build['lines'][-1], rolls, kit)
+                    self.assertEqual('fill', build['lines'][-1].get('end'), kit)
+                for ln in rolls:
+                    lo = (ln['start_bar'] - 1) * BAR
+                    hits = lane_ons(kit, tracks, ln['roll'], lo, lo + 8 * BAR)
+                    rolled = [h for h in hits if h[0] >= lo + (8 - ln['roll_bars']) * BAR]
+                    with self.subTest(kit=kit, form=form, bar=ln['start_bar']):
+                        if ln.get('end') == 'fill':
+                            fills = fill_notes(kit, tracks, ln)
+                            self.assertTrue(fills)
+                            fill_on = min(n[0] for n in fills)
+                            self.assertLess(max(h[0] for h in rolled), fill_on)
+                            self.assertGreaterEqual(max(h[0] for h in rolled), fill_on - BAR)
+                        vels = [vel for _, _, vel in rolled]
+                        self.assertEqual(sorted(vels), vels)
+                        self.assertGreater(vels[-1], vels[0])
+                        if form == 'genre' and ln == build['lines'][-1]:
+                            kick = lane_ons(kit, tracks, 'kick', lo, lo + 7 * BAR)
+                            self.assertEqual(K.DIRECTION == 'sci-fi club', not kick)
 
     def test_busy_hats_are_busier(self):
         """A busy line plays the kit's own busy pattern, or a hat on every 16th its full hats leave empty, at a
         velocity of 0.35 or more (audit B: FUT01's v1 'busy' added nothing, the others one ghost a bar at 0.2)."""
         for kit in KITS:
-            R, tracks, _ = whole(kit, 'vox')
             k = Mi.kit_of(kit)
-            busy = [ln for s in R['sections'] for ln in s['lines'] if ln.get('hats') == 'busy']
             authored = k.P['drums'].get('busy')
-            for ln in busy:
-                lo = (ln['start_bar'] - 1) * BAR
-                for b in range(7):
-                    hats = lane_ons(kit, tracks, 'hats', lo + b * BAR, lo + (b + 1) * BAR)
-                    with self.subTest(kit=kit, bar=ln['start_bar'] + b):
-                        steps = {round((on - lo - b * BAR - (late(kit) if on % 480 else 0)) / 240)
-                                 for on, _, _ in hats}
-                        if authored:
-                            self.assertLessEqual({round(n[0]) % 16 for n in authored}, steps)
-                        else:
-                            self.assertEqual(set(range(16)), steps)
-                            full = {round(n.step) % 16 for n in k.drums('hats', 'groove') if n.step // 16 == b % 4}
-                            added = [vel for on, _, vel in hats if round((on - lo - b * BAR
-                                                                          - (late(kit) if on % 480 else 0)) / 240)
-                                     not in full]
-                            self.assertGreaterEqual(min(added, default=127), 44)
+            for form in forms(kit):
+                R, tracks, _ = form_whole(kit, form, 'vox')
+                busy = [ln for s in R['sections'] for ln in s['lines'] if ln.get('hats') == 'busy']
+                for ln in busy:
+                    lo = (ln['start_bar'] - 1) * BAR
+                    for b in range(7):
+                        hats = lane_ons(kit, tracks, 'hats', lo + b * BAR, lo + (b + 1) * BAR)
+                        with self.subTest(kit=kit, form=form, bar=ln['start_bar'] + b):
+                            steps = {round((on - lo - b * BAR - (late(kit) if on % 480 else 0)) / 240)
+                                     for on, _, _ in hats}
+                            if authored:
+                                self.assertLessEqual({round(n[0]) % 16 for n in authored}, steps)
+                            else:
+                                self.assertEqual(set(range(16)), steps)
+                                full = {round(n.step) % 16 for n in k.drums('hats', 'groove')
+                                        if n.step // 16 == b % 4}
+                                added = [vel for on, _, vel in hats if round((on - lo - b * BAR
+                                                                              - (late(kit) if on % 480 else 0)) / 240)
+                                         not in full]
+                                self.assertGreaterEqual(min(added, default=127), 44)
 
     def test_the_turnarounds_change_the_lines_last_bar(self):
         for kit in KITS:
-            R, tracks, _ = whole(kit, 'vox')
-            turns = [ln for s in R['sections'] for ln in s['lines'] if ln.get('end') == 'turn']
-            for ln in turns:
-                lo = (ln['start_bar'] - 1) * BAR
-                drums = lambda a, b: sorted((on - a, key) for lane in CH.DRUM_LANES  # noqa: E731
-                                            for on, key, _ in lane_ons(kit, tracks, lane, a, b))
-                self.assertNotEqual(drums(lo + 5 * BAR, lo + 6 * BAR), drums(lo + 7 * BAR, lo + 8 * BAR),
-                                    (kit, ln['start_bar']))
+            for form in forms(kit):
+                R, tracks, _ = form_whole(kit, form, 'vox')
+                turns = [ln for s in R['sections'] for ln in s['lines'] if ln.get('end') == 'turn']
+                for ln in turns:
+                    lo = (ln['start_bar'] - 1) * BAR
+                    drums = lambda a, b: sorted((on - a, key) for lane in CH.DRUM_LANES  # noqa: E731
+                                                for on, key, _ in lane_ons(kit, tracks, lane, a, b))
+                    self.assertNotEqual(drums(lo + 5 * BAR, lo + 6 * BAR), drums(lo + 7 * BAR, lo + 8 * BAR),
+                                        (kit, form, ln['start_bar']))
 
     def test_the_mixes_differ_only_where_they_should(self):
         """The vox and no-vox mixes differ only in Vox, Accents (and their throws) and the chord stabs the no-vox
         accents take over (PARTS['loop']['stab_drop'], only in the blocks those accents play)."""
         for kit in KITS:
-            Ra, a, _ = whole(kit, 'vox')
-            Rb, b, _ = whole(kit, 'novox')
             drop = {at(kit, st) for st in Mi.kit_of(kit).P['loop'].get('stab_drop', {}).get('novox', ())}
-            with self.subTest(kit=kit):
-                self.assertEqual(set(a) - {'Vox'}, set(b))
-                for name in b:
-                    if name == 'Accents':
-                        continue
-                    if name in ('Chords', 'Chord voicing'):
-                        extra = [n for n in a[name]['notes'] if n not in b[name]['notes']]
-                        self.assertLessEqual({n[0] % (4 * BAR) for n in extra}, drop)
-                        self.assertFalse([n for n in b[name]['notes'] if n not in a[name]['notes']])
-                        continue
-                    self.assertEqual(a[name]['notes'], b[name]['notes'], name)
+            for form in forms(kit):
+                Ra, a, _ = form_whole(kit, form, 'vox')
+                Rb, b, _ = form_whole(kit, form, 'novox')
+                with self.subTest(kit=kit, form=form):
+                    self.assertEqual(set(a) - {'Vox'}, set(b))
+                    for name in b:
+                        if name == 'Accents':
+                            continue
+                        if name in ('Chords', 'Chord voicing'):
+                            extra = [n for n in a[name]['notes'] if n not in b[name]['notes']]
+                            self.assertLessEqual({n[0] % (4 * BAR) for n in extra}, drop)
+                            self.assertFalse([n for n in b[name]['notes'] if n not in a[name]['notes']])
+                            continue
+                        self.assertEqual(a[name]['notes'], b[name]['notes'], name)
 
     def test_regions_json_lists_the_lanes_and_the_tracks(self):
         for kit in KITS:
@@ -1057,13 +1091,13 @@ class TestLineRules(unittest.TestCase):
 
     def test_the_kit_readme_names_its_own_form(self):
         """The kit README says the extended mix is in the kit's own form when PARTS['form'] is set, else in its
-        genre's."""
+        genre's (FUT01 with a scratch form, and with its form taken out)."""
         k = Mi.kit_of('FUT01')
-        scratch = Mi.Kit('FUT01', k.K, {**k.P, 'form': (Mi.section('Drop', 'drop', (Mi.line(Mi.GROOVE),) * 4),)},
-                         items=k.items)
+        own = Mi.Kit('FUT01', k.K, {**k.P, 'form': (Mi.section('Drop', 'drop', (Mi.line(Mi.GROOVE),) * 4),)},
+                     items=k.items)
         flat = lambda text: ' '.join(text.split())  # noqa: E731   (the README wraps its lines)
-        self.assertIn("a 32-bar mix in the kit's own form", flat(Mi.files_of(scratch)['README.md'].decode()))
-        self.assertIn("a 224-bar mix in the genre's form", flat(kit_files('FUT01')['README.md'].decode()))
+        self.assertIn("a 32-bar mix in the kit's own form", flat(Mi.files_of(own)['README.md'].decode()))
+        self.assertIn("a 224-bar mix in the genre's form", flat(Mi.files_of(genre_kit('FUT01'))['README.md'].decode()))
 
     def test_a_ride_on_points(self):
         """ride={track: ('points', ((bar, value), ...))}: breakpoints over the line (bars 0-8) joined linearly, held
