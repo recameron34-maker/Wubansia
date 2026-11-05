@@ -5,6 +5,7 @@
 #include "alloc_counter.h"
 #include "mix_harness.h"
 
+#include "kit/manifest.h"
 #include "mix/channel.h"
 #include "mix/graph.h"
 #include "mix/inserts.h"
@@ -15,8 +16,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
 #include <functional>
+#include <iterator>
 #include <random>
+#include <sstream>
+#include <string>
 #include <vector>
 
 using namespace wubansia::engine;
@@ -417,4 +424,134 @@ TEST_CASE ("mixer: the meters show each lane's post-fader peak and the club mast
     CHECK (std::abs (m.lanePeak[static_cast<std::size_t> (Lane::bass)] - 0.4f) < 0.01f);
     CHECK (m.lanePeak[static_cast<std::size_t> (Lane::vox)] < 1e-9f);
     CHECK (m.gainReduction > 2.0f);
+}
+
+// ------------------------------------------------------------------ the whole chain against engine_ref
+
+namespace
+{
+    std::vector<float> readF32 (const std::string& path)
+    {
+        std::ifstream in (path, std::ios::binary);
+        std::vector<char> bytes { std::istreambuf_iterator<char> (in), std::istreambuf_iterator<char>() };
+        std::vector<float> out (bytes.size() / sizeof (float));
+        std::memcpy (out.data(), bytes.data(), out.size() * sizeof (float));
+        return out;
+    }
+
+    std::string slurp (const std::string& path)
+    {
+        std::ifstream in (path, std::ios::binary);
+        return { std::istreambuf_iterator<char> (in), std::istreambuf_iterator<char>() };
+    }
+}
+
+// Hidden: run with WUBANSIA_WHOLECHAIN_DIR naming a folder of engine_ref's render of one kit's loop (P3's
+// tools/sound/engine_ref.render_mix, master 'lookback', from rest): meta.txt ("loop passes bpm variant channels"
+// and the kit's two manifest paths), dry_<c>.f32 (each channel's dry loop, stereo), keys.txt ("lane sample
+// velocity"), cc.txt ("channel controller value sample ramp"), throw_space.f32 and throw_echo.f32 (the thrown
+// voices' direct sends, mono, the whole stream) and ref.f32 (the aligned output, stereo). The mixer plays the same
+// stream at 48 kHz; its output, latencySamples () later, is compared with the reference's last pass.
+TEST_CASE ("mixer: the whole chain against engine_ref's render of a kit's loop", "[.][wholechain]")
+{
+    const char* dirEnv = std::getenv ("WUBANSIA_WHOLECHAIN_DIR");
+    if (dirEnv == nullptr)
+        return;
+    const std::string dir = std::string (dirEnv) + "/";
+    std::istringstream meta (slurp (dir + "meta.txt"));
+    int loop = 0, passes = 0, channels = 0;
+    double bpm = 0.0;
+    std::string variant, kitPath, mixPath;
+    meta >> loop >> passes >> bpm >> variant >> channels >> kitPath >> mixPath;
+    REQUIRE (loop > 0);
+    const auto km = parseKitManifest (slurp (kitPath));
+    INFO (km.error);
+    REQUIRE (km.ok());
+    const auto mc = parseMixManifest (slurp (mixPath), km.value);
+    INFO (mc.error);
+    REQUIRE (mc.ok());
+    REQUIRE (static_cast<int> (mc.value.channels.size()) == channels);
+
+    std::vector<std::vector<float>> dry;
+    for (int c = 0; c < channels; ++c)
+        dry.push_back (readF32 (dir + "dry_" + std::to_string (c) + ".f32"));
+    const auto throwSpace = readF32 (dir + "throw_space.f32");
+    const auto throwEcho = readF32 (dir + "throw_echo.f32");
+    const auto ref = readF32 (dir + "ref.f32");
+    std::vector<Event> events;
+    {
+        std::istringstream keys (slurp (dir + "keys.txt"));
+        long long at;
+        int lane, velocity;
+        while (keys >> lane >> at >> velocity)
+            events.push_back ({ at, Event::Kind::key, lane, velocity, 0, 0 });
+        std::istringstream cc (slurp (dir + "cc.txt"));
+        int channel, controller, value, ramp;
+        while (cc >> channel >> controller >> value >> at >> ramp)
+            events.push_back ({ at, Event::Kind::cc, channel, controller, value, ramp });
+        std::stable_sort (events.begin(), events.end(), [] (const Event& a, const Event& b) { return a.time < b.time; });
+    }
+
+    Mixer mixer;
+    mixer.prepare (48000.0, 512, 2);
+    mixer.setConfig (&mc.value);
+    const int latency = mixer.latencySamples();
+    const int total = loop * passes + latency;
+    Controls controls;
+    controls.variant = variant == "novox" ? Variant::novox : Variant::vox;
+    std::vector<float> out (static_cast<std::size_t> (2 * total));
+    std::vector<float> l (512), r (512);
+    float* outs[2] { l.data(), r.data() };
+    std::size_t next = 0;
+    for (int start = 0; start < total; start += 512)
+    {
+        const int n = std::min (512, total - start);
+        mixer.bus().clear (n);
+        mixer.sends().clear (n);
+        for (int i = 0; i < n; ++i)
+        {
+            const int t = start + i;
+            if (t >= loop * passes)
+                continue;
+            const auto k = static_cast<std::size_t> (t % loop);
+            for (int c = 0; c < channels; ++c)
+            {
+                mixer.bus().left (c)[i] = dry[static_cast<std::size_t> (c)][2 * k];
+                mixer.bus().right (c)[i] = dry[static_cast<std::size_t> (c)][2 * k + 1];
+            }
+            mixer.sends().send (Send::space)[i] = throwSpace[static_cast<std::size_t> (t)];
+            mixer.sends().send (Send::echo)[i] = throwEcho[static_cast<std::size_t> (t)];
+        }
+        while (next < events.size() && events[next].time < start + n)
+        {
+            const auto& e = events[next++];
+            const int offset = static_cast<int> (e.time - start);
+            if (e.kind == Event::Kind::key)
+                mixer.keyHit (static_cast<std::uint8_t> (e.a), e.b, offset);
+            else
+                mixer.cc (e.a, e.b, e.c, offset, e.d);
+        }
+        mixer.process (outs, 2, n, controls, bpm);
+        for (int i = 0; i < n; ++i)
+        {
+            out[static_cast<std::size_t> (2 * (start + i))] = l[static_cast<std::size_t> (i)];
+            out[static_cast<std::size_t> (2 * (start + i) + 1)] = r[static_cast<std::size_t> (i)];
+        }
+    }
+
+    // the last pass: the reference at t, the mixer at t + latency
+    double diff = 0.0, energy = 0.0, worst = 0.0;
+    for (int t = loop * (passes - 1); t < loop * passes; ++t)
+        for (int s = 0; s < 2; ++s)
+        {
+            const double want = ref[static_cast<std::size_t> (2 * t + s)];
+            const double got = out[static_cast<std::size_t> (2 * (t + latency) + s)];
+            diff += (got - want) * (got - want);
+            energy += want * want;
+            worst = std::max (worst, std::abs (got - want));
+        }
+    const double residualDb = 10.0 * std::log10 (diff / energy);
+    WARN ("whole chain, last pass: residual " << residualDb << " dB under the loop, largest difference " << worst << " ("
+                                              << 20.0 * std::log10 (worst) << " dBFS)");
+    CHECK (residualDb <= -80.0);
 }

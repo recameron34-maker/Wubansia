@@ -6,6 +6,7 @@
 #include "fx/glue.h"
 #include "fx/limiter.h"
 #include "fx/oversampler_exact.h"
+#include "mix/club_master.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -13,9 +14,13 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <complex>
+#include <cstdint>
 #include <functional>
+#include <utility>
 #include <vector>
 
+using namespace wubansia::engine;
 using namespace wubansia::engine::fx;
 using fxtest::channel;
 using fxtest::load;
@@ -170,4 +175,120 @@ TEST_CASE ("master: the limiter's latency is master.limit_latency's at 48 kHz an
             CHECK (std::equal_to<float> {}(l[at], 0.5f));
             CHECK (std::equal_to<float> {}(r[at], -0.25f));
         }
+}
+
+// ------------------------------------------------------------------ the club master's transparency
+
+namespace
+{
+    void fft (std::vector<std::complex<double>>& a)
+    {
+        const std::size_t n = a.size();
+        for (std::size_t i = 1, j = 0; i < n; ++i)
+        {
+            std::size_t bit = n >> 1;
+            for (; j & bit; bit >>= 1)
+                j ^= bit;
+            j ^= bit;
+            if (i < j)
+                std::swap (a[i], a[j]);
+        }
+        for (std::size_t len = 2; len <= n; len <<= 1)
+        {
+            const double angle = -2.0 * 3.141592653589793 / static_cast<double> (len);
+            const std::complex<double> wl (std::cos (angle), std::sin (angle));
+            for (std::size_t i = 0; i < n; i += len)
+            {
+                std::complex<double> w (1.0, 0.0);
+                for (std::size_t k = 0; k < len / 2; ++k)
+                {
+                    const auto u = a[i + k];
+                    const auto v = a[i + k + len / 2] * w;
+                    a[i + k] = u + v;
+                    a[i + k + len / 2] = u - v;
+                    w *= wl;
+                }
+            }
+        }
+    }
+
+    // qa.harmonic_asr: the energy between the harmonics of f0 against the energy on them, dB (a Blackman-Harris
+    // window; a bin is harmonic within max (8 bins, 0.5 % of k f0) of k f0, at most 0.45 f0; 0.5 f0 to 20 kHz).
+    double harmonicAsr (const std::vector<double>& x, double f0, double fs)
+    {
+        const std::size_t n = x.size();
+        std::vector<std::complex<double>> a (n);
+        constexpr double c0 = 0.35875, c1 = 0.48829, c2 = 0.14128, c3 = 0.01168;
+        for (std::size_t i = 0; i < n; ++i)
+        {
+            const double p = 2.0 * 3.141592653589793 * static_cast<double> (i) / static_cast<double> (n);
+            const double w = c0 - c1 * std::cos (p) + c2 * std::cos (2.0 * p) - c3 * std::cos (3.0 * p);
+            a[i] = x[i] * w;
+        }
+        fft (a);
+        double on = 0.0, off = 0.0;
+        const double binHz = fs / static_cast<double> (n);
+        for (std::size_t b = 1; b < n / 2; ++b)
+        {
+            const double f = static_cast<double> (b) * binHz;
+            if (! (f > 0.5 * f0) || ! (f < 20000.0))
+                continue;
+            bool harmonic = false;
+            for (int k = 1; k <= static_cast<int> (24000.0 / f0) && ! harmonic; ++k)
+                harmonic = std::abs (f - k * f0) <= std::min (std::max (8.0 * binHz, 0.005 * k * f0), 0.45 * f0);
+            (harmonic ? on : off) += std::norm (a[b]);
+        }
+        return 10.0 * std::log10 (off / (on + 1e-30) + 1e-30);
+    }
+}
+
+TEST_CASE ("master: a driven low saw through the club master adds no aliases (master.py's transparency fixture)", "[master]")
+{
+    // test_master.py's test_no_aliasing_on_a_driven_tone, live: an additive saw at 0.5, glued 2.5 dB and driven so its
+    // true peak sits 3 or 6 dB over the limiter's ceiling, through the whole club master. With a 60 ms look-back
+    // window the limiter's gain stepped every few cycles of a low note (55 Hz at 6 dB: -54.8 dB; 110 Hz: -57.2, -58.4
+    // in master.py's fixture); twice the hold back (ADR 0021) keeps the lowest need in view, as master.py's two-sided
+    // hold does
+    const double f0 = GENERATE (55.0, 110.0, 220.0);
+    const double over = GENERATE (3.0, 6.0);
+    CAPTURE (f0, over);
+    const double fs = 48000.0;
+    const auto n = static_cast<std::size_t> (2.5 * fs);
+    std::vector<float> l (n), r (n);
+    const int harmonics = static_cast<int> (20000.0 / f0);
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        const double ph = 2.0 * 3.141592653589793 * f0 * static_cast<double> (i) / fs;
+        double s = 0.0;
+        for (int h = 1; h <= harmonics; ++h)
+            s += std::sin (h * ph) / h;
+        l[i] = r[i] = static_cast<float> (0.5 * s * 2.0 / 3.141592653589793);
+    }
+    const double inPeak = 20.0 * std::log10 (truePeak (l, r));
+    double power = 0.0;
+    for (std::size_t i = 0; i < n; ++i)
+        power += static_cast<double> (l[i]) * l[i];
+    const double level = 10.0 * std::log10 (power / static_cast<double> (n));
+
+    // as master.py's fixture: the glue takes 2.5 dB off the steady tone (5 dB over its threshold at 2:1, past the
+    // 6 dB knee's half), and the drive puts the glued true peak `over` dB above the limiter's ceiling. (Without the
+    // glue, 6 dB on a bare 55 Hz saw leaves -57 dB between the harmonics in master.py's two-sided limiter too.)
+    MasterConfig m;
+    m.glueThresholdMdb = static_cast<std::int32_t> (std::lround ((level - 5.0) * 1000.0));
+    m.driveMdb = static_cast<std::int32_t> (std::lround ((-1.02 + over - (inPeak - 2.5)) * 1000.0));
+    mix::ClubMaster master;
+    master.prepare (fs, 512);
+    Controls controls;
+    master.setup ({ m, m }, controls, 0);
+    for (std::size_t s = 0; s < n; s += 512)
+        master.process (l.data() + s, r.data() + s, static_cast<int> (std::min<std::size_t> (512, n - s)), controls);
+
+    const std::size_t from = static_cast<std::size_t> (fs) / 2, len = 65536; // after the glue and limiter settle
+    std::vector<double> mono (len);
+    for (std::size_t i = 0; i < len; ++i)
+        mono[i] = 0.5 * (static_cast<double> (l[from + i]) + r[from + i]);
+    const double asr = harmonicAsr (mono, f0, fs);
+    INFO ("between the harmonics " << asr << " dB; drive " << m.driveMdb / 1000.0 << " dB");
+    CHECK (asr <= -60.0);
+    CHECK (master.gainReductionDb() > 2.5); // the glue's 2.5 dB and the limiter's share of the rest
 }
