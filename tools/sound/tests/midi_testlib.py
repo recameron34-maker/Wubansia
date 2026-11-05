@@ -159,18 +159,26 @@ def at(kit, step):
 
 
 def v127(v, layers=None):
-    """A velocity 0-1 as written: round(v x 127), unless that picks another layer than v does (the recipe takes the
-    louder layer on a tie), then the integer nearest v x 127 that picks v's layer."""
+    """A recipe's velocity 0-1 as written: round(v x 127), unless the engine's integer rule (int_layer) or the float
+    rule on velocity / 127 (nearest) would play another layer than the recipe picks from v; then the integer nearest
+    v x 127 (the lower on a tie) that both rules play on the recipe's layer."""
     vel = max(1, min(127, round(v * 127)))
-    if not layers or nearest(layers, vel / 127) == nearest(layers, v):
+    if not layers:
         return vel
-    ok = [c for c in range(1, 128) if nearest(layers, c / 127) == nearest(layers, v)]
-    return min(ok, key=lambda c: (abs(c - v * 127), c))
+    want = nearest(layers, v)
+    ok = [c for c in range(1, 128) if int_layer(layers, c) == want and nearest(layers, c / 127) == want]
+    return vel if vel in ok else min(ok, key=lambda c: (abs(c - v * 127), c))
 
 
 def nearest(layers, v):
-    """The layer the recipes pick for a velocity: the nearest, the louder on a tie (phrase.hits_lane)."""
+    """The layer the recipes pick for a velocity 0-1: the nearest, the louder on a tie (phrase.hits_lane)."""
     return min(range(len(layers)), key=lambda i: (abs(layers[i] - v), -i))
+
+
+def int_layer(layers, c):
+    """The layer Wubansia's sampler plays for a MIDI velocity c (the engine's integer rule): the one whose
+    round(layer x 127) (half up) is nearest c, the louder on a tie."""
+    return min(range(len(layers)), key=lambda i: (abs(c - math.floor(layers[i] * 127 + 0.5)), -i))
 
 
 def layers_of(kit, name):
@@ -218,8 +226,9 @@ class LoopCase:
                             self.assertEqual(off, n[1], (on, key))
 
     def test_velocities_pick_the_recipes_layers(self):
-        """Every Loop file velocity picks the layer the recipe picks from its own velocity (the nearest layer, the
-        louder on a tie), on the r5 Items; one-shots placed by layer carry round(layer x 127)."""
+        """Every Loop file velocity plays, under the engine's integer rule (the layer whose round(layer x 127) is
+        nearest, the louder on a tie), the layer the recipe picks from its own velocity (the nearest layer, the louder
+        on a tie), on the r5 Items; one-shots placed by layer carry round(layer x 127)."""
         kit, k = self.KIT, Mi.kit_of(self.KIT)
         for v in VARIANTS:
             got = loop(kit, v)
@@ -230,6 +239,7 @@ class LoopCase:
                         continue
                     with self.subTest(variant=v, track=name, on=on, key=key):
                         layers = k.layers(ch, key)
+                        self.assertEqual(nearest(layers, want), int_layer(layers, vel))
                         self.assertEqual(nearest(layers, want), nearest(layers, vel / 127))
 
 
