@@ -28,8 +28,9 @@ MAX_FRAMES = 28_800_000        # docs/plugin/manifest.md: files[].frames is 1 to
 KIT_ID = re.compile(r'[A-Z]{3}[0-9]{2}\Z')
 SHA256_HEX = re.compile(r'[0-9a-f]{64}\Z')
 SUMS_LINE = re.compile(r'([0-9a-f]{64})  (.+)\Z', re.DOTALL)
-LFS_PREFIXES = (b'version https://git-lfs.github.com/spec/', b'version https://hawser.github.com/spec/')
+LFS_PREFIXES = (b'version https://git-lfs.github.com/spec/v1', b'version https://hawser.github.com/spec/v1')
 LFS_POINTER_MAX = 1024         # Git LFS pointer files are smaller than this
+LFS_OID = re.compile(rb'^oid sha256:([0-9a-f]{64})$', re.M)
 
 # How to get the samples into a clone: what an LFS pointer's message points at.
 LFS_HINT = "in the clone, run: git lfs install && git lfs pull --include 'content/samples/**'"
@@ -77,20 +78,28 @@ class WavInfo(NamedTuple):
 # ------------------------------------------------------------------ paths
 
 def check_path(path):
-    """None when path is a kit file path these tools take (docs/plugin/manifest.md 2.2, and what a SHA256SUMS line can
-    carry), else why not."""
+    """None when path is a kit file path the plugin takes, else why not. This is P4's contentPathProblem
+    (engine/kit/file_sample_source.cpp) rule for rule: relative, '/'-separated, ending .wav, no empty, "." or ".."
+    part, and no control character, '\\' or ':', which would leave the kit's folder on Windows ("C:/x.wav" is
+    absolute there, "D:x.wav" names another drive). SHA256SUMS lines and kit.json files[] both follow it."""
     if not isinstance(path, str) or not path:
-        return 'no path'
-    if any(ord(c) < 0x20 or ord(c) == 0x7f for c in path):
-        return f'{path!r} has a control character'
-    if '\\' in path:
-        return f'{path!r} has a backslash'
+        return 'is empty'
+    for c in path:
+        if ord(c) < 0x20 or ord(c) == 0x7f:
+            return f'{path!r} holds a control character'
+        if c == '\\':
+            return f"{path!r} holds '\\': kit paths are '/'-separated"
+        if c == ':':
+            return f"{path!r} holds ':'"
     if path.startswith('/'):
-        return f'{path!r} starts with /'
-    if any(part in ('', '.', '..') for part in path.split('/')):
-        return f'{path!r} has an empty, "." or ".." part'
+        return f"{path!r} starts with '/': kit paths are relative to the kit's folder"
     if not path.endswith('.wav'):
-        return f'{path!r} is not a .wav file'
+        return f"{path!r} doesn't end in .wav"
+    for part in path.split('/'):
+        if part == '':
+            return f'{path!r} has an empty part'
+        if part in ('.', '..'):
+            return f'{path!r} has a "{part}" part'
     return None
 
 
@@ -247,7 +256,8 @@ def sha256_file(path):
 
 
 def is_lfs_pointer_bytes(data):
-    return len(data) <= LFS_POINTER_MAX and data.startswith(LFS_PREFIXES)
+    """Whether data starts like a Git LFS pointer, as P4's isLfsPointer reads one."""
+    return data.startswith(LFS_PREFIXES)
 
 
 def is_lfs_pointer(path):
@@ -260,35 +270,87 @@ def is_lfs_pointer(path):
     return is_lfs_pointer_bytes(head)
 
 
+def lfs_oid(data):
+    """The SHA-256 a Git LFS pointer names (its oid), or None when data isn't a pointer with one."""
+    if not is_lfs_pointer_bytes(data) or len(data) > LFS_POINTER_MAX:
+        return None
+    m = LFS_OID.search(data)
+    return m.group(1).decode() if m else None
+
+
+TAG_PCM, TAG_FLOAT, TAG_EXTENSIBLE = 1, 3, 0xFFFE
+SUBFORMAT_TAIL = bytes.fromhex('000010008000' '00aa00389b71')  # KSDATAFORMAT_SUBTYPE_PCM/IEEE_FLOAT after the code
+TAKES = 'the reader takes 16- and 24-bit PCM and 32-bit float'
+
+
 def wav_info_bytes(data):
-    """The header facts of a RIFF WAVE file in data: 16/24-bit PCM or 32-bit float, WAVE_FORMAT_EXTENSIBLE too.
-    Raises WavError for anything else, or a data chunk the file doesn't hold."""
-    if len(data) < 12 or data[:4] != b'RIFF' or data[8:12] != b'WAVE':
+    """The header facts of the WAV file in data, taking exactly what P4's readWav takes (engine/kit/wav_reader.cpp):
+    RIFF WAVE with a fmt chunk of 16 bytes or more and a data chunk, in either order; 16- or 24-bit PCM or 32-bit
+    float, mono or stereo, a block of channels x bytes; WAVE_FORMAT_EXTENSIBLE in 40 bytes or more, with the PCM or
+    float GUID and no more valid bits than bits; a data chunk the file holds, of whole frames. Raises WavError for
+    anything else. The rate is the caller's to check."""
+    if not data:
+        raise WavError('the file is empty')
+    if data.startswith(b'RIFX'):
+        raise WavError('a big-endian RIFX file; the content is little-endian RIFF WAVE')
+    if data.startswith((b'RF64', b'BW64')):
+        raise WavError('an RF64 file (a WAV over 4 GB); the content is plain RIFF WAVE')
+    if not data.startswith(b'RIFF'):
         raise WavError('not a RIFF WAVE file')
-    pos, fmt = 12, None
-    while pos + 8 <= len(data):
+    if len(data) < 12:
+        raise WavError('the file ends inside its RIFF header')
+    if data[8:12] != b'WAVE':
+        raise WavError(f'a RIFF {data[8:12]!r} file, not RIFF WAVE')
+    fmt, data_at, data_size = None, None, 0
+    pos = 12
+    while pos + 8 <= len(data) and not (fmt and data_at is not None):
         cid, size = data[pos:pos + 4], struct.unpack_from('<I', data, pos + 4)[0]
         body = pos + 8
+        fits = size <= len(data) - body
         if cid == b'fmt ':
-            if size < 16 or body + size > len(data):
-                raise WavError('a short fmt chunk')
+            if not fits:
+                raise WavError('the file ends inside its fmt chunk')
+            if size < 16:
+                raise WavError(f"the fmt chunk is {size} bytes; a WAV's has at least 16")
             tag, channels, rate, _, block, bits = struct.unpack_from('<HHIIHH', data, body)
-            if tag == 0xFFFE and size >= 40:
-                tag = struct.unpack_from('<H', data, body + 24)[0]  # the sub-format GUID's first two bytes
-            if tag not in (1, 3) or channels < 1 or rate < 1 or bits % 8 or block != channels * bits // 8:
-                raise WavError(f'format {tag}, {channels} channels, {bits} bits: not PCM or float the plugin reads')
+            if tag == TAG_EXTENSIBLE:
+                if size < 40:
+                    raise WavError(f'the extensible fmt chunk is {size} bytes; WAVE_FORMAT_EXTENSIBLE needs 40')
+                valid_bits = struct.unpack_from('<H', data, body + 18)[0]
+                code = struct.unpack_from('<I', data, body + 24)[0]
+                if data[body + 28:body + 40] != SUBFORMAT_TAIL or code not in (TAG_PCM, TAG_FLOAT):
+                    raise WavError(f'a WAVE_FORMAT_EXTENSIBLE file of another subformat; {TAKES}')
+                if valid_bits > bits:
+                    raise WavError(f'{valid_bits} valid bits in {bits}-bit samples')
+                tag = code
+            if tag not in (TAG_PCM, TAG_FLOAT):
+                raise WavError(f'format tag {tag}; {TAKES}')
+            if not 1 <= channels <= 2:
+                raise WavError(f'{channels} channels; a content file is mono or stereo')
+            if tag == TAG_PCM and bits not in (16, 24):
+                raise WavError(f'{bits}-bit PCM; {TAKES}')
+            if tag == TAG_FLOAT and bits != 32:
+                raise WavError(f'{bits}-bit float; {TAKES}')
+            if block != channels * bits // 8:
+                raise WavError(f'a block align of {block} bytes, not {channels} channels of {bits // 8} bytes')
             fmt = (tag, channels, rate, bits, block)
         elif cid == b'data':
-            if fmt is None:
-                raise WavError('a data chunk before the fmt chunk')
-            if body + size > len(data):
-                raise WavError(f'the data chunk says {size} bytes, the file has {len(data) - body}')
-            if size % fmt[4]:
-                raise WavError(f'{size} bytes of data is not a whole number of frames')
-            tag, channels, rate, bits, block = fmt
-            return WavInfo(rate, channels, size // block, bits, tag)
+            data_at, data_size = body, size
+            if not fits:
+                break
+        elif not fits:
+            raise WavError(f'the file ends inside its {cid!r} chunk')
         pos = body + size + (size & 1)
-    raise WavError('no data chunk')
+    if data_at is not None and data_size > len(data) - data_at:
+        raise WavError(f'the data chunk holds {data_size} bytes, but the file ends after {len(data) - data_at}')
+    if fmt is None:
+        raise WavError('there is no fmt chunk' if data_at is not None else 'the file ends before its fmt chunk')
+    if data_at is None:
+        raise WavError('the file ends before its data chunk')
+    tag, channels, rate, bits, block = fmt
+    if data_size % block:
+        raise WavError(f"the data chunk's {data_size} bytes aren't whole {block}-byte frames")
+    return WavInfo(rate, channels, data_size // block, bits, tag)
 
 
 def wav_info(path):
