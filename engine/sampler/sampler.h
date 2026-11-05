@@ -28,15 +28,20 @@
 //   part-way in, a shorter one starts late.
 // - Chokes: a note-on of a `chokes` (or `both`) instrument fades every sounding voice of its group's
 //   `choked` (or `both`) instruments over that instrument's fade_us, linear or cos^2, from the note-on.
-// - mono: one held voice per instrument. A note-on while it is held is legato: the voice keeps its zone,
-//   layer and file and moves to the new key's pitch, and its velocity gain to the new note's, along the
-//   glide (a raised cosine over us, or dip_us for NoteOn::dip; an exponential with time constant us; a
-//   straight line over us; none: at once), in semitones. A released voice rings out under the next one.
+//   (FUT02-04's hat lanes do the same; FUT01's choked_lane ends its 5 ms fade on the closed hat, which
+//   would need the next note in advance, so FUT01's open hats ring 5 ms longer here.)
+// - mono: one held voice per instrument and source. A note-on while it is held is legato: the voice
+//   keeps its zone, layer and file and moves to the new key's pitch, and its velocity gain to the new
+//   note's, along the glide (a raised cosine over us, or dip_us for NoteOn::dip; an exponential with time
+//   constant us; a straight line over us; none: at once), in semitones. A released voice rings out under
+//   the next one.
 // - restrike_continues: a note-on on the very sample its own voice was released (the note before ended
 //   there), with startFrame 0, takes the voice back instead of starting another: no new attack.
 // - layered_with: every note-on also starts the layered instrument on the same key, released with it.
-// - 64 voices. A note-on with none free steals the oldest released voice (by start), else the quietest,
-//   which fades out over 2 ms in a slot of its own while the new note starts at once.
+// - Chase (NoteOn::startFrame): the voice starts where its note is now, fading in over at least 5 ms.
+// - 64 voices. A note-on with none free steals the oldest released voice (by start; released: its key is
+//   up or it is fading out), else the quietest, which fades out over 2 ms in a slot of its own while the
+//   new note starts at once.
 // - Reads never leave the file: frames before 0 or past the end read as silence (Hermite: the
 //   recipe's edge, the first frame, before 0). Mono files feed both sides at unity.
 // - Interpolation: a copy where the voice's ratio is exactly 1; the 16-tap polyphase sinc
@@ -151,6 +156,10 @@ namespace wubansia::engine
 
         // Events dropped because the queue was full, since prepare ().
         int droppedEvents() const noexcept;
+
+        // A bit per Lane (laneBit) for each phrase lane playing its recording now: a busy phrase voice that
+        // isn't stopping (Telemetry::phraseRecorded). After the last render ().
+        std::uint32_t phraseLanes() const noexcept;
 
     private:
         struct Impl;
