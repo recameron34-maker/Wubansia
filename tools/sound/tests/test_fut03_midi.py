@@ -64,9 +64,12 @@ class TestParts(unittest.TestCase):
         self.assertNotIn('Lead', tracks)
 
     def test_no_throws(self):
-        """FUT03's riff throw is baked into its stem: no CC91/CC94."""
+        """FUT03's riff throw is baked into its stem (the riff's last note): no CC91/CC94 in the loops or the extended
+        mixes, whose riffs and answers end on that note."""
         for v in ('vox', 'novox'):
             self.assertFalse([c for t in loop(KIT, v).values() for c in t['ccs'] if c[2] in (91, 94)])
+            _, tracks, _ = whole(KIT, v)
+            self.assertFalse([c for t in tracks.values() for c in t['ccs'] if c[2] in (91, 94)], v)
 
     def test_the_fill_bar_leaves_the_build_fill_its_room(self):
         """Audit A defect 7: at every Fill cue the drums play the kit's FillPreview bar (context.FILL_*): the kick,
@@ -180,7 +183,7 @@ class TestExtendedMix(unittest.TestCase):
         for v in VARIANTS:
             R, notes, _ = mix(v)
             fills = [ln for _, ln, _ in form_lines(R) if ln.get('end') == 'fill']
-            self.assertGreaterEqual(len(fills), 6)
+            self.assertGreaterEqual(len(fills), 4)
             for ln in fills:
                 bar = ln['start_bar'] + 7
                 got = {(st, key) for name in DRUMS for st, key, _ in in_bar(notes.get(name, ()), bar)}
@@ -243,18 +246,22 @@ class TestExtendedMix(unittest.TestCase):
                     self.assertIn(75, vox(d['start_bar']))
 
     def test_the_switch_up_rides_the_rubber_riff_and_drop_2_the_deep_line_and_the_keys_arp(self):
-        """Must-fix 4: the switch-up's bassline is the Rubber riff (the phrase's own notes, every 2 bars), drop 2's the
-        Deep line (both differ from the drop's Rubber line); the keys arp, its 4 bars, plays in drop 2."""
+        """Must-fix 4: the switch-up's bassline is the Rubber riff (the phrase's own notes, bar by bar; it rests under
+        the fill), drop 2's the Deep line (both differ from the drop's Rubber line); the keys arp, its 4 bars, plays in
+        drop 2."""
         R, notes, _ = mix('novox')
         rows = lambda line: sorted((at(KIT, s), key) for s, key, *_ in line)  # noqa: E731
         for kind, want in (('switch', rows(P3.glided(B.PHRASES['Riff']))), ('drop2', rows(P3.glided(B.LINES['Deep']))),
                            ('drop', rows(P3.glided(B.LINES['Rubber'])))):
             sec = section(R, kind)
-            for c in range(sec['bars'] // 2):
-                lo = (sec['start_bar'] - 1 + 2 * c) * BAR
-                with self.subTest(section=sec['name'], bar=sec['start_bar'] + 2 * c):
-                    self.assertEqual(want, sorted((on - lo, key) for on, _, _, key, _ in notes['Bass']
-                                                  if lo <= on < lo + 2 * BAR))
+            fills = {ln['start_bar'] + 7 for ln in sec['lines'] if ln.get('end') == 'fill'}
+            for b in range(sec['bars']):
+                lo = (sec['start_bar'] - 1 + b) * BAR
+                half = (b % 2) * BAR
+                with self.subTest(section=sec['name'], bar=sec['start_bar'] + b):
+                    self.assertEqual([] if sec['start_bar'] + b in fills else
+                                     [(t - half, key) for t, key in want if half <= t < half + BAR],
+                                     sorted((on - lo, key) for on, _, _, key, _ in notes['Bass'] if lo <= on < lo + BAR))
         arp = sorted((at(KIT, s), key) for s, key, _, _ in A.ARP)
         d2 = section(R, 'drop2')
         blocks = [sorted((on - lo, key) for on, _, _, key, _ in notes['Lead'] if lo <= on < lo + 4 * BAR)
@@ -323,8 +330,9 @@ class TestExtendedMix(unittest.TestCase):
                     self.assertTrue([n for n in got if n[3] == BONGO_D5])
 
     def test_a_conga_run_turns_every_line_that_does_not_end_on_a_fill(self):
-        """Must-fix 3: every line with drums ends on a fill, a turnaround or (into the switch-up) the drums out, and
-        every turnaround is the conga run, D4 C4 G3 on 16ths 12-15 of its last bar."""
+        """Must-fix 3: every line with drums ends on a fill, a turnaround or (into a break or the switch-up) the drums
+        out, and every turnaround is the conga run, D4 C4 G3 on 16ths 12-15 of its last bar (the drops keep their rim
+        through it; the lines whose perc is the shaker alone play the run alone)."""
         R, notes, _ = mix('novox')
         turns = 0
         for s, ln, i in form_lines(R):
@@ -335,7 +343,8 @@ class TestExtendedMix(unittest.TestCase):
                 if ln.get('end') == 'turn':
                     turns += 1
                     last = in_bar(notes['Perc'], ln['start_bar'] + 7)
-                    self.assertEqual(CONGA_RUN, {(st, key) for st, key, _ in last if st >= 12 and key != P3.SHAKER})
+                    self.assertEqual(CONGA_RUN, {(st, key) for st, key, _ in last
+                                                 if st >= 12 and key not in (P3.SHAKER, RIM)})
         self.assertGreaterEqual(turns, 12)
 
     def test_the_rim_moves_to_the_ands_of_3_and_4_in_the_drops(self):
@@ -383,6 +392,31 @@ class TestExtendedMix(unittest.TestCase):
                 self.assertEqual([], [8 * i + 1 for i in range(1, n) if heads[i] == heads[i - 1]])
                 self.assertGreaterEqual(len({tuple(sigs[8 * i:8 * i + 8]) for i in range(n)}), 24)
                 self.assertEqual([], [8 * i + 1 for i in range(2, n, 2) if texture[i] == texture[i - 1]])
+
+    def test_the_switch_up_has_its_own_ear_candy(self):
+        """The switch-up's ear candy is its own, dry: a Gm7 organ hit on the 'and' of 4 every 4 bars (132, 136, 140),
+        none of the loop's accents; the noise sweep up into break 2."""
+        keys = {a.item: 48 + i for i, a in enumerate(P3.PARTS['accents'])}     # channel 6, one key a sound
+        for v in VARIANTS:
+            R, notes, _ = mix(v)
+            sw = section(R, 'switch')
+            got = in_span(notes['Accents'], sw['start_bar'], sw['bars'])
+            end = (sw['start_bar'] - 1 + sw['bars']) * BAR
+            self.assertEqual([(sw['start_bar'] + b, 14, keys[P3.ORGAN]) for b in (3, 7, 11)],
+                             [(n[0] // BAR + 1, tick_step(KIT, n[0] % BAR), n[3]) for n in got
+                              if n[3] != keys['AccentNoiseSweepUp']], v)
+            self.assertEqual([end], [n[1] for n in got if n[3] == keys['AccentNoiseSweepUp']], v)
+
+    def test_the_phrases_rest_under_the_fill(self):
+        """Where the switch-up's Rubber riff and break 2's keys arp end on a fill, they rest from its first beat: the
+        Build Fill alone in their place, the bass out before break 2 and the arp out before drop 2."""
+        R, notes, _ = mix('novox')
+        for kind, track in (('switch', 'Bass'), ('break', 'Lead')):
+            sec = [s for s in R['sections'] if s['kind'] == kind][-1]
+            last = sec['start_bar'] + sec['bars'] - 1
+            with self.subTest(section=sec['name']):
+                self.assertTrue(in_span(notes[track], last - 1, 1))
+                self.assertFalse(in_span(notes[track], last, 1))
 
     def test_the_keys_thin_where_the_vox_plays(self):
         """Where the vox plays, the keys play at most one bar of each 2-bar cycle (their call, or their answer to the
