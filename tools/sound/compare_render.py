@@ -212,10 +212,9 @@ def ensure(groovecore, kit, renders, root, content=None, fresh=False, log=print,
 
     from tools.sound import plugin_mix as PM
     _, bpm = PM.loop_info(kit)
-    phrases = phrase_channels(kit, root)
     lanes = phrase_lanes(kit, root)
     extra = [multisample_render(taps_of=lanes), bench_render()] + [exact_render(v) for v in VARIANTS]
-    extra += [tempo_render(bpm, t, taps_of=phrases) for t in TEMPO_PCT]
+    extra += [tempo_render(bpm, t, taps_of=lanes) for t in TEMPO_PCT]
     extra += [side_render(sw, 'a' if DEFAULT_SIDE[sw] == 'b' else 'b') for sw in switches(kit, root) if sw != 'bass']
     for r in plan_loops() + extra:
         code, err = one(r)
@@ -731,7 +730,6 @@ def tempo_checks(kit, renders, root=None):
     from tools.sound import plugin_mix as PM
     L, bpm = PM.loop_info(kit)
     kicks = E.full_kicks(kit)
-    phrases = set(phrase_channels(kit, root))
     base = meta_of(wav_path(renders, kit, 'loop_vox_bassb'))
     _, club_item = E.items(kit, 'vox')
     club_ref, club_rep = E.reference(kit, club_item)
@@ -754,17 +752,28 @@ def tempo_checks(kit, renders, root=None):
                          'past 2 %: the phrase lanes play their multisamples'))
         if base is None:
             continue
-        for ch in sorted(phrases):
-            t = load(taps_dir(renders, kit, r.name) / f'{ch}.wav')
-            t0 = load(taps_dir(renders, kit, 'loop_vox_bassb') / f'{ch}.wav')
-            if t is None or t0 is None or rms_db(pass_slice(t0[0], L, 1)) <= SILENT_DB:
+        for lane in phrase_lanes(kit, root):
+            # the lane's channels together: past 2 % its notes play the multisample, which may sit on a sibling channel
+            here, there = lane_sum(renders, kit, r.name, m, lane), lane_sum(renders, kit, 'loop_vox_bassb', base, lane)
+            if here is None or there is None or rms_db(pass_slice(there, L, 1)) <= SILENT_DB:
                 continue
-            here, there = pass_slice(t[0], Lt, 1), pass_slice(t0[0], L, 1)
+            here, there = pass_slice(here, Lt, 1), pass_slice(there, L, 1)
             worst, judged = band_diff(here, there)
-            out.append(Check(kit, 'tempo', f'{pct:+d} %: {ch} (phrase) against itself at the kit tempo',
+            out.append(Check(kit, 'tempo', f'{pct:+d} %: {lane} lane (phrase) against itself at the kit tempo',
                              {'worst_band': worst, 'bands_judged': judged, 'level_db': rms_db(here) - rms_db(there),
                               'clicks': clicks(here, there)}, None, ''))
     return out
+
+
+def lane_sum(renders, kit, name, meta, lane):
+    """A render's taps of every mix channel on a lane, summed; None when none was written."""
+    x = None
+    for c in meta['channels']:
+        if c['lane'] == lane:
+            t = load(taps_dir(renders, kit, name) / f'{c["id"]}.wav')
+            if t is not None:
+                x = t[0] if x is None else x + t[0]
+    return x
 
 
 def clicks(x, ref, margin_db=6.0):
