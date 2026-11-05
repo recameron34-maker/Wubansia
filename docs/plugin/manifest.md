@@ -237,6 +237,7 @@ near the kit's (ADR 0020).
 | `ch` | integer | 1-16 | the MIDI channel whose notes it covers |
 | `ab` | string | `kick`, `bass`, `stab`, or `""` | the switch that chooses the stem; `""` exactly when `stems.b` is −1 |
 | `mix_channel` | string | a `mix.json` channel id | where the stem plays; its lane is `lane` |
+| `gain_mdb` | integer | −60 000 to 24 000 | the stem's own gain, before its mix channel, as instruments have. Every `Loops/` stem has 0; FUT02's derived vox stem is stored 3 dB down and plays with 3000. |
 | `stems` | object | | `{"a": file, "b": file or -1}`: the stem per A/B side |
 | `cycle_16ths` | integer | 16-256, a multiple of 16 | the phrase's length; cycles start every `cycle_16ths` from song 16th 0 |
 | `tolerance_pm` | integer | 0-100 | slices play while abs(host BPM ÷ kit BPM − 1) × 1000 ≤ this (20: 2 %) |
