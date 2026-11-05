@@ -20,8 +20,9 @@ and these lanes are the heart of each loop.
 - **Each kit's `kit.json` is exported** by `tools/sound/plugin_kit.py` from the r5 Items, the round 5 report, the
   WAVs, MIDI v2's PARTS (which Item each channel and key plays) and the phrase tables. Every playing rule (mode,
   envelopes, velocity law, interpolator, glide, chokes, pans, pre-roll) is the rule of the recipe that plays that
-  instrument, cited where it is set. The exporter is deterministic and integer-only, and every string passes the
-  artist and slur denylists. Because `build/` isn't in git, **the committed manifest is the source of truth** for each
+  instrument, cited where it is set. The exporter is deterministic and integer-only, and writes through P0's
+  `tools/sound/plugin_common.py` (the contract's key order and layout, and the artist and slur denylists over every
+  string). Because `build/` isn't in git, **the committed manifest is the source of truth** for each
   file's frames, channels, SHA-256 and loop points; the exporter re-reads them where the WAVs and the report are here.
   Every kit-specific fact (the phrase specs, the derived stems' renders, the playing rules' recipe constants, the lane
   labels, the mix-channel map) lives in the kit's own package, `tools/sound/recipes/<kit>/plugin.py`, read through the
@@ -50,28 +51,40 @@ and these lanes are the heart of each loop.
   - **Tables.** Each phrase lists its stems per A/B side, its cycle (2 or 4 bars from the song's 16th 0) and a slice
     per note, keyed by (16th in the cycle, key). Slices tile the stem, so contiguous slices read on and the lane at the
     kit's tempo is the stem. A slice starts at its onset (`phrase.Grid.at(step)`) less its lead: the note's own
-    pre-roll, or, on a bass line that rests on the kicks, the kick before it. A looped stem's first slice starts on
-    frame 0 and its lead holds the tail wrapped from the stem's end. A slice with no follower fades from its fade frame
-    (the recipe's mute edges: FUT02's glide mute, 5 ms; its arp's rest, 10 ms); a slice that doesn't continue the one
-    before comes in over 3 ms. `holds` gives a slice the notes it already plays (FUT04's ratchet retriggers, FUT03's
-    in-note glides). `ride` gives a stem with a filter ride baked in (FUT04's Ride) the CC74/CC71 values it was
-    rendered with; a cycle plays it only where its own controllers equal them within 1, so an arranged ride plays the
-    multisample through the live filter.
-  - **The proof.** Placed by its table at the Loop files' notes, each stem nulls against the recipe's lane before its
-    inserts at -50 dB or lower, both variants and both bass characters: bit-exact for FUT01's lead and vox, FUT02's
-    arp, FUT03's bass and FUT04's bass and lead; -85/-88 dB for FUT02's bass; -117 dB and -89 dB for the derived vox
-    stems (-118 and -92 dB for the riff-twice stems against the recipe's riff placed twice). Every cycle of the Loop
-    files resolves to slices, and every cycle of the extended mixes but one note (FUT02's call line throws its last
-    note on 16th 62, which no stem has).
+    pre-roll, or, on a bass line that rests on the kicks, the kick before it. A looped stem is read round, modulo its
+    frames: its last slice owns the tail that wraps to the stem's start, ending where the next cycle's slice 0 starts
+    (FUT01's riff: its last chop's release and throw), and slice 0 starts at its own pre-roll, at the stem's end where
+    that is before its cycle (FUT02's riff twice: its first breath). So a fresh entry plays no ghost of a cycle before,
+    and an exit keeps the last note's tail. A slice with no follower fades from its fade frame (the recipe's mute
+    edges: FUT02's glide mute, 5 ms; its arp's rest, 10 ms). A run's first slice comes in over 3 ms through a
+    pre-roll, and over the phrase's `fade_in_us` on an onset: 0.5 ms, so plucks and blips keep their transients, but
+    3 ms for FUT02's arp, its recipe's in-edge after its rest. `throw` is `baked` where the stem has its throw in the
+    audio (FUT01's and FUT03's riffs): the engine sends their notes no live throw. `holds` gives a slice the notes it
+    already plays (FUT04's ratchet retriggers, FUT03's in-note glides). `ride` gives a stem with a filter ride baked
+    in (FUT04's Ride) the CC74/CC71 values it was rendered with; a cycle plays it only where its own controllers equal
+    them within 1, so an arranged ride plays the multisample through the live filter.
+  - **The proof.** Played by the phrase voice's model (`phrase_tables.play`: each slice anchored on its note's onset,
+    runs reading on) at the Loop files' notes, pass after pass from silence, each stem nulls against the recipe's
+    lane before its inserts at -50 dB or lower, one pass at a time (the first from where the voice has come in, the
+    second whole), both variants and both bass characters: bit-exact for FUT01's lead and vox, FUT02's arp, FUT03's
+    bass and FUT04's bass and lead; -85/-88 dB for FUT02's bass; -117 dB for FUT02's derived vox, -125 dB then -89 dB
+    for FUT03's (the second pass has the 3 ms run fade on its first breath); -118 dB, and -124 then -92 dB, for the
+    riff-twice stems against the recipe's riff placed twice. At the kit's tempo and 48 kHz the engine is exact against
+    the model over a loop's first pass, and re-syncs at each cycle wrap after it, because a cycle at the exact tempo
+    isn't a whole number of frames. Every cycle of the Loop files resolves to slices, and every cycle of the extended
+    mixes but one note (FUT02's call line throws its last note on 16th 62, which no stem has).
 
 ## Consequences
 - The plugin plays the round 5 loops' synthesized lanes as recorded at the kit's tempo, and P6's phrase voice and
   matcher have a Python model (`phrase_tables.play`, `resolve`) and these nulls to be proven against.
 - Those lanes change character beyond ±2 % of the kit's tempo, and from MIDI in (the editor shows which source plays).
 - The content gains 14.80 MB of derived stems (8 files); the Loops/ stems the tables use are 10.46 MB.
-- A stem starts on its cycle's 16th 0, so a note there can't have a pre-roll of its own: FUT02's riff-twice stem is
-  wrapped, the first note's 50 ms pre-roll sitting at the stem's end, played when the riff repeats and lost when it
-  enters fresh; its last slice fades before it.
+- A slice's pre-roll can start before its cycle: FUT02's riff-twice slice 0 reads its 50 ms breath from the stem's
+  end in the cycle before, where the timeline places its note from the notes ahead. At the song's 16th 0 there is no
+  cycle before, and the breath is lost.
+- FUT02's vox synth keys the arp's pocket (`duck_key`; P3's two onset ducks on the vox lane, 100 ms early). The
+  timeline makes the duck keys from the notes before it matches phrases, so the riff keys the pocket whether its notes
+  play the stem or the multisample.
 - `content/plugin/README.md` lists the extended mixes' cycles that play the multisample on a phrase lane; a test keeps
   the list current when the MIDI is re-arranged.
 - Whenever samples, recipes or the MIDI change, the manifests, the phrase tables and the content version are
