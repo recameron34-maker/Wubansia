@@ -18,11 +18,11 @@ export.
 | Bars | Section | Kind | Region | Lanes |
 |---|---|---|---|---|
 | 1-32 | Intro | intro | `01_Intro_32bars.mid` | kick, snare, hats, perc |
-| 33-64 | Groove | groove | `02_Groove_32bars.mid` | kick, snare, hats, perc, bass, lead, chords, accents, fx |
+| 33-64 | Groove | groove | `02_Groove_32bars.mid` | kick, snare, hats, perc, bass, lead, accents, fx |
 | 65-80 | Break | break | `03_Break_16bars.mid` | hats, lead, chords, accents, fx |
-| 81-96 | Build | build | `04_Build_16bars.mid` | kick, snare, hats, bass, chords, fx |
+| 81-96 | Build | build | `04_Build_16bars.mid` | kick, snare, hats, bass, lead, chords, fx |
 | 97-128 | Drop | drop | `05_Drop_32bars.mid` | kick, snare, hats, perc, bass, lead, chords, accents, fx |
-| 129-144 | Switch-up | switch | `06_SwitchUp_16bars.mid` | kick, snare, hats, perc, bass, chords, accents, fx |
+| 129-144 | Switch-up | switch | `06_SwitchUp_16bars.mid` | kick, snare, hats, perc, bass, lead, accents |
 | 145-160 | Break 2 | break | `07_Break2_16bars.mid` | hats, lead, chords, accents, fx |
 | 161-192 | Drop 2 | drop2 | `08_Drop2_32bars.mid` | kick, snare, hats, perc, bass, lead, chords, accents, fx |
 | 193-224 | Outro | outro | `09_Outro_32bars.mid` | kick, snare, hats, perc |
@@ -32,68 +32,66 @@ Line by line (bars of the whole mix):
 **1. Intro** (bars 1-32)
 - 1-8: kick
 - 9-16: kick, off-beat hats, perc; a turnaround in its last bar
-- 17-24: kick, clap, hats, perc
-- 25-32: kick, clap, hats, perc; a turnaround in its last bar
+- 17-24: kick, clap, hats, perc; a turnaround in its last bar
+- 25-32: kick, clap, busy hats, perc; a turnaround in its last bar
 
 **2. Groove** (bars 33-64)
-- 33-40: kick, clap, hats, perc, bass (Orbit); a turnaround in its last bar
-- 41-48: kick, clap, hats, perc, bass (Orbit), chords, accents, fx; the fill in its last bar
-- 49-56: kick, clap, hats, perc, bass (Orbit), the lead's call, chords, accents; a turnaround in its last bar
-- 57-64: kick, clap, hats, perc, bass (Orbit), the lead's call, chords, accents, fx; the fill in its last bar
+- 33-40: kick, clap, hats, perc, bass (Orbit), accents; a turnaround in its last bar
+- 41-48: kick, clap, hats, perc, bass (Orbit), the lead's skeleton, accents, fx; the fill in its last bar
+- 49-56: kick, clap, busy hats, perc, bass (Orbit), the lead's skeleton, accents; a turnaround in its last bar
+- 57-64: kick, clap, hats, perc, bass (Orbit), the lead's skeleton, accents, fx; the fill in its last bar
 
 **3. Break** (bars 65-80)
-- 65-72: the lead's call, chords
-- 73-80: off-beat hats, lead, chords, accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
+- 65-72: the lead's call, chords, accents
+- 73-80: off-beat hats, the lead's call, chords, accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **4. Build** (bars 81-96)
-- 81-88: kick, clap, off-beat hats, bass (Orbit), chords; a turnaround in its last bar
-- 89-96: clap, off-beat hats, chords, fx; the clap rolls over the line's last 8 bars up to the fill, rising hit by hit; the fill in its last bar
+- 81-88: kick, clap, off-beat hats, bass (Orbit), lead, chords; a turnaround in its last bar
+- 89-96: clap, hats, lead, chords, fx; the clap rolls over the line's last 8 bars up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 97-128)
-- 97-104: kick, clap, hats, perc, bass (Orbit), lead, chords, accents, fx; a turnaround in its last bar
-- 105-112: kick, clap, hats, perc, bass (Orbit), lead, chords, accents, fx; the fill in its last bar
-- 113-120: kick, clap, busy hats, perc, bass (Orbit), lead, chords, accents; a turnaround in its last bar
-- 121-128: kick, clap, hats, perc, bass (Orbit), lead, chords, accents; the drums out in its last bar
+- 97-104: kick, clap, hats, perc, bass (Orbit), lead, accents, fx; a turnaround in its last bar
+- 105-112: kick, clap, busy hats, perc, bass (Orbit), lead, accents, fx; the fill in its last bar
+- 113-120: kick, clap, hats, perc, bass (Orbit), lead, chords, the laser stab riff; a turnaround in its last bar
+- 121-128: kick, clap, busy hats, perc, bass (Orbit), the lead's skeleton, chords, accents, the laser stab riff; the drums out in its last bar
 
 **6. Switch-up** (bars 129-144)
-- 129-136: kick, clap, busy hats, perc, bass (Relay), accents; a turnaround in its last bar
-- 137-144: kick, clap, busy hats, perc, bass (Relay), chords, accents, fx; the fill in its last bar
+- 129-136: kick, clap, busy hats, perc, bass (Orbit), accents; a turnaround in its last bar
+- 137-144: kick, clap, hats, perc, bass (Orbit), the lead's skeleton, accents; a turnaround in its last bar
 
 **7. Break 2** (bars 145-160)
-- 145-152: the lead's call, chords
-- 153-160: off-beat hats, lead, chords, accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
+- 145-152: off-beat hats, the lead's call, chords, accents
+- 153-160: off-beat hats, chords, accents, fx, the laser stab riff; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **8. Drop 2** (bars 161-192)
-- 161-168: kick, clap, busy hats, perc, bass (Orbit), lead, chords, accents, fx; a turnaround in its last bar
-- 169-176: kick, clap, busy hats, perc, bass (Orbit), lead, chords, accents, fx; the fill in its last bar
-- 177-184: kick, clap, busy hats, perc, bass (Orbit), lead, chords, accents; a turnaround in its last bar
-- 185-192: kick, clap, hats, perc, bass (Orbit), chords, accents, fx; the fill in its last bar
+- 161-168: kick, clap, hats, perc, bass (Relay), accents, fx, the glass melody; a turnaround in its last bar
+- 169-176: kick, clap, busy hats, perc, bass (Relay), the lead's skeleton, accents, fx, the glass melody; the fill in its last bar
+- 177-184: kick, clap, hats, perc, bass (Relay), the lead's call, accents; a turnaround in its last bar
+- 185-192: kick, clap, busy hats, perc, bass (Relay), chords, fx, the laser stab riff; the fill in its last bar
 
 **9. Outro** (bars 193-224)
-- 193-200: kick, clap, hats, perc
+- 193-200: kick, clap, busy hats, perc; a turnaround in its last bar
 - 201-208: kick, clap, hats, perc; a turnaround in its last bar
-- 209-216: kick, off-beat hats, perc
-- 217-224: kick, hats
+- 209-216: kick, hats, perc; a turnaround in its last bar
+- 217-224: kick, off-beat hats
 
 ## The cues
 
 - bar 48: Fill
-- bar 57: Vox
 - bar 64: Fill
 - bar 65: Vox
-- bar 73: Vox
 - bar 80: Fill
 - bar 89: Riser
 - bar 96: Fill
 - bar 97: Vox
 - bar 112: Fill
 - bar 121: Vox
-- bar 144: Fill
 - bar 145: Vox
 - bar 153: Riser
 - bar 160: Fill
 - bar 161: Vox
 - bar 176: Fill
+- bar 177: Vox
 - bar 192: Fill
 
 A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
@@ -115,7 +113,9 @@ has every instrument's zones and every one-key sound's file.
 | Lead | 2 | lead | 69 A4, 72 C5, 74 D5, 76 E5, 77 F5, 79 G5, 81 A5, 84 C6 |
 | Chords | 4 | chords | 50 D3 |
 | Chord voicing | 3 | chords | 50 D3, 57 A3, 60 C4, 65 F4, 69 A4, 76 E5 |
-| Accents | 6 | accents | 48 Laser Chord Stab D4, 49 Laser Chord Stab A#3, 50 Glass Ping, 51 Starfield Sweep, 52 Reverse Chord, 53 Arp Stab, 54 Noise Uplifter |
+| Laser Chord Stab | 12 | chords | 58 A#3, 62 D4 |
+| Accents | 6 | accents | 48 Laser Chord Stab D4, 49 Laser Chord Stab A#3, 50 Glass Ping, 51 Starfield Sweep, 52 Reverse Chord, 53 Arp Stab, 54 Noise Uplifter, 55 Resonant Zap |
+| Glass Ping | 13 | accents | 77 F5, 79 G5, 81 A5, 84 C6, 86 D6, 88 E6, 89 F6 |
 | FX | 7 | fx | 48 Laser Fill, 49 Laser Riser, 50 Sub Drop |
 
 ## On a timeline

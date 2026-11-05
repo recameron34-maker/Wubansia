@@ -15,8 +15,8 @@
   "note_names": "C4 = 60, as the sample names",
   "basslines": {
     "main": "Orbit",
-    "switch": "Relay",
-    "drop2": "Orbit"
+    "switch": "Orbit",
+    "drop2": "Relay"
   },
   "tracks": [
     {
@@ -113,6 +113,15 @@
       }
     },
     {
+      "track": "Laser Chord Stab",
+      "lane": "chords",
+      "channel": 12,
+      "notes": {
+        "58": "A#3",
+        "62": "D4"
+      }
+    },
+    {
       "track": "Accents",
       "lane": "accents",
       "channel": 6,
@@ -123,7 +132,22 @@
         "51": "Starfield Sweep",
         "52": "Reverse Chord",
         "53": "Arp Stab",
-        "54": "Noise Uplifter"
+        "54": "Noise Uplifter",
+        "55": "Resonant Zap"
+      }
+    },
+    {
+      "track": "Glass Ping",
+      "lane": "accents",
+      "channel": 13,
+      "notes": {
+        "77": "F5",
+        "79": "G5",
+        "81": "A5",
+        "84": "C6",
+        "86": "D6",
+        "88": "E6",
+        "89": "F6"
       }
     },
     {
@@ -191,7 +215,8 @@
             "hats",
             "perc"
           ],
-          "hats": "full"
+          "hats": "full",
+          "end": "turn"
         },
         {
           "start_bar": 25,
@@ -202,7 +227,7 @@
             "hats",
             "perc"
           ],
-          "hats": "full",
+          "hats": "busy",
           "end": "turn"
         }
       ],
@@ -222,7 +247,6 @@
         "perc",
         "bass",
         "lead",
-        "chords",
         "accents",
         "fx"
       ],
@@ -235,7 +259,8 @@
             "snare",
             "hats",
             "perc",
-            "bass"
+            "bass",
+            "accents"
           ],
           "hats": "full",
           "bass": "Orbit",
@@ -250,12 +275,13 @@
             "hats",
             "perc",
             "bass",
-            "chords",
+            "lead",
             "accents",
             "fx"
           ],
           "hats": "full",
           "bass": "Orbit",
+          "lead": "skeleton",
           "accents": "alternate",
           "end": "fill"
         },
@@ -269,12 +295,11 @@
             "perc",
             "bass",
             "lead",
-            "chords",
             "accents"
           ],
-          "hats": "full",
+          "hats": "busy",
           "bass": "Orbit",
-          "lead": "call",
+          "lead": "skeleton",
           "accents": "alternate",
           "end": "turn"
         },
@@ -288,14 +313,13 @@
             "perc",
             "bass",
             "lead",
-            "chords",
             "accents",
             "fx"
           ],
           "hats": "full",
           "bass": "Orbit",
-          "lead": "call",
-          "accents": "alternate",
+          "lead": "skeleton",
+          "accents": "loop",
           "end": "fill"
         }
       ],
@@ -303,10 +327,6 @@
         {
           "bar": 48,
           "cue": "Fill"
-        },
-        {
-          "bar": 57,
-          "cue": "Vox"
         },
         {
           "bar": 64,
@@ -334,9 +354,11 @@
           "bars": 8,
           "lanes": [
             "lead",
-            "chords"
+            "chords",
+            "accents"
           ],
-          "lead": "call"
+          "lead": "call",
+          "accents": "loop"
         },
         {
           "start_bar": 73,
@@ -349,7 +371,7 @@
             "fx"
           ],
           "hats": "thin",
-          "lead": "phrase",
+          "lead": "call",
           "rise": {
             "lane": "hats",
             "from_pm": 400,
@@ -362,10 +384,6 @@
       "cues": [
         {
           "bar": 65,
-          "cue": "Vox"
-        },
-        {
-          "bar": 73,
           "cue": "Vox"
         },
         {
@@ -386,6 +404,7 @@
         "snare",
         "hats",
         "bass",
+        "lead",
         "chords",
         "fx"
       ],
@@ -398,10 +417,12 @@
             "snare",
             "hats",
             "bass",
+            "lead",
             "chords"
           ],
           "hats": "thin",
           "bass": "Orbit",
+          "lead": "phrase",
           "end": "turn"
         },
         {
@@ -410,10 +431,12 @@
           "lanes": [
             "snare",
             "hats",
+            "lead",
             "chords",
             "fx"
           ],
-          "hats": "thin",
+          "hats": "thin/16ths",
+          "lead": "phrase",
           "roll": "snare",
           "roll_bars": 8,
           "end": "fill"
@@ -459,7 +482,6 @@
             "perc",
             "bass",
             "lead",
-            "chords",
             "accents",
             "fx"
           ],
@@ -479,11 +501,10 @@
             "perc",
             "bass",
             "lead",
-            "chords",
             "accents",
             "fx"
           ],
-          "hats": "full",
+          "hats": "busy",
           "bass": "Orbit",
           "lead": "phrase",
           "accents": "loop",
@@ -499,13 +520,14 @@
             "perc",
             "bass",
             "lead",
-            "chords",
-            "accents"
+            "chords"
           ],
-          "hats": "busy",
+          "hats": "full",
           "bass": "Orbit",
           "lead": "phrase",
-          "accents": "loop",
+          "phrases": [
+            "Laser stab riff, Dm9 and B-flat maj9"
+          ],
           "end": "turn"
         },
         {
@@ -521,10 +543,12 @@
             "chords",
             "accents"
           ],
-          "hats": "full",
+          "hats": "busy",
           "bass": "Orbit",
-          "lead": "phrase",
-          "accents": "loop",
+          "lead": "skeleton",
+          "phrases": [
+            "Laser stab riff, Dm9 and B-flat maj9"
+          ],
           "end": "drop"
         }
       ],
@@ -556,9 +580,8 @@
         "hats",
         "perc",
         "bass",
-        "chords",
-        "accents",
-        "fx"
+        "lead",
+        "accents"
       ],
       "lines": [
         {
@@ -573,8 +596,8 @@
             "accents"
           ],
           "hats": "busy",
-          "bass": "Relay",
-          "accents": "loop",
+          "bass": "Orbit",
+          "accents": "alternate",
           "end": "turn"
         },
         {
@@ -586,22 +609,17 @@
             "hats",
             "perc",
             "bass",
-            "chords",
-            "accents",
-            "fx"
+            "lead",
+            "accents"
           ],
-          "hats": "busy",
-          "bass": "Relay",
-          "accents": "loop",
-          "end": "fill"
+          "hats": "full",
+          "bass": "Orbit",
+          "lead": "skeleton",
+          "accents": "alternate",
+          "end": "turn"
         }
       ],
-      "cues": [
-        {
-          "bar": 144,
-          "cue": "Fill"
-        }
-      ]
+      "cues": []
     },
     {
       "index": 7,
@@ -622,23 +640,28 @@
           "start_bar": 145,
           "bars": 8,
           "lanes": [
+            "hats",
             "lead",
-            "chords"
+            "chords",
+            "accents"
           ],
-          "lead": "call"
+          "hats": "thin",
+          "lead": "call",
+          "accents": "loop"
         },
         {
           "start_bar": 153,
           "bars": 8,
           "lanes": [
             "hats",
-            "lead",
             "chords",
             "accents",
             "fx"
           ],
           "hats": "thin",
-          "lead": "phrase",
+          "phrases": [
+            "Laser stab riff, Dm9 and B-flat maj9"
+          ],
           "rise": {
             "lane": "hats",
             "from_pm": 400,
@@ -691,15 +714,14 @@
             "hats",
             "perc",
             "bass",
-            "lead",
-            "chords",
             "accents",
             "fx"
           ],
-          "hats": "busy",
-          "bass": "Orbit",
-          "lead": "phrase",
-          "accents": "loop",
+          "hats": "full",
+          "bass": "Relay",
+          "phrases": [
+            "Glass melody"
+          ],
           "end": "turn"
         },
         {
@@ -712,14 +734,15 @@
             "perc",
             "bass",
             "lead",
-            "chords",
             "accents",
             "fx"
           ],
           "hats": "busy",
-          "bass": "Orbit",
-          "lead": "phrase",
-          "accents": "loop",
+          "bass": "Relay",
+          "lead": "skeleton",
+          "phrases": [
+            "Glass melody"
+          ],
           "end": "fill"
         },
         {
@@ -732,12 +755,11 @@
             "perc",
             "bass",
             "lead",
-            "chords",
             "accents"
           ],
-          "hats": "busy",
-          "bass": "Orbit",
-          "lead": "phrase",
+          "hats": "full",
+          "bass": "Relay",
+          "lead": "call",
           "accents": "loop",
           "end": "turn"
         },
@@ -751,12 +773,13 @@
             "perc",
             "bass",
             "chords",
-            "accents",
             "fx"
           ],
-          "hats": "full",
-          "bass": "Orbit",
-          "accents": "alternate",
+          "hats": "busy",
+          "bass": "Relay",
+          "phrases": [
+            "Laser stab riff, Dm9 and B-flat maj9"
+          ],
           "end": "fill"
         }
       ],
@@ -768,6 +791,10 @@
         {
           "bar": 176,
           "cue": "Fill"
+        },
+        {
+          "bar": 177,
+          "cue": "Vox"
         },
         {
           "bar": 192,
@@ -798,7 +825,8 @@
             "hats",
             "perc"
           ],
-          "hats": "full"
+          "hats": "busy",
+          "end": "turn"
         },
         {
           "start_bar": 201,
@@ -820,7 +848,8 @@
             "hats",
             "perc"
           ],
-          "hats": "thin"
+          "hats": "full",
+          "end": "turn"
         },
         {
           "start_bar": 217,
@@ -829,7 +858,7 @@
             "kick",
             "hats"
           ],
-          "hats": "full"
+          "hats": "thin"
         }
       ],
       "cues": []
