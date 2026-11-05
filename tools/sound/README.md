@@ -30,7 +30,8 @@ Round 5 drops the text-to-speech vocals from every kit's set: each kit's vocals 
 | `item.py` | `Item` (one instrument), `Take` (one file), `Out` (a render plus what QA needs to know) |
 | `render.py` | The CLI: render, one gain per instrument, write FLAC, QA, reports, sheets |
 | `sheet.py` | One PNG per instrument: waveform, spectrogram, band envelopes |
-| `midi.py` | Exports a kit's written loop as MIDI (drums, basslines, lead, chords, the full loop, and any synth phrases its `PARTS['phrases']` lists, each on channel 4) at its tempo and swing, from the `midi` module of its recipe package, into `content/midi/<kit>/` with a README of the drum map, and the same parts as a DJ-friendly extended mix in its genre's form (`FORMS`: 224 bars, every drop after a break reached through its build) in `extended/`, one file, one region per section and `regions.json`; a test keeps the committed files equal to a fresh export |
+| `midi.py` | MIDI v2, the only MIDI writer: a kit's written music, from the `midi` module of its recipe package (`PARTS`, below), as Standard MIDI Files on the one channel map: the context loop with the vox synth and without (`Loop_Vox`, `Loop_NoVox`), the part files, the synth phrases on their instruments' channels, and a 224-bar extended mix in each variant (`extended/vox/`, `extended/novox/`), into `content/midi/<kit>/` with READMEs; a test keeps the committed files equal to a fresh export (see MIDI below) |
+| `channels.py` | The MIDI channel map every file, manifest and the engine share (`CHANNELS`, `KEY_BASE`, `DRUM_RANGE`, each kit's `EXTRAS` on 11-16, the lane each track plays on) and the rides' one law (`cc_value`, `cc_hz`, `cc_linear`): `docs/midi-map.md` |
 | `listen.py` | Copies any kit's render to WAV (the same samples) in plain-named `Drums/`, `Bass/`, `Music/`, `Vox/`, `FX/` and `Loops/` folders, for listening |
 | `denylist.py`, `denylists/` | Artist-name, slur and profanity lists, stored as SHA-256 digests |
 | `models.py` | Kokoro TTS and Whisper ASR through sherpa-onnx, from `WUBANSIA_MODELS_DIR` |
@@ -64,12 +65,47 @@ python3 -m venv .venv
 .venv/bin/python tools/sound/render.py --kit FUT01 --set example --repro                # to build/FUT01-example
 .venv/bin/python tools/sound/render.py --kit FUT01 --set s1a --out build/s1a-again      # round 1's set (FUT01's fix round replaced 6 of its 31 items)
 .venv/bin/python tools/sound/listen.py build/fut02-r3-again                             # WAV copies to listen to
-.venv/bin/python tools/sound/midi.py --kit FUT02                                        # the kit's loop and extended mix as MIDI, to content/midi/fut02
+.venv/bin/python tools/sound/midi.py --kit FUT02                                        # the kit's MIDI (loops, parts, phrases, extended mixes), to content/midi/fut02
 .venv/bin/python -m tools.sound.mixmeter --reference track.flac                        # a reference track, as the standard reads the kits (its S4)
 .venv/bin/python tools/sound/denylist.py add artists < names.txt                      # extend a denylist
 ```
 
 `render.py` writes `<KIT>_<Group>_<Sound>_v<layer>_rr<n>.flac` (a zoned sound's `<Sound>` carries its note: `Reese-Fs1`), `qa_report.json`, `qa_report.md`, `sheets/<kit>_<group>_<name>.png` and, for kicks and bass shots, `qa/<kit>_<group>_<name>_<groove>.flac` (`_2step` for FUT01, `_4x4` for the four-on-the-floor kits). `--out` defaults to `build/<kit>`, or `build/<kit>-<set>` with `--set`; it writes into an existing folder without clearing it, so render into a fresh one. `--set r2` is round 2's item list at today's code: FUT02-FUT04 render their round 3 sound under it and FUT01 lacks its context loops; round 2's audio is in `content/samples/`' history. Options: `--no-sheets`, `--repro` (render each item a second time, each in a fresh process so no cache carries over, and compare the SHA-256), `--jobs N` (items in parallel). It exits 1 when a check fails (the files are written either way). It exits 2 on an unknown kit or item name, on a kit whose DNA still has a TODO field or an invalid value (the message names them and the file), and when a vocal item can't find the models. Any other error is a bug and keeps its traceback. Renders go under `build/` (ignored by git, as are `*.flac`, `*.wav` and `*.onnx` anywhere but the kits' WAVs in `content/samples/`, which go through Git LFS: ADR 0012): no other audio goes in git.
+
+## MIDI (`midi.py`, `channels.py`)
+
+MIDI v2 (ADR 0019, proposed; the map: `docs/midi-map.md`). The committed MIDI is the score: right on its own in any sampler or DAW, and exactly what Wubansia plays and drags out. `midi.py` is the only writer, and each kit's `recipes/<kit>/midi.py` declares its music as data, `PARTS`. Every channel is `channels.py`'s; every velocity must play the layer the recipe picks under the engine's rule (the layer whose round(layer x 127) is nearest, the louder on a tie) and on velocity / 127 alike (`written_velocity` writes the integer nearest v x 127 that does); every key must be on its instrument's map or within an octave of its zones; a drum note off the map, or a sound or Item that doesn't exist, stops the export.
+
+**Notes** are `(16th, MIDI note, length in 16ths, velocity 0-1, slide)` tuples, or `midi.Note`s, which add `ticks` (a length in ticks), `end` (end-aligned: the 16th is where the note ends) and `throw` (CC91/CC94 around it). A slide marks a note glided into from the note before. A 16th may be fractional (FUT04's ratchets, FUT03's glides inside a note). **Hits** (`midi.Hit(16th, sound, layer, align='on'|'end', gate, throw)`) place a one-shot by its sound's name. **Keys** (`midi.Key(item, zone, start, name)`) name the sounds of channels 6-8, one key each from 48 in the order given.
+
+**`PARTS`, the fields** (required first):
+
+| Field | What it holds |
+|---|---|
+| `drums` | `map={note: Item}` (35-59); optional `zones={note: zone}` (a drum note playing a zone of a zoned Item: FUT03's congas), `lanes={note: lane}` (over the General MIDI default: `kick`, `snare`, `hats`, `perc`, and `rumble`, FUT04's own track), `note` (the README's word on alternates and chokes), `fill_bar` and `fill_swap` (4 and 2: the loop's fill bar and the bar played in its place where no fill is due), `busy` (a bar of hat notes a busy line adds; default: a closed hat of at least 0.35 on every empty 16th), `turn` (`{lane: a bar of notes}`, a line's turnaround bar; default: a pickup roll on the last beat of the snare, the perc or the hats), `variants` (`{name: {lane: 1- or 4-bar notes}}`, a line's `drums=`) |
+| `bass` | `items=(A, B)` (the A/B multisample on channel 1), `lines={name: 2-bar notes}`, `pick` (the loop's); optional `on={line: extra}` (a line that plays another instrument: FUT01's Low on Organ Bass), `switch` and `drop2` (the switch-up's and drop 2's lines; defaults: the first other line, and the pick), `note` |
+| `lead` | `item`, `notes` (2 bars); optional `name`, `skeleton` (2 bars: a line's `lead='skeleton'`) |
+| `chords` | `items` (the chord sample on channel 4, A or A and B), `trigger` (4 bars, one note per chord at its root), `voicing` (4 bars, the chord tones for channel 3); optional `name`, `blocks={name: dict(trigger=..., voicing=...)}` (4-bar chord blocks a line picks with `chords=`: harmony that moves) |
+| `loop` | the context loop, lane by lane, for the Loop files and as every lane's 4-bar block: `drums` (4 bars, the fill bar included); `accents={'vox': hits, 'novox': hits}`; optional `bass` (default: the pick twice), `lead` (default: the phrase twice), `chords` and `voicing`, `vox` (the vox file's 4 bars) and `throws` (its thrown 16ths), `fx` (hits), `extras={track: notes}`, `stab_drop={variant: 16ths}` (chord stabs a variant's accents take over) |
+| `vox` | `item`, `riff` (2 bars); optional `throws` (the riff's thrown 16ths), `vowels` (per layer, for the README) |
+| `accents`, `fx`, `chops` | `Key`s: channels 6, 7 and 8 from 48 |
+| `extras` | `{name: Item or (A, B)}` for the kit's channels 11-16 (`channels.EXTRAS` names them) |
+| `frames` | `{Item or 'Item@zone': samples at 48 kHz}`: every sound on channels 6-8, so end-aligned notes end on their target (a test checks them against the WAVs when they are pulled; `WUBANSIA_SAMPLES` may point at a folder of pulled kits) |
+| `cues` | sounds for the arrangement's rules: `riser`, `fill` (default: the loop's fill), `impact` (a drop's downbeat), `swell` and `uplift` (end-aligned into a line's end), `stab` (the 'and' of 4) |
+| `fill`, `groove` | `{lane: 4 bars}`: a lane's block where a line ends on a fill (default: the loop's), and elsewhere (default: the fill block with bar 2 again in bar 4). FUT03's fill bar is its FillPreview's; FUT04's rumble runs its whole 2 bars where no fill cuts it |
+| `pad` | `dict(on=track, blocks={chord block: 4 bars})`: a pad lane (FUT03's Pad Warm) |
+| `phrases` | `dict(name, file, on, item, notes, bars, throws)`: a synth phrase, `<KIT>_Phrase_<file>_<bars>bars.mid` on its instrument's channel (`on`: a role or an extra's name); a line's `phrases=` plays it in place of that channel's part |
+| `rides` | `dict(on=track, cc=74 or 71, law='log' or 'lin', lo, hi, unit, what, values)`: a filter ride, 256 values a 4-bar block (one every 60 ticks) or `{line: values}` (FUT04's acid follows its line) |
+| `recorded` | `{lane: words}`: the lanes Wubansia plays from recorded stems, for the README |
+| `form` | the kit's own extended-mix arrangement (below); default: its genre's |
+
+**The extended mix** is built line by line, 8 bars at a time, from the material above: each lane plays its 4-bar block twice, the fill block where the line ends on a fill. A form is `(section(name, kind, lines), ...)`, a section's lines `midi.line(lanes, **options)`; `midi.FORMS` holds the genres' defaults (sci-fi club, house, techno, UK garage), each 224 bars with 32 bars of drums at each end, built from `intro()`, `groove()`, `breakdown()`, `build_club()` / `build_house()` / `build_techno()` / `build_ukg()`, `drop()`, `switch_up()`, `drop_2()` and `outro()`. A line's options (`line()`'s docstring has them all):
+- `hats` (`full`, `thin`, `busy`, `16ths`, or one per 4-bar block), `drums` (a variant), `bass` (a line, `main`, `switch`, `drop2`), `lead` (`phrase`, `call`, `skeleton`: on a fill line the call and the skeleton rest from the fill bar where the loop's own lead does), `chords` (a block), `phrases` (each in place of its channel's part; a vox-channel phrase plays in the vox mix only, in place of the line's vox mode), `phrases_rest` (on a fill line, the phrases rest from the kit's fill start; by default they play on under the fill);
+- `vox`: `off`, `loop` (the loop's 4-bar pattern), `riff`, `call`, `answer`; `throw=True` adds the riff's last note on the line's last 'and' of 4, thrown;
+- `accents`: `loop` (the variant's loop accents in every block), `alternate` (the second block), `lead-in` (the end-aligned ones into a section's end); `stab`, `into` (`swell`, `uplift`), `downbeat` (`impact`): the cues' sounds;
+- `roll` (a build's roll up to the fill's start, its velocity rising hit by hit), `rise` (a lane's velocity bar by bar), `end` (`fill`, `turn`, `drop`), `cue` (`Riser`, `Vox`), `ride` (`{track: 'loop' | ('hold', v) | ('ramp', a, b)}`).
+
+`regions.json` holds integers and strings only (core's strict reader): bpm, swing in permille, the length in ms, 1-based start bars, every line's lanes and moves, the cues, the tracks and the rides' ranges.
 
 ## Starting a kit
 

@@ -197,7 +197,7 @@ class TestTheVoxSynth(unittest.TestCase):
         self.assertTrue(3 <= len(Mi.PARTS['phrases']) <= 5)
         p = ph['Vox synth riff']
         self.assertEqual(list(V.RIFF_NOTES), p['notes'])
-        self.assertEqual((2, 'Vox Synth', 'A4, C#5, F#5'), (p['bars'], p['sample'], p['zones']))
+        self.assertEqual((2, 'VoxSynth', 'vox'), (p['bars'], p['item'], p['on']))   # on the vox synth, channel 5
 
 
 class TestTheLoops(unittest.TestCase):

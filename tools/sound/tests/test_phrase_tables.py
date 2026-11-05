@@ -35,6 +35,7 @@ from tools.sound.item import Out
 REPO = Path(__file__).resolve().parents[3]
 KITS = ('FUT01', 'FUT02', 'FUT03', 'FUT04')
 NULL_DB = -50.0
+TWICE = (0, 32)     # the extended mixes' call, riff and answer vox lines start FUT02's and FUT03's riff here
 
 
 # ------------------------------------------------------------------ the samples, when they are here
@@ -127,6 +128,18 @@ def reference(kit, line, variant, char):
         if variant != 'vox':
             return None
         return C5.vox_lane(), [(s + C5.VOX_AT, m) for s, m, _, _ in VS.VOX_RIFF]
+    if (kit, line) == ('FUT02', 'vox_twice'):     # the extended mix's riff line: the riff from 16ths 0 and 32
+        from tools.sound.recipes.fut02 import context5 as C5, voxsynth as Vs
+        lane = sum(sum(Vs.sung_parts(C5.G, at, C5.L, lambda *k: D.rng(C5.K.KIT, 'ContextVoxRiff', *k)))
+                   for at in TWICE)
+        return lane, [(s + at, n) for at in TWICE for s, n, _, _ in Vs.RIFF]
+    if (kit, line) == ('FUT03', 'vox_twice'):
+        from tools.sound.recipes.fut03 import context5 as C5, voxsynth as VS
+        _, _, gain_db = Ph.kit_files(C5.K, 'PhraseVoxRiff')
+        lane = np.zeros((C5.L, 2))
+        for at in TWICE:
+            Ph.place(lane, VS.riff_tail() * D.undb(gain_db), C5.G.at(at))
+        return lane, [(s + at, m) for at in TWICE for s, m, _, _ in VS.VOX_RIFF]
     with WavFiles():
         if kit == 'FUT01':
             from tools.sound.recipes.fut01 import context4 as C, context5 as C5, music as M, voxsynth as V
@@ -168,6 +181,8 @@ def reference(kit, line, variant, char):
 # the lanes the Loop files play from recorded phrases: (kit, the table's line, its recipe reference)
 PLAYED = (('FUT01', 'pluck'), ('FUT01', 'riff'), ('FUT02', 'orbit'), ('FUT02', 'arp'), ('FUT02', 'vox'),
           ('FUT03', 'rubber'), ('FUT03', 'vox'), ('FUT04', 'acid'), ('FUT04', 'blip'))
+# and the extended mixes' riff lines, which the loops don't play: the recipe's riff from 16ths 0 and 32
+TWICE_LINES = (('FUT02', 'vox_twice'), ('FUT03', 'vox_twice'))
 
 
 def spec(kit, line):
@@ -187,6 +202,15 @@ def table_of(K, s):
 
 # ------------------------------------------------------------------ the tables
 class TestTables(unittest.TestCase):
+    def test_each_kit_has_its_plugin_module(self):
+        """The kit facts live in tools/sound/recipes/<kit>/plugin.py, read through the kit's RECIPES (shared code
+        imports no kit, ADR 0008)."""
+        for kit in KITS:
+            mod = PT.plugin_module(kit)
+            self.assertEqual(f'tools.sound.recipes.{kit.lower()}.plugin', mod.__name__)
+        for kit in ('FUT02', 'FUT03'):
+            self.assertEqual(TWICE, PT.plugin_module(kit).TWICE)
+
     def test_every_kit_has_its_phrase_lanes(self):
         """FUT02-04's bass lines, FUT01/02/04's leads and FUT01-03's vox (the lanes the recipes synthesize at render
         time), plus the alternate lines that have their own Loops/ files (FUT02's Relay, FUT03's Deep)."""
@@ -199,6 +223,8 @@ class TestTables(unittest.TestCase):
         self.assertEqual(['orbit', 'relay'], [s.line for s in PT.specs('FUT02') if s.ch == 1])
         self.assertEqual(['rubber', 'deep'], [s.line for s in PT.specs('FUT03') if s.ch == 1])
         self.assertEqual(['acid', 'line1', 'line2'], [s.line for s in PT.specs('FUT04') if s.ch == 1])
+        for kit in ('FUT02', 'FUT03'):
+            self.assertEqual(['vox', 'vox_twice'], [s.line for s in PT.specs(kit) if s.ch == 5])
         for kit in KITS:
             for ch in {s.ch for s in PT.specs(kit)}:
                 self.assertEqual(1, len({s.cycle for s in PT.specs(kit) if s.ch == ch}), (kit, ch))
@@ -222,6 +248,8 @@ class TestTables(unittest.TestCase):
             ('FUT03', 'rubber'): [(s, n) for s, _, n, _, _ in R3.LINES['Rubber']],
             ('FUT03', 'deep'): [(s, n) for s, _, n, _, _ in R3.LINES['Deep']],
             ('FUT03', 'vox'): [(s + 32, m) for s, m, _, _ in V3.VOX_RIFF],
+            ('FUT02', 'vox_twice'): sorted((s + a, n) for a in (0, 32) for s, n, _, _ in V2.RIFF),
+            ('FUT03', 'vox_twice'): sorted((s + a, m) for a in (0, 32) for s, m, _, _ in V3.VOX_RIFF),
             ('FUT04', 'acid'): line4(B4.PICK),
             ('FUT04', 'line1'): line4('AcidLine1'),
             ('FUT04', 'line2'): line4('AcidLine2'),
@@ -349,12 +377,44 @@ class TestNulls(unittest.TestCase):
                         self.assertLessEqual(null_db(got, D.st(lane)), NULL_DB)
 
 
+class TestTwiceNulls(unittest.TestCase):
+    def test_the_riff_twice_stems_placed_by_their_tables_are_the_recipes_riffs(self):
+        """The extended mixes' riff lines (FUT02's and FUT03's riff from 16ths 0 and 32): the derived stem placed by
+        its table at those notes nulls against the recipe's two riffs round a 4-bar loop at -50 dB or lower; the
+        looped FUT02 stem's last slice fades before the first note's wrapped pre-roll."""
+        for kit, line in TWICE_LINES:
+            K = kits.module(kit)
+            s = spec(kit, line)
+            lane, notes = reference(kit, line, 'vox', 'clean')
+            with self.subTest(kit=kit):
+                if sample(kit, s.stems[0]) is None:
+                    self.skipTest(f'{kit}/{s.stems[0]} is not here (git lfs pull)')
+                t = table_of(K, s)
+                resolved, unmatched = PT.resolve(K, notes, [t])
+                self.assertEqual([], unmatched)
+                stem = stem_audio(kit, s.stems[0]) * D.undb(t['gain_mdb'] / 1000.0)
+                self.assertLessEqual(null_db(PT.play(K, t, stem, resolved, len(lane)), D.st(lane)), NULL_DB)
+        t = table_of(kits.module('FUT02'), spec('FUT02', 'vox_twice'))
+        last = t['slices'][-1]
+        self.assertEqual(last['end'] - 240 - int(0.05 * D.SR), last['fade'])
+
+    def test_the_loops_vox_cycles_pick_the_loops_stem(self):
+        """In the Loop files the loop's own vox stem wins its cycle (the riff-twice stem only ties on FUT03)."""
+        if loop_file('FUT02', 'vox') is None:
+            self.skipTest('waiting on P1: MIDI v2 Loop files')
+        for kit in ('FUT02', 'FUT03'):
+            K = kits.module(kit)
+            tables = [table_of(K, s) for s in PT.specs(kit) if s.ch == 5]
+            got, unmatched = PT.resolve(K, PT.file_notes(K, loop_file(kit, 'vox'))[5], tables)
+            self.assertEqual(([], {0}), (unmatched, {p for _, p, _ in got}), kit)
+
+
 class TestDerivedStems(unittest.TestCase):
     def test_derived_stems_render_byte_for_byte(self):
         """FUT02's and FUT03's vox stems (Stems/), rendered again from their recipes, equal the committed WAVs byte
         for byte (where the WAVs are pulled)."""
         for kit in KITS:
-            for path in PT.DERIVED.get(kit, ()):
+            for path in PT.derived(kit):
                 have = sample(kit, path)
                 if have is None:
                     continue
@@ -367,7 +427,7 @@ class TestDerivedStems(unittest.TestCase):
     def test_the_acid_lines_at_rest_are_their_loops_twice(self):
         """FUT04's at-rest acid stems are their 2-bar Loops/ files twice, sample for sample."""
         import soundfile as sf
-        for path in PT.DERIVED['FUT04']:
+        for path in PT.derived('FUT04'):
             have = sample('FUT04', path)
             src = sample('FUT04', 'Loops/' + path.split('/')[1].replace(' 4 Bars', ''))
             if have is None or src is None:
@@ -379,9 +439,10 @@ class TestDerivedStems(unittest.TestCase):
     def test_derived_stems_fit_24_bits(self):
         """A derived stem is the recipe's lane at the stem's gain (a whole dB): its true peak at -1 dBTP or under,
         and the table's gain_mdb gives the lane its level back."""
-        for kit, line in (('FUT02', 'vox'), ('FUT03', 'vox')):
+        for kit, line in (('FUT02', 'vox'), ('FUT03', 'vox'), ('FUT02', 'vox_twice'), ('FUT03', 'vox_twice')):
             s = spec(kit, line)
-            self.assertTrue(s.derived and not s.looped)
+            self.assertTrue(s.derived)
+            self.assertEqual(line == 'vox_twice' and kit == 'FUT02', s.looped)
             self.assertEqual(0, s.gain_mdb % 1000)
             audio = PT.render_derived(kit)[s.stems[0]]
             from tools.sound import mixmeter as MM
