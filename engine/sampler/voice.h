@@ -84,8 +84,12 @@ namespace wubansia::engine
         bool isActive() const noexcept { return active; }
         bool isKeyDown() const noexcept { return keyDown; }
         bool isFading() const noexcept { return envelope.isFading(); }
-        // The last gain it played at (envelope x velocity gain x instrument gain): the quietest is stolen.
+        // Its gain now (envelope x velocity gain x instrument gain; a rising attack counts as its end):
+        // the quietest is stolen.
         double level() const noexcept { return envelope.level() * velocityGain * gain; }
+
+        // Released for stealing: its key is up, or it is fading out (choked, stopped).
+        bool isReleased() const noexcept { return ! keyDown || envelope.isFading(); }
 
         // Its pitch at the last sample it played, in semitones from its zone's root (a glide's trace).
         double currentSemitones() const noexcept { return semitones; }

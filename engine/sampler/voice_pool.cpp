@@ -30,14 +30,15 @@ namespace wubansia::engine
             if (! v.isActive())
                 return v;
 
-        // The oldest released voice, else the quietest.
+        // The oldest released voice (key up, or fading out), else the quietest.
         Voice* victim = nullptr;
         for (auto& v : voices)
-            if (! v.isKeyDown() && (victim == nullptr || v.order < victim->order))
+            if (v.isReleased() && (victim == nullptr || v.order < victim->order))
                 victim = &v;
         if (victim == nullptr)
             for (auto& v : voices)
-                if (victim == nullptr || v.level() < victim->level())
+                if (victim == nullptr || v.level() < victim->level()
+                    || (! (v.level() > victim->level()) && v.order < victim->order)) // a tie: the older
                     victim = &v;
 
         // Its own fading slot: a free one, else the quietest fading voice's.

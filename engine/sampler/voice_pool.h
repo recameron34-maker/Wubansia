@@ -3,8 +3,9 @@
 // The sampler's voices: 64 multisample voices, 16 slots where stolen voices fade out, and the phrase
 // voices (P6's PhraseVoice). Fixed arrays: nothing here allocates.
 //
-// Stealing (a note-on with no voice free): the oldest released voice (by start), else the quietest
-// (by its last gain). It moves to a fading slot and fades over the steal fade while the new note takes its
+// Stealing (a note-on with no voice free): the oldest released voice (by start; key up, or fading
+// out), else the quietest (by its gain now, a rising attack counting as its end; the older on a tie, so
+// a chord's notes never steal each other). It moves to a fading slot and fades over the steal fade while the new note takes its
 // place at once, so neither has to wait and nothing clicks. With every fading slot busy, the quietest
 // fading voice gives up its slot.
 

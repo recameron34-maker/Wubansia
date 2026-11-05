@@ -82,22 +82,78 @@ TEST_CASE ("64 voices sound at once; the 65th steals the oldest released voice w
 
 TEST_CASE ("with no voice released, the quietest is stolen", "[sampler][rt]")
 {
-    const ManyKit k;
+    // 65 constants of 1 / 128 played pow15: voice 37's softer note makes it the quietest by gain.
+    TestKit t;
+    std::vector<int> inst;
+    for (int i = 0; i < 65; ++i)
+    {
+        const int f = t.addFile (constant (48000, 1.0f / 128.0f));
+        auto in = instrument (SampleMode::oneShot);
+        in.attackUs = 2000;
+        in.velocityLaw = VelocityLaw::pow15;
+        inst.push_back (t.addSimple (in, f, 60));
+    }
     Rig rig;
     for (int i = 0; i < 64; ++i)
-        rig.at (i, [&k, i] (Sampler& s, int offset) {
-            auto n = note (k.inst[static_cast<std::size_t> (i)], 60, 127, offset);
-            s.noteOn (k.t.kit, n);
+        rig.at (i, [&t, &inst, i] (Sampler& s, int offset) {
+            s.noteOn (t.kit, note (inst[static_cast<std::size_t> (i)], 60, i == 37 ? 64 : 127, offset));
         });
-    rig.runUntil (3000);
-    rig.at (3000, [&k] (Sampler& s, int offset) { s.noteOn (k.t.kit, note (k.inst[64], 60, 127, offset)); });
+    rig.at (3000, [&t, &inst] (Sampler& s, int offset) { s.noteOn (t.kit, note (inst[64], 60, 127, offset)); });
+    rig.runUntil (4000);
+    const double soft = std::pow (64.0 / 127.0, 1.5) / 128.0;
+    const double before = 63.0 / 128.0 + soft;
+    CHECK (std::fabs (rig.left[0][2999] - before) < 1.0e-5);
+    CHECK (std::fabs (rig.left[0][3999] - (before - soft + 1.0 / 128.0)) < 1.0e-5);
+    CHECK (maxStep (rig.left[0], 2000) < 1.0e-3);
+}
+
+TEST_CASE ("a chord's notes steal old voices, never each other", "[sampler][rt]")
+{
+    // The same for any piece size: which voice is stolen depends on the voices' state, not on the pieces.
+    const int piece = GENERATE (32, 8, 7, 1);
+    CAPTURE (piece);
+    const ManyKit k;
+    Rig rig (48000.0, piece);
+    for (int i = 0; i < 64; ++i)
+        rig.at (i, [&k, i] (Sampler& s, int offset) { s.noteOn (k.t.kit, note (k.inst[static_cast<std::size_t> (i)], 60, 127, offset)); });
+    rig.at (3000, [&k] (Sampler& s, int offset) {
+        for (int key = 60; key < 64; ++key) // four notes on one sample, all voices held
+            s.noteOn (k.t.kit, note (k.inst[64], key, 127, offset));
+    });
     rig.runUntil (4000);
     double sum = 0.0;
-    for (int i = 0; i < 64; ++i)
+    for (int i = 4; i < 64; ++i)
         sum += ManyKit::level (i);
-    // Voice 0 has the lowest constant: it goes.
-    CHECK (std::fabs (rig.left[0][3999] - (sum - ManyKit::level (0) + ManyKit::level (64))) < 1.0e-5);
-    CHECK (maxStep (rig.left[0], 2000) < 1.0e-3); // from after the 64 attacks
+    // The four quietest old voices (0-3) went; the four new notes all sound.
+    CHECK (std::fabs (rig.left[0][3999] - (sum + 4.0 * ManyKit::level (64))) < 1.0e-5);
+    CHECK (rig.sampler.activeVoices() == 64);
+    CHECK (maxStep (rig.left[0], 2000) < 1.0e-3);
+}
+
+TEST_CASE ("stealing gives the same output for any piece size", "[sampler][rt]")
+{
+    const ManyKit k (6000);
+    auto play = [&k] (int piece) {
+        Rig rig (44100.0, piece);
+        for (int n = 0; n < 300; ++n)
+        {
+            const std::int64_t at = (n * 7919) % 20000; // scattered, many on one sample
+            const int i = (n * 13) % 65;
+            const int key = 55 + n % 9;
+            rig.at (at, [&k, i, key, n] (Sampler& s, int offset) { s.noteOn (k.t.kit, note (k.inst[static_cast<std::size_t> (i)], key, 40 + n % 88, offset)); });
+            if (n % 3 == 0)
+                rig.at (at + 50 + n, [&k, i, key] (Sampler& s, int offset) { s.noteOff (k.inst[static_cast<std::size_t> (i)], key, offset, Source::sequencer); });
+        }
+        rig.runUntil (26000);
+        return rig.left[0];
+    };
+    const auto reference = play (32);
+    CHECK (maxAbs (reference) > 0.3);
+    for (const int piece : { 1, 5, 16 })
+    {
+        CAPTURE (piece);
+        CHECK (sameBits (reference, play (piece)));
+    }
 }
 
 TEST_CASE ("mono files land on both sides at unity; stereo files keep their sides", "[sampler][rt]")
@@ -368,7 +424,7 @@ TEST_CASE ("no NaN, infinity or subnormal after 10 s of tails", "[sampler][rt]")
     CHECK (rig.sampler.activeVoices() == 0); // every tail ended
 }
 
-TEST_CASE ("the CPU a voice costs", "[.cpu][sampler]")
+TEST_CASE ("the CPU a voice costs", "[.cpu]")
 {
     // Hidden ([.cpu]): run it by hand, in a release build. 64 voices on 2-second stereo files, held, at a
     // 44.1 kHz host, each a different key (every one through the sinc or Hermite at its own ratio).

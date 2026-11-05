@@ -35,8 +35,9 @@
 // - restrike_continues: a note-on on the very sample its own voice was released (the note before ended
 //   there), with startFrame 0, takes the voice back instead of starting another: no new attack.
 // - layered_with: every note-on also starts the layered instrument on the same key, released with it.
-// - 64 voices. A note-on with none free steals the oldest released voice (by start), else the quietest,
-//   which fades out over 2 ms in a slot of its own while the new note starts at once.
+// - 64 voices. A note-on with none free steals the oldest released voice (by start; released: its key is
+//   up or it is fading out), else the quietest, which fades out over 2 ms in a slot of its own while the
+//   new note starts at once.
 // - Reads never leave the file: frames before 0 or past the end read as silence (Hermite: the
 //   recipe's edge, the first frame, before 0). Mono files feed both sides at unity.
 // - Interpolation: a copy where the voice's ratio is exactly 1; the 16-tap polyphase sinc
