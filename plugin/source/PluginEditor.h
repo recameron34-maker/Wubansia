@@ -36,9 +36,6 @@ namespace wubansia
 
         PluginEditor (juce::AudioProcessor&, Controller&);
 
-        // Transitional, until the processor has a Controller (P9): the editor with no engine behind it.
-        explicit PluginEditor (juce::AudioProcessor&);
-
         ~PluginEditor() override;
 
         void paint (juce::Graphics&) override;
@@ -57,8 +54,6 @@ namespace wubansia
         bool isContentPanelShown() const noexcept { return contentPanel.isVisible(); }
 
     private:
-        PluginEditor (juce::AudioProcessor&, Controller*, std::unique_ptr<Controller>);
-
         class Backdrop : public juce::Component
         {
         public:
@@ -76,7 +71,6 @@ namespace wubansia
         void refreshModel();
         void showContentPanel (bool show);
 
-        std::unique_ptr<Controller> ownController; // only for the transitional constructor
         Controller& controller;
         const bool standalone;
         float zoom = 1.0f;

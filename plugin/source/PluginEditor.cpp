@@ -11,38 +11,6 @@ namespace wubansia
         // The zoom the last editor used, so a new window opens the way the person left the last one.
         std::atomic<float> lastZoom { 1.0f };
 
-        // What the editor shows until the processor has a Controller (P9): no kits and no engine.
-        class NoEngineController : public Controller
-        {
-        public:
-            std::vector<KitCard> kits() const override { return {}; }
-            juce::String currentKit() const override { return {}; }
-            void selectKit (const juce::String&) override {}
-
-            ContentStatus status() const override
-            {
-                ContentStatus s;
-                s.state = ContentState::failed;
-                s.problem = "This build has no sound engine yet";
-                return s;
-            }
-
-            void setContentFolder (const juce::File&) override {}
-            Snapshot snapshot() override { return {}; }
-            std::vector<SectionInfo> sections() const override { return {}; }
-            TransportState transport() const override { return {}; }
-            void setTransport (bool, double) override {}
-            bool preview() const override { return false; }
-            void setPreview (bool) override {}
-            engine::MidiInMode midiInMode() const override { return engine::MidiInMode::multi; }
-            engine::Lane midiInLane() const override { return engine::Lane::kick; }
-            void setMidiInMode (engine::MidiInMode, engine::Lane) override {}
-            engine::PhraseMode phraseMode() const override { return engine::PhraseMode::automatic; }
-            void setPhraseMode (engine::PhraseMode) override {}
-            juce::StringArray phraseFiles() const override { return {}; }
-            juce::File writeDragFile (const DragRequest&) override { return {}; }
-        };
-
         bool isProblem (ContentState state)
         {
             return state == ContentState::missing || state == ContentState::lfsPointers || state == ContentState::mismatch
@@ -51,19 +19,8 @@ namespace wubansia
     }
 
     PluginEditor::PluginEditor (juce::AudioProcessor& audioProcessor, Controller& c)
-        : PluginEditor (audioProcessor, &c, nullptr)
-    {
-    }
-
-    PluginEditor::PluginEditor (juce::AudioProcessor& audioProcessor)
-        : PluginEditor (audioProcessor, nullptr, std::make_unique<NoEngineController>())
-    {
-    }
-
-    PluginEditor::PluginEditor (juce::AudioProcessor& audioProcessor, Controller* external, std::unique_ptr<Controller> owned)
         : AudioProcessorEditor (&audioProcessor),
-          ownController (std::move (owned)),
-          controller (external != nullptr ? *external : *ownController),
+          controller (c),
           standalone (audioProcessor.wrapperType == juce::AudioProcessor::wrapperType_Standalone),
           kitPanel (controller),
           transport (controller, standalone),

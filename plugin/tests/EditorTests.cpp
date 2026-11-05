@@ -840,20 +840,6 @@ TEST_CASE ("the zoom offers 100 to 200 % and scales the whole face", "[editor]")
         });
 }
 
-TEST_CASE ("the transitional editor without a Controller still binds the parameters", "[editor]")
-{
-    TestProcessor processor ([] (TestProcessor& p) { return new PluginEditor (p); });
-    withEditor (processor, [&] (PluginEditor& editor)
-        {
-            CHECK_FALSE (editor.model().hasKit());
-            CHECK (findAll (editor, ids::masterGain).size() == 1);
-            CHECK (editor.isContentPanelShown());
-            juce::Image image (juce::Image::ARGB, editor.getWidth(), editor.getHeight(), true, juce::SoftwareImageType());
-            juce::Graphics g (image);
-            editor.paintEntireComponent (g, false);
-        });
-}
-
 TEST_CASE ("phrase file names read as titles", "[editor]")
 {
     const auto dot = editor::middleDot();
