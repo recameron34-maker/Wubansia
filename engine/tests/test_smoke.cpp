@@ -13,6 +13,7 @@
 
 #include <array>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <string_view>
 #include <vector>
@@ -21,6 +22,13 @@ using namespace wubansia::engine;
 
 namespace
 {
+    // Exact comparison, as these tests mean it; std::equal_to keeps -Wfloat-equal quiet and NaN unequal.
+    template <class T>
+    bool same (T a, T b)
+    {
+        return std::equal_to<T> {}(a, b);
+    }
+
     // Output buffers prefilled with NaN, so a sample the engine doesn't write shows up.
     struct Output
     {
@@ -39,7 +47,7 @@ namespace
             for (int i = 0; i < numSamples; ++i)
             {
                 const auto s = static_cast<std::size_t> (i);
-                if (left[s] != 0.0f || (numOutputs > 1 && right[s] != 0.0f))
+                if (! same (left[s], 0.0f) || (numOutputs > 1 && ! same (right[s], 0.0f)))
                     return false;
             }
             return true;
@@ -76,7 +84,7 @@ TEST_CASE ("the lanes keep their permanent order and ids", "[smoke]")
     CHECK (defaults.variant == Variant::vox);
     CHECK (defaults.club);
     for (const float g : defaults.laneGain)
-        CHECK (g == 1.0f);
+        CHECK (same (g, 1.0f));
 }
 
 TEST_CASE ("the channel table equals tools/sound/channels.py", "[smoke]")
@@ -184,7 +192,7 @@ TEST_CASE ("the engine stub renders silence at every rate, block size and output
     Engine engine;
     engine.prepare (rate, 512, outputs);
     CHECK (engine.latencySamples() == 0);
-    CHECK (engine.tailSeconds() == 0.0);
+    CHECK (same (engine.tailSeconds(), 0.0));
 
     const Controls controls;
     const auto transport = playingAt (128.0);
@@ -331,7 +339,7 @@ TEST_CASE ("the pass-through mixer sums the channel buses at their lane's gain",
     }
 
     CHECK (mixer.latencySamples() == 0);
-    CHECK (mixer.tailSeconds() == 0.0);
+    CHECK (same (mixer.tailSeconds(), 0.0));
     for (const float peak : mixer.meters().lanePeak)
         CHECK (peak <= 0.0f); // the pass-through mixer measures nothing
     CHECK (mixer.meters().gainReduction <= 0.0f);
