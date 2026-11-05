@@ -61,6 +61,7 @@ plays its zone's file repitched by the distance to its root.
 | 5 | Vox | Vox Synth | A4 (69), C#5 (73), F#5 (78) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
 | 11 | Organ Bass | Organ Bass | F#1 (30), A1 (33), C#2 (37) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
 | 12 | Organ Lead | Organ Lead | C4 (60), D#4 (63), F#4 (66), A4 (69), C5 (72), D#5 (75), F#5 (78), A5 (81), C6 (84) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
+| 13 | Air Pad | Air Pad F#m9 | F#3 (54) | one layer |
 
 On channel 3, Chord voicing is the chords as single notes for your own synth; Wubansia ignores channel 3.
 The Low line plays the Organ Bass on channel 11, rooted as the warp bass (F#1, A1, C#2).
