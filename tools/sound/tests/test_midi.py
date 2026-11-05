@@ -1058,8 +1058,9 @@ class TestLineRules(unittest.TestCase):
         k = Mi.kit_of('FUT01')
         scratch = Mi.Kit('FUT01', k.K, {**k.P, 'form': (Mi.section('Drop', 'drop', (Mi.line(Mi.GROOVE),) * 4),)},
                          items=k.items)
-        self.assertIn("in the kit's own form", Mi.files_of(scratch)['README.md'].decode())
-        self.assertIn("in the genre's form", kit_files('FUT01')['README.md'].decode())
+        flat = lambda text: ' '.join(text.split())  # noqa: E731   (the README wraps its lines)
+        self.assertIn("a 32-bar mix in the kit's own form", flat(Mi.files_of(scratch)['README.md'].decode()))
+        self.assertIn("a 224-bar mix in the genre's form", flat(kit_files('FUT01')['README.md'].decode()))
 
     def test_a_ride_on_points(self):
         """ride={track: ('points', ((bar, value), ...))}: breakpoints over the line (bars 0-8) joined linearly, held
@@ -1096,6 +1097,24 @@ class TestLineRules(unittest.TestCase):
                          for n in self.notes(tracks, name, line)]
                 self.assertTrue([n for n in self.notes(tracks, 'Rumble', line) if n[0] < rest < n[0] + 32 * 240])
                 self.assertFalse([n for n in drums if n[1] > rest])
+
+    def test_a_phrase_in_place_of_a_part_and_the_hats_by_block(self):
+        """A phrase on the lead's channel (FUT03's keys arp) plays in place of the lead: regions.json reports no lead
+        mode and the README names the phrase; a per-block hats pair reads as one ('hats, busy in its second half');
+        regions.json no longer lists the basslines' roles (nothing reads them, and a form names its own)."""
+        lines = (Mi.line(Mi.GROOVE + ' lead', phrases=('Keys arp',), hats=('full', 'busy')),
+                 Mi.line(Mi.GROOVE, hats=('thin', '16ths')), Mi.line(Mi.GROOVE), Mi.line(Mi.GROOVE))
+        R, _, text = self.mix('FUT03', lines, 'vox')
+        info = R['sections'][0]['lines'][0]
+        self.assertEqual(['Keys arp'], info['phrases'])
+        self.assertNotIn('lead', info)
+        self.assertIn('lead (the keys arp)', text)
+        self.assertIn('hats, busy in its second half', text)
+        self.assertIn('off-beat hats, 16ths in its second half', text)
+        self.assertNotIn('basslines', R)
+        for kit in KITS:
+            for v in VARIANTS:
+                self.assertNotIn('basslines', ext(kit, v)[1])
 
 
 class TestSchema(unittest.TestCase):
