@@ -522,19 +522,39 @@ namespace wubansia::engine::mix
 
         float* dl = ch.group == Group::drums ? groupIn[0][0] : ch.group == Group::music ? groupIn[1][0] : noneIn[0];
         float* dr = ch.group == Group::drums ? groupIn[0][1] : ch.group == Group::music ? groupIn[1][1] : noneIn[1];
+        // the lane's level, in place (a fixed gain unless it is moving), into the group; the channel's buffer then holds
+        // the post-fader signal the sends take
         float peak = 0.0f;
+        if (ch.level.moving())
+            for (int i = 0; i < n; ++i)
+            {
+                const double g = ch.level.next();
+                l[i] = static_cast<float> (static_cast<double> (l[i]) * g);
+                r[i] = static_cast<float> (static_cast<double> (r[i]) * g);
+            }
+        else
+        {
+            const double g = ch.level.current();
+            for (int i = 0; i < n; ++i)
+            {
+                l[i] = static_cast<float> (static_cast<double> (l[i]) * g);
+                r[i] = static_cast<float> (static_cast<double> (r[i]) * g);
+            }
+        }
         for (int i = 0; i < n; ++i)
         {
-            const double g = ch.level.next();
-            const auto yl = static_cast<float> (static_cast<double> (l[i]) * g);
-            const auto yr = static_cast<float> (static_cast<double> (r[i]) * g);
-            dl[i] += yl;
-            dr[i] += yr;
-            peak = std::max (peak, std::max (std::abs (yl), std::abs (yr)));
-            const double mono = 0.5 * (static_cast<double> (yl) + static_cast<double> (yr));
-            for (std::size_t s = 0; s < static_cast<std::size_t> (kSends); ++s)
-                if (ch.sends[s] > 0.0)
-                    sendIn[s][i] += static_cast<float> (mono * ch.sends[s]);
+            dl[i] += l[i];
+            dr[i] += r[i];
+            peak = std::max (peak, std::max (std::abs (l[i]), std::abs (r[i])));
+        }
+        for (std::size_t s = 0; s < static_cast<std::size_t> (kSends); ++s)
+        {
+            const double level = ch.sends[s];
+            if (! (level > 0.0))
+                continue;
+            float* in = sendIn[s];
+            for (int i = 0; i < n; ++i)
+                in[i] += static_cast<float> (0.5 * (static_cast<double> (l[i]) + static_cast<double> (r[i])) * level);
         }
         if (ch.lane < kLanes)
             meterValues.lanePeak[ch.lane] = std::max (meterValues.lanePeak[ch.lane], peak);
