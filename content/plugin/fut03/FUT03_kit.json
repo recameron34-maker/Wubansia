@@ -1502,6 +1502,15 @@
       "loop_start": 0,
       "loop_end": 0,
       "preroll_frames": 0
+    },
+    {
+      "path": "Stems/Context Vox Riff Twice.wav",
+      "frames": 540000,
+      "channels": 2,
+      "sha256": "4b891b007fc9fff6db645c7fd36216f0df5d8b10ed6862372c7a103c62effa99",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
     }
   ],
   "instruments": [
@@ -3854,6 +3863,170 @@
         "cc71": []
       },
       "slices": [
+        {
+          "step": 34,
+          "key": 74,
+          "start": 190050,
+          "end": 212550,
+          "fade": 212310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 38,
+          "key": 70,
+          "start": 212550,
+          "end": 235050,
+          "fade": 234810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 42,
+          "key": 74,
+          "start": 235050,
+          "end": 252600,
+          "fade": 252360,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 45,
+          "key": 77,
+          "start": 252600,
+          "end": 280050,
+          "fade": 279810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 50,
+          "key": 75,
+          "start": 280050,
+          "end": 302550,
+          "fade": 302310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 54,
+          "key": 70,
+          "start": 302550,
+          "end": 325050,
+          "fade": 324810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 58,
+          "key": 72,
+          "start": 325050,
+          "end": 347550,
+          "fade": 347310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 62,
+          "key": 67,
+          "start": 347550,
+          "end": 540000,
+          "fade": 539760,
+          "lead": 1200,
+          "holds": []
+        }
+      ]
+    },
+    {
+      "lane": "vox",
+      "ch": 5,
+      "ab": "",
+      "mix_channel": "vox",
+      "gain_mdb": 1000,
+      "stems": {
+        "a": 163,
+        "b": -1
+      },
+      "cycle_16ths": 64,
+      "tolerance_pm": 20,
+      "fade_us": 5000,
+      "ride": {
+        "cc74": [],
+        "cc71": []
+      },
+      "slices": [
+        {
+          "step": 2,
+          "key": 74,
+          "start": 10050,
+          "end": 32550,
+          "fade": 32310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 6,
+          "key": 70,
+          "start": 32550,
+          "end": 55050,
+          "fade": 54810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 10,
+          "key": 74,
+          "start": 55050,
+          "end": 72600,
+          "fade": 72360,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 13,
+          "key": 77,
+          "start": 72600,
+          "end": 100050,
+          "fade": 99810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 18,
+          "key": 75,
+          "start": 100050,
+          "end": 122550,
+          "fade": 122310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 22,
+          "key": 70,
+          "start": 122550,
+          "end": 145050,
+          "fade": 144810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 26,
+          "key": 72,
+          "start": 145050,
+          "end": 167550,
+          "fade": 167310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 30,
+          "key": 67,
+          "start": 167550,
+          "end": 190050,
+          "fade": 189810,
+          "lead": 1200,
+          "holds": []
+        },
         {
           "step": 34,
           "key": 74,

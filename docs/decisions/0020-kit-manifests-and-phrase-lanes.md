@@ -23,6 +23,9 @@ and these lanes are the heart of each loop.
   instrument, cited where it is set. The exporter is deterministic and integer-only, and every string passes the
   artist and slur denylists. Because `build/` isn't in git, **the committed manifest is the source of truth** for each
   file's frames, channels, SHA-256 and loop points; the exporter re-reads them where the WAVs and the report are here.
+  Every kit-specific fact (the phrase specs, the derived stems' renders, the playing rules' recipe constants, the lane
+  labels, the mix-channel map) lives in the kit's own package, `tools/sound/recipes/<kit>/plugin.py`, read through the
+  kit's `RECIPES` as `midi.py` reads its PARTS: shared code never imports a kit (ADR 0008).
 - **Phrase lanes.** Those lanes play their recorded stem, sliced per note, while the host tempo is within 2 % of the
   kit's (`tolerance_pm` 20); otherwise, and always from MIDI in, they play the multisample. A state-only switch turns
   them off. The notes stay the real notes, so the MIDI stays right for any synth.
@@ -39,6 +42,9 @@ and these lanes are the heart of each loop.
     - FUT03's vox: the loop places the riff unwrapped from 16th 32, its throw's echoes ringing into bars 1-2; the
       Loops/ riff wraps them over its own start. 6 bars (its last slice runs 2 bars past the 4-bar cycle), 3,240,044
       bytes.
+    - FUT02's and FUT03's riff twice, from 16ths 0 and 32, for the extended mixes' call, riff and answer vox lines,
+      which place it there: 2,126,816 bytes (FUT02, wrapped, 3 dB down) and 3,240,044 bytes (FUT03, 6 bars, 1 dB
+      down). On its channel the loop's own stem wins the loop's cycles (on FUT03 by the tie rule: the first table).
     - FUT04's Acid Lines 1 and 2 at rest, each 2-bar Loops/ file twice, so every phrase on channel 1 shares the
       Ride's 4-bar cycle: 4 mono files of 1,016,516 bytes.
   - **Tables.** Each phrase lists its stems per A/B side, its cycle (2 or 4 bars from the song's 16th 0) and a slice
@@ -54,16 +60,20 @@ and these lanes are the heart of each loop.
   - **The proof.** Placed by its table at the Loop files' notes, each stem nulls against the recipe's lane before its
     inserts at -50 dB or lower, both variants and both bass characters: bit-exact for FUT01's lead and vox, FUT02's
     arp, FUT03's bass and FUT04's bass and lead; -85/-88 dB for FUT02's bass; -117 dB and -89 dB for the derived vox
-    stems. Every cycle of the Loop files resolves to slices.
+    stems (-118 and -92 dB for the riff-twice stems against the recipe's riff placed twice). Every cycle of the Loop
+    files resolves to slices, and every cycle of the extended mixes but one note (FUT02's call line throws its last
+    note on 16th 62, which no stem has).
 
 ## Consequences
 - The plugin plays the round 5 loops' synthesized lanes as recorded at the kit's tempo, and P6's phrase voice and
   matcher have a Python model (`phrase_tables.play`, `resolve`) and these nulls to be proven against.
 - Those lanes change character beyond ±2 % of the kit's tempo, and from MIDI in (the editor shows which source plays).
-- The content gains 9.43 MB of derived stems; the Loops/ stems the tables use are 10.46 MB.
-- In the extended mixes, the vox lines that place FUT02's and FUT03's riff off the loop's position (the call, riff and
-  answer lines: 12 cycles each) play the multisample. `content/plugin/README.md` lists them; a second derived stem per
-  kit would cover them, its first note losing its pre-roll (6 or 25 ms).
+- The content gains 14.80 MB of derived stems (8 files); the Loops/ stems the tables use are 10.46 MB.
+- A stem starts on its cycle's 16th 0, so a note there can't have a pre-roll of its own: FUT02's riff-twice stem is
+  wrapped, the first note's 50 ms pre-roll sitting at the stem's end, played when the riff repeats and lost when it
+  enters fresh; its last slice fades before it.
+- `content/plugin/README.md` lists the extended mixes' cycles that play the multisample on a phrase lane; a test keeps
+  the list current when the MIDI is re-arranged.
 - Whenever samples, recipes or the MIDI change, the manifests, the phrase tables and the content version are
   regenerated together (`plugin_kit.py --check` and the tests catch a stale one).
 

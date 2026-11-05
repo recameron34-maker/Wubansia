@@ -1268,6 +1268,15 @@
       "loop_start": 0,
       "loop_end": 0,
       "preroll_frames": 0
+    },
+    {
+      "path": "Stems/Context Vox Riff Twice.wav",
+      "frames": 354462,
+      "channels": 2,
+      "sha256": "41cc3388009062943302e807dd70e44c439b9997ce112afb3c2041e5bcb604cb",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
     }
   ],
   "instruments": [
@@ -4037,6 +4046,224 @@
           "start": 241293,
           "end": 354462,
           "fade": 354222,
+          "lead": 2400,
+          "holds": []
+        }
+      ]
+    },
+    {
+      "lane": "vox",
+      "ch": 5,
+      "ab": "",
+      "mix_channel": "vox",
+      "gain_mdb": 3000,
+      "stems": {
+        "a": 137,
+        "b": -1
+      },
+      "cycle_16ths": 64,
+      "tolerance_pm": 20,
+      "fade_us": 5000,
+      "ride": {
+        "cc74": [],
+        "cc71": []
+      },
+      "slices": [
+        {
+          "step": 0,
+          "key": 74,
+          "start": 0,
+          "end": 14437,
+          "fade": 14197,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 3,
+          "key": 77,
+          "start": 14437,
+          "end": 30831,
+          "fade": 30591,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 6,
+          "key": 76,
+          "start": 30831,
+          "end": 52985,
+          "fade": 52745,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 10,
+          "key": 74,
+          "start": 52985,
+          "end": 64062,
+          "fade": 63822,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 12,
+          "key": 72,
+          "start": 64062,
+          "end": 86216,
+          "fade": 85976,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 16,
+          "key": 74,
+          "start": 86216,
+          "end": 103052,
+          "fade": 102812,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 19,
+          "key": 77,
+          "start": 103052,
+          "end": 119446,
+          "fade": 119206,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 22,
+          "key": 76,
+          "start": 119446,
+          "end": 130523,
+          "fade": 130283,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 24,
+          "key": 81,
+          "start": 130523,
+          "end": 141600,
+          "fade": 141360,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 26,
+          "key": 72,
+          "start": 141600,
+          "end": 152677,
+          "fade": 152437,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 28,
+          "key": 69,
+          "start": 152677,
+          "end": 174831,
+          "fade": 174591,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 32,
+          "key": 74,
+          "start": 174831,
+          "end": 191668,
+          "fade": 191428,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 35,
+          "key": 77,
+          "start": 191668,
+          "end": 208062,
+          "fade": 207822,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 38,
+          "key": 76,
+          "start": 208062,
+          "end": 230216,
+          "fade": 229976,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 42,
+          "key": 74,
+          "start": 230216,
+          "end": 241293,
+          "fade": 241053,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 44,
+          "key": 72,
+          "start": 241293,
+          "end": 263447,
+          "fade": 263207,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 48,
+          "key": 74,
+          "start": 263447,
+          "end": 280283,
+          "fade": 280043,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 51,
+          "key": 77,
+          "start": 280283,
+          "end": 296677,
+          "fade": 296437,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 54,
+          "key": 76,
+          "start": 296677,
+          "end": 307754,
+          "fade": 307514,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 56,
+          "key": 81,
+          "start": 307754,
+          "end": 318831,
+          "fade": 318591,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 58,
+          "key": 72,
+          "start": 318831,
+          "end": 329908,
+          "fade": 329668,
+          "lead": 2400,
+          "holds": []
+        },
+        {
+          "step": 60,
+          "key": 69,
+          "start": 329908,
+          "end": 354462,
+          "fade": 351822,
           "lead": 2400,
           "holds": []
         }

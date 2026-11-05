@@ -24,11 +24,15 @@ Where everything comes from:
 - **Instruments:** the kit's r5 Items (`kits.items(..., sets=['r5'])`) as MIDI v2 plays them: `tools/sound/midi.py`'s
   PARTS say which Item each channel and key plays (`docs/midi-map.md`). Layers are `round(layer x 127)`, round robins
   and zones are the Items'. How each instrument plays (mode, envelopes, velocity law, interpolator, glide, chokes, pans,
-  pre-roll) is the recipe's own rule, each value in `plugin_kit.py` with the recipe it comes from.
+  pre-roll) is the recipe's own rule, each value in the kit's `plugin.py` with the recipe it comes from.
 - **Files:** each take's WAV (`listen.plain`): frames, channels and SHA-256 read off the WAV, loop points off
   `build/<kit>-r5/qa_report.json`.
 - **Phrase tables:** `tools/sound/phrase_tables.py` (ADR 0020).
-- **Mix channels:** P3's channel ids, one table in `plugin_kit.py` (`MIX_CHANNELS`, `MIX`).
+- **Mix channels:** P3's channel ids.
+
+Everything kit-specific (the phrase specs, the derived stems' renders, the recipe constants the playing rules come
+from, the lane labels, the mix-channel map) is in the kit's own package, `tools/sound/recipes/<kit>/plugin.py`;
+`plugin_kit.py` and `phrase_tables.py` are shared and import no kit (ADR 0008).
 
 `build/` isn't in git and CI has no samples, so **the committed manifests are the source of truth** for every file's
 facts: where a WAV or the round 5 report isn't here, the exporter takes the fact from the committed manifest. The
@@ -48,8 +52,8 @@ exporter falls back to the checkout for them. A content folder for the plugin ne
 | Kit | `kit.json` | Instruments | Keymap entries | Files | WAV listed | Phrase lanes (slices) |
 |---|---|---|---|---|---|---|
 | FUT01 | 99,539 bytes | 34 | 31 | 189 | 68.3 MB | 2 (20) |
-| FUT02 | 91,402 bytes | 31 | 29 | 137 | 51.1 MB | 4 (81) |
-| FUT03 | 91,207 bytes | 31 | 32 | 163 | 36.9 MB | 3 (44) |
+| FUT02 | 96,114 bytes | 31 | 29 | 138 | 53.2 MB | 5 (103) |
+| FUT03 | 94,804 bytes | 31 | 32 | 164 | 40.1 MB | 4 (60) |
 | FUT04 | 99,786 bytes | 28 | 27 | 130 | 43.5 MB | 4 (130) |
 
 A/B switches: the kick on FUT01 only (A Kick Split, B Kick Garage: the loops play B), the bass on all four (A clean,
@@ -70,9 +74,11 @@ within 2 % of the kit's (ADR 0020). Every other time, and always from MIDI in, t
 | FUT02 | 1 | bass | `Loops/Relay Line Clean.wav` / `Warm` | 2 bars | `fut02.bass.line_lane` | (not in the loop) |
 | FUT02 | 2 | lead | `Loops/Chrome Arp Phrase.wav` | 2 bars | `fut02.lead.arp_phrase` | bit-exact |
 | FUT02 | 5 | vox | `Stems/Context Vox Riff.wav` (derived) | 4 bars | `fut02.voxsynth.sung_parts` | -117 dB |
+| FUT02 | 5 | vox | `Stems/Context Vox Riff Twice.wav` (derived) | 4 bars | `fut02.voxsynth.sung_parts` | -118 dB (its riffs) |
 | FUT03 | 1 | bass | `Loops/Line Rubber Clean.wav` / `Warm` | 2 bars | `fut03.rubber.line_lane` | bit-exact |
 | FUT03 | 1 | bass | `Loops/Line Deep Clean.wav` / `Warm` | 2 bars | `fut03.rubber.line_lane` | (not in the loop) |
 | FUT03 | 5 | vox | `Stems/Context Vox Riff.wav` (derived) | 4 bars | `fut03.voxsynth.riff_tail` | -89 dB |
+| FUT03 | 5 | vox | `Stems/Context Vox Riff Twice.wav` (derived) | 4 bars | `fut03.voxsynth.riff_tail` | -92 dB (its riffs) |
 | FUT04 | 1 | bass | `Loops/Acid Line 1 Ride Clean.wav` / `Warm` (ride) | 4 bars | `fut04.bass.play_line` | bit-exact |
 | FUT04 | 1 | bass | `Stems/Acid Line 1 Clean 4 Bars.wav` / `Warm` (at rest) | 4 bars | `fut04.bass.play_line` | (not in the loop) |
 | FUT04 | 1 | bass | `Stems/Acid Line 2 Clean 4 Bars.wav` / `Warm` (at rest) | 4 bars | `fut04.bass.play_line` | (not in the loop) |
@@ -80,6 +86,8 @@ within 2 % of the kit's (ADR 0020). Every other time, and always from MIDI in, t
 
 The nulls are the stem placed by its table at the Loop files' notes against the recipe's lane before its inserts,
 both variants and both bass characters, round the loop (`tools/sound/tests/test_phrase_tables.py`; the gate is -50 dB).
+The riff-twice stems play the extended mixes' call, riff and answer vox lines, which place the riff (or a bar of it)
+from 16ths 0 and 32: their nulls are against the recipe's riff placed there twice.
 FUT02's bass: the recipe mutes its line under the drop glide with 5 ms edges, the phrase voice comes back after it over
 its 3 ms crossfade, both in the line's silence on the kick. FUT02's vox: 24 bits at 3 dB under the lane. FUT03's vox:
 the 3 ms crossfade on the riff's first breath.
@@ -107,12 +115,14 @@ byte for byte by the tests. Approved by the lead (ADR 0020).
 |---|---|---|---|
 | `fut02/Stems/Context Vox Riff.wav` | the loop's vox riff from 16th 16: `voxsynth.sung_parts` with the loop's seed (`ContextVoxRiff`), the notes and the throw, 4 bars, stored 3 dB down (`gain_mdb` 3000) | the Loops/ `Vox Synth Riff` has its own seed and the throw's echo baked in; the loop sings it with another seed and sends the throw | 2,126,816 bytes |
 | `fut03/Stems/Context Vox Riff.wav` | the loop's vox riff from 16th 32: `voxsynth.riff_tail` at `PhraseVoxRiff`'s gain, unwrapped, 6 bars (its throw's echoes run 2 bars past the 4-bar cycle) | the Loops/ `Phrase Vox Riff` wraps the echoes over its own start; the loop rings them into bars 1-2 | 3,240,044 bytes |
+| `fut02/Stems/Context Vox Riff Twice.wav` | the same riff sung from 16ths 0 and 32, wrapped round 4 bars, 3 dB down | the extended mix's call, riff and answer vox lines place the riff there; the loop's stem has it from 16th 16 | 2,126,816 bytes |
+| `fut03/Stems/Context Vox Riff Twice.wav` | the same riff from 16ths 0 and 32, unwrapped, 6 bars, 1 dB down (`gain_mdb` 1000) | the extended mix's call, riff and answer vox lines; the loop's stem has it from 16th 32 | 3,240,044 bytes |
 | `fut04/Stems/Acid Line 1 Clean 4 Bars.wav` | Acid Line 1 (A) at rest, its 2-bar Loops/ file twice | a phrase for the line without the ride, on the Ride's 4-bar cycle | 1,016,516 bytes |
 | `fut04/Stems/Acid Line 1 Warm 4 Bars.wav` | the same, B | | 1,016,516 bytes |
 | `fut04/Stems/Acid Line 2 Clean 4 Bars.wav` | Acid Line 2 (A) at rest, twice | the other line at rest | 1,016,516 bytes |
 | `fut04/Stems/Acid Line 2 Warm 4 Bars.wav` | the same, B | | 1,016,516 bytes |
 
-Together 9.43 MB; the Loops/ stems the tables use are another 10.46 MB.
+Together 14.80 MB; the Loops/ stems the tables use are another 10.46 MB.
 
 ### The extended mixes' multisample cycles
 
@@ -126,12 +136,12 @@ FUT01 novox ch 2: every cycle resolves
 FUT01 novox ch 5: every cycle resolves
 FUT02 vox ch 1: every cycle resolves
 FUT02 vox ch 2: every cycle resolves
-FUT02 vox ch 5: 12 cycles (161 notes) from bars 57, 61, 65, 69, 73, 77, 145, 149, 153, 157, 177, 181
+FUT02 vox ch 5: 1 cycle (1 note) from bar 61
 FUT02 novox ch 1: every cycle resolves
 FUT02 novox ch 2: every cycle resolves
 FUT02 novox ch 5: every cycle resolves
 FUT03 vox ch 1: every cycle resolves
-FUT03 vox ch 5: 12 cycles (80 notes) from bars 57, 61, 65, 69, 73, 77, 145, 149, 153, 157, 177, 181
+FUT03 vox ch 5: every cycle resolves
 FUT03 novox ch 1: every cycle resolves
 FUT03 novox ch 5: every cycle resolves
 FUT04 vox ch 1: every cycle resolves
@@ -140,15 +150,13 @@ FUT04 novox ch 1: every cycle resolves
 FUT04 novox ch 2: every cycle resolves
 ```
 
-FUT02's and FUT03's are the extended mix's call, riff and answer vox lines, which place the riff from 16th 0 and 32
-(the loop's pattern starts at 16 on FUT02, 32 on FUT03). A second derived stem per kit (the riff at 16ths 0 and 32,
-about 2-3 MB) would play them recorded too; its first note would lose its pre-roll (6 ms on FUT02, 25 ms on FUT03),
-since a stem starts on its cycle's 16th 0. Not made: for the lead to decide. When the kit engineers re-arrange the
-extended mixes, run `--report` again and update this list (`test_plugin_kit` checks it).
+The one left is FUT02's call line in bars 61-64: it throws its last note on 16th 62, where neither of its vox stems
+has one, so that note plays the multisample. When the kit engineers re-arrange the extended mixes, run `--report`
+again and update this list (`test_plugin_kit` checks it).
 
 ## Mix channels
 
-The channel ids `kit.json` names, P3's (`MIX_CHANNELS` in `plugin_kit.py`):
+The channel ids `kit.json` names, P3's (`MIX_CHANNELS` in each kit's `plugin.py`):
 
 | Kit | Channels |
 |---|---|
@@ -169,8 +177,8 @@ vox chops `vsynth`, its FX keys `fill`, its other accents `acc_hit` (its Air Pad
 - FUT01's no-vox warp stab accent: the recipe's 15 ms fade ends on its gate (1.75 16ths); a gated voice's release
   starts there.
 - The multisample fallbacks' release times and glides where no recipe plays that multisample (the vox synths, FUT02's
-  arp, FUT03's Keys EP, FUT02-04's basses), and Sub Deep's layer level: chosen from the nearest recipe, in
-  `plugin_kit.py`.
+  arp, FUT03's Keys EP, FUT02-04's basses), and Sub Deep's layer level: chosen from the nearest recipe, in each
+  kit's `plugin.py`.
 - FUT01's vox riff entering fresh in the extended mix plays its first slice's lead, which holds the throw's echoes
   wrapped from the riff's end (0.67 s before the first chop).
 - FUT02's vox throw: its slice plays with the throw's CC91/CC94 sends, and so do the tails of the notes before it that
