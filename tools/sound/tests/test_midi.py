@@ -932,7 +932,7 @@ class TestLineRules(unittest.TestCase):
         self.assertEqual([self.CHOIR, self.STAB], info['phrases'])
         self.assertNotIn('vox', info)
         self.assertIn('vox (the vox choir chords)', text)
-        self.assertIn('the laser stab riff on its channel', text)
+        self.assertIn('chords with the laser stab riff', text)
         self.assertNotIn('vox (riff)', text)
         R, _, text = self.mix('FUT02', lines, 'novox')
         info = R['sections'][0]['lines'][0]
@@ -1115,6 +1115,75 @@ class TestLineRules(unittest.TestCase):
         for kit in KITS:
             for v in VARIANTS:
                 self.assertNotIn('basslines', ext(kit, v)[1])
+
+    @staticmethod
+    def said(text, line):
+        """The README's words for the scratch form's nth line."""
+        return next(row.split(': ', 1)[1] for row in text.splitlines()
+                    if row.startswith(f'- {1 + 8 * line}-{8 + 8 * line}: '))
+
+    def test_a_lines_parts_are_its_own_not_its_lanes(self):
+        """A part's mode (regions.json and the README) is keyed on the part being in the line, not on its lane having
+        notes: a phrase on an extra's channel reads '<lane> (<phrase>)' where it plays alone on its lane (FUT01's organ
+        riff on channel 12 is not the pluck, FUT02's laser stab riff on 12 not its pad chords, FUT04's rave stab riff
+        on 13 not its accents), '<part> with <phrase>' beside the lane's own part."""
+        R, _, text = self.mix('FUT01', (Mi.line(Mi.GROOVE, phrases=('Organ riff',)),
+                                        Mi.line(Mi.GROOVE + ' lead', lead='call', phrases=('Organ riff',)),
+                                        Mi.line(Mi.GROOVE), Mi.line(Mi.GROOVE)), 'vox')
+        info = R['sections'][0]['lines']
+        self.assertIn('lead', info[0]['lanes'])
+        self.assertNotIn('lead', info[0])
+        self.assertEqual('call', info[1]['lead'])
+        self.assertIn('lead (the organ riff)', self.said(text, 0))
+        self.assertEqual(1, self.said(text, 0).count('lead'))
+        self.assertIn("the lead's call with the organ riff", self.said(text, 1))
+        k = Mi.kit_of('FUT02')
+        alt = {'alt': dict(trigger=k.block('chords', 'groove'), voicing=k.block('voicing', 'groove'))}
+        R, _, text = self.mix('FUT02', (Mi.line(Mi.DRUMS_BASS, chords='alt', phrases=(self.STAB,)),
+                                        Mi.line(Mi.GROOVE, chords='alt', phrases=(self.STAB,)),
+                                        Mi.line(Mi.GROOVE), Mi.line(Mi.GROOVE)), 'vox',
+                               chords={**k.P['chords'], 'blocks': alt})
+        info = R['sections'][0]['lines']
+        self.assertIn('chords', info[0]['lanes'])
+        self.assertNotIn('chords', info[0])
+        self.assertEqual('alt', info[1]['chords'])
+        self.assertIn('chords (the laser stab riff)', self.said(text, 0))
+        self.assertEqual(1, self.said(text, 0).count('chords'))
+        self.assertIn('chords (alt) with the laser stab riff', self.said(text, 1))
+        lines = (Mi.line(DRUMS_RUMBLE_BASS, phrases=('Rave stab riff',)),
+                 Mi.line(DRUMS_RUMBLE_BASS, accents='loop', phrases=('Rave stab riff',)),
+                 Mi.line(Mi.GROOVE), Mi.line(Mi.GROOVE))
+        _, _, text = self.mix('FUT04', lines, 'vox')
+        self.assertIn('accents (the rave stab riff)', self.said(text, 0))
+        self.assertIn('accents with the rave stab riff', self.said(text, 1))
+
+    def test_the_pad_and_a_thrown_vox_note_are_named(self):
+        """The pad is named as the pad, not as the chords whose lane it plays on (FUT03's Pad Warm), and regions.json
+        records the chord block it plays where that is its own ('pad'); a thrown vox note is recorded (throw: true) and
+        reads "the vox's last note thrown" on a line with no vox mode (FUT04's groove throws its D4 into the break),
+        "vox (call), thrown" beside one, and neither in the no-vox mix."""
+        k = Mi.kit_of('FUT03')
+        pad = {**k.P['pad'], 'blocks': {**k.P['pad']['blocks'], 'alt': [(0, 60, 64, 1.0, False)]}}
+        R, _, text = self.mix('FUT03', (Mi.line('kick pad'), Mi.line('kick pad chords'),
+                                        Mi.line('kick pad', chords='alt'), Mi.line(Mi.GROOVE)), 'vox', pad=pad)
+        info = R['sections'][0]['lines']
+        self.assertEqual(('kick, pad', 'kick, chords, pad', 'kick, pad (alt)'),
+                         tuple(self.said(text, line) for line in range(3)))
+        self.assertEqual((None, None, 'alt', None), tuple(info[line].get('pad') for line in range(4)))
+        self.assertNotIn('chords', info[2])
+        lines = (Mi.line(DRUMS_RUMBLE_BASS, throw=True), Mi.line(DRUMS_RUMBLE_BASS, vox='call', throw=True),
+                 Mi.line(DRUMS_RUMBLE_BASS, vox='call'), Mi.line(Mi.GROOVE))
+        R, _, text = self.mix('FUT04', lines, 'vox')
+        info = R['sections'][0]['lines']
+        self.assertEqual([(True, None), (True, 'call'), (None, 'call')],
+                         [(info[line].get('throw'), info[line].get('vox')) for line in range(3)])
+        self.assertIn("the vox's last note thrown", self.said(text, 0))
+        self.assertNotIn('vox (', self.said(text, 0))
+        self.assertIn('vox (call), thrown', self.said(text, 1))
+        self.assertNotIn('thrown', self.said(text, 2))
+        R, _, text = self.mix('FUT04', lines, 'novox')
+        self.assertFalse([ln for ln in R['sections'][0]['lines'] if {'throw', 'vox'} & set(ln)])
+        self.assertNotIn('thrown', text)
 
 
 class TestSchema(unittest.TestCase):
