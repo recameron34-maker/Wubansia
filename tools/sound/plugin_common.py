@@ -116,7 +116,7 @@ KEYS = {
     'phrase': ('lane', 'ch', 'ab', 'mix_channel', 'gain_mdb', 'stems', 'cycle_16ths', 'tolerance_pm', 'fade_us',
                'slices'),
     'stems': ('a', 'b'),
-    'slice': ('step', 'key', 'start', 'end', 'fade', 'lead', 'hits'),
+    'slice': ('step', 'key', 'start', 'end', 'fade', 'lead', 'holds'),
     # <KIT>_mix.json
     'mix.json': ('kit', 'content_version', 'channels', 'groups', 'returns', 'bus_eq', 'master', 'reference'),
     'channel': ('id', 'lane', 'group', 'inserts', 'sends_pm'),

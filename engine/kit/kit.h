@@ -258,9 +258,13 @@ namespace wubansia::engine
         friend bool operator== (const Phrase&, const Phrase&) = default;
     };
 
-    // One note of a phrase, in the stem's 48 kHz frames. A note belongs to the 16th whose swung start is
-    // the latest at or before it; a slice with hits n plays the first of its n notes of its key in that
-    // 16th and swallows the rest (FUT04's blip ratchets).
+    inline constexpr int kMaxHolds = 8;
+
+    // One note of a phrase, in the stem's 48 kHz frames. holds are the notes after the slice's own that it
+    // plays itself, by key, in order: retriggers of its key (FUT04's ratchets) and the targets its note
+    // glides to inside it (FUT03's in-note glides, written as legato notes). Each starts after the slice's
+    // note and before the next note the phrase's pattern matches on that channel; the matcher gives them no
+    // sound of their own.
     struct PhraseSlice
     {
         std::int32_t step = 0; // the 16th in the cycle where its note starts
@@ -269,7 +273,8 @@ namespace wubansia::engine
         std::int64_t end = 0; // exclusive
         std::int64_t fade = 0; // where it fades out when no slice follows it
         std::int32_t lead = 0; // frames of pre-roll before the onset
-        std::uint8_t hits = 1; // 1-8: the notes of its key in its 16th this slice plays
+        std::array<std::uint8_t, kMaxHolds> holds {}; // keys, in order; entries from holdCount on are 0
+        std::uint8_t holdCount = 0;
 
         friend bool operator== (const PhraseSlice&, const PhraseSlice&) = default;
     };
@@ -319,7 +324,8 @@ namespace wubansia::engine
         std::vector<PhraseSlice> slices;
         std::array<std::array<KeyTarget, 128>, 16> keys {}; // [channel 0-15][key]; built from the keymap
         // [channel 0-15]: bit per mix channel a CC on that MIDI channel reaches: the mix channels of
-        // every instrument the keymap names on it (a and b) and of every phrase on it.
+        // every instrument the keymap names on it (a and b, and what they're layered with) and of every
+        // phrase on it.
         std::array<std::uint32_t, 16> ccMixChannels {};
         MixConfig mix;
         // [0] Loop vox, [1] Loop no-vox, [2] Song vox, [3] Song no-vox: engine.h's timelineIndex ().

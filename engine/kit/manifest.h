@@ -137,7 +137,8 @@ namespace wubansia::engine
         std::int64_t end = 0;
         std::int64_t fade = 0;
         std::int32_t lead = 0;
-        std::int32_t hits = 1;
+        std::array<std::int32_t, kMaxHolds> holds {}; // keys, in order; entries from holdCount on are 0
+        std::int32_t holdCount = 0;
 
         friend bool operator== (const SliceEntry&, const SliceEntry&) = default;
     };

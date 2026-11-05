@@ -254,11 +254,16 @@ near the kit's (ADR 0020).
 | `end` | integer | `start` + 1 to the shorter stem's frames | the frame after the last |
 | `fade` | integer | `start` to `end` | where it starts fading when no slice follows it (the recipe's mute edge) |
 | `lead` | integer | 0-48 000 | frames of the slice before its onset |
-| `hits` | integer | 1-8 | how many notes of its key in its 16th the slice plays (below) |
+| `holds` | array of integers | 0-8 keys, each 0-127 | the notes after the slice's own that it plays itself (below); `[]` for most slices |
 
-A note belongs to the 16th whose swung start is the latest at or before it. A slice with `hits` n stands for n
-notes of its key in its 16th: it plays from the first of them and swallows the rest, which the stem already holds
-(FUT04's blip ratchets: 2 notes at step 10, 3 at step 26).
+`holds` lists, by key and in order, the notes after the slice's own note that the slice plays itself:
+- retriggers of its key (FUT04's blip ratchets: step 10 `[74]`, step 26 `[84, 84]`);
+- the targets its note glides to inside it (FUT03's in-note glides, written as legato notes: Rubber 14 `[31]`,
+  25 `[31]`, 30 `[38]`; Deep 14 `[36]`, 22 `[38]`, 30 `[31]`).
+
+Each held note starts after the slice's note and before the next note the phrase's pattern matches on that channel.
+The matcher gives held notes no sound of their own: the stem already has them. A note that fits neither a slice nor
+a hold stays on the multisample.
 
 Two phrases may share a channel; the matcher picks per cycle (`engine/sched/phrase_match.h`).
 
