@@ -6,6 +6,7 @@ the switch-up on Orbit with a new zap figure, drop 2 on Relay with the glass mel
 where the vox sings, a 16-bar percussion cycle in the drops, the arp's filter ride, a change at every line. FUT02's
 own tests: its engineer edits them with the kit's PARTS."""
 import unittest
+from collections import Counter
 
 from tools.sound import channels as CH
 from tools.sound import kits
@@ -131,8 +132,8 @@ def chord_groups(tracks, lo, hi):
 
 def riff_notes(tracks, lo=0, hi=WHOLE):
     """The vox's single notes in [lo, hi) (the riff, its call and answer, its throws), not the choir's chords."""
-    on_ = [n[0] for n in notes_in(tracks, 'Vox')]
-    return [n for n in notes_in(tracks, 'Vox', lo, hi) if on_.count(n[0]) == 1]
+    starts = Counter(n[0] for n in notes_in(tracks, 'Vox'))
+    return [n for n in notes_in(tracks, 'Vox', lo, hi) if starts[n[0]] == 1]
 
 
 def sounding(tracks, name, tick):
@@ -220,9 +221,9 @@ class TestExtendedMix(unittest.TestCase):
 
     def test_the_harmony_moves(self):
         """Audit B FUT02 must 2: in the vox mix the choir chords (Dm7, Dm9, B-flat maj7 over D, Am7: the Vox choir
-        chords phrase, as recorded) sing in both breaks; in both mixes the laser stab riff's Dm9 and B-flat maj9 move the
-        drop's harmony from its third line (its first two are the arp's and the vox's), and every break line keeps a
-        harmony of its own in the no-vox mix too (the pad, or the laser stabs)."""
+        chords phrase, as recorded) sing in both breaks; in both mixes the laser stab riff's Dm9 and B-flat maj9 move
+        the drop's harmony from its third line (its first two are the arp's and the vox's), and every break line keeps
+        a harmony of its own in the no-vox mix too (the pad, or the laser stabs)."""
         for v in VARIANTS:
             R, tracks, _ = whole(KIT, v)
             for name in ('Break', 'Break 2'):
@@ -279,7 +280,9 @@ class TestExtendedMix(unittest.TestCase):
             s = sec(R, 'Switch-up')
             self.assertEqual({'Orbit'}, {ln['bass'] for ln in s['lines'] if 'bass' in ln}, v)
             lo, hi = span(s)
-            block = lambda b: tuple((on - b, key, vel) for on, _, key, vel in notes_in(tracks, 'Perc', b, b + 4 * BAR))  # noqa: E731,E501
+
+            def block(b):
+                return tuple((on - b, key, vel) for on, _, key, vel in notes_in(tracks, 'Perc', b, b + 4 * BAR))
             before = {block(b) for b in range(0, lo, 4 * BAR)}
             for b in range(lo, hi, 4 * BAR):
                 self.assertTrue(block(b), (v, b // BAR + 1))
