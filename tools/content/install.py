@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Installs kits' samples where the plugin looks for them: <dest>/<kit>/v<N>/ (ADR 0022).
+r"""Installs kits' samples where the plugin looks for them: <dest>/<kit>/v<N>/ (ADR 0022).
 
     python3 tools/content/install.py --from-repo [PATH] [--kit FUT01] [--dest DIR] [--dry-run]
     python3 tools/content/install.py --from-zip ZIP [ZIP ...] [--kit FUT01] [--dest DIR] [--dry-run]
@@ -11,10 +11,10 @@ each as the plugin does (a 48 kHz WAV with the listed frames and channels, not a
 kit.json as well when this checkout has that kit at that content version.
 
 The default --dest is the plugin's content folder:
-    macOS  ~/Library/Application Support/Wubansia Audio/Wubansia/Content
-    Linux  ~/.local/share/Wubansia Audio/Wubansia/Content
-(Windows has none yet: pass --dest.) Each kit also gets its SHA256SUMS, so a folder installed from the repo and
-one installed from a zip are the same.
+    macOS    ~/Library/Application Support/Wubansia Audio/Wubansia/Content
+    Windows  %APPDATA%\Wubansia Audio\Wubansia\Content
+    Linux    ~/.local/share/Wubansia Audio/Wubansia/Content
+Each kit also gets its SHA256SUMS, so a folder installed from the repo and one installed from a zip are the same.
 
 It never replaces a sample that is already there with other bytes: that is another build of the same content
 version (a different version has its own v<N> folder). Every file is checked before anything is written, and a kit

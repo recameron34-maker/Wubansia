@@ -8,6 +8,7 @@ the top.
 """
 import hashlib
 import json
+import os
 import platform
 import re
 import struct
@@ -102,15 +103,22 @@ def zip_name(kit):
     return f'Wubansia-Content-{kit.id}-v{kit.version}.zip'
 
 
-def default_content_dir(system=None, home=None):
-    """The content folder the plugin looks in after $WUBANSIA_CONTENT_DIR and the folder chosen in its editor (ADR
-    0022), or None where that isn't decided yet (Windows)."""
+def default_content_dir(system=None, home=None, env=None):
+    r"""The content folder the plugin looks in after $WUBANSIA_CONTENT_DIR and the folder chosen in its editor (ADR
+    0022): ~/Library/Application Support/Wubansia Audio/Wubansia/Content on macOS; %APPDATA%\Wubansia Audio\Wubansia\
+    Content on Windows (JUCE's userApplicationDataDirectory, which is <home>\AppData\Roaming when APPDATA isn't set);
+    ~/.local/share/Wubansia Audio/Wubansia/Content on Linux. None on other systems."""
     system = system or platform.system()
     home = Path(home) if home is not None else Path.home()
+    env = os.environ if env is None else env
+    tail = Path('Wubansia Audio') / 'Wubansia' / 'Content'
     if system == 'Darwin':
-        return home / 'Library' / 'Application Support' / 'Wubansia Audio' / 'Wubansia' / 'Content'
+        return home / 'Library' / 'Application Support' / tail
+    if system == 'Windows':
+        appdata = env.get('APPDATA')
+        return (Path(appdata) if appdata else home / 'AppData' / 'Roaming') / tail
     if system == 'Linux':
-        return home / '.local' / 'share' / 'Wubansia Audio' / 'Wubansia' / 'Content'
+        return home / '.local' / 'share' / tail
     return None
 
 

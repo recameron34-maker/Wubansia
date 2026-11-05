@@ -96,6 +96,10 @@ content folder…" in Wubansia's window. The plugin remembers it for your user, 
   with the kit's `SHA256SUMS`. A later content version goes in its own `v<N>` folder next to it.
 - `~/Library/Application Support/Wubansia Audio/Wubansia/settings.xml`: the content folder you chose, if any.
 
+On Windows the content folder is `%APPDATA%\Wubansia Audio\Wubansia\Content`, and on Linux
+`~/.local/share/Wubansia Audio/Wubansia/Content`. From a clone of the repo, this installs a content zip there:
+`python3 tools/content/install.py --from-zip <zip>`.
+
 ## If something's wrong
 
 - **Your DAW doesn't list Wubansia.** Make it rescan its plug-ins. In Logic, open Logic Pro > Settings > Plug-in

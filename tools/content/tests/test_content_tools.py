@@ -11,7 +11,9 @@ install-macos.sh runs for real only on macOS. On Linux these tests run its --dry
 real run with stand-ins for the macOS-only commands on PATH (uname says Darwin; xattr, codesign and killall log what
 they're asked); the plugin half of that runs only on Linux, because on a Mac it would write /Applications.
 """
+import contextlib
 import hashlib
+import io
 import json
 import os
 import random
@@ -25,6 +27,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest import mock
 
 from tools.content import install as INST
 from tools.content import kitfiles as KF
@@ -277,11 +280,17 @@ class TestKitFiles(Case):
 
     def test_the_default_content_folder_is_where_the_plugin_looks(self):
         home = Path('/Users/someone')
-        self.assertEqual(KF.default_content_dir('Darwin', home),
+        self.assertEqual(KF.default_content_dir('Darwin', home, env={}),
                          home / 'Library' / 'Application Support' / 'Wubansia Audio' / 'Wubansia' / 'Content')
-        self.assertEqual(KF.default_content_dir('Linux', home),
+        self.assertEqual(KF.default_content_dir('Linux', home, env={}),
                          home / '.local' / 'share' / 'Wubansia Audio' / 'Wubansia' / 'Content')
-        self.assertIsNone(KF.default_content_dir('Windows', home))  # not decided yet: --dest is required there
+        # Windows: %APPDATA% (JUCE's userApplicationDataDirectory), or where Windows puts it when it isn't set.
+        appdata = Path('/fake/AppData/Roaming')
+        self.assertEqual(KF.default_content_dir('Windows', home, env={'APPDATA': str(appdata)}),
+                         appdata / 'Wubansia Audio' / 'Wubansia' / 'Content')
+        self.assertEqual(KF.default_content_dir('Windows', home, env={}),
+                         home / 'AppData' / 'Roaming' / 'Wubansia Audio' / 'Wubansia' / 'Content')
+        self.assertIsNone(KF.default_content_dir('SunOS', home, env={}))  # no folder decided there: --dest
 
 
 # ------------------------------------------------------------------ pack.py
@@ -585,6 +594,19 @@ class TestInstall(Case):
         self.assertFails(proc)
         self.assertIn('Music/Pad G3.wav', proc.stdout + proc.stderr)
         self.assertEqual(tree(self.tmp / 'Content'), {})
+
+    def test_on_windows_it_installs_under_appdata_without_dest(self):
+        kit = SynKit(self.tmp)
+        zpath = self.packed(kit)
+        appdata = self.tmp / 'AppData' / 'Roaming'
+        out = io.StringIO()
+        with mock.patch.object(KF.platform, 'system', return_value='Windows'), \
+                mock.patch.dict(os.environ, {'APPDATA': str(appdata)}), contextlib.redirect_stdout(out):
+            status = INST.main(['--manifests', str(kit.manifests), '--from-zip', str(zpath)])
+        self.assertEqual(status, 0, out.getvalue())
+        dest = appdata / 'Wubansia Audio' / 'Wubansia' / 'Content' / kit.folder / 'v1'
+        self.assertEqual(tree(dest), self.expected_tree(kit))
+        self.assertIn(str(dest), out.getvalue())
 
     def test_from_zip_dry_run_writes_nothing(self):
         kit = SynKit(self.tmp)

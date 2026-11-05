@@ -16,7 +16,7 @@ The user installs on a Mac and wants the least friction: unzip, run one command,
 Per kit, the first of these that has it:
 1. `$WUBANSIA_CONTENT_DIR`, for development, tests and `groovecore render`.
 2. The folder chosen with "Choose content folder…" in the editor, saved per user in `~/Library/Application Support/Wubansia Audio/Wubansia/settings.xml`, never in projects.
-3. The content folder: `~/Library/Application Support/Wubansia Audio/Wubansia/Content` (ROADMAP §3); on Linux `~/.local/share/Wubansia Audio/Wubansia/Content`.
+3. The content folder: `~/Library/Application Support/Wubansia Audio/Wubansia/Content` on macOS (ROADMAP §3), `%APPDATA%\Wubansia Audio\Wubansia\Content` on Windows (JUCE's `userApplicationDataDirectory` there), and `~/.local/share/Wubansia Audio/Wubansia/Content` on Linux.
 4. Debug builds only: the checkout's `content/samples`, set at configure time. Never in CI or Release builds.
 
 Inside each, `<kit>/v<N>/` first, where N is the embedded `kit.json`'s `content_version`, then `<kit>/` (the repo's layout). Kit folders are lowercase (`fut01`). A kit is ready when every listed file exists, isn't a Git LFS pointer, and is a 48 kHz WAV with the listed frames and channels. The installers check SHA-256; loads don't. The locator is P9's `ContentLocator`; `tools/content/kitfiles.py` (`default_content_dir`) holds the same paths, and both follow this ADR.
@@ -64,7 +64,7 @@ Before packing, every file is checked as the plugin checks it, and against `kit.
 - Nothing new ships in the binaries. The zip's two new files are this repo's own, so `THIRD_PARTY_NOTICES.md` doesn't change. CI gains `actions/cache@v5` (MIT), used by the content job only.
 - The tests run the installer for real only on the macOS runner (the plugins, and content into a fake home folder), and on Linux with stand-ins for `uname`, `xattr`, `codesign` and `killall`. bash 3.2 itself runs only there. The Python tools are tested on Python 3.13 and 3.9.
 - Not verified from this session: Gatekeeper on a zip downloaded in a browser, the installed AU in Logic, Safari's names for the folders it unzips, the x86_64 slice.
-- P9's `ContentLocator` must keep the default folders above, and its tests should check them.
+- P9's `ContentLocator` uses the three default folders above and ignores the `SHA256SUMS` file in each `<kit>/v<N>/`; its tests should check both. `install.py` needs no `--dest` on any of the three systems.
 - The manifests must be final before content zips go to you. plugin-p2's head lists one more file each for FUT01-FUT03 than 8d6e102, still as version 1. Either route would add those files to an installed version 1, but only zips from the final manifests match the plugin build.
 
 ## Alternatives
