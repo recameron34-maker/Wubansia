@@ -128,8 +128,9 @@ VARIANTS = {'ride on 8ths': {'hats': RIDE_ON_8THS},
 # the beats, E5 G5 B5 in each bar, leaving the 'a' of each beat, where the vox riff sings, to the vox
 SKELETON = [n for n in blips() if n[0] in (0, 4, 12, 16, 20, 28)]
 # without the vox, drop 2's last line keeps its call and response: where the vox answers the blips' call (bars 2, 4, 6
-# and 8), the zap and the metal chord answer on the 'and' of 4, thrown, as the no-vox loop answers the vox's throws
-NOVOX_ANSWER = tuple(Hit(32 * k + 30, name, 1, throw=True) for k, name in enumerate(
+# and 8), the zap and the metal chord answer on the 'and' of 4, thrown, as the no-vox loop answers the vox's throws;
+# gated to the vox's thrown D4 (2 16ths), so the dry hit is short and the send carries it (the last into the outro)
+NOVOX_ANSWER = tuple(Hit(32 * k + 30, name, 1, gate=2, throw=True) for k, name in enumerate(
     ('AccentZapE5', 'AccentMetalChordEm', 'AccentZapE5', 'AccentMetalChordEm')))
 METAL, RAVE, ACID = 'Metal chords, Em Em Am Bm', 'Rave stab riff', 'Acid stab riff'
 DRUMS = 'kick rumble snare hats perc'
