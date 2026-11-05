@@ -6,8 +6,6 @@ build/<kit>-r5, or the WAVs in content/samples/<kit>/Loops) and re-render each k
 variant): they run when WUBANSIA_R5_BUILD points at a folder holding <kit>-r5/ (or the repo's build/ has it), and
 skip otherwise.
 """
-import math
-import os
 import unittest
 
 import numpy as np

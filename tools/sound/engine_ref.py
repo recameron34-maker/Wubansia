@@ -33,7 +33,6 @@ from scipy import signal  # noqa: E402
 from scipy.linalg import hadamard  # noqa: E402
 
 from tools.sound import dsp48 as D  # noqa: E402
-from tools.sound import master as MS  # noqa: E402
 from tools.sound import phrase as Ph  # noqa: E402
 from tools.sound import rt_ref as R  # noqa: E402
 from tools.sound import sends as S  # noqa: E402
@@ -624,9 +623,9 @@ def gates(kit, variant, master='exact', passes=3):
 def master_difference(kit, variant):
     """The look-back master against the exact one on the same mix (pass 2): compare()'s readings, and each one's
     loudness and true peak."""
-    L, _ = __import__('tools.sound.plugin_mix', fromlist=['loop_info']).loop_info(kit)
-    out_off, meta = render(kit, variant, master='off')
     from tools.sound import plugin_mix as PM
+    L, _ = PM.loop_info(kit)
+    _, meta = render(kit, variant, master='off')
     m = PM.load(kit)
     pre = meta['premaster']
     exact, _ = master_chain(pre, m['master'], variant, 'exact')

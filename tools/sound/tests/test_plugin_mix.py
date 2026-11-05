@@ -7,11 +7,8 @@ round 5 renders are (WUBANSIA_R5_BUILD, or the repo's build/<kit>-r5) and skip o
 do.
 """
 import json
-import math
 import re
 import unittest
-
-import numpy as np
 
 from tools.sound import plugin_mix as PM
 
