@@ -12,6 +12,7 @@ namespace wubansia::engine::fx
         constexpr int kTaps = static_cast<int> (kOsFir4.size()); // 193
         constexpr int kCentre = (kTaps - 1) / 2; // 96
         static_assert (kTaps == 193, "the polyphase pairing below is os_fir(4)'s: 4 x 48 + 1 taps");
+        static_assert (symmetricTaps (kOsFir4), "the dot products below pair the taps");
 
         // The up direction's phases, t_j[m] = 4 h[j + 4 m] (49 taps for j = 0, 48 for the rest). h is symmetric
         // (h[k] = h[192 - k]), so:
