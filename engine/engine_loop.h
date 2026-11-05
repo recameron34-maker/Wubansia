@@ -439,6 +439,8 @@ namespace wubansia::engine
         int soundOffSamples_ = 240;
         std::int64_t absolute_ = 0; // the next sample, from prepare () or reset ()
         std::uint32_t hits_ = 0; // lanes struck in this block
+        std::array<float, kLanes> peaks_ {}; // the mixer's lane peaks over this block's pieces
+        float reduction_ = 0.0f; // and its deepest gain reduction
 
         const Kit* kit_ = nullptr;
         std::array<const Kit*, kFadingKits> fading_ {};
@@ -464,6 +466,8 @@ namespace wubansia::engine
         const int outs = std::min (numOutputs, 2);
         const int mixOuts = std::min (outs, outputs_);
         hits_ = 0;
+        peaks_.fill (0.0f);
+        reduction_ = 0.0f;
 
         // 1. The transport; 2. a switch due now (the first Kit at once, or a bar line on this sample).
         {
@@ -514,6 +518,11 @@ namespace wubansia::engine
             if (outs > mixOuts)
                 std::copy_n (chunk[0], piece, chunk[1]);
             applyFade (chunk, outs, piece);
+            // The meters are the last process ()'s: keep the block's highest.
+            const auto& meters = mixer_.meters();
+            for (std::size_t lane = 0; lane < static_cast<std::size_t> (kLanes); ++lane)
+                peaks_[lane] = std::max (peaks_[lane], meters.lanePeak[lane]);
+            reduction_ = std::max (reduction_, meters.gainReduction);
 
             absolute_ += piece;
             done += piece;
@@ -528,10 +537,9 @@ namespace wubansia::engine
                 if (phrasePlays (phrase, controls))
                     recorded |= laneBit (phrase.lane);
         telemetry.phraseRecorded.store (recorded, std::memory_order_relaxed);
-        const auto& meters = mixer_.meters();
         for (std::size_t lane = 0; lane < static_cast<std::size_t> (kLanes); ++lane)
-            detail::raisePeak (telemetry.lanePeak[lane], meters.lanePeak[lane]);
-        telemetry.gainReduction.store (meters.gainReduction, std::memory_order_relaxed);
+            detail::raisePeak (telemetry.lanePeak[lane], peaks_[lane]);
+        telemetry.gainReduction.store (reduction_, std::memory_order_relaxed);
         const auto position = scheduler_.position();
         telemetry.songTicks.store (position.playing ? position.ticks : -1.0, std::memory_order_relaxed);
         telemetry.section.store (position.playing ? position.section : -1, std::memory_order_relaxed);
