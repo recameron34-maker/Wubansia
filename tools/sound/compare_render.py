@@ -17,16 +17,21 @@ engine's latency):
 - dry: pass 2 of the dry renders (--space 0 --echo 0 --club off) with bass A and B against the dry loops, the same
   measures and tolerances (report only where the recipe's dry loop isn't the wet mix less its returns: it says why);
 - lanes: what the voices play into each mix channel before its inserts (groovecore render --taps) against the recipe's
-  own lane there (mix_trace's capture, engine_ref's input). A phrase lane (a channel a kit.json phrase plays into)
-  nulls to -40 dB or lower one pass at a time: the first from 5 ms on (a start chases its slices in over 5 ms), the
-  second whole, each at its best whole-sample offset within 3 samples (a cycle at the exact tempo isn't a whole number
-  of samples: the engine's passes start up to a sample off the recipe's tiled loop). A sampled lane keeps every 1/3
-  octave within 40 dB of its loudest within 1 dB on pass 2; its null is reported. A failing lane names its likely
-  cause and owner;
-- songs: 8 bars of every Song section in both variants with bass A and B: finite, not silent where the drums play, and
-  under the club master's ceiling (true peak at most -0.9 dBTP); their loudness against the Club loop is reported.
-Reported without a gate: the Low loops against the kick and bass lanes, the engine's CPU per render, and the look-back
-master against the exact one once groovecore render can play master.py's two-sided hold.
+  own lane there (mix_trace's capture, engine_ref's input), with each A/B switch's other side on its own lane. A phrase
+  lane (a channel a kit.json phrase plays into) nulls to -40 dB or lower one pass at a time, each of its cycles at its
+  best whole-sample offset within 3 samples (a cycle at the exact tempo isn't a whole number of samples, so the
+  engine's cycles start on different roundings): the first pass from 5 ms on (a start chases its slices in over 5 ms),
+  the second outside the 2 ms after each cycle's wrap, where the voice re-syncs over 1 ms by design (the whole pass's
+  null is reported too). A sampled lane keeps every 1/3 octave within 40 dB of its loudest within 1 dB on pass 2; its
+  null is reported. A failing lane names its likely cause and owner;
+- songs: 8 bars of every Song section (--songs: all, both variants with bass A and B; some; none): finite, not silent
+  where the drums play, and under the club master's ceiling (true peak at most -0.9 dBTP); their loudness against the
+  Club loop is reported.
+Reported without a gate: master.py's two-sided limiter hold (--master exact) against the look-back master, and against
+the Club loop; the club mix 1 % and 3 % off the kit's tempo, and its phrase lanes against themselves at the kit's
+tempo; the phrase lanes on their multisamples (--phrases off: what plays past 2 % and from MIDI in) against the
+recipe's lanes, and FUT04's squelch ticks there; the engine's CPU per render, and a stress at 128-sample blocks with
+the voices full. Known gaps the lead has accepted (KNOWN) stay in the report, marked with their owner.
 """
 import argparse
 import json
@@ -62,7 +67,8 @@ SECTION_CEILING_DB = -0.9     # a Song section's true peak, at most (the limiter
 SECTION_BARS = 8
 PASSES = '2'                  # loop renders: pass 1 (from rest, chased) and pass 2 (steady state) are all the checks read
 
-# The round 5 dry loops (bass A and B; FUT04 has no no-vox pair) and Low loops (the kick and bass lanes), by kit.
+# The round 5 dry loops (bass A and B; FUT04 has no no-vox pair), by kit. The Low loops (the kick and bass lanes alone)
+# aren't compared: they are round 4's mixes of those lanes, which round 5 clips and mixes differently.
 DRY = {
     'FUT01': {('vox', 'a'): 'GarageVox', ('vox', 'b'): 'GarageVoxWarm',
               ('novox', 'a'): 'GarageNoVox', ('novox', 'b'): 'GarageNoVoxWarm'},
@@ -71,12 +77,6 @@ DRY = {
     'FUT03': {('vox', 'a'): 'ContextLoopVox', ('vox', 'b'): 'ContextLoopVoxWarm',
               ('novox', 'a'): 'ContextLoopNoVox', ('novox', 'b'): 'ContextLoopNoVoxWarm'},
     'FUT04': {('vox', 'a'): 'ContextLoopVox', ('vox', 'b'): 'ContextLoopVoxWarm'},
-}
-LOW = {
-    'FUT01': {'a': 'GarageContextLow', 'b': 'GarageContextLowWarm'},
-    'FUT02': {'a': 'ContextLow5', 'b': 'ContextLow5Warm'},
-    'FUT03': {'a': 'ContextLoopLow', 'b': 'ContextLoopLowWarm'},
-    'FUT04': {'a': 'ContextLoopLow', 'b': 'ContextLoopLowWarm'},
 }
 
 # Gaps the lead has accepted for now, with their owner: they stay in the report, marked, and don't fail the run.
@@ -413,7 +413,7 @@ def resync_mask(L, cycle_16ths, at=RESYNC_S):
 class Check:
     """One row of the report: what, its readings, whether it passes (None: reported without a gate), and why not."""
     kit: str
-    group: str            # mix, dry, lane, song, low, master, cpu
+    group: str            # mix, dry, lane, master, tempo, song, multisample, cpu
     name: str
     values: dict = field(default_factory=dict)
     ok: object = None
@@ -610,34 +610,6 @@ def section_checks(kit, renders):
     return out
 
 
-def low_checks(kit, renders):
-    """The Low loops (the kick and bass lanes alone, round 4's mix) against the club render's kick and bass taps
-    summed: reported, no gate (round 5 clips and mixes those lanes differently)."""
-    from tools.sound import engine_ref as E
-    from tools.sound import plugin_mix as PM
-    L, _ = PM.loop_info(kit)
-    out = []
-    for b, item in LOW.get(kit, {}).items():
-        name = f'loop_vox_bass{b}'
-        m = meta_of(wav_path(renders, kit, name))
-        if m is None:
-            continue
-        x = None
-        for c in m['channels']:
-            if c['lane'] in ('kick', 'bass'):
-                t = load(taps_dir(renders, kit, name) / f'{c["id"]}.wav')
-                if t is not None:
-                    x = t[0] if x is None else x + t[0]
-        if x is None:
-            continue
-        ref, rep = E.reference(kit, item)
-        got = pass_slice(x, L, 1) * D.undb(rep['gain_db'])
-        r = compare(got, ref, E.full_kicks(kit))
-        out.append(Check(kit, 'low', f'kick + bass {b.upper()} dry taps vs {item}', r['diff'], None,
-                         "round 4's mix of those lanes: no gate"))
-    return out
-
-
 def multisample_checks(kit, renders, root=None):
     """The phrase lanes on their multisamples (--phrases off) against the recipe's lanes: reported, no gate. For FUT04
     also the squelch ticks (AcidLine1's 16ths 8 and 24): the bass lane's sub (below 120 Hz) over the 40 ms from each
@@ -810,14 +782,14 @@ def cpu_checks(kit, renders):
     return out
 
 
-GROUPS = ('mix', 'dry', 'lane', 'master', 'tempo', 'song', 'low', 'multisample', 'cpu')
+GROUPS = ('mix', 'dry', 'lane', 'master', 'tempo', 'song', 'multisample', 'cpu')
 
 
 def run_kit(kit, renders, root=None, groups=GROUPS):
     out = []
     fns = {'mix': mix_checks, 'dry': dry_checks, 'lane': lambda k, r: lane_checks(k, r, root), 'song': section_checks,
            'master': master_checks, 'tempo': lambda k, r: tempo_checks(k, r, root),
-           'low': low_checks, 'multisample': lambda k, r: multisample_checks(k, r, root), 'cpu': cpu_checks}
+           'multisample': lambda k, r: multisample_checks(k, r, root), 'cpu': cpu_checks}
     for g in groups:
         out += fns[g](kit, renders)
     return out
@@ -866,7 +838,7 @@ def report_md(checks, kits):
         if not ks:
             continue
         lines += [f'## {kit}', '']
-        gate_rows = [c for c in ks if c.group in ('mix', 'dry', 'low', 'master') or (c.group in ('tempo', 'multisample') and 'lufs_i' in c.values)]
+        gate_rows = [c for c in ks if c.group in ('mix', 'dry', 'master') or (c.group in ('tempo', 'multisample') and 'lufs_i' in c.values)]
         if gate_rows:
             lines += ['| check | LUFS-I | short-term | worst 1/3 oct | true peak | kick crest | result |',
                       '|---|---|---|---|---|---|---|']
