@@ -1024,8 +1024,8 @@ namespace wubansia::engine
 
             void readPhrase (const Node& n, PhraseEntry& p)
             {
-                const Obj o (n, { "lane", "ch", "ab", "mix_channel", "gain_mdb", "throw", "stems", "cycle_16ths", "tolerance_pm", "fade_us", "ride",
-                                    "slices" });
+                const Obj o (n, { "lane", "ch", "ab", "mix_channel", "gain_mdb", "throw", "stems", "cycle_16ths", "tolerance_pm", "fade_us",
+                                    "fade_in_us", "ride", "slices" });
                 if (! o.ok())
                     return;
                 p.lane = static_cast<Lane> (o["lane"].choice (kLaneIds));
@@ -1051,6 +1051,7 @@ namespace wubansia::engine
                     cycle.fail (std::to_string (p.cycle16ths) + " isn't a multiple of 16: a cycle is whole bars");
                 p.tolerancePm = o["tolerance_pm"].int32 (0, 100);
                 p.fadeUs = o["fade_us"].int32 (0, 100'000);
+                p.fadeInUs = o["fade_in_us"].int32 (0, 100'000);
                 if (errors.any())
                     return;
                 const Obj ride (o["ride"], { "cc74", "cc71" });
@@ -1064,10 +1065,8 @@ namespace wubansia::engine
                 auto shorter = m.files[static_cast<std::size_t> (p.stemA)].frames;
                 if (p.stemB >= 0)
                     shorter = std::min (shorter, m.files[static_cast<std::size_t> (p.stemB)].frames);
-                const auto slices = o["slices"].items (1, 256, "slices");
-                for (std::size_t j = 0; j < slices.size(); ++j)
+                for (const auto& item : o["slices"].items (1, 256, "slices"))
                 {
-                    const auto& item = slices[j];
                     const Obj s (item, { "step", "key", "start", "end", "fade", "lead", "holds" });
                     if (! s.ok())
                         return;
@@ -1088,16 +1087,13 @@ namespace wubansia::engine
                     e.start = s["start"].integer (0, shorter - 1);
                     if (errors.any())
                         return;
-                    // A looped stem's last slice may wrap through the stem's end, up to slice 0's start: the voice
-                    // reads it modulo the stem's length. Every other slice ends inside the stem.
-                    const bool last = j + 1 == slices.size();
-                    const auto limit = last ? shorter + (j == 0 ? e.start : p.slices.front().start) : shorter;
+                    // Any slice may wrap through the stem's end (its start is its onset less its lead, modulo frames):
+                    // the voice reads it modulo the stem's length, so a slice is at most one stem long.
                     const auto endNode = s["end"];
                     e.end = endNode.raw();
-                    if (! errors.any() && (e.end < e.start + 1 || e.end > limit))
-                        endNode.fail (std::to_string (e.end) + " is out of range (" + std::to_string (e.start + 1) + " to " + std::to_string (limit) + ")"
-                                  + (last ? ": the last slice of a looped stem may wrap to its frames (" + std::to_string (shorter) + ") + slice 0's start"
-                                          : ": only the last slice may wrap through the stem's end"));
+                    if (! errors.any() && (e.end < e.start + 1 || e.end > e.start + shorter))
+                        endNode.fail (std::to_string (e.end) + " is out of range (" + std::to_string (e.start + 1) + " to " + std::to_string (e.start + shorter)
+                                      + "): a slice is at most its stem's " + std::to_string (shorter) + " frames long");
                     if (errors.any())
                         return;
                     e.fade = s["fade"].integer (e.start, e.end);

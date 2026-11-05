@@ -275,6 +275,7 @@ TEST_CASE ("buildKit lays out the manifests as kit/kit.h describes", "[kit_build
     p.cycle16ths = 32;
     p.tolerancePm = 20;
     p.fadeUs = 5000;
+    p.fadeInUs = 750;
     p.firstSlice = 0;
     p.sliceCount = 4;
     CHECK (kit.phrases[0] == p);
@@ -304,14 +305,20 @@ TEST_CASE ("buildKit: a phrase without an alternative plays stem A on both sides
     CHECK (built.result.value->phrases[0].ab == -1);
 }
 
-TEST_CASE ("buildKit carries a baked throw and a looped stem's wrapping last slice", "[kit_builder]")
+TEST_CASE ("buildKit carries throw, fade_in_us and slices that wrap through a looped stem's end", "[kit_builder]")
 {
     auto manifest = testKit();
     const auto mix = testMix (testKit());
     auto& phrase = manifest.phrases[0];
     phrase.throwMode = PhraseThrow::baked;
-    phrase.slices[0].start = 5000; // slice 0 starts at its own pre-roll
-    phrase.slices[3].end = 190000 + 5000; // the shorter stem's frames + slice 0's start: it continues into slice 0
+    phrase.fadeInUs = 3000;
+    // Slice 0 starts before its cycle, at the stem's frames less its lead, and wraps (FUT02's riff twice); the last
+    // slice wraps too, through the stem's end and on to frame 5000.
+    phrase.slices[0].lead = 2400;
+    phrase.slices[0].start = 190000 - 2400;
+    phrase.slices[0].end = 190000 - 2400 + 16837;
+    phrase.slices[0].fade = 190000 - 2400 + 16000;
+    phrase.slices[3].end = 190000 + 5000;
     phrase.slices[3].fade = 190000 + 4000;
     const std::atomic<bool> cancel { false };
 
@@ -323,15 +330,26 @@ TEST_CASE ("buildKit carries a baked throw and a looped stem's wrapping last sli
         const Kit& kit = *built.result.value;
         const auto& p = kit.phrases[0];
         CHECK (p.throwMode == PhraseThrow::baked);
-        const auto& first = kit.slices[p.firstSlice];
+        CHECK (p.fadeInUs == 3000);
+        // The slices as written: the voice reads each modulo its stem's length. Every slice starts inside the shorter
+        // stem (stem B, 190000 frames) and is at most that long, so on either stem it wraps at most once.
+        const auto& s0 = kit.slices[p.firstSlice];
         const auto& last = kit.slices[static_cast<std::size_t> (p.firstSlice + p.sliceCount - 1)];
-        CHECK (first.start == 5000);
+        CHECK (s0.start == 187600);
+        CHECK (s0.end == 204437);
+        CHECK (s0.fade == 203600);
+        CHECK (s0.lead == 2400);
         CHECK (last.end == 195000);
         CHECK (last.fade == 194000);
-        // Read modulo each stem's own length, the wrapped tail ends at or before slice 0's start: on stem B (the
-        // shorter, 190000 frames) exactly there, on stem A (192000) 2000 frames short of it.
-        CHECK (last.end - kit.view (p.stem[1]).frames == first.start);
-        CHECK (last.end - kit.view (p.stem[0]).frames == first.start - 2000);
+        for (const auto stem : p.stem)
+        {
+            const auto frames = kit.view (stem).frames;
+            for (std::size_t i = p.firstSlice; i < static_cast<std::size_t> (p.firstSlice + p.sliceCount); ++i)
+            {
+                CHECK (kit.slices[i].start < frames);
+                CHECK (kit.slices[i].end - kit.slices[i].start <= frames);
+            }
+        }
     }
 
     // Structs made in code that the voice couldn't read safely are refused before any file is read.
@@ -342,10 +360,12 @@ TEST_CASE ("buildKit carries a baked throw and a looped stem's wrapping last sli
         std::string_view starts;
     };
     const Case cases[] {
-        { "a last slice wrapping past slice 0's start", [] (PhraseEntry& p) { p.slices[3].end = 195001; }, "manifest: kit.json: phrases[0].slices[3]: " },
-        { "a slice before the last wrapping", [] (PhraseEntry& p) { p.slices[2].end = 190001; }, "manifest: kit.json: phrases[0].slices[2]: " },
+        { "a last slice longer than its stem", [] (PhraseEntry& p) { p.slices[3].end = 66000 + 190000 + 1; }, "manifest: kit.json: phrases[0].slices[3]: " },
+        { "a wrapping slice 0 longer than its stem", [] (PhraseEntry& p) { p.slices[0].end = 187600 + 190000 + 1; }, "manifest: kit.json: phrases[0].slices[0]: " },
         { "a fade past its end", [] (PhraseEntry& p) { p.slices[1].fade = p.slices[1].end + 1; }, "manifest: kit.json: phrases[0].slices[1]: " },
+        { "a fade before its start", [] (PhraseEntry& p) { p.slices[2].fade = p.slices[2].start - 1; }, "manifest: kit.json: phrases[0].slices[2]: " },
         { "a start past the stem", [] (PhraseEntry& p) { p.slices[3].start = 190000; }, "manifest: kit.json: phrases[0].slices[3]: " },
+        { "a negative start", [] (PhraseEntry& p) { p.slices[2].start = -1; }, "manifest: kit.json: phrases[0].slices[2]: " },
         { "an empty slice", [] (PhraseEntry& p) { p.slices[1].end = p.slices[1].start; }, "manifest: kit.json: phrases[0].slices[1]: " },
     };
     for (const auto& c : cases)

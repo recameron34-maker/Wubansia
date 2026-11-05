@@ -141,7 +141,8 @@ namespace wubansia::engine::test
   ],
   "phrases": [
     { "lane": "lead", "ch": 2, "ab": "bass", "mix_channel": "lead", "gain_mdb": 0, "throw": "live", "stems": { "a": 15, "b": 16 },
-      "cycle_16ths": 32, "tolerance_pm": 20, "fade_us": 5000, "ride": { "cc74": [], "cc71": [] },
+      "cycle_16ths": 32, "tolerance_pm": 20, "fade_us": 5000, "fade_in_us": 750,
+      "ride": { "cc74": [], "cc71": [] },
       "slices": [
         { "step": 0, "key": 60, "start": 0, "end": 22000, "fade": 21000, "lead": 0, "holds": [] },
         { "step": 4, "key": 62, "start": 21500, "end": 44000, "fade": 43000, "lead": 500, "holds": [62] },
