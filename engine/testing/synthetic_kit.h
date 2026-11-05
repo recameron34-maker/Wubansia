@@ -13,8 +13,8 @@
 // - bass A/B on channel 1: 3 sustain-loop zones each (G1 D2 G2, F1 played on G1 pitched down), mono
 //   legato with a raised-cosine glide and dips (A, Hermite) or an exponential glide (B, sinc, 2 layers);
 // - a lead on channel 2 with a recorded phrase: a looped 2-bar stem with 8 contiguous slices, one swung,
-//   one holding a retrigger, the last wrapping through the stem's end to slice 0's pre-roll; its throw is
-//   baked; and a CC74 ride (CC71 empty) that the files' lead track writes in every cycle (the stem isn't
+//   one holding a retrigger, one with no pre-roll (so its fade_in_us applies), the last wrapping through
+//   the stem's end to slice 0's pre-roll; its throw is baked; and a CC74 ride (CC71 empty) that the files' lead track writes in every cycle (the stem isn't
 //   filtered: the ride is there to test matching);
 // - a 2-zone stab on channel 4, and a held pad on channel 11 (a kit extra) with restrike-continue;
 // - a vox zone with 3 velocity layers and a 20 ms pre-roll; an end-aligned riser with start_frames;
