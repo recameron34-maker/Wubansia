@@ -244,6 +244,9 @@ def line(lanes, **opt):
       bar up to the fill's start, its velocity rising hit by hit from `from` to `to` times its loudest written
       velocity; the drums rest from the fill's start;
     - rise: (lane, from, to): the lane's velocities scaled bar by bar from `from` to `to`;
+    - fill: on a line that ends on a fill, a sound (channel 6 or 7) end-aligned on the line's end in place of the
+      kit's fill: every drum lane (busy hats and a roll included) rests from its start (FUT01's build: the whole glitch
+      fill from beat 3, where the loop plays its beat 4 only);
     - end: 'fill' (the last bar is the loop's fill bar, with the kit's fill: a Fill cue), 'turn' (a turnaround in the
       last bar: PARTS['drums']['turn'], else a pickup roll on the last beat of the snare, the perc or the hats, the
       first with room for it) or 'drop' (the drums sit out the last bar);
@@ -1024,19 +1027,22 @@ def cue_hits(k, role):
     return () if not got else ((got,) if isinstance(got, str) else tuple(got))
 
 
-def fill_hits(k):
-    """The kit's fill, as hits on the fill bar (16ths of a 4-bar block): the loop's FX in its last bar, else the 'fill'
-    cue's sound end-aligned on the block's end."""
+def fill_hits(k, ln=None):
+    """The fill a line ends on, as hits on the fill bar (16ths of a 4-bar block): the line's own (ln['fill'], a sound
+    end-aligned on the block's end), else the loop's FX in its last bar, else the 'fill' cue's sound end-aligned on the
+    block's end."""
+    if ln is not None and ln.get('fill'):
+        return [Hit(BLOCK * BAR, ln['fill'], align='end')]
     loop_fx = [h for h in k.P.get('loop', {}).get('fx', ()) if h.step >= (BLOCK - 1) * BAR]
     if loop_fx:
         return list(loop_fx)
     return [Hit(BLOCK * BAR, s, align='end') for s in cue_hits(k, 'fill')]
 
 
-def fill_start(k):
-    """The 16th of the fill bar (0-16) where the kit's fill starts sounding."""
+def fill_start(k, ln=None):
+    """The 16th of the fill bar (0-16) where the line's fill (fill_hits()) starts sounding."""
     starts = []
-    for h in fill_hits(k):
+    for h in fill_hits(k, ln):
         _, note = k.hit_note(h)
         on = k.tick(note.step) - (note.ticks if note.end else 0)
         starts.append(on / S16 - (BLOCK - 1) * BAR)
@@ -1239,7 +1245,7 @@ def line_notes(k, ln, ctx, variant):
             else:
                 notes = k.block('drums', kind, part)
             if part == 'hats':
-                until = (BLOCK - 1) * BAR + fill_start(k) if kind == 'fill' else None
+                until = (BLOCK - 1) * BAR + fill_start(k, ln) if kind == 'fill' else None
                 notes = hat_density(k, notes, hats_mode(ln, b), until)
             add(k.part_track(part), shifted(notes, off))
         # bass
@@ -1293,7 +1299,7 @@ def line_notes(k, ln, ctx, variant):
         notes = as_notes(ph['notes'])
         notes = [n for r in range(LINE * BAR // period) for n in shifted(notes, r * period)]
         if fill and ln.get('phrases_rest'):
-            notes = rest_from(k, notes, (LINE - 1) * BAR + fill_start(k))   # the fill alone from its start
+            notes = rest_from(k, notes, (LINE - 1) * BAR + fill_start(k, ln))   # the fill alone from its start
         add(track, notes)
     # vox
     if ('vox' in lanes or ln.get('vox', 'off') != 'off') and 'Vox' not in phrase_on:
@@ -1318,7 +1324,7 @@ def line_notes(k, ln, ctx, variant):
             role, n = k.hit_note(Hit(0, s))
             add(track_of_role(role), [n])
     if fill:
-        for h in fill_hits(k):
+        for h in fill_hits(k, ln):
             role, n = k.hit_note(h)
             add(track_of_role(role), [n._replace(step=n.step + (LINE - BLOCK) * BAR)])
     if ln.get('cue') == 'Riser':
@@ -1327,9 +1333,15 @@ def line_notes(k, ln, ctx, variant):
             add(track_of_role(role), [n])
     # the line's moves: rolls, rises, turnarounds, drum drops
     last_bar = (LINE - 1) * BAR
+    if fill and ln.get('fill') and not ln.get('roll'):      # the line's own fill: the drums out from its start
+        until = last_bar + fill_start(k, ln)
+        for part in DRUM_PARTS:
+            t = k.part_track(part)
+            if t in out:
+                out[t] = rest_from(k, out[t], until)
     if ln.get('roll'):
         roll = ln['roll']
-        until = last_bar + fill_start(k) if fill else LINE * BAR
+        until = last_bar + fill_start(k, ln) if fill else LINE * BAR
         track = k.part_track(roll['lane'])
         src = out.get(track) or [n for b in range(blocks)
                                  for n in shifted(k.block('drums', 'groove', roll['lane']), b * BLOCK * BAR)]
@@ -1464,6 +1476,8 @@ def line_info(k, ln, got, start, variant='vox'):
         info['accents'] = ln['accents']
     if ln.get('end'):
         info['end'] = ln['end']
+    if ln.get('fill') and ln.get('end') == 'fill':
+        info['fill'] = ln['fill']
     return info
 
 
@@ -1791,6 +1805,8 @@ def describe_line(k, ln):
     if ln.get('end'):
         words_.append({'fill': 'the fill in its last bar', 'turn': 'a turnaround in its last bar',
                        'drop': 'the drums out in its last bar'}[ln['end']])
+    if ln.get('fill'):
+        words_[-1] = f"the fill ({words(ln['fill'])}) in its last bar, the drums out from its start"
     return '; '.join(words_)
 
 
