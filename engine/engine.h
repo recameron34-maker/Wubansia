@@ -53,6 +53,13 @@ namespace wubansia::engine
         lane // every channel plays Controls::midiInLane
     };
 
+    // The club master limiter's hold. twoSided is master.py's two-sided hold, for groovecore render's verification
+    // renders only; the latency follows it.
+    enum class MasterHold : std::uint8_t {
+        lookBack,
+        twoSided
+    };
+
     // The Kit's timeline for a mode and variant: [0] Loop vox ... [3] Song no-vox. -1 for off.
     constexpr int timelineIndex (PlayMode mode, Variant variant) noexcept
     {

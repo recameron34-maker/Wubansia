@@ -34,10 +34,11 @@ namespace wubansia::engine::mix
     public:
         static constexpr double kLookaheadS = 0.005; // the latency budget's lookahead
 
-        // The fixed latency at this rate: glue, clip and the look-back limiter at a 5 ms lookahead.
-        static int latencyFor (double sampleRate) noexcept;
+        // The fixed latency at this rate: glue, clip and the limiter at a 5 ms lookahead, looking back (the
+        // real-time master) or two-sided (master.py's, for groovecore render's verification renders).
+        static int latencyFor (double sampleRate, fx::Limiter::Hold hold = fx::Limiter::Hold::lookBack) noexcept;
 
-        void prepare (double sampleRate, int maxBlock); // allocates
+        void prepare (double sampleRate, int maxBlock, fx::Limiter::Hold hold = fx::Limiter::Hold::lookBack); // allocates
 
         // The kit's two masters (by Variant); also resets. origin: how late aligned time 0 reaches the master.
         void setup (const std::array<MasterConfig, 2>& config, const Controls& controls, int origin) noexcept;
@@ -53,6 +54,7 @@ namespace wubansia::engine::mix
 
     private:
         double fs = 48000.0;
+        fx::Limiter::Hold holdMode = fx::Limiter::Hold::lookBack;
         int fixedLatency = 0;
         int pad = 0; // the limiter's latency short of the budget
         std::array<MasterConfig, 2> cfg {};

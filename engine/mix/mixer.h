@@ -103,7 +103,8 @@ namespace wubansia::engine
         Mixer (const Mixer&) = delete;
         Mixer& operator= (const Mixer&) = delete;
 
-        void prepare (double sampleRate, int maxBlock, int numOutputs); // allocates
+        // Allocates. hold: the club master limiter's (MasterHold); the latency follows it.
+        void prepare (double sampleRate, int maxBlock, int numOutputs, MasterHold hold = MasterHold::lookBack);
         void reset() noexcept; // clears every tail and envelope
 
         // The adopted Kit's mix (nullptr: none, which sums the buses at unity). Audio thread, at a
