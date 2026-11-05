@@ -452,6 +452,7 @@ namespace wubansia::engine::testing
             Json j = Json::object();
             j.add ("lane", str (laneId (p.lane))).add ("ch", num (p.ch)).add ("ab", id (kAbSwitchIds, p.ab));
             j.add ("mix_channel", str (p.mixChannel)).add ("gain_mdb", num (p.gainMdb));
+            j.add ("throw", id (kPhraseThrowIds, static_cast<int> (p.throwMode)));
             j.add ("stems", Json::object().add ("a", num (p.stemA)).add ("b", num (p.stemB)));
             j.add ("cycle_16ths", num (p.cycle16ths)).add ("tolerance_pm", num (p.tolerancePm)).add ("fade_us", num (p.fadeUs));
             j.add ("ride", Json::object()
