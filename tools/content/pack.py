@@ -34,7 +34,7 @@ except ImportError:
 DATE = (1980, 1, 1, 0, 0, 0)          # DOS time's first day: nothing about when it was packed
 FILE_MODE = stat.S_IFREG | 0o644
 DIR_MODE = stat.S_IFDIR | 0o755
-LEVEL = 9                             # deflate level; WAV saves about 13 %
+LEVEL = 9                             # deflate level; WAV saves about 12 %
 UNIX = 3                              # ZipInfo.create_system: the modes above are honoured on unzip
 
 
