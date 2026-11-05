@@ -37,6 +37,10 @@ namespace mixtest
         int a, b, c, d; // key: lane, velocity; cc: channel, controller, value, ramp
     };
 
+    // The calling thread's CPU time in ns where the platform keeps it (POSIX), so other processes' load doesn't count;
+    // elsewhere the wall clock. For the CPU figures.
+    double threadCpuNs();
+
     // Runs `total` samples through the mixer in blocks of `block`: input (channel, sample index, side) -> value,
     // events at their absolute times, controls (sample index of the block's start) -> Controls. Returns the output,
     // interleaved by numOutputs.
