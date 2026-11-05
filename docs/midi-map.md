@@ -25,7 +25,7 @@ The kits' extras:
 
 | Kit | 11 | 12 | 13 |
 |---|---|---|---|
-| FUT01 | Organ Bass (the Low line; bass) | Organ Lead (the organ riff; lead) | |
+| FUT01 | Organ Bass (the Low line; bass) | Organ Lead (the organ riff; lead) | Air Pad (F#m9 on F#3, Bm9 on B3; chords) |
 | FUT02 | Drop Glide (follows the bass A/B; bass) | Laser Chord Stab (the stab riff; chords) | Glass Ping (the glass melody; accents) |
 | FUT03 | Pad Warm (the pad bed; chords) | | |
 | FUT04 | Acid Stab (the acid stab riff; accents) | Metal Chord (the metal chords; chords) | Rave Stab (the rave stab riff; accents) |
