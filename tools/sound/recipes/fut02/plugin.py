@@ -48,6 +48,8 @@ def play(kind, item, it, key, r):
         r['pan_cycle_pm'] = [iround(p, 1000) for p in C.ZAP_PAN]
     if kind == 'drop_glide':                # context.glide_lane: struck, its key lifted, released over 20 ms
         r.update(mode='gated', release_us=iround(C.GLIDE_RELEASE, 1e6))
+    if kind == 'vox':                       # context5.ARP_POCKET: the riff's notes key the arp's pocket (two onset
+        r['duck_key'] = True                # ducks on the vox lane in FUT02_mix.json, 100 ms early), stem or not
     return r
 
 
@@ -65,7 +67,8 @@ def render_derived():
 
 def phrases():
     """The bass (the Orbit line, the loop's, and the Relay line), the lead (the chrome arp phrase) and the vox (the
-    loop's riff, and the riff twice for the extended mix's other vox lines)."""
+    loop's riff, and the riff twice for the extended mix's other vox lines). The riff stems hold the throw note dry
+    (sung_parts): the loop sends it into the Space and Echo, and so does the engine (its throw is live)."""
     kicks, sub = tuple(B.KICK_STEPS), iround(B.SUB_LEAD, SR)
     lines = tuple(
         Spec('FUT02', name.lower(), 'bass', 1, (loops_path(f'{name}LineClean'), loops_path(f'{name}LineWarm')),
@@ -76,7 +79,8 @@ def phrases():
     return lines + (
         Spec('FUT02', 'arp', 'lead', 2, (loops_path('ChromeArpPhrase'), None), '', Ld.PHRASE_STEPS,
              tuple((s, n, ()) for s, n, _, _ in Ld.phrase_notes()), 0, 'arp',
-             'tools.sound.recipes.fut02.lead.arp_phrase', fade_us=iround(C.ARP_REST[1], 1e6)),
+             'tools.sound.recipes.fut02.lead.arp_phrase', fade_us=iround(C.ARP_REST[1], 1e6),
+             fade_in_us=iround(C.ARP_REST[2], 1e6)),      # context.ARP_REST: out over 10 ms, back over 3 ms
         Spec('FUT02', 'vox', 'vox', 5, (DERIVED[0], None), '', 64,
              tuple((s + C5.RIFF_AT, n, ()) for s, n, _, _ in Vs.RIFF), pre, 'vox',
              'tools.sound.recipes.fut02.voxsynth.sung_parts', gain_mdb=gain, derived=True, frames=C5.L, looped=False),
