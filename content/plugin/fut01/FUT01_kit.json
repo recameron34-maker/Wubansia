@@ -1450,6 +1450,15 @@
       "preroll_frames": 0
     },
     {
+      "path": "Music/Air Pad F#m9.wav",
+      "frames": 264004,
+      "channels": 2,
+      "sha256": "5d50df4d623abdcd23947fc77095fb862e55fda753e94578c711aeb86eeeeb57",
+      "loop_start": 72004,
+      "loop_end": 264004,
+      "preroll_frames": 0
+    },
+    {
       "path": "FX/Reverse Stab v1.wav",
       "frames": 62400,
       "channels": 2,
@@ -2977,6 +2986,50 @@
       ]
     },
     {
+      "id": "air_pad_fsm9",
+      "name": "Air Pad F#m9",
+      "lane": "chords",
+      "mix_channel": "pad",
+      "mode": "sustain_loop",
+      "align": "start",
+      "attack_us": 2000,
+      "release_us": 20000,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": true,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 54,
+          "lo": 0,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [157]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "reverse_stab",
       "name": "Reverse Stab",
       "lane": "accents",
@@ -3014,11 +3067,11 @@
           "layers": [
             {
               "vel": 76,
-              "rr": [157]
+              "rr": [158]
             },
             {
               "vel": 127,
-              "rr": [158]
+              "rr": [159]
             }
           ]
         }
@@ -3062,7 +3115,7 @@
           "layers": [
             {
               "vel": 127,
-              "rr": [159]
+              "rr": [160]
             }
           ]
         }
@@ -3106,11 +3159,11 @@
           "layers": [
             {
               "vel": 76,
-              "rr": [160]
+              "rr": [161]
             },
             {
               "vel": 127,
-              "rr": [161]
+              "rr": [162]
             }
           ]
         }
@@ -3154,11 +3207,11 @@
           "layers": [
             {
               "vel": 76,
-              "rr": [162]
+              "rr": [163]
             },
             {
               "vel": 127,
-              "rr": [163]
+              "rr": [164]
             }
           ]
         }
@@ -3202,11 +3255,11 @@
           "layers": [
             {
               "vel": 76,
-              "rr": [164]
+              "rr": [165]
             },
             {
               "vel": 127,
-              "rr": [165]
+              "rr": [166]
             }
           ]
         }
@@ -3250,11 +3303,11 @@
           "layers": [
             {
               "vel": 76,
-              "rr": [166]
+              "rr": [167]
             },
             {
               "vel": 127,
-              "rr": [167]
+              "rr": [168]
             }
           ]
         }
@@ -3298,11 +3351,11 @@
           "layers": [
             {
               "vel": 76,
-              "rr": [168]
+              "rr": [169]
             },
             {
               "vel": 127,
-              "rr": [169]
+              "rr": [170]
             }
           ]
         }
@@ -3346,19 +3399,19 @@
           "layers": [
             {
               "vel": 32,
-              "rr": [170, 171]
+              "rr": [171, 172]
             },
             {
               "vel": 64,
-              "rr": [172, 173]
+              "rr": [173, 174]
             },
             {
               "vel": 95,
-              "rr": [174, 175]
+              "rr": [175, 176]
             },
             {
               "vel": 127,
-              "rr": [176, 177]
+              "rr": [177, 178]
             }
           ]
         }
@@ -3402,7 +3455,7 @@
           "layers": [
             {
               "vel": 127,
-              "rr": [178]
+              "rr": [179]
             }
           ]
         }
@@ -3446,7 +3499,7 @@
           "layers": [
             {
               "vel": 127,
-              "rr": [178]
+              "rr": [179]
             }
           ]
         }
@@ -3490,7 +3543,7 @@
           "layers": [
             {
               "vel": 127,
-              "rr": [179]
+              "rr": [180]
             }
           ]
         }
@@ -3534,7 +3587,7 @@
           "layers": [
             {
               "vel": 127,
-              "rr": [180]
+              "rr": [181]
             }
           ]
         }
@@ -3578,7 +3631,7 @@
           "layers": [
             {
               "vel": 127,
-              "rr": [181]
+              "rr": [182]
             }
           ]
         }
@@ -3622,7 +3675,7 @@
           "layers": [
             {
               "vel": 127,
-              "rr": [182]
+              "rr": [183]
             }
           ]
         }
@@ -3666,7 +3719,7 @@
           "layers": [
             {
               "vel": 127,
-              "rr": [183]
+              "rr": [184]
             }
           ]
         }
@@ -3710,7 +3763,7 @@
           "layers": [
             {
               "vel": 127,
-              "rr": [184]
+              "rr": [185]
             }
           ]
         }
@@ -3754,7 +3807,7 @@
           "layers": [
             {
               "vel": 127,
-              "rr": [185]
+              "rr": [186]
             }
           ]
         }
@@ -3971,6 +4024,13 @@
       "a": "organ_lead",
       "b": "",
       "ab": ""
+    },
+    {
+      "ch": 13,
+      "keys": [30, 78],
+      "a": "air_pad_fsm9",
+      "b": "",
+      "ab": ""
     }
   ],
   "extras": [
@@ -3983,6 +4043,11 @@
       "ch": 12,
       "name": "Organ Lead",
       "lane": "lead"
+    },
+    {
+      "ch": 13,
+      "name": "Air Pad",
+      "lane": "chords"
     }
   ],
   "phrases": [
@@ -3993,7 +4058,7 @@
       "mix_channel": "pluck",
       "gain_mdb": 0,
       "stems": {
-        "a": 186,
+        "a": 187,
         "b": -1
       },
       "cycle_16ths": 32,
@@ -4121,7 +4186,7 @@
       "mix_channel": "vsynth",
       "gain_mdb": 0,
       "stems": {
-        "a": 187,
+        "a": 188,
         "b": -1
       },
       "cycle_16ths": 32,
