@@ -7,8 +7,9 @@
 //
 // Per MIDI channel that has phrases (they share one cycle_16ths), one cycle at a time: cycles start every
 // cycle_16ths from song 16th 0. A note's cell is (the 16th it sounds in, from the cycle's start; its key),
-// from its onset: pos + its pre-roll (Note::preroll), so the 16th it is written on. Odd 16ths start
-// (swing_pm - 500) x 480 milliticks late, as the timeline's swing snap puts them.
+// from its onset: pos + its pre-roll (Note::preroll; floorMod by the length in a loop), so the 16th it is
+// written on. Odd 16ths start (swing_pm - 500) x 480 milliticks late, as the timeline's swing snap puts
+// them.
 // - Each phrase scores the cycle: the number of distinct cells of the cycle in its slice pattern, or -1
 //   when its ride doesn't fit the cycle's controllers (below). The highest score wins, the first phrase
 //   on a tie; a best score of 0 or less leaves the cycle's notes on the multisample. So a subset of a
@@ -23,18 +24,23 @@
 //   the channel at or before each point (Timeline::ccs), 0 before any. An empty array constrains
 //   nothing.
 //
-// What it writes (the encoding the engine selects by, per note-on, with playsSlices ()):
-// - A matched note stays where it is, with phrase = its phrase and slice = -1: it plays its
-//   multisample, only while that phrase doesn't play slices. So does a note a slice holds.
-// - Beside it, a slice note: phrase and slice (Kit::slices' index: the phrase's firstSlice + its own),
-//   at the slice's first frame: pos = the slice's 16th on the grid (the cycle's start + step, swung)
-//   less its lead at the kit's BPM, preroll = that lead, len = the slice's frames (end - start) at the
-//   kit's BPM (so a chase finds a slice that plays on past its note). It plays the slice, only while the
-//   phrase plays slices. NoteFlag::continues when the phrase's next slice note is the slice that follows
-//   it in the stem: the next slice in the same cycle, or a looped stem's first slice in the next cycle
-//   (round the loop in a loop). Its other fields are its note's; it has no endAligned or dip.
+// What it writes (timeline.h's three kinds of note; the engine decides per phrase per onset cycle, with
+// playsSlices (), whether a phrase plays its slices or its notes' multisample):
+// - A matched note stays where it is, with phrase = its phrase and slice = -1: its multisample twin. A
+//   note a slice holds gets its phrase too, slice -1, and NoteFlag::held.
+// - Beside each matched note, a slice note: phrase, slice (the global Kit::slices index: the phrase's
+//   firstSlice + its own), placed from the slice's start frame on the cycle: pos = the cycle's start +
+//   start (frames as milliticks at the kit's BPM), preroll = the onset (the slice's 16th on the swung
+//   grid) - pos, which can be a few milliticks below 0 where the frame rounds past the onset, len = the
+//   slice's frames (end - start: past the stem's end for a wrapping last slice) at the kit's BPM, so a
+//   chase finds a slice that plays on past its note. NoteFlag::continues when the phrase's next slice
+//   note plays the slice that follows it in the stem: the next slice in the same cycle (end == its
+//   start), or on a looped stem (its last slice's end - frames == slice 0's start) slice 0 in the next
+//   cycle, round the loop in a loop. Its other fields are its note's; no endAligned, dip or held.
 // - Everything else is as it was (phrase = -1). The notes are sorted again by (pos, channel, key),
-//   stably; in a loop, a slice note that starts before 0 starts at the loop's end.
+//   stably.
+// A cycle is floorDiv (onset, cycle_16ths x 240000): cycles start on even 16ths, where swing moves
+// nothing. For every note it writes or marks, pos + preroll is the onset of the note it belongs to.
 // Frames become milliticks at the kit's BPM: frames x bpm / 3, rounded half up (as the pre-roll step).
 
 #include "kit/manifest.h"

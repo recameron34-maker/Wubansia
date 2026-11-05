@@ -20,19 +20,21 @@ namespace testing = wubansia::engine::testing;
 
 namespace
 {
-    // SYN01's lead phrase as its files write it (engine/testing/synthetic_kit.cpp): 9 notes, the one on step 13 a
-    // retrigger slice 3 holds, so 8 slices; a CC74 ride every 60 ticks, CC71 none.
+    // SYN01's lead phrase as its files write it (engine/testing/synthetic_kit.cpp): 9 notes from step 2, the one on
+    // step 13 a retrigger slice 3 holds, so 8 slices; the last sounds 6 16ths, through the cycle's end into the looped
+    // stem's start (its slice wraps), and its MIDI note stops at the cycle's end; a CC74 ride every 60 ticks, CC71 none.
     struct LeadNote
     {
         int step;
         int key;
         int steps;
     };
-    constexpr std::array<LeadNote, 9> kLead { { { 0, 67, 3 }, { 4, 70, 3 }, { 8, 72, 3 }, { 12, 74, 1 }, { 13, 74, 2 },
-        { 16, 72, 3 }, { 20, 70, 3 }, { 24, 67, 3 }, { 27, 65, 3 } } };
+    constexpr std::array<LeadNote, 9> kLead { { { 2, 67, 2 }, { 4, 70, 3 }, { 8, 72, 3 }, { 12, 74, 1 }, { 13, 74, 2 },
+        { 16, 72, 3 }, { 20, 70, 3 }, { 24, 67, 3 }, { 27, 65, 6 } } };
     constexpr int kLeadChannel = 1; // MIDI channel 2
     constexpr int kSwingPm = testing::kSyntheticSwingPm;
     constexpr std::int64_t kBpm = testing::kSyntheticBpm;
+    constexpr std::int64_t kCycleMt = 32 * kMilliticksPerSixteenth;
 
     int leadRide (int i) { return i < 64 ? 32 + i : 96 - (i - 64); }
 
@@ -50,11 +52,8 @@ namespace
         std::vector<std::pair<int, int>> extra; // more notes: (16th, key)
     };
 
-    std::vector<std::uint8_t> leadSmf (const LeadPlan& plan, std::int64_t lengthTicks = 15360)
+    void writeLead (testing::SmfBuilder::Track& lead, const LeadPlan& plan)
     {
-        testing::SmfBuilder b (960);
-        b.tempo (0, wubansia::midi::microsPerQuarter (static_cast<int> (kBpm))).timeSignature (0, 4, 2);
-        auto& lead = b.track ("Lead");
         for (const int c : plan.cycles)
         {
             for (int i = 0; i < 128; ++i)
@@ -62,10 +61,21 @@ namespace
                     lead.cc (tick (c * 32) + i * kRideTicks, 2, 74, v);
             for (std::size_t i = 0; i < kLead.size(); ++i)
                 if (plan.keep (c, static_cast<int> (i)))
-                    lead.note (tick (c * 32 + plan.stepOf (c, kLead[i].step)), kLead[i].steps * 240, 2, plan.keyOf (c, kLead[i].key), 100);
+                {
+                    const int step = plan.stepOf (c, kLead[i].step);
+                    const auto length = std::min<std::int64_t> (kLead[i].steps * 240, tick (32) - tick (step));
+                    lead.note (tick (c * 32 + step), length, 2, plan.keyOf (c, kLead[i].key), 100);
+                }
         }
         for (const auto& [sixteenth, key] : plan.extra)
             lead.note (tick (sixteenth), 120, 2, key, 90);
+    }
+
+    std::vector<std::uint8_t> leadSmf (const LeadPlan& plan, std::int64_t lengthTicks = 15360)
+    {
+        testing::SmfBuilder b (960);
+        b.tempo (0, wubansia::midi::microsPerQuarter (static_cast<int> (kBpm))).timeSignature (0, 4, 2);
+        writeLead (b.track ("Lead"), plan);
         return b.bytes (lengthTicks);
     }
 
@@ -90,15 +100,26 @@ namespace
         return nullptr;
     }
 
-    // Where the slice note of slice j (the manifest's phrase p) of cycle c goes in a loop of 15360 ticks.
+    // Where the slice note of slice j (of phrase p) of cycle c goes: the cycle's start plus the slice's start frame at
+    // the kit's BPM (round a 4-bar loop), and its preroll, to the slice's 16th on the swung grid.
     std::int64_t slicePos (const PhraseEntry& p, int c, int j, bool loop = true)
     {
         const auto& s = p.slices.at (static_cast<std::size_t> (j));
-        const auto pos = gridMt (std::int64_t { c } * p.cycle16ths + s.step, kSwingPm) - framesToMt (s.lead, kBpm);
+        const auto pos = c * p.cycle16ths * kMilliticksPerSixteenth + framesToMt (s.start, kBpm);
         return loop ? (pos % kLoopLength + kLoopLength) % kLoopLength : pos;
     }
 
+    std::int64_t slicePreroll (const PhraseEntry& p, int c, int j)
+    {
+        const auto& s = p.slices.at (static_cast<std::size_t> (j));
+        return gridMt (std::int64_t { c } * p.cycle16ths + s.step, kSwingPm) - slicePos (p, c, j, false);
+    }
+
     bool continues (const Note& n) { return (n.flags & NoteFlag::continues) != 0; }
+    bool held (const Note& n) { return (n.flags & NoteFlag::held) != 0; }
+
+    // The cycle a note belongs to: its onset (pos + preroll), by the cycle's length.
+    std::int64_t cycleOf (const Note& n) { return (n.pos + n.preroll) / kCycleMt; }
 }
 
 TEST_CASE ("phrase match: a position's 16th on the swung grid", "[phrase][match]")
@@ -114,6 +135,7 @@ TEST_CASE ("phrase match: a position's 16th on the swung grid", "[phrase][match]
     CHECK (sixteenthOf (480000, kSwingPm) == 2);
     CHECK (sixteenthOf (63 * 240000 + 28800, kSwingPm) == 63);
     CHECK (sixteenthOf (64 * 240000, 500) == 64);
+    CHECK (sixteenthOf (-1, kSwingPm) == -1);
 }
 
 TEST_CASE ("phrase match: SYN01's Loop plays every lead note's slice and holds the retrigger", "[phrase][match]")
@@ -125,6 +147,7 @@ TEST_CASE ("phrase match: SYN01's Loop plays every lead note's slice and holds t
     REQUIRE (phrase.ride74.size() == 128u);
     for (int i = 0; i < 128; ++i)
         REQUIRE (phrase.ride74[static_cast<std::size_t> (i)] == leadRide (i));
+    REQUIRE (phrase.slices.back().end - m.files.at (static_cast<std::size_t> (phrase.stemA)).frames == phrase.slices.front().start); // it wraps
 
     auto t = loopOf (testing::syntheticSmf (PlayMode::loop, Variant::vox));
     const auto before = t.notes;
@@ -133,17 +156,21 @@ TEST_CASE ("phrase match: SYN01's Loop plays every lead note's slice and holds t
     CHECK (sorted (t));
     REQUIRE (t.notes.size() == before.size() + 16); // a slice note for each of 2 x 8 slices
 
-    // Every note that was there still is, as it was, but for the lead's phrase index (its multisample twin).
+    // Every note that was there still is, as it was, but for the lead's phrase index (its multisample twin) and the
+    // held flag on the retrigger.
     for (const auto& b : before)
     {
         const Note* n = noteAt (t, b.pos, b.channel, b.key);
         REQUIRE (n != nullptr);
         auto expected = b;
         expected.phrase = static_cast<std::int16_t> (b.channel == kLeadChannel ? 0 : -1);
+        if (b.channel == kLeadChannel && sixteenthOf (b.pos, kSwingPm) % 32 == 13)
+            expected.flags = static_cast<std::uint8_t> (expected.flags | NoteFlag::held);
         CHECK (*n == expected);
     }
 
-    // The slice notes: each slice of each cycle at its first frame, as long as the slice, all reading on round the loop.
+    // The slice notes: each slice of each cycle from its start frame, as long as the slice, all reading on round the
+    // loop (the last wraps into slice 0).
     const auto slices = sliceNotes (t);
     REQUIRE (slices.size() == 16u);
     for (int c = 0; c < 2; ++c)
@@ -159,13 +186,13 @@ TEST_CASE ("phrase match: SYN01's Loop plays every lead note's slice and holds t
             CHECK (n.phrase == 0);
             CHECK (n.key == s.key);
             CHECK (n.velocity == 100);
+            CHECK (n.preroll == slicePreroll (phrase, c, j));
+            CHECK (n.preroll == 2048); // the 48-frame lead at 128 BPM, exactly
+            CHECK (cycleOf (n) == c);
             CHECK (n.len == framesToMt (s.end - s.start, kBpm));
             CHECK (continues (n));
             CHECK ((n.flags & ~NoteFlag::continues) == 0);
         }
-    // Slice 0 starts on its cycle's start (lead 0); slice 1 starts 48 frames before its 16th: 2048 milliticks.
-    CHECK (slicePos (phrase, 1, 0) == 32 * kMilliticksPerSixteenth);
-    CHECK (slicePos (phrase, 0, 1) == 4 * kMilliticksPerSixteenth - 2048);
 }
 
 TEST_CASE ("phrase match: a call cycle plays its slices, and its last doesn't read on", "[phrase][match]")
@@ -181,21 +208,19 @@ TEST_CASE ("phrase match: a call cycle plays its slices, and its last doesn't re
     REQUIRE (slices.size() == 8u + 4u);
     for (const Note* n : slices)
     {
-        const bool cycle1 = n->pos >= 32 * kMilliticksPerSixteenth - 2048;
         CAPTURE (n->pos, n->slice);
-        if (cycle1 && n->slice == 3)
+        if (cycleOf (*n) == 1 && n->slice == 3)
             CHECK_FALSE (continues (*n)); // slice 4 doesn't play after it
-        else if (! cycle1 && n->slice == 7)
-            CHECK (continues (*n)); // into cycle 1's slice 0, across the stem's wrap
         else
-            CHECK (continues (*n));
+            CHECK (continues (*n)); // cycle 0's last reads on into cycle 1's slice 0, across the stem's wrap
     }
     // The retrigger on step 13 is held in both cycles: phrase 0, no slice of its own.
     for (const int c : { 0, 1 })
     {
-        const Note* held = noteAt (t, snap (tick (c * 32 + 13), kSwingPm), kLeadChannel, 74);
-        REQUIRE (held != nullptr);
-        CHECK (held->phrase == 0);
+        const Note* h = noteAt (t, snap (tick (c * 32 + 13), kSwingPm), kLeadChannel, 74);
+        REQUIRE (h != nullptr);
+        CHECK (h->phrase == 0);
+        CHECK (held (*h));
     }
 }
 
@@ -213,9 +238,9 @@ TEST_CASE ("phrase match: a transposed or rewritten cycle plays the multisample"
         const auto slices = sliceNotes (t);
         REQUIRE (slices.size() == 8u); // cycle 0's
         for (const Note* n : slices)
-            CHECK (n->pos < 32 * kMilliticksPerSixteenth);
+            CHECK (cycleOf (*n) == 0);
         for (const Note* n : notesOn (t, kLeadChannel))
-            if (n->slice < 0 && n->pos >= 32 * kMilliticksPerSixteenth)
+            if (n->slice < 0 && n->pos >= kCycleMt)
                 CHECK (n->phrase == -1);
         // cycle 0's last slice: the next is cycle 0's first again (round the loop), not the next cycle's.
         const auto last = std::find_if (slices.begin(), slices.end(), [] (const Note* n) { return n->slice == 7; });
@@ -246,33 +271,34 @@ TEST_CASE ("phrase match: of two phrases on one channel each cycle plays the one
     m.phrases.push_back (other);
     const int firstOther = static_cast<int> (m.phrases[0].slices.size());
 
-    // cycle 0 plays the first phrase; cycle 1 the other's notes; then a cycle 2 of the first bar only (a tie)
-    auto bytes = [&] {
-        testing::SmfBuilder b (960);
-        b.tempo (0, wubansia::midi::microsPerQuarter (static_cast<int> (kBpm))).timeSignature (0, 4, 2);
-        auto& lead = b.track ("Lead");
-        for (const int c : { 0, 1, 2 })
-        {
-            for (int i = 0; i < 128; ++i)
-                lead.cc (tick (c * 32) + i * kRideTicks, 2, 74, leadRide (i));
-            for (const auto& n : kLead)
+    // cycle 0 plays the first phrase, cycle 1 the other's notes, cycle 2 the first bar only (a tie)
+    LeadPlan plan;
+    plan.cycles = { 0, 1, 2 };
+    plan.keep = [] (int c, int i) { return c != 2 || kLead[static_cast<std::size_t> (i)].step < 16; };
+    plan.keyOf = [] (int, int key) { return key; };
+    testing::SmfBuilder b (960);
+    b.tempo (0, wubansia::midi::microsPerQuarter (static_cast<int> (kBpm))).timeSignature (0, 4, 2);
+    auto& lead = b.track ("Lead");
+    for (const int c : plan.cycles)
+    {
+        for (int i = 0; i < 128; ++i)
+            lead.cc (tick (c * 32) + i * kRideTicks, 2, 74, leadRide (i));
+        for (std::size_t i = 0; i < kLead.size(); ++i)
+            if (plan.keep (c, static_cast<int> (i)))
             {
-                if (c == 2 && n.step >= 16)
-                    continue;
+                const auto& n = kLead[i];
                 const int key = c == 1 && n.step >= 16 ? n.key + 5 : n.key;
-                lead.note (tick (c * 32 + n.step), n.steps * 240, 2, key, 100);
+                lead.note (tick (c * 32 + n.step), std::min<std::int64_t> (n.steps * 240, tick (32) - tick (n.step)), 2, key, 100);
             }
-        }
-        return b.bytes (3 * 7680);
-    }();
-    auto t = timelineOf (bytes, kSwingPm, 0); // a song: no loop
+    }
+    auto t = timelineOf (b.bytes (3 * 7680), kSwingPm, 0); // a song: no loop
     annotatePhrases (t, m);
 
     const auto slices = sliceNotes (t);
     REQUIRE (slices.size() == 8u + 8u + 4u);
     for (const Note* n : slices)
     {
-        const int cycle = static_cast<int> ((n->pos + 2048) / (32 * kMilliticksPerSixteenth));
+        const auto cycle = cycleOf (*n);
         CAPTURE (cycle, n->slice);
         CHECK (n->phrase == (cycle == 1 ? 1 : 0));
         if (cycle == 1)
@@ -297,12 +323,14 @@ TEST_CASE ("phrase match: a slice holds its own notes, by key and in order, befo
         plan.extra = { { 14, 74 } };
         auto t = loopOf (leadSmf (plan));
         annotatePhrases (t, m);
-        const Note* held = noteAt (t, snap (tick (13), kSwingPm), kLeadChannel, 74);
+        const Note* h = noteAt (t, snap (tick (13), kSwingPm), kLeadChannel, 74);
         const Note* extra = noteAt (t, snap (tick (14), kSwingPm), kLeadChannel, 74);
-        REQUIRE (held != nullptr);
+        REQUIRE (h != nullptr);
         REQUIRE (extra != nullptr);
-        CHECK (held->phrase == 0);
+        CHECK (h->phrase == 0);
+        CHECK (held (*h));
         CHECK (extra->phrase == -1);
+        CHECK_FALSE (held (*extra));
         CHECK (sliceNotes (t).size() == 8u);
     }
 
@@ -332,6 +360,7 @@ TEST_CASE ("phrase match: a slice holds its own notes, by key and in order, befo
         const Note* lone = noteAt (t, snap (tick (13), kSwingPm), kLeadChannel, 74);
         REQUIRE (lone != nullptr);
         CHECK (lone->phrase == -1);
+        CHECK_FALSE (held (*lone));
         CHECK (sliceNotes (t).size() == 7u);
     }
 }
@@ -350,7 +379,7 @@ TEST_CASE ("phrase match: a phrase with a ride plays only cycles whose controlle
         const auto slices = sliceNotes (t);
         REQUIRE (slices.size() == 8u);
         for (const Note* n : slices)
-            CHECK (n->pos < 32 * kMilliticksPerSixteenth);
+            CHECK (cycleOf (*n) == 0);
     }
 
     SECTION ("every point 1 off: it still plays")
@@ -391,23 +420,60 @@ TEST_CASE ("phrase match: a phrase with a ride plays only cycles whose controlle
 
     SECTION ("CC71, which the ride leaves free, and another channel's CC74 don't matter")
     {
+        testing::SmfBuilder b (960);
+        b.tempo (0, wubansia::midi::microsPerQuarter (static_cast<int> (kBpm))).timeSignature (0, 4, 2);
+        auto& lead = b.track ("Lead");
+        lead.cc (0, 2, 71, 127).cc (0, 3, 74, 0).cc (120, 1, 74, 127);
         LeadPlan plan;
         plan.cycles = { 0 };
-        auto bytes = [&] {
-            testing::SmfBuilder b (960);
-            b.tempo (0, wubansia::midi::microsPerQuarter (static_cast<int> (kBpm))).timeSignature (0, 4, 2);
-            auto& lead = b.track ("Lead");
-            lead.cc (0, 2, 71, 127).cc (0, 3, 74, 0).cc (120, 1, 74, 127);
-            for (int i = 0; i < 128; ++i)
-                lead.cc (i * kRideTicks, 2, 74, leadRide (i));
-            for (const auto& n : kLead)
-                lead.note (tick (n.step), n.steps * 240, 2, n.key, 100);
-            return b.bytes (15360);
-        }();
-        auto t = loopOf (bytes);
+        writeLead (lead, plan);
+        auto t = loopOf (b.bytes (15360));
         annotatePhrases (t, m);
         CHECK (sliceNotes (t).size() == 8u);
     }
+}
+
+TEST_CASE ("phrase match: notes the pre-roll step moved earlier match at their onsets, a loop's wrapping round", "[phrase][match]")
+{
+    // The vox-style shift: every lead note 3 16ths earlier (preroll 720000), so the first, on step 2, wraps to the
+    // loop's end. The matcher reads each onset as floorMod (pos + preroll, length): the same slices as unshifted.
+    const auto m = testing::syntheticKitManifest();
+    auto plain = loopOf (testing::syntheticSmf (PlayMode::loop, Variant::vox));
+    auto shifted = plain;
+    constexpr std::int32_t shift = 720000;
+    for (auto& n : shifted.notes)
+        if (n.channel == kLeadChannel)
+        {
+            n.pos = ((n.pos - shift) % kLoopLength + kLoopLength) % kLoopLength;
+            n.len += shift;
+            n.preroll = shift;
+        }
+    std::stable_sort (shifted.notes.begin(), shifted.notes.end(), [] (const Note& a, const Note& b) {
+        return std::tie (a.pos, a.channel, a.key) < std::tie (b.pos, b.channel, b.key);
+    });
+    annotatePhrases (plain, m);
+    annotatePhrases (shifted, m);
+
+    const auto a = sliceNotes (plain);
+    const auto b = sliceNotes (shifted);
+    REQUIRE (a.size() == 16u);
+    REQUIRE (b.size() == a.size());
+    for (std::size_t i = 0; i < a.size(); ++i)
+    {
+        CAPTURE (i);
+        CHECK (b[i]->pos == a[i]->pos);
+        CHECK (b[i]->slice == a[i]->slice);
+        CHECK (b[i]->preroll == a[i]->preroll);
+        CHECK (b[i]->flags == a[i]->flags);
+    }
+    // the twins keep their pre-rolled places and preroll; the retrigger is still held
+    for (const auto& n : shifted.notes)
+        if (n.channel == kLeadChannel && n.slice < 0)
+        {
+            CHECK (n.preroll == shift);
+            CHECK (n.phrase == 0);
+            CHECK (held (n) == (sixteenthOf ((n.pos + n.preroll) % kLoopLength, kSwingPm) % 32 == 13));
+        }
 }
 
 TEST_CASE ("phrase match: the Song's cycles start at song 16th 0, and its last slice reads on into nothing", "[phrase][match]")
@@ -427,15 +493,16 @@ TEST_CASE ("phrase match: the Song's cycles start at song 16th 0, and its last s
                 return n->slice == j && n->pos == slicePos (phrase, c, j, false);
             });
             REQUIRE (it != slices.end());
+            CHECK ((*it)->preroll == slicePreroll (phrase, c, j));
             CHECK (continues (**it) == ! (c == 5 && j == 7));
         }
 }
 
-TEST_CASE ("phrase match: a phrase whose stem ends short of its last slice's end doesn't read on across the wrap", "[phrase][match]")
+TEST_CASE ("phrase match: a last slice that doesn't end where slice 0 starts doesn't read on across the wrap", "[phrase][match]")
 {
     auto m = testing::syntheticKitManifest();
-    m.phrases[0].slices[0].start = 48; // the first slice no longer starts on frame 0
-    m.phrases[0].slices[0].lead = 0;
+    m.phrases[0].slices[0].start += 1; // slice 0 no longer starts where the last slice wraps to
+    m.phrases[0].slices[0].lead -= 1;
     auto t = loopOf (testing::syntheticSmf (PlayMode::loop, Variant::vox));
     annotatePhrases (t, m);
     for (const Note* n : sliceNotes (t))
@@ -549,6 +616,7 @@ TEST_CASE ("phrase match: the four kits' Loop files resolve as the Python model 
                 });
                 REQUIRE (original != nullptr);
                 CHECK (original->phrase == phrase);
+                CHECK (held (*original) == (phrase >= 0 && slice < 0));
                 if (slice < 0)
                     continue;
                 ++expectedSlices;
@@ -560,6 +628,7 @@ TEST_CASE ("phrase match: the four kits' Loop files resolve as the Python model 
                 CHECK (s->phrase == phrase);
                 CHECK (s->slice == firstSlice[static_cast<std::size_t> (phrase)] + slice);
                 CHECK (s->len == n.items.at (8).integer);
+                CHECK (s->preroll == n.items.at (9).integer);
                 CHECK (continues (*s) == (n.items.at (6).integer != 0));
             }
             CHECK (t.notes.size() == notes.size() + expectedSlices);

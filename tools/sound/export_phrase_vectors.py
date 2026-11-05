@@ -13,11 +13,12 @@ integer-only kind core/gen/json.h reads: frames at 48 kHz, positions in millitic
 - match_<kit>.json: the kit's phrase tables (as kit.json's phrases hold them, with the stems' frames; a slice is
   [step, key, start, end, fade, lead, [holds]]), its BPM and swing, and per Loop file (vox, novox) every note and the
   CC74 and CC71 of each phrase channel, with what resolve () makes of each note. A note is [tick, ch, key, velocity,
-  phrase, slice, continues, slice_pos, slice_len]: a slice of a phrase (the kit's phrase index, the phrase's own slice
-  index), a note a slice holds (its phrase, slice -1), or the multisample (phrase -1). A slice also has whether it reads
-  on into the next (continues, 0 or 1: play ()'s rule), where the engine's slice note goes (slice_pos: its 16th on the
-  swung grid less its lead at the kit's BPM, round the loop) and how long it is (slice_len: its frames at the kit's
-  BPM); 0 0 0 otherwise. A controller is [tick, ch, cc, value].
+  phrase, slice, continues, slice_pos, slice_len, slice_preroll]: a slice of a phrase (the kit's phrase index, the
+  phrase's own slice index), a note a slice holds (its phrase, slice -1), or the multisample (phrase -1). A slice also
+  has whether it reads on into the next (continues, 0 or 1: play ()'s rule), where the engine's slice note goes
+  (slice_pos: its cycle's start plus its start frame at the kit's BPM, round the loop), how long it is (slice_len:
+  its frames at the kit's BPM) and its preroll (its 16th on the swung grid less slice_pos); 0 otherwise. A
+  controller is [tick, ch, cc, value].
 - voice.json: per Loop file and phrase lane that plays, play () of a noise stem (noise () below) at the lane's table
   over the loop at the kit's tempo and 48 kHz: the stem, the slices, the notes as [the frame its slice starts on
   (grid.at less the lead, round the loop), slice, continues], and the SHA-256 of the float32 output (L then R,
@@ -123,10 +124,11 @@ def resolve_channel(K, specs, tables, ch, notes, ccs):
     return on_ch, got, unmatched
 
 
-def continues_flags(K, t, notes, length):
-    """play ()'s rule (phrase_tables.play () keeps it inside; this is the same), for one table's notes [(16th, slice)]
-    sorted as play () sorts them: whether each note's slice reads on into the next note's (the next slice in the same
-    cycle, or the stem's wrap into the next cycle's first slice), round a loop of `length` frames."""
+def continues_flags(K, t, notes, length, frames):
+    """play ()'s rule (phrase_tables.play () keeps it inside), for one table's notes [(16th, slice)] sorted as play ()
+    sorts them: whether each note's slice reads on into the next note's: the next slice in the same cycle, or a looped
+    stem's wrap into the next cycle's slice 0 (its last slice ends, wrapping, where slice 0 starts: end - frames ==
+    slice 0's start, docs/plugin/manifest.md 2.6), round a loop of `length` frames. The stem has `frames`."""
     sl, cyc = t['slices'], t['cycle_16ths']
     ring = length // PT.cycle_frames(K, cyc)
     cycle_of = lambda pos: math.floor(pos) // cyc  # noqa: E731
@@ -136,7 +138,7 @@ def continues_flags(K, t, notes, length):
         if jb == ja + 1 and cycle_of(pa) == cycle_of(pb):
             return sl[ja]['end'] == sl[jb]['start']
         if ja == len(sl) - 1 and jb == 0 and (cycle_of(pb) - cycle_of(pa)) % ring == 1 % ring:
-            return sl[ja]['end'] == sl[-1]['end'] and sl[jb]['start'] == 0   # the last slice ends on the stem's end
+            return sl[ja]['end'] - frames == sl[jb]['start']
         return False
 
     return [len(notes) > 1 and continues(notes[i], notes[(i + 1) % len(notes)]) for i in range(len(notes))]
@@ -171,16 +173,19 @@ def match_vectors(kit, midi):
             flags = {}
             for ti, gi in enumerate(on_ch):
                 mine = sorted((pos, j) for pos, i, j in got if i == ti)
-                flags.update({(pos, gi, j): f for (pos, j), f in zip(mine, continues_flags(K, tables[gi], mine, length))})
+                flags.update({(pos, gi, j): f for (pos, j), f in
+                              zip(mine, continues_flags(K, tables[gi], mine, length, stem_frames(K, specs[gi])))})
             left = list(unmatched)
             for tick, pos, key, vel in notes.get(ch, []):
-                e = [tick, ch, key, vel, -1, -1, 0, 0, 0]
+                e = [tick, ch, key, vel, -1, -1, 0, 0, 0, 0]
                 if matched.get((pos, key)):
                     gi, j = matched[(pos, key)].pop(0)
                     sl, cyc = tables[gi]['slices'][j], tables[gi]['cycle_16ths']
-                    sixteenth = (math.floor(pos) // cyc) * cyc + sl['step']
-                    at = (grid_mt(sixteenth, swing_pm) - frames_to_mt(sl['lead'], bpm)) % LOOP_MT
-                    e[4:] = [gi, j, int(flags[(pos, gi, j)]), at, max(1000, frames_to_mt(sl['end'] - sl['start'], bpm))]
+                    c = math.floor(pos) // cyc
+                    at = c * cyc * MT_16TH + frames_to_mt(sl['start'], bpm)
+                    preroll = grid_mt(c * cyc + sl['step'], swing_pm) - at
+                    e[4:] = [gi, j, int(flags[(pos, gi, j)]), at % LOOP_MT,
+                             max(1000, frames_to_mt(sl['end'] - sl['start'], bpm)), preroll]
                 elif (pos, key) in left:
                     left.remove((pos, key))
                 else:                          # neither matched nor left on the multisample: a slice holds it
@@ -201,14 +206,14 @@ def output_hashes(out):
     return hashlib.sha256(planar(0, len(f))).hexdigest(), blocks
 
 
-def voice_events(K, t, got, ti, length):
+def voice_events(K, t, got, ti, length, frames):
     """Table ti's notes as the voice gets them, in play ()'s order: the frame its slice starts on (round the loop),
-    the slice and whether it continues."""
+    the slice and whether it continues. The stem has `frames`."""
     cyc = t['cycle_16ths']
     notes = sorted((pos, j) for pos, i, j in got if i == ti)
     grid = Ph.Grid(K, length // PT.cycle_frames(K, cyc) * cyc, length)
     out = []
-    for (pos, j), f in zip(notes, continues_flags(K, t, notes, length)):
+    for (pos, j), f in zip(notes, continues_flags(K, t, notes, length, frames)):
         s = t['slices'][j]
         frame = (grid.at((math.floor(pos) // cyc) * cyc + s['step']) - s['lead']) % length
         out.append([int(frame), j, int(f)])
@@ -238,7 +243,8 @@ def voice_cases(midi):
                     digest, blocks = output_hashes(out)
                     cases.append({'kit': kit, 'variant': variant, 'line': s.line, 'seed': seed, 'channels': channels,
                                   'loop_frames': length, 'phrase': phrase_json(K, s, t),
-                                  'events': voice_events(K, t, got, ti, length), 'sha256': digest, 'blocks': blocks})
+                                  'events': voice_events(K, t, got, ti, length, stem_frames(K, s)), 'sha256': digest,
+                                  'blocks': blocks})
                     seed += 1
     return cases
 
@@ -271,7 +277,7 @@ def mask_cases(midi):
             spans.append({'from': int(lo), 'to': int(hi), 'offset': len(values)})
             values += [float(v) for v in mask[lo:hi]]
         cases.append({'line': line, 'loop_frames': length, 'phrase': phrase_json(K, s, t),
-                      'events': voice_events(K, t, got, ti, length), 'spans': spans})
+                      'events': voice_events(K, t, got, ti, length, stem_frames(K, s)), 'spans': spans})
     return cases, np.asarray(values, dtype='<f4')
 
 

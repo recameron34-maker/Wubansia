@@ -11,9 +11,13 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 namespace wubansia::engine
 {
+    // The sampler steals a phrase voice by copying it into a spare slot to fade there: plain data only.
+    static_assert (std::is_trivially_copyable_v<PhraseVoice>);
+
     namespace
     {
         constexpr double kContentRate = 48000.0;
@@ -50,6 +54,7 @@ namespace wubansia::engine
         const auto& bank = SincBank::instance();
         sinc = bank.table (bank.bankFor (ratio));
         samplesPerUs = rate / 1.0e6;
+        bpm = 0.0;
         reset();
     }
 
@@ -72,15 +77,10 @@ namespace wubansia::engine
             continueWith (note, offset); // it plays this phrase already
             return;
         }
-        // A free voice: nothing of another phrase still sounds (the sampler stops a voice before reusing it).
+        // A free voice: nothing of another phrase still sounds (the sampler moves a stolen voice to a slot of its own).
         for (auto& h : heads)
             h.on = false;
-        if (! setUp (kit, note.phrase))
-        {
-            ++stats_.dropped;
-            return;
-        }
-        if (eventCount >= kMaxEvents)
+        if (! setUp (kit, note.phrase) || eventCount >= kMaxEvents)
         {
             ++stats_.dropped;
             return;
@@ -181,11 +181,12 @@ namespace wubansia::engine
         setup.phrase = &p;
         setup.slices = kit.slices.data() + p.firstSlice;
         setup.count = p.sliceCount;
-        setup.looped = setup.slices[0].start == 0 && setup.slices[setup.count - 1].end == frames;
+        setup.frames = frames;
+        setup.looped = frames > 0 && setup.slices[setup.count - 1].end - frames == setup.slices[0].start;
         setup.gain = std::pow (10.0, (static_cast<double> (p.gainMdb) / 1000.0) / 20.0); // the model's undb (gain_mdb / 1000)
         setup.channel = p.mixChannel;
         setup.fadeFrames = stemFramesOf (p.fadeUs);
-        setup.runFrames = stemFramesOf (kRunFadeUs);
+        setup.kitBpm = static_cast<double> (kit.info.bpm);
         kit_ = &kit;
         phrase_ = phrase;
         return true;
@@ -195,41 +196,48 @@ namespace wubansia::engine
     {
         if (slice + 1 < setup.count)
             return slice + 1;
-        return setup.looped ? 0 : -1; // a looped stem's last slice reads on into its first
+        return setup.looped ? 0 : -1; // a looped stem's last slice reads on into slice 0
     }
 
     bool PhraseVoice::expects (const Head& h, int slice) const noexcept
     {
-        if (! h.on || h.timeOutLength > 0.0)
+        if (! h.on || h.timeOutLength > 0.0 || h.delay > 0.0)
             return false;
         if (! h.seen)
             return h.slice == slice; // it reads into this slice, its note not come yet
         return h.follows && h.earlySlice < 0 && follower (h.slice) == slice;
     }
 
-    PhraseVoice::Head* PhraseVoice::current() noexcept
-    {
-        Head* newest = nullptr;
-        for (auto& h : heads)
-            if (h.on && h.timeOutLength <= 0.0 && (newest == nullptr || h.order > newest->order))
-                newest = &h;
-        return newest;
-    }
-
-    PhraseVoice::Head& PhraseVoice::newHead() noexcept
+    // A free head; with all four sounding, the oldest fading one gives way, else the oldest (never `keep`).
+    PhraseVoice::Head& PhraseVoice::newHead (const Head* keep) noexcept
     {
         for (auto& h : heads)
             if (! h.on)
                 return h;
-        Head* oldest = &heads[0]; // all four sound: the oldest gives way
+        Head* oldest = nullptr;
         for (auto& h : heads)
-            if (h.order < oldest->order)
+            if (&h != keep && h.timeOutLength > 0.0 && (oldest == nullptr || h.order < oldest->order))
                 oldest = &h;
+        if (oldest == nullptr)
+            for (auto& h : heads)
+                if (&h != keep && (oldest == nullptr || h.order < oldest->order))
+                    oldest = &h;
         oldest->on = false;
         return *oldest;
     }
 
-    void PhraseVoice::startHead (Head& h, const NoteOn& note, int slice, double pos) noexcept
+    PhraseVoice::Throw PhraseVoice::throwOf (const NoteOn& note) const noexcept
+    {
+        Throw t;
+        if (setup.phrase == nullptr || setup.phrase->throwMode == PhraseThrow::baked)
+            return t; // the stem has its throw in the audio
+        t.space = std::max (0.0f, note.throwSpace);
+        t.echo = std::max (0.0f, note.throwEcho);
+        t.left = (t.space > 0.0f || t.echo > 0.0f) && note.lengthSamples > 0 ? static_cast<double> (note.lengthSamples) : 0.0;
+        return t;
+    }
+
+    void PhraseVoice::startHead (Head& h, const NoteOn& note, int slice, double pos, bool follows) noexcept
     {
         h = Head {};
         h.on = true;
@@ -240,13 +248,61 @@ namespace wubansia::engine
         h.pos = pos;
         h.slice = slice;
         h.seen = true;
-        h.follows = note.continues;
-        h.space = note.throwSpace;
-        h.echo = note.throwEcho;
-        h.spaceNow = h.space;
-        h.echoNow = h.echo;
+        h.follows = follows;
+        h.thrown = throwOf (note);
+        h.spaceNow = h.thrown.space;
+        h.echoNow = h.thrown.echo;
         if (h.view.left == nullptr || h.view.frames <= 0)
             h.on = false;
+    }
+
+    // From one head to a new one reading `slice` from pos, over us both ways.
+    void PhraseVoice::crossfade (Head& from, const NoteOn& note, int slice, double pos, bool follows, std::int32_t us) noexcept
+    {
+        const double samples = static_cast<double> (us) * samplesPerUs;
+        fadeOutBy (from, samples);
+        Head& h = newHead (&from);
+        startHead (h, note, slice, pos, follows);
+        h.timeInLength = samples;
+    }
+
+    // A run from slice `slice`: from its start frame (and startFrame on), or anchored on its onset off tempo.
+    void PhraseVoice::runFrom (const NoteOn& note, int slice, bool follows, bool anchored) noexcept
+    {
+        const auto& s = setup.slices[slice];
+        const auto chase = static_cast<double> (std::max<std::int64_t> (0, note.startFrame));
+        auto pos = static_cast<double> (s.start) + chase;
+        double delay = 0.0;
+        if (anchored)
+        {
+            // The onset frame (start + lead) lands where the note's onset does at the host's tempo: lead / q frames of
+            // time after the note's start.
+            const double q = bpm > 0.0 && setup.kitBpm > 0.0 ? bpm / setup.kitBpm : 1.0;
+            pos += static_cast<double> (s.lead) * (1.0 - 1.0 / q);
+            if (unit)
+                pos = std::floor (pos + 0.5); // whole frames at 48 kHz
+            if (pos < static_cast<double> (s.start))
+            {
+                delay = std::floor ((static_cast<double> (s.start) - pos) / ratio + 0.5);
+                pos = static_cast<double> (s.start);
+            }
+        }
+        ++stats_.runs;
+        Head& h = newHead();
+        startHead (h, note, slice, pos, follows);
+        h.delay = delay;
+        const auto fadeUs = s.lead == 0 ? kRunFadeLeadlessUs : kRunFadeUs;
+        if (chase > 0.0)
+            h.timeInLength = samplesOf (Sampler::kChaseFadeUs, rate);
+        else if (pos > static_cast<double> (s.start))
+            h.timeInLength = static_cast<double> (fadeUs) * samplesPerUs; // anchored part-way in
+        else
+        {
+            h.posIn = true;
+            h.inFrom = static_cast<double> (s.start);
+            h.inFrames = stemFramesOf (fadeUs);
+            h.inLength = std::min (h.inFrames, static_cast<double> (s.end - s.start));
+        }
     }
 
     // Fades a head out over samples from now, from where its time fade is: a sooner end stays.
@@ -299,68 +355,98 @@ namespace wubansia::engine
         const auto& s = setup.slices[j];
         const auto chase = static_cast<double> (std::max<std::int64_t> (0, note.startFrame));
         const double at = static_cast<double> (s.start) + chase; // where the note says the voice reads
+        const std::uint8_t character = note.character == 1 ? 1 : 0;
+        // Off the kit's tempo a slice reads on into its follower only while the tempo keeps it within a frame.
+        const double q = bpm > 0.0 && setup.kitBpm > 0.0 ? bpm / setup.kitBpm : 1.0;
+        const bool steady = std::fabs (1.0 - 1.0 / q) * static_cast<double> (s.end - s.start) <= kDriftFrames;
+        const bool follows = note.continues && steady;
+        // A note's throw on a head that reads on: a thrown note sets it; a timed throw plays out to its note's end;
+        // anything else follows the newest note.
+        auto takeThrow = [this] (Throw& now, const NoteOn& n) {
+            const auto t = throwOf (n);
+            if (t.space > 0.0f || t.echo > 0.0f || now.left <= 0.0)
+                now = t;
+        };
 
-        Head* cur = current();
-        if (cur != nullptr && expects (*cur, j))
+        if (chase > 0.0)
         {
-            // The slice it reads into. Before its position gets there the note says it is the current slice's end.
+            // A chase: the head already reading this slice takes it; else it starts its own and leaves the rest.
+            Head* reader = nullptr;
+            for (auto& h : heads)
+                if (h.on && h.timeOutLength <= 0.0 && h.delay <= 0.0 && h.slice == j && h.character == character
+                    && (reader == nullptr || h.order > reader->order))
+                    reader = &h;
+            if (reader != nullptr)
+            {
+                const double off = std::fabs (reader->pos - at);
+                if (off < kResyncFrames)
+                {
+                    ++stats_.readOns;
+                    reader->seen = true;
+                    reader->follows = follows;
+                    takeThrow (reader->thrown, note);
+                    return;
+                }
+                const bool near = off <= kReadOnFrames;
+                ++(near ? stats_.resyncs : stats_.jumps);
+                crossfade (*reader, note, j, at, follows, near ? kResyncFadeUs : kJumpFadeUs);
+                return;
+            }
+            runFrom (note, j, follows, ! steady);
+            return;
+        }
+
+        // The head that reads on into this slice (or already has): the newest such.
+        Head* cur = nullptr;
+        for (auto& h : heads)
+            if (expects (h, j) && (cur == nullptr || h.order > cur->order))
+                cur = &h;
+        if (cur != nullptr)
+        {
+            // Before its position gets there the note says it is the current slice's end.
             const bool before = cur->seen;
-            const double expected = before ? static_cast<double> (setup.slices[cur->slice].end) + chase : at;
+            const double expected = before ? static_cast<double> (setup.slices[cur->slice].end) : at;
             const double off = std::fabs (cur->pos - expected);
             const bool wrap = before ? follower (cur->slice) <= cur->slice : cur->wrapped;
-            const bool sameStem = (note.character == 1 ? 1 : 0) == cur->character;
+            const bool sameStem = character == cur->character;
             if (sameStem && (wrap ? off < kResyncFrames : off <= kReadOnFrames))
             {
                 ++stats_.readOns;
                 if (before)
                 {
                     cur->earlySlice = j;
-                    cur->earlyFollows = note.continues;
-                    cur->earlySpace = note.throwSpace;
-                    cur->earlyEcho = note.throwEcho;
+                    cur->earlyFollows = follows;
+                    cur->earlyThrow = cur->thrown;
+                    takeThrow (cur->earlyThrow, note);
                 }
                 else
                 {
                     cur->seen = true;
-                    cur->follows = note.continues;
-                    cur->space = note.throwSpace;
-                    cur->echo = note.throwEcho;
+                    cur->follows = follows;
+                    takeThrow (cur->thrown, note);
                 }
                 return;
             }
             // A frame or two off at the cycle's wrap: re-sync over 1 ms. Further, or the other stem: a jump.
             const bool resync = sameStem && wrap && off <= kReadOnFrames;
-            const double samples = static_cast<double> (resync ? kResyncFadeUs : kJumpFadeUs) * samplesPerUs;
-            fadeOutBy (*cur, samples);
             ++(resync ? stats_.resyncs : stats_.jumps);
-            Head& h = newHead();
-            startHead (h, note, j, at);
-            h.timeInLength = samples;
+            crossfade (*cur, note, j, at, follows, resync ? kResyncFadeUs : kJumpFadeUs);
             return;
         }
-        if (cur != nullptr && (! cur->seen || cur->follows))
+        // A head that reads on into another slice than this note's: the newest such jumps to it.
+        Head* onward = nullptr;
+        for (auto& h : heads)
+            if (h.on && h.timeOutLength <= 0.0 && h.delay <= 0.0 && (! h.seen || h.follows)
+                && (onward == nullptr || h.order > onward->order))
+                onward = &h;
+        if (onward != nullptr)
         {
-            // It reads on into a slice this note isn't: a jump.
-            const double samples = static_cast<double> (kJumpFadeUs) * samplesPerUs;
-            fadeOutBy (*cur, samples);
             ++stats_.jumps;
-            Head& h = newHead();
-            startHead (h, note, j, at);
-            h.timeInLength = samples;
+            crossfade (*onward, note, j, at, follows, kJumpFadeUs);
             return;
         }
         // A new run, over whatever plays out (a slice without a follower fades on its own schedule).
-        ++stats_.runs;
-        Head& h = newHead();
-        startHead (h, note, j, at);
-        if (chase > 0.0)
-            h.timeInLength = samplesOf (Sampler::kChaseFadeUs, rate);
-        else
-        {
-            h.posIn = true;
-            h.inFrom = static_cast<double> (s.start);
-            h.inLength = std::min (setup.runFrames, static_cast<double> (s.end - s.start));
-        }
+        runFrom (note, j, follows, ! steady);
     }
 
     // ------------------------------------------------------------------ the sound
@@ -370,7 +456,9 @@ namespace wubansia::engine
         const auto& v = h.view;
         if (unit)
         {
-            const auto k = static_cast<std::int64_t> (h.pos); // whole frames at 48 kHz
+            auto k = static_cast<std::int64_t> (h.pos); // whole frames at 48 kHz
+            if (setup.looped)
+                k = wrapInto (k, v.frames); // a wrapping slice runs past the stem's end
             if (k < 0 || k >= v.frames)
             {
                 left = right = 0.0;
@@ -380,9 +468,11 @@ namespace wubansia::engine
             right = h.stereo ? static_cast<double> (v.right[k]) : left;
             return;
         }
-        const auto i = static_cast<std::int64_t> (std::floor (h.pos));
+        auto i = static_cast<std::int64_t> (std::floor (h.pos));
         float c[SincBank::kTaps];
         sincCoefficients (sinc, h.pos - static_cast<double> (i), c);
+        if (setup.looped)
+            i = wrapInto (i, v.frames);
         const auto first = i - SincBank::kLeft;
         if (first >= 0 && first + SincBank::kTaps <= v.frames)
         {
@@ -421,10 +511,16 @@ namespace wubansia::engine
         for (int i = from; i < to; ++i)
         {
             double sumL = 0.0, sumR = 0.0, sumSpace = 0.0, sumEcho = 0.0;
+            bool thrown = false;
             for (auto& h : heads)
             {
                 if (! h.on)
                     continue;
+                if (h.delay > 0.0) // anchored on its onset: it hasn't started yet
+                {
+                    h.delay -= 1.0;
+                    continue;
+                }
 
                 // Past its slice's end: on into the next slice, or done.
                 while (h.on && h.pos >= static_cast<double> (sl[h.slice].end))
@@ -448,11 +544,7 @@ namespace wubansia::engine
                         break;
                     }
                     const bool wraps = next <= h.slice;
-                    if (wraps)
-                        h.pos -= static_cast<double> (sl[h.slice].end); // a looped stem's end: its start
-                    // a follower within the tolerance comes at most this far into it: the slice's drift, 2 frames, 1 ms
-                    h.late = kReadOnFrames + kLateMarginFrames
-                             + static_cast<double> (sl[h.slice].end - sl[h.slice].start) * static_cast<double> (setup.phrase->tolerancePm) / 1000.0;
+                    h.pos += static_cast<double> (sl[next].start - sl[h.slice].end); // a wrap goes back by the stem's frames
                     h.slice = next;
                     h.wrapped = wraps;
                     h.posIn = false;
@@ -460,8 +552,7 @@ namespace wubansia::engine
                     {
                         h.seen = true;
                         h.follows = h.earlyFollows;
-                        h.space = h.earlySpace;
-                        h.echo = h.earlyEcho;
+                        h.thrown = h.earlyThrow;
                     }
                     else
                     {
@@ -474,10 +565,10 @@ namespace wubansia::engine
                     continue;
                 const auto& s = sl[h.slice];
 
-                // Into a slice whose note doesn't come: fade over fade_us.
-                if (! h.seen && h.timeOutLength <= 0.0 && h.pos - static_cast<double> (s.start) > h.late)
+                // Into a slice whose note doesn't come: fade over 1 ms.
+                if (! h.seen && h.timeOutLength <= 0.0 && h.pos - static_cast<double> (s.start) > kReadOnFrames)
                 {
-                    fadeOutBy (h, static_cast<double> (setup.phrase->fadeUs) * samplesPerUs);
+                    fadeOutBy (h, static_cast<double> (kMissedFadeUs) * samplesPerUs);
                     ++stats_.missed;
                 }
 
@@ -500,7 +591,7 @@ namespace wubansia::engine
                 {
                     const double k = h.pos - h.inFrom;
                     if (k < h.inLength)
-                        g *= raisedIn (k, setup.runFrames);
+                        g *= raisedIn (k, h.inFrames);
                     else
                         h.posIn = false;
                 }
@@ -515,14 +606,17 @@ namespace wubansia::engine
                 r = (r * setup.gain) * g;
                 sumL += l;
                 sumR += r;
-                if (h.space > 0.0f || h.echo > 0.0f || h.spaceNow > 0.0 || h.echoNow > 0.0)
+                if (h.thrown.space > 0.0f || h.thrown.echo > 0.0f || h.spaceNow > 0.0 || h.echoNow > 0.0)
                 {
-                    h.spaceNow += std::clamp (static_cast<double> (h.space) - h.spaceNow, -throwStep, throwStep);
-                    h.echoNow += std::clamp (static_cast<double> (h.echo) - h.echoNow, -throwStep, throwStep);
+                    h.spaceNow += std::clamp (static_cast<double> (h.thrown.space) - h.spaceNow, -throwStep, throwStep);
+                    h.echoNow += std::clamp (static_cast<double> (h.thrown.echo) - h.echoNow, -throwStep, throwStep);
                     const double mono = 0.5 * (l + r);
                     sumSpace += mono * h.spaceNow;
                     sumEcho += mono * h.echoNow;
+                    thrown = true;
                 }
+                if (h.thrown.left > 0.0 && (h.thrown.left -= 1.0) <= 0.0)
+                    h.thrown = Throw {}; // the thrown note has ended
 
                 h.pos += ratio;
                 if (h.timeInLength > 0.0 && (h.timeInCount += 1.0) >= h.timeInLength)
@@ -535,7 +629,7 @@ namespace wubansia::engine
                 outL[i] += static_cast<float> (sumL);
                 outR[i] += static_cast<float> (sumR);
             }
-            if (sumSpace != 0.0 || sumEcho != 0.0)
+            if (thrown)
             {
                 const double lane = laneSend != nullptr ? static_cast<double> (laneSend[i]) : 1.0;
                 space[i] += static_cast<float> (sumSpace * lane);

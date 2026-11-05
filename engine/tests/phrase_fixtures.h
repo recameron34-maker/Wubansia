@@ -231,10 +231,12 @@ namespace phrase_test
         std::vector<int> holds;
     };
 
-    // A Kit holding stems and phrases, laid out as kit.h says; the voice needs nothing else.
+    // A Kit holding stems and phrases, laid out as kit.h says; the voice needs nothing else (but the kit's BPM).
     struct PhraseKit
     {
         Kit kit;
+
+        explicit PhraseKit (std::int32_t bpm = 128) { kit.info.bpm = bpm; }
 
         int addStem (SampleData audio)
         {
@@ -327,6 +329,8 @@ namespace phrase_test
                 n = static_cast<int> (std::min<std::int64_t> ({ n, 32 - now % 32, end - now }));
                 bus.clear (n);
                 sends.clear (n);
+                for (auto& s : slots)
+                    s.voice->setTempo (tempo);
                 for (; next < hits.size() && hits[next].at < now + n; ++next)
                     route (kit, hits[next].note, static_cast<int> (hits[next].at - now));
                 for (auto& s : slots)
@@ -386,6 +390,7 @@ namespace phrase_test
 
         double sampleRate;
         std::int64_t now = 0;
+        double tempo = 0.0; // the host's BPM the voices get (0: the kit's)
         bool collect = true;
         std::function<void (std::int64_t start, int n, const MixBus&, const SendBus&)> listen;
         MixBus bus;

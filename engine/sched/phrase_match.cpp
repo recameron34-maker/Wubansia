@@ -35,11 +35,10 @@ namespace wubansia::engine
             return x >= 0 ? (2 * x + 3) / 6 : -((-2 * x + 3) / 6);
         }
 
-        // Where a note was written: its onset. A note the pre-roll step moved earlier starts Note::preroll before it;
-        // until timeline.h carries that field (P0, set by P7's pre-roll step), a note's onset is its pos.
+        // Where a note was written: its onset, pos + preroll (P7's pre-roll step sets preroll).
         std::int64_t onsetOf (const Note& n) noexcept
         {
-            return n.pos;
+            return n.pos + n.preroll;
         }
 
         // One controller's points on a channel, by position: (pos, value).
@@ -134,7 +133,9 @@ namespace wubansia::engine
                     && ((step == ownStep && it->key == ownKey) || j < 0))
                 {
                     ++pendingAt;
-                    timeline.notes[it->index].phrase = static_cast<std::int16_t> (best);
+                    auto& held = timeline.notes[it->index];
+                    held.phrase = static_cast<std::int16_t> (best);
+                    held.flags = static_cast<std::uint8_t> (held.flags | NoteFlag::held);
                     continue;
                 }
                 if (j < 0 || used[static_cast<std::size_t> (j)])
@@ -153,8 +154,9 @@ namespace wubansia::engine
         }
 
         // play ()'s continues (): per phrase, its notes in order (by onset, then slice); each reads on into the next
-        // when that plays the next slice in the same cycle, or, on a looped stem (its first slice starts on frame 0
-        // and its last ends on the stem's end), the first slice in the next cycle (round the loop in a loop).
+        // when that plays the next slice in the same cycle, or, on a looped stem (its last slice ends, wrapping, where
+        // its first starts: end - frames == slice 0's start), the first slice in the next cycle (round the loop in a
+        // loop).
         std::vector<bool> readsOn (const Timeline& timeline, const KitManifest& kit, const std::vector<Match>& matches)
         {
             std::vector<bool> out (matches.size(), false);
@@ -179,7 +181,7 @@ namespace wubansia::engine
                     }
                 const auto& sl = entry.slices;
                 const int last = static_cast<int> (sl.size()) - 1;
-                const bool looped = sl.front().start == 0 && sl.back().end == frames;
+                const bool looped = frames > 0 && sl.back().end - frames == sl.front().start;
                 const std::int64_t cycleLength = std::int64_t { entry.cycle16ths } * kMilliticksPerSixteenth;
                 const std::int64_t ring = timeline.loops && cycleLength > 0 ? std::max<std::int64_t> (1, timeline.length / cycleLength) : 0;
                 const std::size_t pairs = timeline.loops ? mine.size() : mine.size() - 1;
@@ -190,7 +192,7 @@ namespace wubansia::engine
                     bool reads = false;
                     if (b.slice == a.slice + 1 && a.cycle == b.cycle)
                         reads = sl[static_cast<std::size_t> (a.slice)].end == sl[static_cast<std::size_t> (b.slice)].start;
-                    else if (a.slice == last && b.slice == 0 && looped)
+                    else if (a.slice == last && b.slice == 0 && looped) // the stem's wrap into the next cycle
                         reads = ring > 0 ? wrapInto (b.cycle - a.cycle, ring) == 1 % ring : b.cycle - a.cycle == 1;
                     out[mine[i]] = reads;
                 }
@@ -273,7 +275,8 @@ namespace wubansia::engine
         if (matches.empty())
             return;
 
-        // The slice notes, beside their notes: at the slice's first frame, as long as the slice.
+        // The slice notes, beside their notes: from the slice's start frame on its cycle, as long as the slice, with
+        // the preroll that takes pos to the onset (negative where the frame rounds past it).
         std::vector<int> firstSlice (phrases.size(), 0); // Kit::slices' layout: each phrase's after the ones before
         for (std::size_t p = 1; p < phrases.size(); ++p)
             firstSlice[p] = firstSlice[p - 1] + static_cast<int> (phrases[p - 1].slices.size());
@@ -286,7 +289,10 @@ namespace wubansia::engine
             const auto& entry = phrases[static_cast<std::size_t> (match.phrase)];
             const auto& s = entry.slices[static_cast<std::size_t> (match.slice)];
             Note n = timeline.notes[match.index];
-            n.pos = sixteenthStart (match.cycle * entry.cycle16ths + s.step, swing) - framesToMilliticks (s.lead, kit.kit.bpm);
+            const auto cycleStart = match.cycle * entry.cycle16ths * kMilliticksPerSixteenth;
+            const auto onset = sixteenthStart (match.cycle * entry.cycle16ths + s.step, swing);
+            n.pos = cycleStart + framesToMilliticks (s.start, kit.kit.bpm);
+            n.preroll = static_cast<std::int32_t> (onset - n.pos);
             if (loops)
                 n.pos = wrapInto (n.pos, timeline.length);
             n.len = std::max (kMilliticksPerTick, framesToMilliticks (s.end - s.start, kit.kit.bpm));

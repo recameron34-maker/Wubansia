@@ -102,6 +102,37 @@ namespace
         annotatePhrases (t, m);
         return t;
     }
+
+    // A phrase from the vectors' JSON on a stem made here.
+    int phraseFromJson (PhraseKit& k, const json::Value& p, SampleData stem)
+    {
+        const int file = k.addStem (std::move (stem));
+        Phrase phrase;
+        phrase.lane = static_cast<Lane> (laneIndex (at (p, "lane").string));
+        phrase.channel = static_cast<std::uint8_t> (integer (p, "ch") - 1);
+        phrase.gainMdb = static_cast<std::int32_t> (integer (p, "gain_mdb"));
+        phrase.stem = { static_cast<std::uint16_t> (file), static_cast<std::uint16_t> (file) };
+        phrase.cycle16ths = static_cast<std::int32_t> (integer (p, "cycle_16ths"));
+        phrase.tolerancePm = static_cast<std::int32_t> (integer (p, "tolerance_pm"));
+        phrase.fadeUs = static_cast<std::int32_t> (integer (p, "fade_us"));
+        std::vector<SliceSpec> slices;
+        for (const auto& s : at (p, "slices").items)
+            slices.push_back ({ static_cast<int> (s.items.at (0).integer), static_cast<int> (s.items.at (1).integer),
+                s.items.at (2).integer, s.items.at (3).integer, s.items.at (4).integer, static_cast<int> (s.items.at (5).integer), {} });
+        return k.addPhrase (phrase, slices);
+    }
+
+    // The vectors' notes over `passes` passes of a loop of `length` frames.
+    std::vector<Hit> passesOf (const json::Value& events, int index, std::int64_t length, int passes)
+    {
+        std::vector<Hit> hits;
+        for (int pass = 0; pass < passes; ++pass)
+            for (const auto& e : events.items)
+                hits.push_back ({ pass * length + e.items.at (0).integer,
+                    phraseNote (index, static_cast<int> (e.items.at (1).integer), e.items.at (2).integer != 0) });
+        std::stable_sort (hits.begin(), hits.end(), [] (const Hit& a, const Hit& b) { return a.at < b.at; });
+        return hits;
+    }
 }
 
 TEST_CASE ("phrase voice: slices play within the phrase's tolerance of the kit's tempo, never with PhraseMode::off", "[phrase][voice]")
@@ -123,12 +154,14 @@ TEST_CASE ("phrase voice: slices play within the phrase's tolerance of the kit's
     CHECK_FALSE (playsSlices (p, 134, 134.01, PhraseMode::automatic));
 }
 
-TEST_CASE ("phrase voice: SYN01's lead lane is its stem tiled, bit for bit, for 200 cycles from bar 1", "[phrase][voice]")
+TEST_CASE ("phrase voice: SYN01's lead lane is its looped stem, bit for bit, for 200 cycles from its first slice", "[phrase][voice]")
 {
     const auto kit = testing::makeSyntheticKit();
     const auto& phrase = kit->phrases.at (0);
     const auto stem = kit->view (phrase.stem[0]);
     REQUIRE (stem.frames == kCycle);
+    const auto first = kit->slices.at (phrase.firstSlice);
+    REQUIRE (kit->slices.at (phrase.firstSlice + phrase.sliceCount - 1u).end == stem.frames + first.start); // it wraps
     const auto t = syntheticLoop();
     constexpr int loops = 100;
     const auto hits = hitsOf (t, 128.0, kRate, loops);
@@ -138,17 +171,20 @@ TEST_CASE ("phrase voice: SYN01's lead lane is its stem tiled, bit for bit, for 
     rig.collect = false;
     const int ch = phrase.mixChannel;
     std::int64_t wrong = 0, firstWrong = -1, sounding = 0;
-    rig.listen = [&] (std::int64_t start, int n, const MixBus& bus, const SendBus&) {
+    rig.listen = [&] (std::int64_t start, int n, const MixBus& bus, const SendBus& sends) {
         for (int i = 0; i < n; ++i)
         {
             const auto f = start + i;
             const auto k = f % stem.frames;
-            const double g = f < 144 ? raisedIn (static_cast<double> (f), 144.0) : 1.0; // the run's 3 ms, once
+            double g = f < first.start ? 0.0 : 1.0; // silent until slice 0's first frame, then the stem tiled
+            if (f >= first.start && f - first.start < 144)
+                g = raisedIn (static_cast<double> (f - first.start), 144.0); // the run's 3 ms, once
             const auto l = static_cast<float> (static_cast<double> (stem.left[k]) * g);
             const auto r = static_cast<float> (static_cast<double> (stem.right[k]) * g);
             bool ok = same (bus.left (ch)[i], l) && same (bus.right (ch)[i], r);
             for (int c = 0; c < bus.numChannels(); ++c)
                 ok = ok && (c == ch || (same (bus.left (c)[i], 0.0f) && same (bus.right (c)[i], 0.0f)));
+            ok = ok && same (sends.send (Send::space)[i], 0.0f) && same (sends.send (Send::echo)[i], 0.0f); // its throw is baked
             if (! ok && firstWrong < 0)
                 firstWrong = f;
             wrong += ok ? 0 : 1;
@@ -177,45 +213,11 @@ TEST_CASE ("phrase voice: the four kits' Loop lanes are the Python model's, bit 
         const auto& p = at (c, "phrase");
         CAPTURE (at (c, "kit").string, at (c, "variant").string, at (c, "line").string);
         PhraseKit k;
-        const auto stemFrames = integer (p, "stem_frames");
-        const int file = k.addStem (noiseStem (static_cast<std::uint32_t> (integer (c, "seed")), stemFrames,
-            static_cast<int> (integer (c, "channels"))));
-        Phrase phrase;
-        phrase.lane = static_cast<Lane> (laneIndex (at (p, "lane").string));
-        phrase.channel = static_cast<std::uint8_t> (integer (p, "ch") - 1);
-        phrase.gainMdb = static_cast<std::int32_t> (integer (p, "gain_mdb"));
-        phrase.stem = { static_cast<std::uint16_t> (file), static_cast<std::uint16_t> (file) };
-        phrase.cycle16ths = static_cast<std::int32_t> (integer (p, "cycle_16ths"));
-        phrase.tolerancePm = static_cast<std::int32_t> (integer (p, "tolerance_pm"));
-        phrase.fadeUs = static_cast<std::int32_t> (integer (p, "fade_us"));
-        std::vector<SliceSpec> slices;
-        for (const auto& s : at (p, "slices").items)
-        {
-            SliceSpec x;
-            x.step = static_cast<int> (s.items.at (0).integer);
-            x.key = static_cast<int> (s.items.at (1).integer);
-            x.start = s.items.at (2).integer;
-            x.end = s.items.at (3).integer;
-            x.fade = s.items.at (4).integer;
-            x.lead = static_cast<int> (s.items.at (5).integer);
-            slices.push_back (x);
-        }
-        const int index = k.addPhrase (phrase, slices);
-
+        const int index = phraseFromJson (k, p, noiseStem (static_cast<std::uint32_t> (integer (c, "seed")),
+            integer (p, "stem_frames"), static_cast<int> (integer (c, "channels"))));
         const auto length = integer (c, "loop_frames");
-        std::vector<Hit> hits;
-        for (int pass = 0; pass < 3; ++pass)
-            for (const auto& e : at (c, "events").items)
-            {
-                Hit h;
-                h.at = pass * length + e.items.at (0).integer;
-                h.note = phraseNote (index, static_cast<int> (e.items.at (1).integer), e.items.at (2).integer != 0);
-                hits.push_back (h);
-            }
-        std::stable_sort (hits.begin(), hits.end(), [] (const Hit& a, const Hit& b) { return a.at < b.at; });
-
         Rig rig (kRate, 1, 4);
-        rig.run (k.kit, hits, 3 * length);
+        rig.run (k.kit, passesOf (at (c, "events"), index, length, 3), 3 * length);
         const auto& l = rig.left[0];
         const auto& r = rig.right[0];
         const auto from = static_cast<std::size_t> (2 * length); // the third pass: tails wrapped round, as the model's
@@ -243,26 +245,10 @@ TEST_CASE ("phrase voice: its fades are the recipe's masks: FUT02's 5 ms mute ed
         CAPTURE (at (c, "line").string);
         const auto& p = at (c, "phrase");
         PhraseKit k;
-        const int file = k.addStem (stemOf (integer (p, "stem_frames"), 2, [] (std::int64_t, int) { return 1.0f; }));
-        Phrase phrase;
-        phrase.channel = static_cast<std::uint8_t> (integer (p, "ch") - 1);
-        phrase.stem = { static_cast<std::uint16_t> (file), static_cast<std::uint16_t> (file) };
-        phrase.cycle16ths = static_cast<std::int32_t> (integer (p, "cycle_16ths"));
-        phrase.fadeUs = static_cast<std::int32_t> (integer (p, "fade_us"));
-        std::vector<SliceSpec> slices;
-        for (const auto& s : at (p, "slices").items)
-            slices.push_back ({ static_cast<int> (s.items.at (0).integer), static_cast<int> (s.items.at (1).integer),
-                s.items.at (2).integer, s.items.at (3).integer, s.items.at (4).integer, static_cast<int> (s.items.at (5).integer), {} });
-        const int index = k.addPhrase (phrase, slices);
+        const int index = phraseFromJson (k, p, stemOf (integer (p, "stem_frames"), 2, [] (std::int64_t, int) { return 1.0f; }));
         const auto length = integer (c, "loop_frames");
-        std::vector<Hit> hits;
-        for (int pass = 0; pass < 3; ++pass)
-            for (const auto& e : at (c, "events").items)
-                hits.push_back ({ pass * length + e.items.at (0).integer,
-                    phraseNote (index, static_cast<int> (e.items.at (1).integer), e.items.at (2).integer != 0) });
-        std::stable_sort (hits.begin(), hits.end(), [] (const Hit& a, const Hit& b) { return a.at < b.at; });
         Rig rig (kRate, 1, 4);
-        rig.run (k.kit, hits, 3 * length);
+        rig.run (k.kit, passesOf (at (c, "events"), index, length, 3), 3 * length);
         for (const auto& span : at (c, "spans").items)
         {
             const auto lo = integer (span, "from");
@@ -290,10 +276,10 @@ TEST_CASE ("phrase voice: a seek starts mid-slice at the right frame, and is bit
     const int ch = phrase.mixChannel;
 
     // Seek 1000 frames into slice 2 (step 8): its note comes chased; the rest come on time.
-    const auto& s2 = kit->slices.at (2);
+    const auto& s2 = kit->slices.at (phrase.firstSlice + 2u);
     const auto seekAt = s2.start + 1000; // the loop's frame where play starts (frame = sample at 48 kHz, 128 BPM)
     std::vector<Hit> hits;
-    hits.push_back ({ 0, phraseNote (0, 2, true, 1000) });
+    hits.push_back ({ 0, phraseNote (0, phrase.firstSlice + 2, true, 1000) });
     for (const auto& h : all)
         if (h.at > seekAt)
             hits.push_back ({ h.at - seekAt, h.note });
@@ -320,6 +306,48 @@ TEST_CASE ("phrase voice: a seek starts mid-slice at the right frame, and is bit
     CHECK (rig.voice (0).stats().jumps == 0);
 }
 
+TEST_CASE ("phrase voice: a chased note a head already reads is absorbed; another starts its own head and jumps nothing", "[phrase][voice]")
+{
+    // A host loop region re-chases the slices still sounding at its wrap: the slice a head reads takes the note (within
+    // a frame: no seam; 1 or 2 frames off: a 1 ms re-sync; further: a jump). A chase of a slice no head reads starts a
+    // head of its own beside the run.
+    const SineKit s;
+    const auto& stemView = s.kit().view (0);
+    for (const int off : { 0, 1, 2, 9 })
+    {
+        CAPTURE (off);
+        auto hits = sineHits (s, 1);
+        const auto at = s.slice (2).start + 3000; // mid-slice 2: its note again, chased 3000 frames (off frames apart)
+        hits.push_back ({ at, phraseNote (s.phrase, 2, true, 3000 + off) });
+        std::stable_sort (hits.begin(), hits.end(), [] (const Hit& a, const Hit& b) { return a.at < b.at; });
+        Rig rig (kRate, 1, 2);
+        rig.run (s.kit(), hits, kCycle);
+        const auto& stats = rig.voice (0).stats();
+        // 9 off: the chase jumps; then the head, 9 frames ahead of the notes, takes the missed follower's fade and
+        // the next note starts a run of its own.
+        CHECK (stats.runs == (off == 9 ? 2 : 1));
+        CHECK (stats.resyncs == (off == 1 || off == 2 ? 1 : 0));
+        CHECK (stats.jumps == (off == 9 ? 1 : 0));
+        CHECK (stats.missed == (off == 9 ? 1 : 0));
+        if (off == 0) // no seam at all: the stem as if nothing came
+            for (std::int64_t n = 144; n < kCycle; ++n)
+                REQUIRE (same (rig.left[0][static_cast<std::size_t> (n)], stemView.left[n]));
+        CHECK (maxStep (rig.left[0], 1, rig.left[0].size()) <= 0.01);
+    }
+
+    SECTION ("a chase of another slice: its own head, the run goes on")
+    {
+        auto hits = sineHits (s, 1);
+        hits.push_back ({ s.slice (2).start + 3000, phraseNote (s.phrase, 5, false, 3000) });
+        std::stable_sort (hits.begin(), hits.end(), [] (const Hit& a, const Hit& b) { return a.at < b.at; });
+        Rig rig (kRate, 1, 2);
+        rig.run (s.kit(), hits, kCycle);
+        CHECK (rig.voice (0).stats().runs == 2);
+        CHECK (rig.voice (0).stats().jumps == 0);
+        CHECK (rig.voice (0).stats().readOns == 7); // the run reads on through every slice
+    }
+}
+
 TEST_CASE ("phrase voice: at 44.1 kHz the lane is a resample of the tiled stem, within -80 dB", "[phrase][voice]")
 {
     constexpr double rate = 44100.0;
@@ -332,24 +360,29 @@ TEST_CASE ("phrase voice: at 44.1 kHz the lane is a resample of the tiled stem, 
     const auto total = samplesAt (2 * kLoopLength, 128.0, rate);
     rig.run (*kit, hits, total);
 
-    // The reference: the stem tiled, read through the same sinc bank at n x 48000 / rate.
+    // The reference: the stem tiled, read through the same sinc bank at 48000 / rate frames a sample, from slice 0's
+    // first frame on the sample its note comes (where the voice starts reading on).
     std::vector<float> tiled (static_cast<std::size_t> (4 * stem.frames));
     for (std::size_t i = 0; i < tiled.size(); ++i)
         tiled[i] = stem.left[static_cast<std::int64_t> (i) % stem.frames];
     const auto& bank = SincBank::instance();
     const double ratio = 48000.0 / rate;
     const float* table = bank.table (bank.bankFor (ratio));
-    std::vector<double> ref (static_cast<std::size_t> (total));
-    for (std::int64_t n = 0; n < total; ++n)
-        ref[static_cast<std::size_t> (n)] = sincRead (table, tiled.data(), static_cast<std::int64_t> (tiled.size()), static_cast<double> (n) * ratio);
-    const auto db = nullDb (rig.left[static_cast<std::size_t> (phrase.mixChannel)], ref, 400, static_cast<std::size_t> (total));
+    const auto t0 = hits.front().at;
+    const auto start0 = static_cast<double> (kit->slices.at (phrase.firstSlice).start);
+    std::vector<double> ref (static_cast<std::size_t> (total), 0.0);
+    for (std::int64_t n = t0; n < total; ++n)
+        ref[static_cast<std::size_t> (n)] = sincRead (table, tiled.data(), static_cast<std::int64_t> (tiled.size()),
+            start0 + static_cast<double> (n - t0) * ratio);
+    const auto from = static_cast<std::size_t> (t0) + 200; // after the run's 3 ms fade-in
+    const auto db = nullDb (rig.left[static_cast<std::size_t> (phrase.mixChannel)], ref, from, static_cast<std::size_t> (total));
     CAPTURE (db);
     CHECK (db <= -80.0);
     CHECK (rig.voice (0).stats().jumps == 0);
     CHECK (rig.voice (0).stats().resyncs == 0);
 }
 
-TEST_CASE ("phrase voice: within the tolerance off the kit's tempo the slices play on, re-synced without a click", "[phrase][voice]")
+TEST_CASE ("phrase voice: off the kit's tempo every slice is its own run, without a click", "[phrase][voice]")
 {
     for (const double scale : { 1.019, 0.981 })
     {
@@ -357,21 +390,40 @@ TEST_CASE ("phrase voice: within the tolerance off the kit's tempo the slices pl
         const SineKit s;
         const auto hits = sineHits (s, 4, scale);
         Rig rig (kRate, 1, 2);
+        rig.tempo = 128.0 * scale;
         const auto total = std::llround (4.0 * static_cast<double> (kCycle) / scale);
         rig.run (s.kit(), hits, total);
         const auto& out = rig.left[0];
         CHECK (maxStep (out, 1, out.size()) <= 0.01); // -40 dBFS
-        double quietest = 1.0;
-        for (std::size_t w = 0; w + 1024 <= out.size(); w += 1024)
-        {
-            double e = 0.0;
-            for (std::size_t i = w; i < w + 1024; ++i)
-                e += static_cast<double> (out[i]) * out[i];
-            quietest = std::min (quietest, std::sqrt (e / 1024.0));
-        }
-        CHECK (quietest > 0.1); // the sine's RMS is 0.177: no gap anywhere
-        CHECK (rig.voice (0).stats().jumps > 0);
-        CHECK (rig.voice (0).stats().runs == 1);
+        const auto& stats = rig.voice (0).stats();
+        CHECK (stats.runs == 32); // each slice its own head: none reads into a follower
+        CHECK (stats.readOns == 0);
+        CHECK (stats.jumps == 0);
+        CHECK (stats.missed == 0);
+    }
+}
+
+TEST_CASE ("phrase voice: off tempo a slice is anchored on its onset", "[phrase][voice]")
+{
+    // A slice with a 4800-frame lead (100 ms) and a click on its onset frame: at a host 1.9 % fast or slow the click
+    // lands lead / q samples after the note (the onset at the host's tempo), not lead samples.
+    PhraseKit k;
+    const std::int64_t lead = 4800, onset = 10000;
+    const int file = k.addStem (stemOf (kCycle, 1, [&] (std::int64_t n, int) { return n == onset ? 1.0f : 0.0f; }));
+    Phrase p;
+    p.stem = { static_cast<std::uint16_t> (file), static_cast<std::uint16_t> (file) };
+    p.cycle16ths = 32;
+    p.fadeUs = 5000;
+    const int index = k.addPhrase (p, { { 0, 60, onset - lead, kCycle, kCycle - 240, static_cast<int> (lead), {} } });
+    for (const double scale : { 1.0, 1.019, 0.981 })
+    {
+        CAPTURE (scale);
+        Rig rig (kRate, 1, 2);
+        rig.tempo = 128.0 * scale;
+        rig.run (k.kit, { { 100, phraseNote (index, 0, false) } }, onset);
+        const auto& out = rig.left[0];
+        const auto peak = std::max_element (out.begin(), out.end(), [] (float a, float b) { return std::fabs (a) < std::fabs (b); }) - out.begin();
+        CHECK (peak == 100 + std::llround (static_cast<double> (lead) / scale));
     }
 }
 
@@ -434,9 +486,10 @@ TEST_CASE ("phrase voice: cycle wraps re-sync over 1 ms; no drift after 1,000 cy
 {
     const SineKit s;
     constexpr int cycles = 1000;
-    constexpr double scale = 1.0 - 2.0e-6; // each cycle 0.36 samples longer than the stem's
+    constexpr double scale = 1.0 - 2.0e-6; // each cycle 0.36 samples longer than the stem's: a slice stays within a frame
     const auto hits = sineHits (s, cycles, scale);
     Rig rig (kRate, 1, 2);
+    rig.tempo = 128.0 * scale;
     rig.collect = false;
     double worstStep = 0.0;
     std::int64_t worstAt = -1;
@@ -456,12 +509,12 @@ TEST_CASE ("phrase voice: cycle wraps re-sync over 1 ms; no drift after 1,000 cy
     const auto lastCycle = std::llround (static_cast<double> ((cycles - 1) * kCycle) / scale);
     rig.run (s.kit(), hits, lastCycle + 100);
     const auto& stats = rig.voice (0).stats();
-    CAPTURE (stats.resyncs, stats.jumps, stats.readOns);
+    CAPTURE (stats.resyncs, stats.jumps, stats.readOns, worstAt);
+    CHECK (stats.runs == 1);
     CHECK (stats.jumps == 0);
     CHECK (stats.resyncs >= 250);
     CHECK (stats.resyncs <= 400);
     CHECK (std::fabs (rig.voice (0).readPosition() - 100.0) <= 1.0); // where the last cycle's note says
-    CAPTURE (worstAt, worstAt % kCycle);
     CHECK (worstStep <= 0.01);
 }
 
@@ -552,50 +605,84 @@ TEST_CASE ("phrase voice: the other A/B stem mid-run crossfades to it at the sam
     CHECK (rig.voice (0).stats().jumps == 1);
 }
 
-TEST_CASE ("phrase voice: a follower that never comes fades over fade_us once past where it could still come", "[phrase][voice]")
+TEST_CASE ("phrase voice: a follower that never comes fades over 1 ms once the voice reads 2 frames into it", "[phrase][voice]")
 {
-    // It could still come 2 frames, 1 ms and the tolerance of the slice before (2 % of 22500 frames) late: 500.
     const SineKit s;
     Rig rig (kRate, 1, 2);
     rig.run (s.kit(), { { 0, phraseNote (s.phrase, 2, true) } }, 8 * k16th);
     const auto& stemView = s.kit().view (0);
     const auto& out = rig.left[0];
     const auto end = static_cast<std::size_t> (s.slice (3).start - s.slice (2).start);
-    const std::size_t late = 2 + 48 + 22500 * 20 / 1000;
-    REQUIRE (late == 500u);
-    for (std::size_t i = 144; i <= end + late; ++i)
+    for (std::size_t i = 144; i <= end + 2; ++i)
         REQUIRE (same (out[i], stemView.left[s.slice (2).start + static_cast<std::int64_t> (i)]));
-    for (std::size_t i = end + late + 1; i < end + late + 1 + 240; ++i)
-        REQUIRE (std::fabs (out[i] - stemView.left[s.slice (2).start + static_cast<std::int64_t> (i)] * raisedOut (static_cast<double> (i - end - late - 1), 240.0)) <= 1e-7);
-    CHECK (silent (out.data() + end + late + 1 + 240, out.size() - (end + late + 1 + 240)));
+    for (std::size_t i = end + 3; i < end + 3 + 48; ++i)
+        REQUIRE (std::fabs (out[i] - stemView.left[s.slice (2).start + static_cast<std::int64_t> (i)] * raisedOut (static_cast<double> (i - end - 3), 48.0)) <= 1e-7);
+    CHECK (silent (out.data() + end + 3 + 48, out.size() - (end + 3 + 48)));
     CHECK (rig.voice (0).stats().missed == 1);
     CHECK_FALSE (rig.voice (0).active());
 }
 
 TEST_CASE ("phrase voice: the stem's gain, the phrase's mix channel, and the throws into the sends", "[phrase][voice]")
 {
-    const SineKit s (2, -6000);
-    auto hits = sineHits (s, 1, 1.0, 0, 1);
-    hits[0].note.throwSpace = 0.5f;
-    hits[0].note.throwEcho = 0.25f;
-    hits[1].note.continues = false;
-    hits[1].note.throwSpace = 0.5f;
-    hits[1].note.throwEcho = 0.25f;
-    Rig rig (kRate, 4, 2);
-    rig.run (s.kit(), hits, kCycle / 2, {}, 0.8f);
-    const auto& stemView = s.kit().view (0);
-    const double gain = std::pow (10.0, (-6000 / 1000.0) / 20.0);
-    for (int c : { 0, 1, 3 })
-        CHECK (silent (rig.left[static_cast<std::size_t> (c)].data(), rig.left[static_cast<std::size_t> (c)].size()));
-    for (std::size_t i = 144; i < static_cast<std::size_t> (s.slice (1).fade); ++i)
+    SECTION ("a live throw, until the next note; the gain and the channel")
     {
-        const double l = static_cast<double> (stemView.left[static_cast<std::int64_t> (i)]) * gain;
-        const double r = static_cast<double> (stemView.right[static_cast<std::int64_t> (i)]) * gain;
-        REQUIRE (same (rig.left[2][i], static_cast<float> (l)));
-        REQUIRE (same (rig.right[2][i], static_cast<float> (r)));
-        const double mono = 0.5 * (l + r) * 0.8;
-        REQUIRE (std::fabs (rig.space[i] - mono * 0.5) <= 1e-7);
-        REQUIRE (std::fabs (rig.echo[i] - mono * 0.25) <= 1e-7);
+        const SineKit s (2, -6000);
+        auto hits = sineHits (s, 1, 1.0, 0, 1);
+        hits[0].note.throwSpace = 0.5f;
+        hits[0].note.throwEcho = 0.25f;
+        hits[1].note.continues = false;
+        hits[1].note.throwSpace = 0.5f;
+        hits[1].note.throwEcho = 0.25f;
+        Rig rig (kRate, 4, 2);
+        rig.run (s.kit(), hits, kCycle / 2, {}, 0.8f);
+        const auto& stemView = s.kit().view (0);
+        const double gain = std::pow (10.0, (-6000 / 1000.0) / 20.0);
+        for (int c : { 0, 1, 3 })
+            CHECK (silent (rig.left[static_cast<std::size_t> (c)].data(), rig.left[static_cast<std::size_t> (c)].size()));
+        for (std::size_t i = 144; i < static_cast<std::size_t> (s.slice (1).fade); ++i)
+        {
+            const double l = static_cast<double> (stemView.left[static_cast<std::int64_t> (i)]) * gain;
+            const double r = static_cast<double> (stemView.right[static_cast<std::int64_t> (i)]) * gain;
+            REQUIRE (same (rig.left[2][i], static_cast<float> (l)));
+            REQUIRE (same (rig.right[2][i], static_cast<float> (r)));
+            const double mono = 0.5 * (l + r) * 0.8;
+            REQUIRE (std::fabs (rig.space[i] - mono * 0.5) <= 1e-7);
+            REQUIRE (std::fabs (rig.echo[i] - mono * 0.25) <= 1e-7);
+        }
+    }
+
+    SECTION ("a timed throw plays to its note's end, across the next slice")
+    {
+        const SineKit s;
+        auto hits = sineHits (s, 1, 1.0, 0, 1);
+        hits[0].note.throwEcho = 1.0f;
+        hits[0].note.lengthSamples = 6 * k16th; // the thrown note: a 16th and a half into slice 1
+        Rig rig (kRate, 1, 2);
+        rig.run (s.kit(), hits, 2 * 4 * k16th);
+        const auto& stemView = s.kit().view (0);
+        for (std::size_t i = 144; i < static_cast<std::size_t> (6 * k16th); ++i)
+            REQUIRE (std::fabs (rig.echo[i] - 0.5 * (stemView.left[static_cast<std::int64_t> (i)] + stemView.right[static_cast<std::int64_t> (i)])) <= 1e-7);
+        CHECK (silent (rig.echo.data() + 6 * k16th + 48, static_cast<std::size_t> (2 * k16th - 48)));
+        CHECK (silent (rig.space.data(), rig.space.size()));
+    }
+
+    SECTION ("a baked throw sends nothing")
+    {
+        PhraseKit k;
+        const int file = k.addStem (stemOf (kCycle, 2, sine));
+        Phrase p;
+        p.throwMode = PhraseThrow::baked;
+        p.stem = { static_cast<std::uint16_t> (file), static_cast<std::uint16_t> (file) };
+        p.cycle16ths = 32;
+        const int index = k.addPhrase (p, { { 0, 60, 0, kCycle, kCycle - 240, 0, {} } });
+        auto note = phraseNote (index, 0, false);
+        note.throwSpace = 1.0f;
+        note.throwEcho = 1.0f;
+        Rig rig (kRate, 1, 2);
+        rig.run (k.kit, { { 0, note } }, 4 * k16th);
+        CHECK (silent (rig.space.data(), rig.space.size()));
+        CHECK (silent (rig.echo.data(), rig.echo.size()));
+        CHECK_FALSE (silent (rig.left[0].data(), rig.left[0].size()));
     }
 }
 
@@ -648,13 +735,16 @@ TEST_CASE ("phrase voice: nothing allocates or frees on the audio path", "[phras
     std::array<float, 32> lane {};
     lane.fill (1.0f);
     allocations::Scope scope;
+    v.setTempo (130.0);
     v.start (s.kit(), phraseNote (s.phrase, 0, true), 3);
     for (int piece = 0; piece < 2000; ++piece)
     {
         bus.clear (32);
         sends.clear (32);
         if (piece % 150 == 7 && piece < 1900)
-            v.continueWith (phraseNote (s.phrase, (piece / 150) % 8, piece % 300 != 7), 11);
+            v.continueWith (phraseNote (s.phrase, (piece / 150) % 8, piece % 300 != 7, piece % 450 == 7 ? 100 : 0), 11);
+        if (piece == 1000)
+            v.setTempo (128.0);
         if (piece == 1900)
             v.stop (0, 64);
         v.render (bus, sends, 32, lane.data());
@@ -673,15 +763,20 @@ TEST_CASE ("phrase voice: any piece sizes give the same bytes", "[phrase][voice]
     auto hits = hitsOf (t, 128.0, kRate, 2);
     for (std::size_t i = 0; i < hits.size(); i += 5) // some jumps and runs too
         hits[i].at += 7;
-    auto render = [&] (const std::function<int (std::int64_t)>& piece) {
+    auto render = [&] (const std::function<int (std::int64_t)>& piece, double tempo) {
         Rig rig (kRate, static_cast<int> (kit->mix.channels.size()), 2);
+        rig.tempo = tempo;
         rig.run (*kit, hits, 4 * kCycle, piece);
         return rig.left[static_cast<std::size_t> (phrase.mixChannel)];
     };
-    const auto whole = render ({});
-    std::mt19937 rng (5);
-    CHECK (sameBits (render ([] (std::int64_t) { return 1; }), whole));
-    CHECK (sameBits (render ([] (std::int64_t) { return 7; }), whole));
-    CHECK (sameBits (render ([] (std::int64_t) { return 13; }), whole));
-    CHECK (sameBits (render ([&rng] (std::int64_t) { return static_cast<int> (rng() % 32) + 1; }), whole));
+    for (const double tempo : { 0.0, 130.0, 126.0 }) // off tempo too: anchored starts part-way in, and delayed
+    {
+        CAPTURE (tempo);
+        const auto whole = render ({}, tempo);
+        std::mt19937 rng (5);
+        CHECK (sameBits (render ([] (std::int64_t) { return 1; }, tempo), whole));
+        CHECK (sameBits (render ([] (std::int64_t) { return 7; }, tempo), whole));
+        CHECK (sameBits (render ([] (std::int64_t) { return 13; }, tempo), whole));
+        CHECK (sameBits (render ([&rng] (std::int64_t) { return static_cast<int> (rng() % 32) + 1; }, tempo), whole));
+    }
 }
