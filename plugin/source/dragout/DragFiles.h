@@ -19,9 +19,10 @@
 // - lane: the conductor and that lane's tracks from the current mode's files (Song: the extended
 //   mixes; Loop and Off: the Loop files), whatever the mutes. The vox switch picks the file where the
 //   lane differs between the two (the accents, the vox); where it doesn't, the vox file gives it, so a
-//   name always stands for one file; and where the switch's file has none of the lane's tracks (the vox
-//   synth with the switch off), the other file does. A lane with tracks in neither can't be dragged.
-// - phrase: the named file (one of phraseFiles ()), byte for byte.
+//   name stands for one file; and where the switch's file has none of the lane's tracks (the vox synth
+//   with the switch off), the other file does. A lane with tracks in neither can't be dragged.
+// - phrase: the named file (one of phraseFiles (); any of the kit's own <KIT>_ files), byte for byte,
+//   whatever the mutes.
 // Every kept track is kept whole, with the conductor (tempo, 4/4, key, and in a Song the section
 // markers and cues), so the dragged MIDI is the music Wubansia plays. A track's lane comes from its
 // name (engine/kit/channel_map.h's trackLane: channels.py's TRACKS and the kit's extras); a track no
@@ -35,8 +36,9 @@
 // The key is short ("F# minor" is F#m, "Bb major" Bbmaj); a lane is named by the kit's label for it;
 // "NoVox" marks the no-vox file; "(no ...)" lists the muted lanes whose tracks a Loop or Song drag
 // left out. Only letters, digits, spaces and # ( ) , - . _ survive from the kit's strings, so a name
-// is safe on macOS, Windows and Linux. The same drag always gives the same name and bytes, and one
-// name is always one file.
+// is safe on macOS, Windows and Linux. The same drag always gives the same name and bytes, and drags
+// that give different files get different names (DragOutTests checks it for the four kits; a lane
+// label reading like "Loop" or "Phrase ..." would break it).
 //
 // The cache folder keeps the newest kKeepFiles .mid files: a DAW imports a dropped MIDI file, and
 // the newest stay for any drop still in flight.
