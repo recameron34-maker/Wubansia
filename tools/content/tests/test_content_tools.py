@@ -1370,6 +1370,58 @@ class TestWorkflow(unittest.TestCase):
         self.assertIn('install-macos.sh" --dry-run', check)
         self.assertLess(macos.index('name: Check the package'), macos.index('name: Upload'))
 
+    def test_docs_skip_ci_but_the_shipped_install_md_doesnt(self):
+        # GitHub's paths filters: patterns in order, the last one that matches a path decides, '!' excludes, '*'
+        # stays within a folder and '**' doesn't. A run happens when any changed path is included.
+        def regex(pattern):
+            out, i = '', 0
+            while i < len(pattern):
+                if pattern.startswith('**/', i):
+                    out, i = out + '(?:.*/)?', i + 3
+                elif pattern.startswith('**', i):
+                    out, i = out + '.*', i + 2
+                elif pattern[i] == '*':
+                    out, i = out + '[^/]*', i + 1
+                else:
+                    out, i = out + re.escape(pattern[i]), i + 1
+            return re.compile(out + r'\Z')
+
+        def runs(patterns, changed):
+            def included(path):
+                verdict = False
+                for p in patterns:
+                    if regex(p.lstrip('!')).match(path):
+                        verdict = not p.startswith('!')
+                return verdict
+            return any(included(path) for path in changed)
+
+        for event in ('push', 'pull_request'):
+            block = re.search(rf'^  {event}:\n(.*?)(?=^  [a-z_]+:\n)', self.text, re.M | re.S).group(1)
+            self.assertNotIn('paths-ignore', block, event)
+            patterns = json.loads(re.search(r'^    paths: (\[.*\])$', block, re.M).group(1))
+            cases = {
+                ('dist/INSTALL.md',): True,
+                ('dist/INSTALL.md', 'docs/decisions/0022-content-location-and-delivery.md'): True,
+                ('dist/README.txt',): True,
+                ('tools/content/install.py',): True,
+                ('README.md',): False,
+                ('CLAUDE.md', 'docs/ROADMAP.md'): False,
+                ('docs/plugin/manifest.md',): False,
+                ('tools/sound/README.md',): False,
+            }
+            for changed, expected in cases.items():
+                with self.subTest(event=event, changed=changed):
+                    self.assertEqual(runs(patterns, changed), expected)
+
+    def test_the_listed_samples_are_checked_before_any_lfs_download(self):
+        content = job_block(self.text, 'content')
+        self.assertLess(content.index('tools/content/pack.py --kit "$KIT" --check'), content.index('git lfs pull'))
+        self.assertIn("restore-keys: content-lfs-${{ matrix.kit }}-", content)
+        sound = job_block(self.text, 'sound')
+        self.assertIn('python3 tools/content/pack.py --check', sound)  # every push, no LFS
+        self.assertNotIn('serves each content version once', self.text)  # the cache is per branch, for 7 days
+        self.assertIn('7 days', self.text)
+
     def test_actionlint_passes(self):
         actionlint = os.environ.get('WUBANSIA_ACTIONLINT') or shutil.which('actionlint')
         if not actionlint:
