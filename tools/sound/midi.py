@@ -222,7 +222,10 @@ def line(lanes, **opt):
     - hats: 'full' (as written), 'thin' (the off-beat 8ths), 'busy' (the kit's own busy pattern, PARTS['drums']['busy'],
       else a closed hat of at least 0.35 on every empty 16th) or '16ths' (the closed hat on every 16th); a pair gives
       each 4-bar block its own;
-    - drums: a drum variant, PARTS['drums']['variants'][name] ({lane: 1- or 4-bar notes}), in place of the loop's;
+    - drums: a drum variant, PARTS['drums']['variants'][name] ({lane: 1- or 4-bar notes}, and optionally 'fill':
+      {lane: a bar of notes}), in place of the loop's lanes it names. On a line that ends on a fill, a variant lane
+      plays its bars 1-3, then the variant's own fill bar for that lane if it gives one, else the kit's fill bar for
+      that lane (which leaves room for the kit's fill); nothing is cut, except under the line's own fill (fill=);
     - bass: a line of PARTS['bass']['lines'], or 'main' (the pick, the default), 'switch' or 'drop2' (the kit's picks
       for those sections, PARTS['bass']['switch'] and ['drop2']);
     - lead: 'phrase' (the default), 'call' (its first bar), 'skeleton' (PARTS['lead']['skeleton']); on a fill line
@@ -1218,6 +1221,22 @@ def playing_phrases(k, ln, variant):
     return out
 
 
+def variant_block(k, variant, part, kind):
+    """A drum variant's 4-bar block for a lane: its notes (a bar is played 4 times); in a fill block its bars 1-3,
+    then its own fill bar for the lane (variant['fill'][lane]) if it gives one, else the kit's fill bar for the lane,
+    which leaves room for the kit's fill."""
+    src = as_notes(variant[part])
+    if max((n.step for n in src), default=0) < BAR:
+        src = [n for r in range(BLOCK) for n in shifted(src, BAR * r)]
+    if kind != 'fill':
+        return src
+    last = (BLOCK - 1) * BAR
+    own = variant.get('fill', {}).get(part)
+    bar = shifted(as_notes(own), last) if own is not None else [
+        n for n in k.block('drums', 'fill', part) if n.step >= last]
+    return sorted([n for n in src if n.step < last] + bar)
+
+
 def line_notes(k, ln, ctx, variant):
     """One line as ({track: notes, 16ths from its start}, {track: [(tick from its start, controller, value)]})."""
     P = k.P
@@ -1229,7 +1248,7 @@ def line_notes(k, ln, ctx, variant):
     stab_drop = set(P.get('loop', {}).get('stab_drop', {}).get(variant, ()))
     acc_blocks = {'loop': set(range(blocks)), 'alternate': {blocks - 1}}.get(ln.get('accents'), set())
     phrase_on = playing_phrases(k, ln, variant)
-    variant_drums = P['drums'].get('variants', {}).get(ln.get('drums'), {}) if ln.get('drums') else {}
+    variant_drums = P['drums']['variants'][ln['drums']] if ln.get('drums') else {}
     for b in range(blocks):
         kind = 'fill' if fill and b == blocks - 1 else 'groove'
         off = b * BLOCK * BAR
@@ -1238,10 +1257,7 @@ def line_notes(k, ln, ctx, variant):
             if part not in lanes:
                 continue
             if part in variant_drums:
-                src = as_notes(variant_drums[part])
-                if max((n.step for n in src), default=0) < BAR:
-                    src = [n for r in range(BLOCK) for n in shifted(src, BAR * r)]
-                notes = src
+                notes = variant_block(k, variant_drums, part, kind)
             else:
                 notes = k.block('drums', kind, part)
             if part == 'hats':
@@ -1474,6 +1490,8 @@ def line_info(k, ln, got, start, variant='vox'):
                         'to_pm': round(ln['rise'][2] * 1000)}
     if ln.get('accents'):
         info['accents'] = ln['accents']
+    if ln.get('drums'):
+        info['drums'] = ln['drums']
     if ln.get('end'):
         info['end'] = ln['end']
     if ln.get('fill') and ln.get('end') == 'fill':
@@ -1794,6 +1812,8 @@ def describe_line(k, ln):
             parts.append(lane)
     parts += [phrase_words(ph) for ph in phrases if ph not in instead.values()]
     words_ = [', '.join(parts) or 'nothing']
+    if ln.get('drums'):
+        words_.append(f"the drums' {ln['drums']} variant")
     if ln.get('phrases_rest') and ln.get('end') == 'fill' and phrases:
         words_.append('the phrases rest from the fill')
     if ln.get('roll'):
