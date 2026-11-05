@@ -29,8 +29,8 @@ integer nearest 134 BPM) and the key signature (FF 59: 3 sharps, minor) on its f
 | `FUT01_Phrase_VoxSynthRiff_2bars.mid` | Vox synth riff, on Vox Synth | channel 5 |
 | `FUT01_Phrase_WarpRiff_2bars.mid` | Warp riff, on Warp Clean | channel 1 |
 
-The extended mix: `extended/vox/` (with the vox synth) and `extended/novox/` (without), each a 224-bar mix in the
-genre's form, one region file per section, `regions.json` and a README.
+The extended mix: `extended/vox/` (with the vox synth) and `extended/novox/` (without), each a 224-bar mix in the kit's
+own form, one region file per section, `regions.json` and a README.
 
 ## Drums (channel 10)
 
@@ -46,7 +46,7 @@ A drum rack with the kit's samples on these notes (C1 = 36): 120-tick triggers, 
 | 47 (B1) | Alloy Hit | Perc |
 | 54 (F#2) | Tambourine | Perc |
 
-Kick Split (kick A, round 1's pick) and the Shaker (for the tambourine) are the alternates. Choke Hat Open with Hat Closed (one choke group), as the loop plays them.
+Kick Split (kick A, round 1's pick) and the Shaker (for the tambourine) are the alternates. Choke Hat Open with Hat Closed (one choke group), as the loop plays them. The loop's fill bar clears only beat 4: its drums play through beat 3 and stop at its 16th 12, where the glitch fill plays from its own beat 2 (FX key 49); the extended mix's build ends on the whole fill from beat 3 (FX key 48), every drum out from there.
 
 ## Pitched instruments
 
