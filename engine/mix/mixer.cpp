@@ -24,8 +24,9 @@ namespace wubansia::engine
 
     Mixer::~Mixer() = default;
 
-    void Mixer::prepare (double sampleRate, int maxBlock, int numOutputs)
+    void Mixer::prepare (double sampleRate, int maxBlock, int numOutputs, MasterHold hold)
     {
+        (void) hold; // the club master's hold: wired in the next commit
         impl->sampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
         impl->maxBlock = std::max (1, maxBlock);
         impl->numOutputs = std::clamp (numOutputs, 1, 2);
