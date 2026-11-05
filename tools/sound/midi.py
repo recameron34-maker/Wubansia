@@ -28,7 +28,8 @@ slides (a written glide), the note before is held SLIDE_TICKS into it, so a mono
 Velocities are round(v x 127), moved to the nearest integer that plays the recipe's layer where that would not
 (written_velocity: the engine plays the layer whose round(layer x 127) is nearest, the louder on a tie). End-aligned
 sounds end on their target, starting the sample's length (PARTS['frames']) before it. Filter rides are CC74/CC71 every
-CC_STEP ticks while they move; a thrown note has CC91 and CC94 at 127 on its tick and back to 0 at its end.
+CC_STEP ticks while they move; a thrown note has CC91 and CC94 at 127 on its tick and back to 0 at its end, or sooner
+at the track's next note-on that isn't thrown.
 
 The extended mix is built line by line (8 bars each) from the kit's material: each lane plays the loop's 4-bar block,
 its fill bar where a line ends on a fill and its groove block (by default bar 2 again in place of bar 4) elsewhere;
@@ -1826,7 +1827,8 @@ def kit_readme(k, names):
     rec = ('\n'.join(f'- **{lane}**: {what}' for lane, what in recorded.items())
            if recorded else '- none: every lane plays its multisample.')
     throws = ('a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 '
-              'at its note-off (the GS send controllers)')
+              "at its note-off, or sooner at the next note-on on its track that isn't thrown, so no other note takes "
+              'the throw (the GS send controllers)')
     return f"""# {kit} "{K.TITLE}": the written music as MIDI
 
 {K.BPM:g} BPM, {K.KEY} ({K.CAMELOT}), swing {round(K.SWING * 100)}% written in: every odd 16th lands {k.late} ticks
