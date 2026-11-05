@@ -60,6 +60,7 @@ MAX_SHIFT = 3                 # samples either way a pass may sit off the recipe
 SILENT_DB = -100.0            # a lane quieter than this (RMS, dBFS) is silent
 SECTION_CEILING_DB = -0.9     # a Song section's true peak, at most (the limiter's ceiling is -1.02 dBTP)
 SECTION_BARS = 8
+PASSES = '2'                  # loop renders: pass 1 (from rest, chased) and pass 2 (steady state) are all the checks read
 
 # The round 5 dry loops (bass A and B; FUT04 has no no-vox pair) and Low loops (the kick and bass lanes), by kit.
 DRY = {
@@ -78,6 +79,12 @@ LOW = {
     'FUT04': {'a': 'ContextLoopLow', 'b': 'ContextLoopLowWarm'},
 }
 
+# Gaps the lead has accepted for now, with their owner: they stay in the report, marked, and don't fail the run.
+KNOWN = {
+    ('FUT01', 'lane', 'novox bass B: acc_warp'):
+        "the warp stab's release runs 15-30 ms past its 16th, where the recipe gates it: P2 manifest (integration)",
+}
+
 # Who a failing gate most likely belongs to (the plan's packages), by what fails.
 OWNERS = {
     'phrase': 'P6 phrase lanes (the voice) or P2 phrase tables (the slices)',
@@ -93,10 +100,12 @@ OWNERS = {
 # ------------------------------------------------------------------ the renders
 @dataclass(frozen=True)
 class Render:
-    """One groovecore render: its file stem under <renders>/<kit>/ and its options (after --kit and --out)."""
+    """One groovecore render: its file stem under <renders>/<kit>/, its options (after --kit and --out), whether it
+    writes dry taps, and which (--taps-of: lanes or mix channels; empty: all)."""
     name: str
     args: tuple
     taps: bool = False
+    taps_of: tuple = ()
 
 
 def plan_loops(variants=VARIANTS):
@@ -104,11 +113,12 @@ def plan_loops(variants=VARIANTS):
     pre-master mix (bass B, as the Wet loop); the dry mix (no returns, no master) with bass A and B. 3 passes each."""
     out = []
     for v in variants:
+        out.append(Render(f'loop_{v}_bassb', ('--variant', v, '--bass', 'b', '--passes', PASSES), taps=True))
+        out.append(Render(f'loop_{v}_bassa', ('--variant', v, '--bass', 'a', '--passes', PASSES), taps=True,
+                          taps_of=('bass', 'kick')))
+        out.append(Render(f'loop_{v}_bassb_premaster', ('--variant', v, '--bass', 'b', '--passes', PASSES, '--club', 'off')))
         for b in 'ab':
-            out.append(Render(f'loop_{v}_bass{b}', ('--variant', v, '--bass', b, '--passes', '3'), taps=True))
-        out.append(Render(f'loop_{v}_bassb_premaster', ('--variant', v, '--bass', 'b', '--passes', '3', '--club', 'off')))
-        for b in 'ab':
-            out.append(Render(f'loop_{v}_bass{b}_dry', ('--variant', v, '--bass', b, '--passes', '3', '--space', '0',
+            out.append(Render(f'loop_{v}_bass{b}_dry', ('--variant', v, '--bass', b, '--passes', PASSES, '--space', '0',
                                                         '--echo', '0', '--club', 'off')))
     return out
 
@@ -116,7 +126,8 @@ def plan_loops(variants=VARIANTS):
 def side_render(switch, side, variant='vox'):
     """The club mix with one A/B switch on its other side (kick A, stab B), with taps: that lane against the recipe's
     lane on that side."""
-    return Render(f'loop_{variant}_{switch}{side}', ('--variant', variant, f'--{switch}', side, '--passes', '3'), taps=True)
+    return Render(f'loop_{variant}_{switch}{side}', ('--variant', variant, f'--{switch}', side, '--passes', PASSES), taps=True,
+                  taps_of=(SWITCH_LANE[switch],))
 
 
 DEFAULT_SIDE = {'kick': 'b', 'bass': 'b', 'stab': 'a'}
@@ -133,28 +144,28 @@ TEMPO_PCT = (-3, -1, 1, 3)    # off the kit's tempo: inside the phrase lanes' 2 
 
 def exact_render(variant):
     """The club mix on master.py's two-sided limiter hold (--master exact), bass B: the verification master."""
-    return Render(f'loop_{variant}_bassb_exact', ('--variant', variant, '--bass', 'b', '--passes', '3', '--master', 'exact'))
+    return Render(f'loop_{variant}_bassb_exact', ('--variant', variant, '--bass', 'b', '--passes', PASSES, '--master', 'exact'))
 
 
-def tempo_render(kit_bpm, pct, variant='vox'):
-    """The club mix at the kit's tempo moved by pct percent, bass B, with taps."""
+def tempo_render(kit_bpm, pct, variant='vox', taps_of=()):
+    """The club mix at the kit's tempo moved by pct percent, bass B, with taps (of taps_of: the phrase channels)."""
     bpm = kit_bpm * (1 + pct / 100.0)
-    return Render(f'loop_{variant}_bassb_tempo{pct:+d}', ('--variant', variant, '--bass', 'b', '--passes', '3', '--tempo',
-                                                          f'{bpm:.6f}'), taps=True)
+    return Render(f'loop_{variant}_bassb_tempo{pct:+d}', ('--variant', variant, '--bass', 'b', '--passes', PASSES, '--tempo',
+                                                          f'{bpm:.6f}'), taps=True, taps_of=tuple(taps_of))
 
 
 def bench_render(variant='vox'):
     """The CPU stress: the club mix at 128-sample blocks with notes held on the kit's polyphonic sustained instruments
     through MIDI in, so the voices fill up (the design's 64 voices and every effect)."""
-    return Render(f'loop_{variant}_bassb_bench', ('--variant', variant, '--bass', 'b', '--passes', '3', '--block', '128',
+    return Render(f'loop_{variant}_bassb_bench', ('--variant', variant, '--bass', 'b', '--passes', PASSES, '--block', '128',
                                                   '--hold', '64'))
 
 
-def multisample_render(variant='vox'):
+def multisample_render(variant='vox', taps_of=()):
     """The loop with the phrase lanes on their multisamples (--phrases off), bass B, with taps: what the lanes play off
     the kit's tempo or from MIDI in (FUT04's squelch ticks are measured on it)."""
-    return Render(f'loop_{variant}_bassb_multisample', ('--variant', variant, '--bass', 'b', '--passes', '3', '--phrases',
-                                                        'off'), taps=True)
+    return Render(f'loop_{variant}_bassb_multisample', ('--variant', variant, '--bass', 'b', '--passes', PASSES, '--phrases',
+                                                        'off'), taps=True, taps_of=tuple(taps_of))
 
 
 def wav_path(renders, kit, name):
@@ -173,6 +184,8 @@ def run_render(groovecore, kit, render, renders, root, content=None):
            '--manifests', str(Path(root) / 'content' / 'plugin'), '--midi', str(Path(root) / 'content' / 'midi')]
     if render.taps:
         cmd += ['--taps', str(taps_dir(renders, kit, render.name))]
+        if render.taps_of:
+            cmd += ['--taps-of', ','.join(render.taps_of)]
     if content:
         cmd += ['--content', str(content)]
     p = subprocess.run(cmd, capture_output=True, text=True)
@@ -199,7 +212,10 @@ def ensure(groovecore, kit, renders, root, content=None, fresh=False, log=print,
 
     from tools.sound import plugin_mix as PM
     _, bpm = PM.loop_info(kit)
-    extra = [multisample_render(), bench_render()] + [exact_render(v) for v in VARIANTS] + [tempo_render(bpm, t) for t in TEMPO_PCT]
+    phrases = phrase_channels(kit, root)
+    lanes = phrase_lanes(kit, root)
+    extra = [multisample_render(taps_of=lanes), bench_render()] + [exact_render(v) for v in VARIANTS]
+    extra += [tempo_render(bpm, t, taps_of=phrases) for t in TEMPO_PCT]
     extra += [side_render(sw, 'a' if DEFAULT_SIDE[sw] == 'b' else 'b') for sw in switches(kit, root) if sw != 'bass']
     for r in plan_loops() + extra:
         code, err = one(r)
@@ -342,6 +358,11 @@ def phrase_channels(kit, root=None):
     return sorted({p['mix_channel'] for p in kit_json(kit, root)['phrases']})
 
 
+def phrase_lanes(kit, root=None):
+    """The lanes kit.json's phrases play on."""
+    return sorted({p['lane'] for p in kit_json(kit, root)['phrases']})
+
+
 def phrase_cycles(kit, root=None):
     """{mix channel: its phrases' cycle in 16ths} (one cycle per channel: P4's parser enforces it per MIDI channel)."""
     return {p['mix_channel']: p['cycle_16ths'] for p in kit_json(kit, root)['phrases']}
@@ -374,9 +395,10 @@ class Check:
     values: dict = field(default_factory=dict)
     ok: object = None
     note: str = ''
+    known: str = ''       # an accepted gap: why, and its owner (KNOWN)
 
     def as_json(self):
-        return {'kit': self.kit, 'group': self.group, 'name': self.name, 'ok': self.ok, 'note': self.note,
+        return {'kit': self.kit, 'group': self.group, 'name': self.name, 'ok': self.ok, 'note': self.note, 'known': self.known,
                 'values': json.loads(json.dumps(self.values, default=_jsonable))}
 
 
@@ -768,8 +790,17 @@ def _fmt(v, digits=2):
     return str(v)
 
 
-def verdict(ok):
+def verdict(ok, known=''):
+    if ok is False and known:
+        return 'known gap'
     return {True: 'pass', False: '**FAIL**', None: 'info'}[ok]
+
+
+def mark_known(checks):
+    """Marks the checks KNOWN names (in place) and returns the ones that fail the run: failing and not known."""
+    for c in checks:
+        c.known = KNOWN.get((c.kit, c.group, c.name), '') if c.ok is False else ''
+    return [c for c in checks if c.ok is False and not c.known]
 
 
 def report_md(checks, kits):
@@ -778,8 +809,10 @@ def report_md(checks, kits):
              'in aligned time. Gates: LUFS-I ±0.3 LU, short-term ±0.5 LU, 1/3 octaves 40 Hz-16 kHz ±0.75 dB, true peak '
              f'±0.5 dB, kick crest ±0.5 dB; phrase lanes null ≤ {LANE_NULL_DB:.0f} dB per pass; sampled lanes ±{LANE_BAND_DB:g} dB '
              'per 1/3 octave.', '']
-    failed = [c for c in checks if c.ok is False]
-    lines += [f'**{len(failed)} failing** of {sum(c.ok is not None for c in checks)} gated checks.', '']
+    failed = mark_known(checks)
+    known = [c for c in checks if c.known]
+    lines += [f'**{len(failed)} failing** of {sum(c.ok is not None for c in checks)} gated checks'
+              + (f', and {len(known)} known gaps.' if known else '.'), '']
     for kit in kits:
         ks = [c for c in checks if c.kit == kit]
         if not ks:
@@ -792,7 +825,7 @@ def report_md(checks, kits):
             for c in gate_rows:
                 v = c.values
                 lines.append(f"| {c.group}: {c.name} | {_fmt(v.get('lufs_i'))} | {_fmt(v.get('lufs_s'))} | {_fmt(v.get('bands'))} "
-                             f"| {_fmt(v.get('true_peak'))} | {_fmt(v.get('kick_crest'))} | {verdict(c.ok)} |")
+                             f"| {_fmt(v.get('true_peak'))} | {_fmt(v.get('kick_crest'))} | {verdict(c.ok, c.known)} |")
             lines.append('')
         lane_rows = [c for c in ks if c.group in ('lane', 'multisample') or (c.group == 'tempo' and 'clicks' in c.values)]
         if lane_rows:
@@ -803,7 +836,7 @@ def report_md(checks, kits):
                 p1 = '' if 'null_pass1_db' not in v else f"{_fmt(v['null_pass1_db'], 1)} ({v['shift_pass1']:+d})"
                 p2 = '' if 'null_pass2_db' not in v else (f"{_fmt(v['null_pass2_db'], 1)}" + (f" ({v['shift_pass2']:+d})" if 'shift_pass2' in v else ''))
                 extra = f" ({v['clicks']} clicks)" if 'clicks' in v else ''
-                lines.append(f"| {c.group}: {c.name}{extra} | {p1} | {p2} | {_fmt(v.get('worst_band'))} | {_fmt(v.get('level_db'))} | {verdict(c.ok)} |")
+                lines.append(f"| {c.group}: {c.name}{extra} | {p1} | {p2} | {_fmt(v.get('worst_band'))} | {_fmt(v.get('level_db'))} | {verdict(c.ok, c.known)} |")
                 if 'squelch_ticks' in v:
                     for t in v['squelch_ticks']:
                         lines.append(f"| ↳ squelch tick 16th {t['16th']} | | | sub {t['sub_db']:+.1f} dB ({t['sub_got_dbfs']:.1f} dBFS) | full {t['full_db']:+.1f} dB | info |")
@@ -814,7 +847,7 @@ def report_md(checks, kits):
             for c in song_rows:
                 v = c.values
                 lines.append(f"| {c.name} | {_fmt(v.get('lufs_i'))} | {_fmt(v.get('vs_club_lu'))} | {_fmt(v.get('true_peak'))} "
-                             f"| {v.get('cpu_percent', '')} | {v.get('max_voices', '')} | {verdict(c.ok)} |")
+                             f"| {v.get('cpu_percent', '')} | {v.get('max_voices', '')} | {verdict(c.ok, c.known)} |")
             lines.append('')
         cpu_rows = [c for c in ks if c.group == 'cpu']
         if cpu_rows:
@@ -825,10 +858,15 @@ def report_md(checks, kits):
                 lines.append(f"| {c.name} | {v.get('block')} | {v.get('cpu_percent')} | {v.get('p99_block_percent')} "
                              f"| {v.get('worst_block_percent')} | {v.get('max_voices')} ({v.get('held_notes') or 0}) |")
             lines.append('')
-        notes = [c for c in ks if c.note and c.ok is False]
+        notes = [c for c in ks if c.note and c.ok is False and not c.known]
         if notes:
             lines += ['Failing, with the likely cause:', '']
             lines += [f'- {c.group}: {c.name}: {c.note}' for c in notes]
+            lines.append('')
+        known_rows = [c for c in ks if c.known]
+        if known_rows:
+            lines += ['Known gaps (accepted for now):', '']
+            lines += [f'- {c.group}: {c.name}: {c.note}. {c.known}' for c in known_rows]
             lines.append('')
     return '\n'.join(lines) + '\n'
 
@@ -848,6 +886,7 @@ def main(argv=None):
     ap.add_argument('--groovecore', help='render what the renders folder lacks with this groovecore')
     ap.add_argument('--content', help='the content folder (default: $WUBANSIA_CONTENT_DIR)')
     ap.add_argument('--fresh', action='store_true', help='render everything again')
+    ap.add_argument('--keep-taps', action='store_true', help="keep each kit's dry taps after its checks (about 150 MB a kit)")
     ap.add_argument('--songs', default='all', choices=tuple(SONG_SETS),
                     help="which Song renders to make: all (both variants, bass A and B), some (vox with B, no-vox with A), none")
     ap.add_argument('--out', default='build/v0.1-fidelity')
@@ -867,8 +906,12 @@ def main(argv=None):
             for p in problems:
                 print('compare_render:', p, file=sys.stderr)
         checks += run_kit(kit, a.renders, root, tuple(a.only or GROUPS))
+        if not a.keep_taps:
+            import shutil
+            for d in Path(a.renders, kit.lower()).glob('*_taps'):
+                shutil.rmtree(d, ignore_errors=True)
     path = write_report(checks, kits, a.out)
-    failed = [c for c in checks if c.ok is False]
+    failed = mark_known(checks)
     print(f'{len(failed)} failing of {sum(c.ok is not None for c in checks)} gated checks: {path}')
     for c in failed:
         print(f'  FAIL {c.kit} {c.group}: {c.name}: {c.note}')

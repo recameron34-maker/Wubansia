@@ -227,8 +227,11 @@ class Plan(unittest.TestCase):
             self.assertIn(f'loop_{v}_bassb_premaster', names)       # the Wet loop
             self.assertIn(f'loop_{v}_bassa_dry', names)             # the dry loops
             self.assertIn(f'loop_{v}_bassb_dry', names)
-        taps = {r.name for r in C.plan_loops() if r.taps}
-        self.assertEqual({f'loop_{v}_bass{b}' for v in C.VARIANTS for b in 'ab'}, taps)
+        taps = {r.name: r.taps_of for r in C.plan_loops() if r.taps}
+        self.assertEqual({f'loop_{v}_bass{b}' for v in C.VARIANTS for b in 'ab'}, set(taps))
+        self.assertEqual((), taps['loop_vox_bassb'], 'bass B: every channel, for every lane check')
+        self.assertEqual(('bass', 'kick'), taps['loop_novox_bassa'], 'bass A: its lane, and the kick for the Low loops')
+        self.assertTrue(all(r.args[r.args.index('--passes') + 1] == '2' for r in C.plan_loops()))
         pre = next(r for r in C.plan_loops() if r.name == 'loop_vox_bassb_premaster')
         self.assertEqual(('--club', 'off'), pre.args[-2:])
         dry = next(r for r in C.plan_loops() if r.name == 'loop_novox_bassa_dry')
@@ -237,18 +240,21 @@ class Plan(unittest.TestCase):
             self.assertEqual(opt[1], dry.args[i + 1])
 
     def test_the_exact_master_and_the_tempos(self):
-        self.assertEqual(('--variant', 'vox', '--bass', 'b', '--passes', '3', '--master', 'exact'), C.exact_render('vox').args)
-        r = C.tempo_render(134.0, -3)
+        self.assertEqual(('--variant', 'vox', '--bass', 'b', '--passes', '2', '--master', 'exact'), C.exact_render('vox').args)
+        r = C.tempo_render(134.0, -3, taps_of=('pluck', 'vsynth'))
         self.assertEqual('loop_vox_bassb_tempo-3', r.name)
         self.assertEqual('129.980000', r.args[r.args.index('--tempo') + 1])
         self.assertTrue(r.taps)
+        self.assertEqual(('pluck', 'vsynth'), r.taps_of)
         self.assertEqual('loop_vox_bassb_tempo+1', C.tempo_render(134.0, 1).name)
 
     def test_a_switch_on_its_other_side(self):
         r = C.side_render('kick', 'a')
         self.assertEqual('loop_vox_kicka', r.name)
-        self.assertEqual(('--variant', 'vox', '--kick', 'a', '--passes', '3'), r.args)
+        self.assertEqual(('--variant', 'vox', '--kick', 'a', '--passes', '2'), r.args)
         self.assertTrue(r.taps)
+        self.assertEqual(('kick',), r.taps_of)
+        self.assertEqual(('chords',), C.side_render('stab', 'b').taps_of)
 
     def test_a_section_render_is_8_bars_of_that_section(self):
         r = C.section_render('novox', 'a', 3)
@@ -269,6 +275,18 @@ class Files(unittest.TestCase):
             np.testing.assert_array_equal(x.astype(np.float32).astype(np.float64), got)
             self.assertEqual(424, meta['latency'])
             self.assertIsNone(C.load(C.wav_path(d, 'FUT09', 'nothing')))
+
+    def test_a_known_gap_is_marked_with_its_owner_and_does_not_fail_the_run(self):
+        key = next(iter(C.KNOWN))
+        known = C.Check(key[0], key[1], key[2], {'worst_band': (1587.4, 1.15), 'level_db': 0.47}, False, 'off by +1.15 dB')
+        other = C.Check('FUT09', 'lane', 'vox bass B: hat', {}, False, 'off')
+        self.assertEqual([other], C.mark_known([known, other]))
+        self.assertIn('P2', known.known)
+        self.assertEqual('known gap', C.verdict(known.ok, known.known))
+        self.assertEqual('**FAIL**', C.verdict(other.ok, other.known))
+        text = C.report_md([known, other], [key[0], 'FUT09'])
+        self.assertIn('Known gaps (accepted for now):', text)
+        self.assertIn('**1 failing** of 2 gated checks, and 1 known gaps.', text)
 
     def test_the_report_lists_every_check_and_the_failures_with_their_cause(self):
         checks = [C.Check('FUT09', 'mix', 'vox: club vs X', {'lufs_i': 0.1, 'lufs_s': 0.2, 'bands': (1000.0, 0.3),
