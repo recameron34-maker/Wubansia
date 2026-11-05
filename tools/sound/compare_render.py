@@ -294,6 +294,30 @@ def best_null(x, want, L, k, start=0, max_shift=MAX_SHIFT):
     return best
 
 
+def cycle_null(x, want, L, k, cycle_16ths, start=0, resync=False, max_shift=MAX_SHIFT):
+    """A phrase lane's null on pass k, each of the pass's cycles (cycle_16ths of its 64) at its own best whole-sample
+    shift: a cycle at the exact tempo isn't a whole number of samples, so the engine's cycles start on different
+    roundings of their positions. The residuals summed over the cycles against the reference's energy, from `start` on,
+    and with resync, without the RESYNC_S after each cycle's wrap. Returns (null dB, [shift per cycle])."""
+    n = max(1, 64 // cycle_16ths) if cycle_16ths else 1
+    edges = [int(round(j * L / n)) for j in range(n + 1)]
+    keep = resync_mask(L, cycle_16ths) if resync else np.ones(L, dtype=bool)
+    keep[:start] = False
+    shifted = {s: pass_slice(x, L, k, s) for s in range(-max_shift, max_shift + 1)}
+    num = den = 0.0
+    shifts = []
+    for a, b in zip(edges, edges[1:]):
+        m = keep[a:b]
+        ref = want[a:b][m]
+        e, s = min((float(np.sum((shifted[s][a:b][m] - ref) ** 2)), s) for s in shifted)
+        num += e
+        den += float(np.sum(ref ** 2))
+        shifts.append(s)
+    if num == 0.0:
+        return -math.inf, shifts
+    return (db(num / den) if den > 0 else math.inf), shifts
+
+
 def third_octave_db(x, lo=40.0, hi=16000.0):
     from tools.sound import engine_ref as E
     return E.third_octave_db(x, lo, hi)
@@ -489,9 +513,11 @@ def lane_check(kit, variant, bass, channel, tap, want, L, phrase, cycle_16ths=0,
     values = {'null_pass1_db': first, 'shift_pass1': s1, 'null_pass2_db': second, 'shift_pass2': s2,
               'worst_band': worst, 'bands_judged': judged, 'level_db': level}
     if phrase:
-        keep = resync_mask(L, cycle_16ths)
-        outside = null_db(pass_slice(tap, L, 1, s2)[keep], want[keep])
-        values['null_pass2_outside_resync_db'] = outside
+        first, s1 = cycle_null(tap, want, L, 0, cycle_16ths, start=int(round(CHASE_S * SR)))
+        second, s2 = cycle_null(tap, want, L, 1, cycle_16ths)
+        outside, _ = cycle_null(tap, want, L, 1, cycle_16ths, resync=True)
+        values.update({'null_pass1_db': first, 'shift_pass1': s1, 'null_pass2_db': second, 'shift_pass2': s2,
+                       'null_pass2_outside_resync_db': outside})
         ok = first <= LANE_NULL_DB and outside <= LANE_NULL_DB
         note = '' if ok else (f'nulls {first:.1f} / {outside:.1f} dB outside the re-syncs (gate {LANE_NULL_DB:.0f}): likely '
                               + OWNERS['phrase'])
@@ -790,6 +816,10 @@ def _fmt(v, digits=2):
     return str(v)
 
 
+def _shifts(s):
+    return '/'.join(f'{u:+d}' for u in s) if isinstance(s, (list, tuple)) else f'{s:+d}'
+
+
 def verdict(ok, known=''):
     if ok is False and known:
         return 'known gap'
@@ -833,8 +863,10 @@ def report_md(checks, kits):
                       '|---|---|---|---|---|---|']
             for c in lane_rows:
                 v = c.values
-                p1 = '' if 'null_pass1_db' not in v else f"{_fmt(v['null_pass1_db'], 1)} ({v['shift_pass1']:+d})"
-                p2 = '' if 'null_pass2_db' not in v else (f"{_fmt(v['null_pass2_db'], 1)}" + (f" ({v['shift_pass2']:+d})" if 'shift_pass2' in v else ''))
+                p1 = '' if 'null_pass1_db' not in v else f"{_fmt(v['null_pass1_db'], 1)} ({_shifts(v['shift_pass1'])})"
+                p2 = '' if 'null_pass2_db' not in v else (f"{_fmt(v['null_pass2_db'], 1)}" + (f" ({_shifts(v['shift_pass2'])})" if 'shift_pass2' in v else ''))
+                if 'null_pass2_outside_resync_db' in v:
+                    p2 += f"; {_fmt(v['null_pass2_outside_resync_db'], 1)} outside the re-syncs"
                 extra = f" ({v['clicks']} clicks)" if 'clicks' in v else ''
                 lines.append(f"| {c.group}: {c.name}{extra} | {p1} | {p2} | {_fmt(v.get('worst_band'))} | {_fmt(v.get('level_db'))} | {verdict(c.ok, c.known)} |")
                 if 'squelch_ticks' in v:
