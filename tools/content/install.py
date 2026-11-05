@@ -19,16 +19,20 @@ Each kit also gets its SHA256SUMS, so a folder installed from the repo and one i
 It never replaces a sample that is already there with other bytes: that is another build of the same content
 version (a different version has its own v<N> folder). Every file is checked before anything is written, and a kit
 with any problem or any such sample is left exactly as it was. Samples already there with the right bytes stay, so a
-second run changes nothing, and a build that only adds files to a version adds them; SHA256SUMS then describes the
-latest one. Each file is written under a temporary name and renamed into place. --dry-run checks everything and
-lists every file it would copy, and writes nothing. Exit status: 0 done, 1 a kit was refused, 2 a
-usage error. Standard library only (Python 3.9+).
+second run changes nothing, and a build that only adds files to a version adds them; SHA256SUMS then lists that
+build, but an installed SHA256SUMS that lists more files stays. Two zips of one kit version that list other files
+are two builds of it: neither is installed, and both are named. Paths follow the plugin's rule (P4's
+contentPathProblem: no ':' or '\\'), and no file is written outside its kit's version folder, links included. Each
+file is written under a temporary name and renamed into place. --dry-run checks everything and lists every file it
+would copy, and writes nothing. Exit status: 0 done; 1 a kit was refused or a zip can't be read (each zip is its own
+source: the others still install); 2 a usage error. Standard library only (Python 3.9+).
 """
 import argparse
 import os
 import re
 import sys
 import zipfile
+import zlib
 from pathlib import Path
 
 try:
@@ -52,6 +56,7 @@ class Source:
         self.read = read        # path -> bytes
         self.check = check      # (path, sha256, bytes) -> a problem or None
         self.problems = []      # found before any file is read
+        self.read_entry = None  # zip entry name -> bytes, for a zip's SHA256SUMS
 
     @property
     def label(self):
@@ -119,11 +124,16 @@ def zip_sources(z, where, manifests):
         if not m:
             continue
         kit_id, version, kit_dir = m.group(1).upper(), int(m.group(2)), name[:-len(KF.SUMS)]
-        sums = z.read(name)
         listed = {}
-        source = Source(kit_id, version, where, [], sums, lambda p, d=kit_dir: z.read(d + p), zip_check(listed))
+        source = Source(kit_id, version, where, [], b'', lambda p, d=kit_dir: z.read(d + p), zip_check(listed))
+        source.read_entry = z.read
+        source.sums, problem = _read(source, None, entry=name)
+        if problem:
+            source.problems.append(f'{KF.SUMS}: {problem}')
+            out.append(source)
+            continue
         try:
-            source.items = [(p, s) for s, p in KF.parse_sums(sums.decode('utf-8'))]
+            source.items = [(p, s) for s, p in KF.parse_sums(source.sums.decode('utf-8'))]
         except (UnicodeDecodeError, ValueError) as e:
             source.problems.append(str(e))
         try:
@@ -147,13 +157,17 @@ def _state(target, sha):
 
 
 def _sums_state(target, items):
+    """'missing', 'same', 'differs', or 'keep' when the installed SHA256SUMS lists more files than items (an
+    earlier, bigger build of this version is there: it stays the record)."""
     if not os.path.lexists(target):
         return 'missing'
     try:
         there = KF.parse_sums(target.read_text(encoding='utf-8'))
     except (OSError, UnicodeDecodeError, ValueError):
         return 'differs'
-    return 'same' if sorted((p, s) for s, p in there) == sorted(items) else 'differs'
+    if sorted((p, s) for s, p in there) == sorted(items):
+        return 'same'
+    return 'keep' if len(there) > len(items) else 'differs'
 
 
 def _write(target, data):
@@ -169,9 +183,11 @@ def _write(target, data):
         raise
 
 
-def _read(source, path):
-    """(bytes, None) or (None, why it can't be read)."""
+def _read(source, path, entry=None):
+    """(bytes, None) or (None, why it can't be read). entry reads that zip entry instead (a SHA256SUMS)."""
     try:
+        if entry is not None:
+            return source.read_entry(entry), None
         return source.read(path), None
     except FileNotFoundError:
         return None, 'missing'
@@ -181,8 +197,12 @@ def _read(source, path):
         return None, 'missing from the zip'
     except OSError as e:
         return None, f'unreadable ({e.strerror or e})'
-    except (zipfile.BadZipFile, EOFError) as e:  # a damaged entry: Bad CRC-32, a short read
+    except (zipfile.BadZipFile, EOFError, zlib.error) as e:  # Bad CRC-32, a short read, a broken deflate stream
         return None, f'damaged in the zip ({e})'
+    except RuntimeError as e:  # zipfile: "File ... is encrypted, password required for extraction"
+        return None, f'encrypted in the zip, which content never is ({e})'
+    except NotImplementedError as e:  # zipfile: "That compression method is not supported" (deflate64, ...)
+        return None, f'compressed in a way this tool can\'t read ({e}); pack.py deflates'
 
 
 def install(source, dest_root, dry_run, out=print, err=None):
@@ -193,8 +213,13 @@ def install(source, dest_root, dry_run, out=print, err=None):
     out(f'{source.label} from {source.where}')
     problems, pointers, new, there, size = list(source.problems), 0, [], 0, 0
     conflicts = []
+    base = dest.resolve()  # every file must land under the kit's version folder, wherever that really is
     if not problems:
         for path, sha in source.items:
+            target = (base / path).resolve()
+            if base not in target.parents:
+                problems.append(f'{path}: would land at {target}, outside {dest} (a link inside it?)')
+                continue
             data, problem = _read(source, path)
             if problem is None:
                 problem = source.check(path, sha, data)
@@ -224,13 +249,13 @@ def install(source, dest_root, dry_run, out=print, err=None):
             err(f'  {line}')
         err(f'  Nothing there was changed. Move {dest} aside (or delete it), then run this again.')
         return False
-    if not new and sums_state == 'same':
+    if not new and sums_state in ('same', 'keep'):
         out(f'{source.label}: already installed in {dest} ({KF.plural(there, "file")})')
         return True
     if dry_run:
         for path in new:
             out(f'  would copy {path}')
-        if sums_state != 'same':
+        if sums_state in ('missing', 'differs'):
             out(f'  would {"write" if sums_state == "missing" else "update"} {KF.SUMS}')
         out(f'{source.label}: would install {KF.plural(len(new), "file")} ({KF.size_text(size)}) into {dest} '
             f'({there} {"was" if there == 1 else "were"} already there)')
@@ -244,7 +269,7 @@ def install(source, dest_root, dry_run, out=print, err=None):
             if problem:
                 raise OSError(f'{path}: {problem}')
             _write(dest / path, data)
-        if sums_state != 'same':
+        if sums_state in ('missing', 'differs'):
             _write(dest / KF.SUMS, source.sums)
     except OSError as e:
         err(f'{source.label}: stopped: {e}. Files already copied are complete; run this again to finish.')
@@ -252,6 +277,39 @@ def install(source, dest_root, dry_run, out=print, err=None):
     out(f'{source.label}: installed {KF.plural(len(new), "file")} ({KF.size_text(size)}) into {dest} '
         f'({there} {"was" if there == 1 else "were"} already there)')
     return True
+
+
+def one_per_kit_version(sources, out=print, err=None):
+    """(the sources to install, whether every kit version is decided). Sources of one kit version whose SHA256SUMS
+    list other files are two builds of it: none of them is installed, and each is named. Sources that list the
+    same files are one build: the first is installed. A source with problems is kept, so install() reports it."""
+    err = err or (lambda line: print(line, file=sys.stderr))
+    groups = {}
+    for s in sources:
+        groups.setdefault((s.kit_id, s.version), []).append(s)
+    split, first = set(), {}
+    for key, group in groups.items():
+        readable = [s for s in group if not s.problems]
+        if len({tuple(sorted(s.items)) for s in readable}) > 1:
+            split.add(key)
+            err(f'{readable[0].label}: not installed: these hold different builds of it, so neither was used:')
+            for s in readable:
+                err(f'  {s.where}')
+            err("  Remove the one you don't want (the older download), then run this again.")
+        elif readable:
+            first[key] = readable[0]
+    chosen = []
+    for s in sources:
+        key = (s.kit_id, s.version)
+        if s.problems:
+            chosen.append(s)
+        elif key in split:
+            continue
+        elif first[key] is s:
+            chosen.append(s)
+        else:
+            out(f'{s.label} from {s.where}: the same files as from {first[key].where}')
+    return chosen, not split
 
 
 def main(argv=None):
@@ -275,7 +333,7 @@ def main(argv=None):
     if args.dry_run:
         print(f'Dry run: checking everything, writing nothing. Content folder: {dest}')
 
-    zips = []
+    zips, failed = [], False
     try:
         if args.from_zip is None:
             samples = repo_samples(args.from_repo or None)
@@ -287,18 +345,19 @@ def main(argv=None):
             sources = [repo_source(kit, samples) for kit in kits]
         else:
             sources = []
-            for path in args.from_zip:
+            for path in args.from_zip:  # a zip that can't be read is that source's problem; the others go on
                 try:
                     z = zipfile.ZipFile(path)
-                except (OSError, zipfile.BadZipFile) as e:
-                    print(f'install.py: {path}: not a zip I can read ({e})', file=sys.stderr)
-                    return 2
+                except (OSError, zipfile.BadZipFile, zlib.error, ValueError) as e:
+                    print(f'install.py: {path}: not a zip I can read ({e}); download it again', file=sys.stderr)
+                    failed = True
+                    continue
                 zips.append(z)
                 found = zip_sources(z, str(path), args.manifests)
                 if not found:
                     print(f'install.py: {path} holds no {KF.ZIP_ROOT}/<kit>/v<N>/{KF.SUMS}: not a content zip',
                           file=sys.stderr)
-                    return 2
+                    failed = True
                 sources += found
             if args.kit:
                 wanted = {k.upper() for k in args.kit}
@@ -308,13 +367,15 @@ def main(argv=None):
                           file=sys.stderr)
                     return 2
                 sources = [s for s in sources if s.kit_id in wanted]
+        sources, decided = one_per_kit_version(sources)
+        failed = failed or not decided
         ok = [install(s, dest, args.dry_run) for s in sources]
     finally:
         for z in zips:
             z.close()
     if args.dry_run:
         print('Dry run: nothing was written.')
-    return 0 if all(ok) else 1
+    return 0 if all(ok) and not failed else 1
 
 
 if __name__ == '__main__':
