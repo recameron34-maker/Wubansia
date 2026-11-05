@@ -462,6 +462,7 @@ namespace p7
         std::int64_t length = 0; // a note-on's lengthSamples; a cc's ramp
         std::int64_t chase = 0; // a note-on's chaseSamples
         std::int64_t pos = 0; // a note-on's timeline position
+        std::int64_t startH = 0; // a note-on's start as a host position
         int tag = -1;
 
         friend bool operator== (const Event&, const Event&) = default;
@@ -477,9 +478,10 @@ namespace p7
         int sounding = 0; // note-ons less note-offs since the last stopSequenced
         bool playNothing = false; // noteOn returns -1
 
-        int noteOn (const Note& n, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples) noexcept
+        int noteOn (const Note& n, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples, std::int64_t startH) noexcept
         {
             Event e;
+            e.startH = startH;
             e.kind = Event::Kind::on;
             e.sample = base + offset;
             e.channel = n.channel;

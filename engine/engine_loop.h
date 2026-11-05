@@ -168,9 +168,9 @@ namespace wubansia::engine
             BlockLoop& loop;
             const Controls& controls;
 
-            int noteOn (const Note& note, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples) noexcept
+            int noteOn (const Note& note, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples, std::int64_t startH) noexcept
             {
-                return loop.sequencedOn (note, offset, lengthSamples, chaseSamples, controls);
+                return loop.sequencedOn (note, offset, lengthSamples, chaseSamples, startH, controls);
             }
 
             void noteOff (std::uint8_t, std::uint8_t key, int tag, int offset) noexcept
@@ -268,8 +268,10 @@ namespace wubansia::engine
             on.throwEcho = echo > 0 ? send (Send::echo, echo) : 0.0f;
         }
 
-        int sequencedOn (const Note& note, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples, const Controls& controls) noexcept
+        int sequencedOn (const Note& note, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples, std::int64_t startH,
+            const Controls& controls) noexcept
         {
+            (void) startH; // the phrase latch's key (next commit)
             if (kit_ == nullptr)
                 return -1;
             const Kit& kit = *kit_;

@@ -25,6 +25,7 @@ namespace wubansia::engine
         ccs_ = {};
         keys_ = {};
         clearSounding();
+        ++epoch_;
         setTempo (bpm_);
         anchor (0, 0.0);
     }
@@ -59,7 +60,7 @@ namespace wubansia::engine
         loopEndH_ = end;
     }
 
-    void Scheduler::seek (const Timeline* timeline, std::int64_t fromSample) noexcept
+    void Scheduler::seek (const Timeline* timeline, std::int64_t fromSample, double minH) noexcept
     {
         current_ = timeline;
         notes_ = {};
@@ -67,9 +68,9 @@ namespace wubansia::engine
         keys_ = {};
         if (timeline == nullptr)
             return;
-        notes_ = seekStream (timeline->notes, fromSample);
-        ccs_ = seekStream (timeline->ccs, fromSample);
-        keys_ = seekStream (timeline->keys, fromSample);
+        notes_ = seekStream (timeline->notes, fromSample, minH);
+        ccs_ = seekStream (timeline->ccs, fromSample, minH);
+        keys_ = seekStream (timeline->keys, fromSample, minH);
     }
 
     int Scheduler::earliestOff() const noexcept
