@@ -1,7 +1,7 @@
 # FUT03 "Glass Current": the extended mix
 
 The kit's written loop arranged as a DJ-friendly extended mix: 224 bars, 7:00 at 128 BPM, in
-G minor (6A), swing 53% written in, every section on an 8-bar line. Made by
+G minor (6A), swing 56% written in, every section on an 8-bar line. Made by
 `tools/sound/midi.py` from the kit's written parts only (the drums, basslines, lead and chords in `../`, whose README
 has the drum map); a test keeps these files equal to a fresh export.
 
@@ -30,11 +30,11 @@ Line by line (bars of the whole mix):
 **1. Intro** (bars 1-32, `01_Intro_32bars.mid`)
 - 1-8: kick
 - 9-16: + off-beat hats, perc
-- 17-24: + clap, bass (Bounce); full hats
+- 17-24: + clap, bass (Rubber); full hats
 - 25-32: + chords; fill in bar 32
 
 **2. Groove** (bars 33-64, `02_Groove_32bars.mid`)
-- 33-40: kick, clap, hats, perc, bass (Bounce), chords
+- 33-40: kick, clap, hats, perc, bass (Rubber), chords
 - 41-48: as before; fill in bar 48
 - 49-56: + the lead's call (its first bar)
 - 57-64: as before; fill in bar 64
@@ -44,17 +44,17 @@ Line by line (bars of the whole mix):
 - 73-80: + off-beat hats; the hats rise from 40% to full velocity; vox cue; fill in bar 80
 
 **4. Build** (bars 81-96, `04_Build_16bars.mid`)
-- 81-88: kick, clap, off-beat hats, bass (Bounce), chords
+- 81-88: kick, clap, off-beat hats, bass (Rubber), chords
 - 89-96: − hats, bass; the clap rolls: every quarter for 4 bars, every 8th for 2, then every 16th, into its fill bar; the clap rises from 55% to full velocity; riser cue; fill in bar 96
 
 **5. Drop** (bars 97-128, `05_Drop_32bars.mid`)
-- 97-104: every lane, bass (Bounce); vox cue
+- 97-104: every lane, bass (Rubber); vox cue
 - 105-112: as before; fill in bar 112
 - 113-120: as before; vox cue
 - 121-128: as before; drums out in bar 128
 
 **6. Switch-up** (bars 129-144, `06_SwitchUp_16bars.mid`)
-- 129-136: kick, clap, busy hats, perc, bass (Roll)
+- 129-136: kick, clap, busy hats, perc, bass (Deep)
 - 137-144: + chords; fill in bar 144
 
 **7. Break 2** (bars 145-160, `07_Break2_16bars.mid`)
@@ -62,13 +62,13 @@ Line by line (bars of the whole mix):
 - 153-160: + off-beat hats, lead; the hats rise from 40% to full velocity; riser cue
 
 **8. Drop 2** (bars 161-192, `08_Drop2_32bars.mid`)
-- 161-168: every lane, busy hats, bass (Roll); vox cue
+- 161-168: every lane, busy hats, bass (Deep); vox cue
 - 169-176: as before; fill in bar 176
 - 177-184: as before; vox cue
 - 185-192: as before; fill in bar 192
 
 **9. Outro** (bars 193-224, `09_Outro_32bars.mid`)
-- 193-200: kick, clap, hats, perc, bass (Bounce), chords
+- 193-200: kick, clap, hats, perc, bass (Rubber), chords
 - 201-208: − chords
 - 209-216: − clap, bass; off-beat hats
 - 217-224: − hats, perc
@@ -88,14 +88,14 @@ named as the sample names count, C4 = 60. The two meet at MIDI 60: root each fil
 
 | Track | Channel | Load and play |
 |---|---|---|
-| Kick | 10 | 36 (C1) Kick Split |
-| Clap | 10 | 38 (D1) Clap |
-| Hats | 10 | 42 (F#1) Closed Hat, 46 (A#1) Open Hat |
-| Perc | 10 | 47 (B1) Metal Pling G5, 48 (C2) Metal Pling D5, 54 (F#2) Shaker |
-| Bass | 1 | Dip Bass Clean (A) or Dip Bass Warm (B), rooted at G1, D2, G2 (MIDI 31, 38, 43): Bounce (the context loop's pick): intro, groove, build, drop and outro; Roll: switch-up and drop 2 |
-| Lead | 2 | Glass Pluck, rooted at D4, G4, A#4, D5, G5, A#5 (MIDI 62, 67, 70, 74, 79, 82) |
-| Chords | 3 | Supersaw stab Gm9, pumped hits: the voicing, for your own synth |
-| Chord trigger | 4 | the Stab Gm9 sample, the whole chord: one note on C3 (MIDI 60) per chord, where samplers play a sample at its own pitch |
+| Kick | 10 | 36 (C1) Kick Deep |
+| Clap | 10 | 38 (D1) Clap Snare |
+| Hats | 10 | 42 (F#1) Closed Hat Deep, 46 (A#1) Open Hat Deep |
+| Perc | 10 | 37 (C#1) Rimshot, 41 (F1) Conga G3, 43 (G1) Conga C4, 45 (A1) Conga D4, 47 (B1) Bongo G4, 48 (C2) Bongo D5, 54 (F#2) Shaker Deep |
+| Bass | 1 | Rubber Bass Clean (A) or Rubber Bass Warm (B), with Sub Deep under either, rooted at G1, D2, G2 (MIDI 31, 38, 43): Rubber (the context loop's pick): intro, groove, build, drop and outro; Deep: switch-up and drop 2 |
+| Lead | 2 | Keys EP, rooted at G3, D4, G4, D5, G5 (MIDI 55, 62, 67, 74, 79) |
+| Chords | 3 | Dub stab Gm9, off the kicks: the voicing, for your own synth |
+| Chord trigger | 4 | the Dub Stab Gm9 sample, the whole chord: one note on C3 (MIDI 60) per chord, where samplers play a sample at its own pitch |
 
 The four drum tracks share the kit's drum map on channel 10: give each the kit's drum rack, or move their notes onto
 one drum track. The closed and open hats share the Hats track, so the rack's choke group still works.
@@ -125,7 +125,7 @@ the loop doesn't write:
   written.
 - **Hats:** as written; off-beat (the off-beat 8ths alone); busy (as written, plus the kit's closed hat at its softest
   written velocity on every empty "e" and "a" of a beat the hats play), in the switch-up and drop 2.
-- **Bass:** Bounce (the context loop's pick): intro, groove, build, drop and outro; Roll: switch-up and drop 2.
+- **Bass:** Rubber (the context loop's pick): intro, groove, build, drop and outro; Deep: switch-up and drop 2.
 - **Lead:** in the groove only its call, the phrase's first bar; the whole phrase in the breaks and the drops.
 - **The build's roll:** over the build's last 8 bars, under the riser, the clap rolls on its own note, every quarter
   for 4 bars, every 8th for 2, every 16th for 1, then the written fill bar for the kit's fill, whose end is the drop's
@@ -133,7 +133,7 @@ the loop doesn't write:
 - **Rises:** in the build's roll the clap climbs from 55% to full velocity, bar by bar; in the breaks the off-beat
   hats climb from 40%.
 - **Drum drop:** the drums sit out the drop's last bar, before the switch-up.
-- **Slides:** The lines' slides glide inside one note, which a MIDI note can't carry: they play as written.
+- **Slides:** Where a line glides into a note, the note before is held 12 ticks into it, so a synth set to legato glide slides there. 2 more slides glide inside one note, which a MIDI note can't carry: they play as written.
 
 Not checked yet: how the mix sounds, and how each DAW opens these files. Nothing here has been played in a DAW or
 listened to.

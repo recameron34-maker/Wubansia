@@ -1,7 +1,7 @@
 # FUT01 "Alloy Signal": the extended mix
 
 The kit's written loop arranged as a DJ-friendly extended mix: 224 bars, 6:41 at 134 BPM, in
-F# minor (11A), swing 57% written in, every section on an 8-bar line. Made by
+F# minor (11A), swing 59% written in, every section on an 8-bar line. Made by
 `tools/sound/midi.py` from the kit's written parts only (the drums, basslines, lead and chords in `../`, whose README
 has the drum map); a test keeps these files equal to a fresh export.
 
@@ -32,7 +32,7 @@ Line by line (bars of the whole mix):
 - 9-16: + clap
 
 **2. Groove** (bars 17-64, `02_Groove_48bars.mid`)
-- 17-24: kick, clap, hats, perc, bass (Walk)
+- 17-24: kick, clap, hats, perc, bass (Bounce)
 - 25-32: + chords; fill in bar 32
 - 33-40: as before
 - 41-48: as before; fill in bar 48
@@ -44,17 +44,17 @@ Line by line (bars of the whole mix):
 - 73-80: + off-beat hats; the hats rise from 40% to full velocity; vox cue; fill in bar 80
 
 **4. Build** (bars 81-96, `04_Build_16bars.mid`)
-- 81-88: kick, clap, off-beat hats, bass (Walk), chords
+- 81-88: kick, clap, off-beat hats, bass (Bounce), chords
 - 89-96: − kick, hats, bass; the clap rolls: every quarter for 4 bars, every 8th for 2, then every 16th, into its fill bar; the clap rises from 55% to full velocity; riser cue; fill in bar 96
 
 **5. Drop** (bars 97-128, `05_Drop_32bars.mid`)
-- 97-104: every lane, bass (Walk); vox cue
+- 97-104: every lane, bass (Bounce); vox cue
 - 105-112: as before; fill in bar 112
 - 113-120: as before; vox cue
 - 121-128: as before; drums out in bar 128
 
 **6. Switch-up** (bars 129-144, `06_SwitchUp_16bars.mid`)
-- 129-136: kick, clap, busy hats, perc, bass (Deep)
+- 129-136: kick, clap, busy hats, perc, bass (Low)
 - 137-144: + chords; fill in bar 144
 
 **7. Break 2** (bars 145-160, `07_Break2_16bars.mid`)
@@ -62,13 +62,13 @@ Line by line (bars of the whole mix):
 - 153-160: + off-beat hats, lead; the hats rise from 40% to full velocity; riser cue
 
 **8. Drop 2** (bars 161-192, `08_Drop2_32bars.mid`)
-- 161-168: every lane, busy hats, bass (Bounce); vox cue
+- 161-168: every lane, busy hats, bass (Low); vox cue
 - 169-176: as before; fill in bar 176
 - 177-184: as before; vox cue
 - 185-192: as before; fill in bar 192
 
 **9. Outro** (bars 193-224, `09_Outro_32bars.mid`)
-- 193-200: kick, clap, hats, perc, bass (Walk), chords
+- 193-200: kick, clap, hats, perc, bass (Bounce), chords
 - 201-208: − chords
 - 209-216: − bass
 - 217-224: − clap
@@ -88,14 +88,14 @@ named as the sample names count, C4 = 60. The two meet at MIDI 60: root each fil
 
 | Track | Channel | Load and play |
 |---|---|---|
-| Kick | 10 | 36 (C1) Kick Punch |
-| Clap | 10 | 38 (D1) Snare Clap |
-| Hats | 10 | 42 (F#1) Closed Hat FM |
-| Perc | 10 | 47 (B1) Alloy Hit, 54 (F#2) Shaker |
-| Bass | 1 | Reese Clean (A) or Reese Warm (B), rooted at F#1, A1, C#2 (MIDI 30, 33, 37): Walk (the context loop's pick): groove, build, drop and outro; Deep: switch-up; Bounce: drop 2 |
+| Kick | 10 | 36 (C1) Kick Garage |
+| Clap | 10 | 38 (D1) Clap Garage |
+| Hats | 10 | 42 (F#1) Hat Closed, 46 (A#1) Hat Open |
+| Perc | 10 | 37 (C#1) Rim Shot, 47 (B1) Alloy Hit, 54 (F#2) Tambourine |
+| Bass | 1 | Warp Clean (A) or Warp Warm (B), or Organ Bass for the Low line, rooted at F#1, A1, C#2 (MIDI 30, 33, 37): Bounce (the context loop's pick): groove, build, drop and outro; Low: switch-up and drop 2 |
 | Lead | 2 | Chrome Pluck, rooted at C4 to C6, every 3 semitones (MIDI 60 to 84) |
-| Chords | 3 | Air pad F#m9, held: the voicing, for your own synth |
-| Chord trigger | 4 | the Air Pad F#m9 sample, the whole chord: one note on C3 (MIDI 60) per chord, where samplers play a sample at its own pitch |
+| Chords | 3 | Organ stabs, F#m9 and Bm9: the voicing, for your own synth |
+| Chord trigger | 4 | the Organ Stab sample, one file per chord, each the whole chord, rooted at F#3, B3 (MIDI 54, 59): one note per stab, on its chord's file |
 
 The four drum tracks share the kit's drum map on channel 10: give each the kit's drum rack, or move their notes onto
 one drum track. The closed and open hats share the Hats track, so the rack's choke group still works.
@@ -125,7 +125,7 @@ the loop doesn't write:
   written.
 - **Hats:** as written; off-beat (the off-beat 8ths alone); busy (as written, plus the kit's closed hat at its softest
   written velocity on every empty "e" and "a" of a beat the hats play), in the switch-up and drop 2.
-- **Bass:** Walk (the context loop's pick): groove, build, drop and outro; Deep: switch-up; Bounce: drop 2.
+- **Bass:** Bounce (the context loop's pick): groove, build, drop and outro; Low: switch-up and drop 2.
 - **Lead:** in the groove only its call, the phrase's first bar; the whole phrase in the breaks and the drops.
 - **The build's roll:** over the build's last 8 bars, under the riser, the clap rolls on its own note, every quarter
   for 4 bars, every 8th for 2, every 16th for 1, then the written fill bar for the kit's fill, whose end is the drop's

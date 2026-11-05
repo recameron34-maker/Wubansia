@@ -21,9 +21,10 @@ ALLOY = (1.0, 1.483, 1.932, 2.546, 3.011, 3.715, 4.468)  # inharmonic ratios: pe
 RATIOS = ALLOY
 VOICE = (('bf_emma', 0.6), ('af_nicole', 0.4))           # the one Kokoro voice blend
 SPACE_SEED = 'FUT01/space'                                # seeds every room and FDN in the kit
-SWING = 0.57                 # the groove's base swing for the kit's written phrases: where the second 16th of each 8th
-                             # lands, as a share of the 8th (0.5 straight; 15.7 ms late at 134 BPM). One value for every
-                             # lane, so hits that share a step land together (plan section 2.3)
+SWING = 0.59                 # the groove's base swing for the kit's written phrases: where the second 16th of each 8th
+                             # lands, as a share of the 8th (0.5 straight; 20.1 ms late at 134 BPM, round 3's 0.57
+                             # 15.7 ms: round 4's heavier garage shuffle). One value for every lane, so hits that share
+                             # a step land together (plan section 2.3)
 GROOVE = '2step'             # QA loops the kicks and bass shots on qa.TWO_STEP
 RECIPES = 'tools.sound.recipes.fut01'
 

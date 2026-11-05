@@ -135,7 +135,7 @@ ITEMS = [
     Item('Loops', 'HatPatternRing', 'loop', hat_pattern_ring, loop=True, level=HAT_LUFS, sets=('r2', 'r3'),
          tags=('preview',), qa=LOWCUT,
          about="preview: closed hat B (Ring) on the context loop's hat part, 2 bars, 134 BPM, swing 0.57"),
-    Item('Loops', 'AirPadHold', 'loop', pad_hold, loop=True, sets=('r2', 'r3'), tags=('preview',), qa=LOWCUT,
+    Item('Loops', 'AirPadHold', 'loop', pad_hold, loop=True, sets=('r2', 'r3', 'r4'), tags=('preview',), qa=LOWCUT,
          about='preview: the air pad (F#m9) held for 4 bars at 134 BPM, looping over its seam'),
     Item('FX', 'ShiftRiserDrop', 'loop', riser_drop, sets=('r2', 'r3'), tags=('preview',),
          qa={'mud': 'off', 'why': 'a preview: the riser into the drop; the riser and the bassline loop pass their own '

@@ -4,7 +4,7 @@
   "bpm": 134.0,
   "key": "F# minor",
   "camelot": "11A",
-  "swing": 0.57,
+  "swing": 0.59,
   "ppq": 960,
   "bars": 224,
   "seconds": 401.19,
@@ -12,9 +12,9 @@
   "file": "FUT01_ExtendedMix_224bars.mid",
   "note_names": "C4 = 60, as the sample names",
   "basslines": {
-    "main": "Walk",
-    "switch": "Deep",
-    "drop2": "Bounce"
+    "main": "Bounce",
+    "switch": "Low",
+    "drop2": "Low"
   },
   "tracks": [
     {
@@ -22,7 +22,7 @@
       "lane": "kick",
       "channel": 10,
       "notes": {
-        "36": "Kick Punch"
+        "36": "Kick Garage"
       }
     },
     {
@@ -30,7 +30,7 @@
       "lane": "snare",
       "channel": 10,
       "notes": {
-        "38": "Snare Clap"
+        "38": "Clap Garage"
       }
     },
     {
@@ -38,7 +38,8 @@
       "lane": "hats",
       "channel": 10,
       "notes": {
-        "42": "Closed Hat FM"
+        "42": "Hat Closed",
+        "46": "Hat Open"
       }
     },
     {
@@ -46,8 +47,9 @@
       "lane": "perc",
       "channel": 10,
       "notes": {
+        "37": "Rim Shot",
         "47": "Alloy Hit",
-        "54": "Shaker"
+        "54": "Tambourine"
       }
     },
     {
@@ -60,7 +62,7 @@
         "33": "A1",
         "35": "B1",
         "37": "C#2",
-        "40": "E2",
+        "38": "D2",
         "42": "F#2"
       }
     },
@@ -84,10 +86,14 @@
       "channel": 3,
       "notes": {
         "54": "F#3",
+        "59": "B3",
+        "61": "C#4",
         "64": "E4",
+        "66": "F#4",
+        "68": "G#4",
         "69": "A4",
         "73": "C#5",
-        "80": "G#5"
+        "74": "D5"
       }
     },
     {
@@ -95,7 +101,8 @@
       "lane": "chords",
       "channel": 4,
       "notes": {
-        "60": "Air Pad F#m9"
+        "54": "Organ Stab F#3",
+        "59": "Organ Stab B3"
       }
     }
   ],
@@ -166,7 +173,7 @@
             "bass"
           ],
           "hats": "full",
-          "bass": "Walk"
+          "bass": "Bounce"
         },
         {
           "start_bar": 25,
@@ -180,7 +187,7 @@
             "chords"
           ],
           "hats": "full",
-          "bass": "Walk",
+          "bass": "Bounce",
           "end": "fill"
         },
         {
@@ -195,7 +202,7 @@
             "chords"
           ],
           "hats": "full",
-          "bass": "Walk"
+          "bass": "Bounce"
         },
         {
           "start_bar": 41,
@@ -209,7 +216,7 @@
             "chords"
           ],
           "hats": "full",
-          "bass": "Walk",
+          "bass": "Bounce",
           "end": "fill"
         },
         {
@@ -225,7 +232,7 @@
             "chords"
           ],
           "hats": "full",
-          "bass": "Walk",
+          "bass": "Bounce",
           "lead": "call"
         },
         {
@@ -241,7 +248,7 @@
             "chords"
           ],
           "hats": "full",
-          "bass": "Walk",
+          "bass": "Bounce",
           "lead": "call",
           "end": "fill"
         }
@@ -342,7 +349,7 @@
             "chords"
           ],
           "hats": "thin",
-          "bass": "Walk"
+          "bass": "Bounce"
         },
         {
           "start_bar": 89,
@@ -401,7 +408,7 @@
             "chords"
           ],
           "hats": "full",
-          "bass": "Walk",
+          "bass": "Bounce",
           "lead": "phrase"
         },
         {
@@ -417,7 +424,7 @@
             "chords"
           ],
           "hats": "full",
-          "bass": "Walk",
+          "bass": "Bounce",
           "lead": "phrase",
           "end": "fill"
         },
@@ -434,7 +441,7 @@
             "chords"
           ],
           "hats": "full",
-          "bass": "Walk",
+          "bass": "Bounce",
           "lead": "phrase"
         },
         {
@@ -450,7 +457,7 @@
             "chords"
           ],
           "hats": "full",
-          "bass": "Walk",
+          "bass": "Bounce",
           "lead": "phrase",
           "end": "drum drop"
         }
@@ -497,7 +504,7 @@
             "bass"
           ],
           "hats": "busy",
-          "bass": "Deep"
+          "bass": "Low"
         },
         {
           "start_bar": 137,
@@ -511,7 +518,7 @@
             "chords"
           ],
           "hats": "busy",
-          "bass": "Deep",
+          "bass": "Low",
           "end": "fill"
         }
       ],
@@ -600,7 +607,7 @@
             "chords"
           ],
           "hats": "busy",
-          "bass": "Bounce",
+          "bass": "Low",
           "lead": "phrase"
         },
         {
@@ -616,7 +623,7 @@
             "chords"
           ],
           "hats": "busy",
-          "bass": "Bounce",
+          "bass": "Low",
           "lead": "phrase",
           "end": "fill"
         },
@@ -633,7 +640,7 @@
             "chords"
           ],
           "hats": "busy",
-          "bass": "Bounce",
+          "bass": "Low",
           "lead": "phrase"
         },
         {
@@ -649,7 +656,7 @@
             "chords"
           ],
           "hats": "busy",
-          "bass": "Bounce",
+          "bass": "Low",
           "lead": "phrase",
           "end": "fill"
         }
@@ -701,7 +708,7 @@
             "chords"
           ],
           "hats": "full",
-          "bass": "Walk"
+          "bass": "Bounce"
         },
         {
           "start_bar": 201,
@@ -714,7 +721,7 @@
             "bass"
           ],
           "hats": "full",
-          "bass": "Walk"
+          "bass": "Bounce"
         },
         {
           "start_bar": 209,

@@ -405,10 +405,11 @@ class TestPreviews(unittest.TestCase):
             self.assertIn('with_kick', it.tags)
 
     def test_the_heavier_swing_a_b(self):
-        """The standard's optional A/B: the shuffle at 0.60-0.62 against the kit's 0.57. Swing61 lays every drum lane
-        on the heavier swing (even 16ths where they were, odd ones later); Punch keeps the kit's."""
+        """The standard's optional A/B: the shuffle at 0.60-0.62 against the kit's swing (0.57 in round 3, 0.59 since
+        round 4). Swing61 lays every drum lane on the heavier swing (even 16ths where they were, odd ones later); Punch
+        keeps the kit's."""
         self.assertTrue(0.60 <= preview.HEAVY_SWING <= 0.62)
-        self.assertEqual(0.57, K.SWING)
+        self.assertTrue(0.57 <= K.SWING < preview.HEAVY_SWING)   # round 4 raised the kit's swing to 0.59
         g = preview.groove_grid(preview.HEAVY_SWING)
         self.assertEqual(preview.G2.length, g.length)
         late = (2 * preview.HEAVY_SWING - 1 - (2 * K.SWING - 1)) * g.s16

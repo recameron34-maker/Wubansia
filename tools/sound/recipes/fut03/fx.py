@@ -59,6 +59,7 @@ FILL = ((0, G3, 0.40), (2, G3, 0.45), (4, BB3, 0.50), (6, BB3, 0.55),
         (14, G4, 0.90), (14.5, G4, 0.93), (15, G4, 0.97), (15.5, G4, 1.0))
 FILL_HP = (120.0, 450.0)     # the high-pass on the whole fill opens over the bar
 TOM_CLAP = (1.0, 0.75)       # tom and clap levels in the fill
+CLAP_ITEM = 'ClapSnare'      # round 4: the kit's clap and snare (rounds 2-3: the glass Clap)
 
 
 def in_key(f):
@@ -93,7 +94,7 @@ def build_fill(take):
     clap start together; tails run on under the next hits and are cut where the bar ends."""
     n = BAR
     y = np.zeros((n, 2))
-    item, claps, _ = Ph.kit_files(K, 'Clap')
+    item, claps, _ = Ph.kit_files(K, CLAP_ITEM)
     m = int(0.4 * SR)
     for i, (step, note, v) in enumerate(FILL):
         pos = swung(step)
@@ -201,16 +202,16 @@ def impact(take):
 
 
 ITEMS = [
-    Item('FX', 'BuildFill', 'fx', build_fill, root=G3, sets=('r2', 'r3'), flags={'cut_end'}, tags=('fill',),
+    Item('FX', 'BuildFill', 'fx', build_fill, root=G3, sets=('r2', 'r3', 'r4'), flags={'cut_end'}, tags=('fill',),
          qa={'why': 'end-aligned: it ends on the next downbeat, its last 32nd still sounding, where the drop takes '
                     'over'},
          about='one-bar build fill at 128 BPM: glass toms climbing G minor pentatonic G3 to G4 under the kit clap, '
                '8ths, 16ths, then 32nds, louder and opening'),
-    Item('FX', 'Riser', 'fx', riser, level=-14.0, sets=('r2', 'r3'), flags={'cut_end'}, tags=('riser',),
+    Item('FX', 'Riser', 'fx', riser, level=-14.0, sets=('r2', 'r3', 'r4'), flags={'cut_end'}, tags=('riser',),
          qa={'why': 'end-aligned: it stays loud to the downbeat, where the impact takes over'},
          about='8-bar riser at 128 BPM, end-aligned: a climbing noise band, a noise roll in 8ths, 16ths then 32nds, '
                'and a glass chord gliding from G3 to G5'),
-    Item('FX', 'Impact', 'fx', impact, root=K.KICK_NOTE, sets=('r2', 'r3'),
+    Item('FX', 'Impact', 'fx', impact, root=K.KICK_NOTE, sets=('r2', 'r3', 'r4'),
          qa={'mud': 'gate', 'why': 'it carries a sub drop onto G1: gated like a kick, not low-cut'},
          about='impact on the downbeat: a sub drop onto G1 held a beat, a glass bell on G6, a crash above 2 kHz in '
                'the kit space; gone in two bars'),

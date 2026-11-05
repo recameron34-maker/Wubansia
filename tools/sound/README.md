@@ -6,9 +6,9 @@ Wubansia's sound pipeline: 48 kHz DSP helpers, the kits and their recipes, the r
 
 | Kit | Direction | BPM | Groove | State |
 |---|---|---|---|---|
-| FUT01 "Alloy Signal" | future garage / 2-step | 134 | 2-step | first-listen set, round 3 (the modern pass: `--set r3`) |
-| FUT02 "Orbit Relay" | sci-fi club | 130 | four on the floor | first-listen set, round 3 |
-| FUT03 "Glass Current" | hyper-clean future house | 128 | four on the floor | first-listen set, round 3 |
+| FUT01 "Alloy Signal" | future garage / 2-step | 134 | 2-step | first-listen set, round 4 (the UK garage rebuild: `--set r4`) |
+| FUT02 "Orbit Relay" | sci-fi club | 130 | four on the floor | first-listen set, round 3 (the modern pass: `--set r3`) |
+| FUT03 "Glass Current" | garage-house / deep tech house | 128 | four on the floor | first-listen set, round 4 (the garage-house rebuild: `--set r4`) |
 | FUT04 "Furnace Code" | dark industrial / techno | 136 | four on the floor | first-listen set, round 3 |
 
 | File | What it is |

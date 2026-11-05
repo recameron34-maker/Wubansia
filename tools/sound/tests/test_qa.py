@@ -698,7 +698,7 @@ class TestClub(QaCase):
         from tools.sound.item import Out
         render = lambda take: np.zeros(10)
         club = Item('Loops', 'Club', 'loop', render, loop=True, hp_hz=None, tags=('club',), qa=self.OFF)
-        self.assertEqual(club.takes('FUT03')[0].spec(Out(np.zeros(10))).genre, 'hyper-clean future house')
+        self.assertEqual(club.takes('FUT03')[0].spec(Out(np.zeros(10))).genre, 'garage-house / deep tech house')
         self.assertEqual(club.takes('FUT01')[0].spec(Out(np.zeros(10))).genre, 'future garage / 2-step')
         plain = Item('Loops', 'Plain', 'loop', render, loop=True, hp_hz=None, qa={'mud': 'off', 'why': 'a test'})
         self.assertIsNone(plain.takes('FUT03')[0].spec(Out(np.zeros(10))).genre)

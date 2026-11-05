@@ -215,7 +215,7 @@ Percussion takes 10–15 ms of pre-delay, small rooms 0–10 ms. The kits today 
 These are all *C · L–M*: practitioner pages about current production, many of them sample-pack or school marketing.
 
 - **UK garage / 2-step (the 2024–26 wave):**
-  - **The swung skip.** Guides put the shuffle on the hats and percussion. One suggests 52–56 %; an Attack Magazine beat breakdown sets MPC swing 68–69 at 124–132 BPM. Our 0.57 is MPC 57 %.
+  - **The swung skip.** Guides put the shuffle on the hats and percussion. One suggests 52–56 %; an Attack Magazine beat breakdown sets MPC swing 68–69 at 124–132 BPM. Our 0.57 is MPC 57 % (round 4 raised FUT01 to 0.59, the A/B below).
   - **A tight, punchy kick** that leaves room for the bass and the offbeat hats.
   - **The bassline as the hook,** now often a reese or dubstep-style bass over a sine sub; one guide calls a plain sine "too polite".
   - **Short, plucky, rhythmic stabs.**
@@ -501,7 +501,7 @@ Each change names the gap it closes. Every change keeps round 1's binding lesson
 7. **A swung top layer.**
    - Gap: the hats sit 11 LU under the kick, the lowest with FUT03, and the shuffle is what drives garage (C).
    - Do: add a 16th shaker or top loop on the kit's swing, about 7–8 LU under the kick. The 8 kHz band (−6.7) has room for 1–2 dB.
-   - Optional: an A/B of the shuffle at 0.60–0.62 against today's 0.57. Guides range from 52–56 % on hats to MPC 68–69.
+   - Optional: an A/B of the shuffle at 0.60–0.62 against today's 0.57. Guides range from 52–56 % on hats to MPC 68–69. Round 4 set FUT01's swing at 0.59 and plays the old 0.57 beside it (`DrumGroove4Swing57`).
 8. **Vocal hooks.** Short, repeated, pitched hooks lead current UKG (C).
    - Do: re-pitch a chop through WORLD (as the chain already does) for a second, higher take, and throw the phrase's end to the echo.
    - Title-check any new words.

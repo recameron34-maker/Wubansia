@@ -1,8 +1,11 @@
-"""FUT03 "Glass Current": hyper-clean future house, 128 BPM, G minor (Camelot 6A).
+"""FUT03 "Glass Current": garage-house and rolling deep tech house, 128 BPM, G minor (Camelot 6A).
 
 The kit DNA every recipe draws on (tools/sound/kits/__init__.py lists the fields). Its recipes are the package
-tools/sound/recipes/fut03/. The brief is docs/plans/S1-four-kits.md: four on the floor, a bouncy offbeat bass and a
-sidechain pump. The DNA is "Glass": clean bell and glass partials (RATIOS), phase-locked layers, and the pump in the loop.
+tools/sound/recipes/fut03/. Rounds 1-3 were hyper-clean future house (docs/plans/S1-four-kits.md). Round 4 moves the
+kit to warm, organic garage-house and rolling deep tech house: a deep round kick, a clap and snare in a short room,
+shuffled hats and shakers, congas and rims with swung ghosts, a rubbery rolling bassline over a deep sub, dubby minor 9
+chords on an electric piano with delay and reverb tails, a warm pad bed and a filtered, chopped vocal hook. The glass
+bell (RATIOS) stays only as a subtle colour in the perc and the accents.
 
 The name was title-checked on 2026-10-29 as a song, an album, lyrics and a label: no release uses it. The nearest hit,
 "Glass Currents", is an art exhibition.
@@ -12,7 +15,7 @@ from tools.sound.kits import scale_of
 
 KIT = 'FUT03'
 TITLE = 'Glass Current'
-DIRECTION = 'hyper-clean future house'
+DIRECTION = 'garage-house / deep tech house'
 BPM = 128.0
 KEY = 'G minor'
 CAMELOT = '6A'
@@ -34,9 +37,10 @@ VOICE = (('af_heart', 0.6), ('af_jessica', 0.4))    # every Kokoro take, the sun
                                                     # bright female blend. af_heart, the pool's clearest voice, leads;
                                                     # af_jessica adds forward 2-5 kHz presence
 SPACE_SEED = 'FUT03/space'    # seeds every room and FDN in the kit
-SWING = 0.53                 # the one swing of every written lane: odd 16ths land 0.06 of a 16th late (7.0 ms at
-                             # 128 BPM). The bass's offbeat 8ths sit on even 16ths and stay on the grid; the ghost
-                             # notes and the 16th hats get a light shuffle that keeps the groove clean
+SWING = 0.56                 # the one swing of every written lane: odd 16ths land 0.12 of a 16th late (14.1 ms at
+                             # 128 BPM; rounds 1-3: 0.53). Round 4's garage-house shuffle: the 16th hats, the shakers,
+                             # the congas' ghosts and the bass's notes on the "e" and the "a" roll, while everything on
+                             # the 8ths stays on the grid
 GROOVE = '4x4'               # QA loops the kicks and bass shots four on the floor (qa.GROOVES)
 RECIPES = 'tools.sound.recipes.fut03'
 

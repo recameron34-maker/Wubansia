@@ -161,7 +161,7 @@ class TestItems(unittest.TestCase):
         self.assertEqual((1.0, 1.483, 1.932, 2.546, 3.011, 3.715, 4.468), fut01.ALLOY)
         self.assertEqual(fut01.ALLOY, fut01.RATIOS)
         self.assertAlmostEqual(1.0, sum(w for _, w in fut01.VOICE))
-        self.assertEqual(('FUT01', 134.0, 'F# minor', '11A', 'FUT01/space', 0.57, '2step'),
+        self.assertEqual(('FUT01', 134.0, 'F# minor', '11A', 'FUT01/space', 0.59, '2step'),
                          (fut01.KIT, fut01.BPM, fut01.KEY, fut01.CAMELOT, fut01.SPACE_SEED, fut01.SWING, fut01.GROOVE))
         self.assertEqual('tools.sound.recipes.fut01', fut01.RECIPES)
 
