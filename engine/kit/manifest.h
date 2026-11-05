@@ -143,6 +143,11 @@ namespace wubansia::engine
         friend bool operator== (const SliceEntry&, const SliceEntry&) = default;
     };
 
+    // A phrase's ride grid: one controller value per 60 ticks (960 PPQ) over its cycle, as the MIDI files
+    // write rides, so a ride holds cycle16ths x 4 values; a cycle matches it within kRideSlack.
+    inline constexpr int kRideTicks = 60;
+    inline constexpr int kRideSlack = 1;
+
     struct PhraseEntry
     {
         Lane lane = Lane::lead;
@@ -155,6 +160,11 @@ namespace wubansia::engine
         std::int32_t cycle16ths = 32;
         std::int32_t tolerancePm = 20;
         std::int32_t fadeUs = 5000;
+        // The CC74 and CC71 values the stem was rendered with on the ride grid (cycle16ths x 4 each, 0-127),
+        // or empty: no constraint on that controller. Only the matcher reads them, on the service thread;
+        // the runtime Kit doesn't carry them.
+        std::vector<std::uint8_t> ride74;
+        std::vector<std::uint8_t> ride71;
         std::vector<SliceEntry> slices; // by step
 
         friend bool operator== (const PhraseEntry&, const PhraseEntry&) = default;

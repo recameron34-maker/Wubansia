@@ -241,7 +241,8 @@ namespace wubansia::engine
         friend bool operator== (const KeyTarget&, const KeyTarget&) = default;
     };
 
-    // A phrase lane's recorded line: a stem (per A/B character) and the slices that tie it to notes.
+    // A phrase lane's recorded line: a stem (per A/B character) and the slices that tie it to notes. Its
+    // rides (PhraseEntry::ride74, ride71) stay in the manifest: only the matcher reads them.
     struct Phrase
     {
         Lane lane = Lane::lead;
