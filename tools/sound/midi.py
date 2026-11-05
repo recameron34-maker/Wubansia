@@ -245,7 +245,8 @@ def line(lanes, **opt):
     - roll: a build roll, dict(lane, bars, every=((bars, 16ths), ...), last=16ths, ramp=(from, to)): the lane's own
       note every so many 16ths over the `bars` bars before the line's last bar, then every `last` 16ths in the last
       bar up to the fill's start, its velocity rising hit by hit from `from` to `to` times its loudest written
-      velocity; the drums rest from the fill's start;
+      velocity; rest='all' (the default): every drum rests from the fill's start; rest='lane': the rolled lane alone,
+      the others playing the kit's fill bar under the fill (FUT03's one-bar Build Fill);
     - rise: (lane, from, to): the lane's velocities scaled bar by bar from `from` to `to`;
     - fill: on a line that ends on a fill, a sound (channel 6 or 7) end-aligned on the line's end in place of the
       kit's fill: every drum lane (busy hats and a roll included) rests from its start (FUT01's build: the whole glitch
@@ -1362,10 +1363,11 @@ def line_notes(k, ln, ctx, variant):
         src = out.get(track) or [n for b in range(blocks)
                                  for n in shifted(k.block('drums', 'groove', roll['lane']), b * BLOCK * BAR)]
         out[track] = rolled(k, src, roll, until, keep=roll['lane'] in lanes)
-        for part in DRUM_PARTS:
-            t = k.part_track(part)
-            if t in out:
-                out[t] = [n for n in out[t] if n.step < until]
+        if roll.get('rest', 'all') == 'all':                 # every drum rests from the fill's start
+            for part in DRUM_PARTS:
+                t = k.part_track(part)
+                if t in out:
+                    out[t] = [n for n in out[t] if n.step < until]
     if ln.get('end') == 'turn':
         pickup = pickup_lane(k, lanes, out, last_bar)
         for part in DRUM_PARTS:
