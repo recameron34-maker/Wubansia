@@ -21,5 +21,11 @@ set_target_properties(wubansia_engine PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(wubansia_engine PUBLIC wubansia_core wubansia_build_defaults PRIVATE wubansia_core_warnings)
 
 if(WUBANSIA_BUILD_TESTS)
+    # testing/: the synthetic kit, the SMF builder, the manifest writers and the fake host. For
+    # engine_tests and the plugin's tests; never linked into the plugin.
+    file(GLOB_RECURSE WUBANSIA_ENGINE_TESTING_SOURCES CONFIGURE_DEPENDS "testing/*.cpp" "testing/*.h")
+    add_library(wubansia_engine_testing STATIC ${WUBANSIA_ENGINE_TESTING_SOURCES})
+    target_link_libraries(wubansia_engine_testing PUBLIC wubansia_engine PRIVATE wubansia_core_warnings)
+
     add_subdirectory(tests)
 endif()
