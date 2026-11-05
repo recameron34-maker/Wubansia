@@ -234,8 +234,8 @@ def line(lanes, **opt):
       velocity; the drums rest from the fill's start;
     - rise: (lane, from, to): the lane's velocities scaled bar by bar from `from` to `to`;
     - end: 'fill' (the last bar is the loop's fill bar, with the kit's fill: a Fill cue), 'turn' (a turnaround in the
-      last bar: PARTS['drums']['turn'], else a pickup roll on the last beat of the snare, the perc or the hats) or
-      'drop' (the drums sit out the last bar);
+      last bar: PARTS['drums']['turn'], else a pickup roll on the last beat of the snare, the perc or the hats, the
+      first with room for it) or 'drop' (the drums sit out the last bar);
     - cue: 'Riser' (the kit's riser, end-aligned on the line's end: put it on a section's last line) or 'Vox' (a
       label: the vox notes play);
     - ride: {track: 'loop' (the default) | ('hold', value) | ('ramp', from, to)}: the filter rides."""
@@ -1074,10 +1074,7 @@ def rolled(k, lane_notes, roll, until, keep=True):
     the roll stay (else the roll plays alone)."""
     if not lane_notes:
         return []
-    count = {}
-    for n in lane_notes:
-        count[n.key] = count.get(n.key, 0) + 1
-    key = min(count, key=lambda c: (-count[c], c))
+    key = main_key(lane_notes)
     top = max(n.vel for n in lane_notes)
     last_bar = (LINE - 1) * BAR
     start = last_bar - roll['bars'] * BAR
@@ -1095,15 +1092,35 @@ def rolled(k, lane_notes, roll, until, keep=True):
     return sorted([x for x in lane_notes if keep and x.step < start] + out)
 
 
-def pickup_lane(k, lanes, out):
-    """The drum lane a default turnaround's pickup plays on: the first of snare, perc and hats the line plays."""
-    return next((p for p in ('snare', 'perc', 'hats') if p in lanes and out.get(k.part_track(p))), None)
+PICKUP = ((13, 0.45), (14, 0.6), (15, 0.75))   # a default turnaround: the last beat's 'e', 'and' and 'a', rising
+
+
+def main_key(notes):
+    """A lane's most written note (the lowest of a tie)."""
+    count = {}
+    for n in notes:
+        count[n.key] = count.get(n.key, 0) + 1
+    return min(count, key=lambda c: (-count[c], c))
+
+
+def pickup_lane(k, lanes, out, bar_lo):
+    """The drum lane a default turnaround's pickup plays on: the first of snare, perc and hats the line plays whose
+    most written note leaves room on the last beat's 'e', 'and' or 'a' of the bar (FUT01's tambourine, on every 16th,
+    leaves none)."""
+    for p in ('snare', 'perc', 'hats'):
+        notes = out.get(k.part_track(p)) if p in lanes else None
+        if notes:
+            key = main_key(notes)
+            have = {n.step - bar_lo for n in notes if n.key == key and bar_lo <= n.step < bar_lo + BAR}
+            if any(s not in have for s, _ in PICKUP):
+                return p
+    return None
 
 
 def turnaround(k, part, notes, bar_lo, pickup=None):
     """The line's last bar as a turnaround: PARTS['drums']['turn'][part] (a bar of notes) in place of the bar, else on
-    the pickup lane (pickup_lane()) a pickup roll on the last beat's 'e', 'and' and 'a' (0.45 to 0.75 of the lane's
-    loudest velocity, on its most written note), the bar's other notes kept."""
+    the pickup lane (pickup_lane()) a pickup roll on its most written note, the last beat's 'e', 'and' and 'a' at 0.45,
+    0.6 and 0.75 of the lane's loudest velocity, in place of that note's own there; every other note kept."""
     authored = k.P['drums'].get('turn')
     if authored is not None:
         if part not in authored:
@@ -1112,14 +1129,11 @@ def turnaround(k, part, notes, bar_lo, pickup=None):
         return sorted(keep + shifted(as_notes(authored[part]), bar_lo))
     if part != pickup or not notes:
         return notes
-    count = {}
-    for n in notes:
-        count[n.key] = count.get(n.key, 0) + 1
-    key = min(count, key=lambda c: (-count[c], c))
+    key = main_key(notes)
     top = max(n.vel for n in notes)
-    pickup = [Note(bar_lo + s, key, 0.5, top * v) for s, v in ((13, 0.45), (14, 0.6), (15, 0.75))]
-    keep = [n for n in notes if not (bar_lo + 13 <= n.step < bar_lo + BAR)]
-    return sorted(keep + pickup)
+    roll = [Note(bar_lo + s, key, 0.5, top * v) for s, v in PICKUP]
+    keep = [n for n in notes if not (n.key == key and bar_lo + PICKUP[0][0] <= n.step < bar_lo + BAR)]
+    return sorted(keep + roll)
 
 
 def vox_notes(k, mode, variant):
@@ -1282,7 +1296,7 @@ def line_notes(k, ln, ctx, variant):
             if t in out:
                 out[t] = [n for n in out[t] if n.step < until]
     if ln.get('end') == 'turn':
-        pickup = pickup_lane(k, lanes, out)
+        pickup = pickup_lane(k, lanes, out, last_bar)
         for part in DRUM_PARTS:
             t = k.part_track(part)
             if part in lanes and t in out:
@@ -1709,7 +1723,8 @@ def describe_line(k, ln):
             parts.append(lane)
     words_ = [', '.join(parts) or 'nothing']
     if ln.get('roll'):
-        words_.append(f"the {ln['roll']} rolls over its last {ln['roll_bars']} bars up to the fill, rising hit by hit")
+        lane = k.snare_name().lower() if ln['roll'] == 'snare' else ln['roll']
+        words_.append(f"the {lane} rolls over the line's last {ln['roll_bars']} bars up to the fill, rising hit by hit")
     if ln.get('rise'):
         r = ln['rise']
         words_.append(f"the {r['lane']} rise from {r['from_pm'] / 10:g}% to {r['to_pm'] / 10:g}% velocity")
