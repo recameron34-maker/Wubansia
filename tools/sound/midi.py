@@ -1038,12 +1038,16 @@ def hats_mode(ln, block):
     return mode[block] if isinstance(mode, tuple) else mode
 
 
-def hat_density(k, notes, mode):
+def hat_density(k, notes, mode, until=None):
     """The hats lane in a mode: 'full' as written; 'thin' the off-beat 8ths; 'busy' the kit's busy pattern added
     (PARTS['drums']['busy'], a bar repeated), else the closed hat at the louder of 0.35 and its softest written velocity
-    on every empty 16th; '16ths' the closed hat on every 16th, its written velocities kept."""
+    on every empty 16th; '16ths' the closed hat on every 16th, its written velocities kept. until: no hat is added from
+    this 16th (a fill block's fill: its written bar leaves the fill its room)."""
     if mode == 'thin':
         return [n for n in notes if n.step % 4 == 2]
+    if mode in ('busy', '16ths') and until is not None:
+        dense = hat_density(k, [n for n in notes if n.step < until], mode)
+        return sorted([n for n in dense if n.step < until] + [n for n in notes if n.step >= until])
     if mode in ('busy', '16ths'):
         bars_ = sorted({int(n.step // BAR) for n in notes}) or list(range(BLOCK))
         authored = k.P['drums'].get('busy')
@@ -1183,7 +1187,8 @@ def line_notes(k, ln, ctx, variant):
             else:
                 notes = k.block('drums', kind, part)
             if part == 'hats':
-                notes = hat_density(k, notes, hats_mode(ln, b))
+                until = (BLOCK - 1) * BAR + fill_start(k) if kind == 'fill' else None
+                notes = hat_density(k, notes, hats_mode(ln, b), until)
             add(k.part_track(part), shifted(notes, off))
         # bass
         if 'bass' in lanes and 'Bass' not in phrase_on:
