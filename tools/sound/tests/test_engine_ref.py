@@ -94,7 +94,7 @@ class Ducks(unittest.TestCase):
         self.assertLess(float(np.max(np.abs(got[L + lag:2 * L] - want[L:2 * L - lag]))), 1e-9)
 
     def test_level_duck_starts_at_0_db(self):
-        key = np.concatenate([np.zeros(500), _loop(64 * 100, seed=16, peak=0.5)])
+        key = np.concatenate([np.zeros((500, 2)), _loop(64 * 100, seed=16, peak=0.5)])
         g = R.level_duck_db(key, 6.0, 18.0, R.loudest_block_db(key), 0.010, 0.300)
         self.assertTrue(np.all(g[:R.LEVEL_LAG + 32] == 0.0))
 
