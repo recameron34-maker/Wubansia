@@ -55,12 +55,12 @@ plays its zone's file repitched by the distance to its root.
 
 | Channel | Track | Instrument | Zones: name (MIDI number) | Velocity |
 |---|---|---|---|---|
-| 1 | Bass | Warp Clean (A) or Warp Warm (B) | F#1 (30), A1 (33), C#2 (37) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 2 | Lead | Chrome Pluck | C4 (60), D#4 (63), F#4 (66), A4 (69), C5 (72), D#5 (75), F#5 (78), A5 (81), C6 (84) | layers at velocity 70, 127 (the nearest layer plays, the louder on a tie) |
-| 4 | Chords | Organ Stab (A) or E Piano Stab (B) | F#3 (54), B3 (59) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 5 | Vox | Vox Synth | A4 (69), C#5 (73), F#5 (78) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 11 | Organ Bass | Organ Bass | F#1 (30), A1 (33), C#2 (37) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 12 | Organ Lead | Organ Lead | C4 (60), D#4 (63), F#4 (66), A4 (69), C5 (72), D#5 (75), F#5 (78), A5 (81), C6 (84) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
+| 1 | Bass | Warp Clean (A) or Warp Warm (B) | F#1 (30), A1 (33), C#2 (37) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 2 | Lead | Chrome Pluck | C4 (60), D#4 (63), F#4 (66), A4 (69), C5 (72), D#5 (75), F#5 (78), A5 (81), C6 (84) | layers at velocity 70, 127 (a velocity plays the nearest, the louder on a tie) |
+| 4 | Chords | Organ Stab (A) or E Piano Stab (B) | F#3 (54), B3 (59) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 5 | Vox | Vox Synth | A4 (69), C#5 (73), F#5 (78) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 11 | Organ Bass | Organ Bass | F#1 (30), A1 (33), C#2 (37) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 12 | Organ Lead | Organ Lead | C4 (60), D#4 (63), F#4 (66), A4 (69), C5 (72), D#5 (75), F#5 (78), A5 (81), C6 (84) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
 | 13 | Air Pad | Air Pad F#m9 | F#3 (54) | one layer |
 
 On channel 3, Chord voicing is the chords as single notes for your own synth; Wubansia ignores channel 3.
@@ -73,14 +73,14 @@ it), so a gated pad plays the whole file; an end-aligned sound's note ends on th
 
 | Key | Channel | Sound | File (in `content/samples/fut01/`) | How it plays |
 |---|---|---|---|---|
-| 48 | 6 | Reverse Stab | `FX/Reverse Stab v2.wav` | end-aligned: ends on its beat; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
+| 48 | 6 | Reverse Stab | `FX/Reverse Stab v2.wav` | end-aligned: ends on its beat; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
 | 49 | 6 | Noise Uplifter | `FX/Noise Uplifter.wav` | end-aligned: ends on its beat; one layer |
-| 50 | 6 | Organ Hit | `Music/Organ Hit v2.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 51 | 6 | Warp Stab | `Music/Warp Stab v2.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 52 | 6 | Rave Stab | `Music/Rave Stab v2.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 53 | 6 | Chord Sweep | `Music/Chord Sweep v2.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 54 | 6 | Vox Synth Stab | `Music/Vox Synth Stab v2.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 55 | 6 | Alloy Bell | `Drums/Alloy Bell v4 rr1.wav` | starts on its note; layers at velocity 32, 64, 95, 127 (the nearest layer plays, the louder on a tie) |
+| 50 | 6 | Organ Hit | `Music/Organ Hit v2.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 51 | 6 | Warp Stab | `Music/Warp Stab v2.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 52 | 6 | Rave Stab | `Music/Rave Stab v2.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 53 | 6 | Chord Sweep | `Music/Chord Sweep v2.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 54 | 6 | Vox Synth Stab | `Music/Vox Synth Stab v2.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 55 | 6 | Alloy Bell | `Drums/Alloy Bell v4 rr1.wav` | starts on its note; layers at velocity 32, 64, 95, 127 (a velocity plays the nearest, the louder on a tie) |
 | 48 | 7 | Glitch Fill Lift | `FX/Glitch Fill Lift.wav` | end-aligned: ends on its beat; one layer |
 | 49 | 7 | Glitch Fill Lift, from its 16th 4 | `FX/Glitch Fill Lift.wav` | end-aligned: ends on its beat; one layer |
 | 50 | 7 | Shift Riser | `FX/Shift Riser.wav` | end-aligned: ends on its beat; one layer |

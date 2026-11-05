@@ -53,10 +53,10 @@ plays its zone's file repitched by the distance to its root.
 
 | Channel | Track | Instrument | Zones: name (MIDI number) | Velocity |
 |---|---|---|---|---|
-| 1 | Bass | Acid Clean (A) or Acid Warm (B) | E1 (28), A1 (33), E2 (40) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 2 | Lead | Mod Blip | A#4 (70), C#5 (73), E5 (76), G5 (79), A#5 (82), C#6 (85) | layers at velocity 70, 127 (the nearest layer plays, the louder on a tie) |
+| 1 | Bass | Acid Clean (A) or Acid Warm (B) | E1 (28), A1 (33), E2 (40) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 2 | Lead | Mod Blip | A#4 (70), C#5 (73), E5 (76), G5 (79), A#5 (82), C#6 (85) | layers at velocity 70, 127 (a velocity plays the nearest, the louder on a tie) |
 | 4 | Chords | Drone Em Add 9 | E3 (52) | one layer |
-| 5 | Vox | Vox Synth | E3 (52), G3 (55), B3 (59), D4 (62), E4 (64), G4 (67), B4 (71) | layers at velocity 64 'oo', 127 'oh' (the nearest layer plays, the louder on a tie) |
+| 5 | Vox | Vox Synth | E3 (52), G3 (55), B3 (59), D4 (62), E4 (64), G4 (67), B4 (71) | layers at velocity 64 'oo', 127 'oh' (a velocity plays the nearest, the louder on a tie) |
 | 11 | Acid Stab | Accent Acid Stab E4 | E4 (64) | one layer |
 | 12 | Metal Chord | Accent Metal Chord Em | E4 (64) | one layer |
 | 13 | Rave Stab | Accent Rave Stab Em | E4 (64) | one layer |
