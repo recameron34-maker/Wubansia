@@ -10,6 +10,8 @@ The contract is docs/plugin/manifest.md section 2.6. What these tests hold:
   the recipes here (as tools/sound/tests/test_midi.py's expected_loop reads them), and from the committed Loop files
   once MIDI v2 has landed;
 - the derived stems re-render byte for byte;
+- FUT04's acid phrases carry the controller rides their stems were rendered with, and the Loop files' rides equal
+  the Ride stem's;
 - the matcher (the Python model of engine/sched/phrase_match) resolves every cycle of the Loop files.
 
 The audio tests need the real WAVs: $WUBANSIA_CONTENT_DIR (a folder of <kit>/ folders) or the checkout's
@@ -196,15 +198,20 @@ class TestTables(unittest.TestCase):
             self.assertEqual(want[kit], {(s.lane, s.ch) for s in PT.specs(kit)}, kit)
         self.assertEqual(['orbit', 'relay'], [s.line for s in PT.specs('FUT02') if s.ch == 1])
         self.assertEqual(['rubber', 'deep'], [s.line for s in PT.specs('FUT03') if s.ch == 1])
-        self.assertEqual({s.cycle for s in PT.specs('FUT02') if s.ch == 1}, {32})
+        self.assertEqual(['acid', 'line1', 'line2'], [s.line for s in PT.specs('FUT04') if s.ch == 1])
+        for kit in KITS:
+            for ch in {s.ch for s in PT.specs(kit)}:
+                self.assertEqual(1, len({s.cycle for s in PT.specs(kit) if s.ch == ch}), (kit, ch))
 
     def test_the_notes_are_the_recipes(self):
         from tools.sound.recipes.fut01 import music as M, voxsynth as V1
         from tools.sound.recipes.fut02 import bass as B2, lead as L2, voxsynth as V2
         from tools.sound.recipes.fut03 import rubber as R3, voxsynth as V3
         from tools.sound.recipes.fut04 import bass as B4, lead as L4
-        acid = B4.LINE_BY_NAME[B4.PICK]
-        acid = sorted([(s, n) for s, n, *_ in acid.notes] + [(s, n) for s, n, *_ in acid.ticks])
+        def line4(name):
+            ln = B4.LINE_BY_NAME[name]
+            ev = sorted([(s, n) for s, n, *_ in ln.notes] + [(s, n) for s, n, *_ in ln.ticks])
+            return ev + [(s + 32, n) for s, n in ev]
         want = {
             ('FUT01', 'pluck'): [(s, n) for s, n, _, _ in M.PHRASE],
             ('FUT01', 'riff'): [(s, n) for s, n, *_ in V1.RIFF],
@@ -215,7 +222,9 @@ class TestTables(unittest.TestCase):
             ('FUT03', 'rubber'): [(s, n) for s, _, n, _, _ in R3.LINES['Rubber']],
             ('FUT03', 'deep'): [(s, n) for s, _, n, _, _ in R3.LINES['Deep']],
             ('FUT03', 'vox'): [(s + 32, m) for s, m, _, _ in V3.VOX_RIFF],
-            ('FUT04', 'acid'): acid + [(s + 32, n) for s, n in acid],
+            ('FUT04', 'acid'): line4(B4.PICK),
+            ('FUT04', 'line1'): line4('AcidLine1'),
+            ('FUT04', 'line2'): line4('AcidLine2'),
             ('FUT04', 'blip'): [(s, n) for s, n, *_ in L4.PHRASE],
         }
         for (kit, line), notes in want.items():
@@ -249,7 +258,7 @@ class TestTables(unittest.TestCase):
                     for a, b in zip(sl, sl[1:]):
                         self.assertEqual(a['end'], b['start'])
                     self.assertEqual(frames, sl[-1]['end'])
-                    if not s.derived:
+                    if s.looped:
                         self.assertEqual(0, sl[0]['start'], 'a looped stem: its first slice holds the wrapped tail')
 
     def test_bass_slices_break_on_the_kicks(self):
@@ -277,7 +286,7 @@ class TestTables(unittest.TestCase):
     def test_tables_follow_the_contract(self):
         """Key order, units, A/B and stems as docs/plugin/manifest.md section 2.6 has them."""
         keys = ['lane', 'ch', 'ab', 'mix_channel', 'gain_mdb', 'stems', 'cycle_16ths', 'tolerance_pm', 'fade_us',
-                'slices']
+                'ride', 'slices']
         for kit in KITS:
             K = kits.module(kit)
             for s in PT.specs(kit):
@@ -291,6 +300,12 @@ class TestTables(unittest.TestCase):
                     self.assertEqual(0, t['stems']['a'])
                     self.assertEqual(s.lane == 'bass', t['ab'] == 'bass')
                     self.assertIn(t['cycle_16ths'], (32, 64))
+                    self.assertEqual(['cc74', 'cc71'], list(t['ride']))
+                    for values in t['ride'].values():
+                        self.assertIn(len(values), (0, t['cycle_16ths'] * 4))
+                        self.assertTrue(all(type(v) is int and 0 <= v <= 127 for v in values))
+                    baked = (kit, t['ch']) == ('FUT04', 1)   # only FUT04's acid stems: every other ride is live
+                    self.assertEqual(baked, bool(t['ride']['cc74']) and bool(t['ride']['cc71']))
 
     def test_every_phrase_says_why(self):
         """Each phrase lane records the recipe function that synthesizes it, and its stem is a Loops/ file or a
@@ -349,12 +364,24 @@ class TestDerivedStems(unittest.TestCase):
                                      hashlib.sha256((Path(d) / kit.lower() / path).read_bytes()).hexdigest())
                     self.assertIn(path, out)
 
+    def test_the_acid_lines_at_rest_are_their_loops_twice(self):
+        """FUT04's at-rest acid stems are their 2-bar Loops/ files twice, sample for sample."""
+        import soundfile as sf
+        for path in PT.DERIVED['FUT04']:
+            have = sample('FUT04', path)
+            src = sample('FUT04', 'Loops/' + path.split('/')[1].replace(' 4 Bars', ''))
+            if have is None or src is None:
+                self.skipTest('the samples are not here')
+            a, _ = sf.read(have, dtype='int32')
+            b, _ = sf.read(src, dtype='int32')
+            self.assertTrue(np.array_equal(a, np.concatenate([b, b])), path)
+
     def test_derived_stems_fit_24_bits(self):
         """A derived stem is the recipe's lane at the stem's gain (a whole dB): its true peak at -1 dBTP or under,
         and the table's gain_mdb gives the lane its level back."""
         for kit, line in (('FUT02', 'vox'), ('FUT03', 'vox')):
             s = spec(kit, line)
-            self.assertTrue(s.derived)
+            self.assertTrue(s.derived and not s.looped)
             self.assertEqual(0, s.gain_mdb % 1000)
             audio = PT.render_derived(kit)[s.stems[0]]
             from tools.sound import mixmeter as MM
@@ -426,6 +453,43 @@ def loop_file(kit, variant):
     return p if p.exists() else None
 
 
+class TestRides(unittest.TestCase):
+    def test_the_loop_files_rides_are_the_ride_stems(self):
+        """FUT04's Loop files ride CC74 and CC71 on channel 1 exactly as its Ride stem was rendered (the table's
+        ride, on the 60-tick grid); the at-rest acid stems' rides are 0 and 0."""
+        if loop_file('FUT04', 'vox') is None:
+            self.skipTest('waiting on P1: MIDI v2 Loop files')
+        K = kits.module('FUT04')
+        t = table_of(K, spec('FUT04', 'acid'))
+        for variant in ('vox', 'novox'):
+            ccs = PT.file_ccs(loop_file('FUT04', variant))[1]
+            for cc in (74, 71):
+                got = PT.ride_values(ccs[cc], 0, len(t['ride'][f'cc{cc}']))
+                self.assertEqual(t['ride'][f'cc{cc}'], got, (variant, cc))
+        for line in ('line1', 'line2'):
+            r = table_of(K, spec('FUT04', line))['ride']
+            self.assertEqual({0}, set(r['cc74']) | set(r['cc71']))
+
+    def test_a_cycle_matches_a_ridden_stem_only_on_its_ride(self):
+        """The acid line's notes resolve to the Ride stem under the Ride's controllers, to the at-rest stem at 0/0,
+        and to nothing (the multisample) under an arranged ride."""
+        K = kits.module('FUT04')
+        tables = [table_of(K, spec('FUT04', line)) for line in ('acid', 'line1', 'line2')]
+        notes = [(s['step'], s['key']) for s in tables[0]['slices']]
+        ride = {cc: [(i * 60, v) for i, v in enumerate(tables[0]['ride'][f'cc{cc}'])] for cc in (74, 71)}
+        got, unmatched = PT.resolve(K, notes, tables, ride)
+        self.assertEqual(([], {0}), (unmatched, {p for _, p, _ in got}))
+        got, unmatched = PT.resolve(K, notes, tables, {74: [(0, 0)], 71: [(0, 0)]})
+        self.assertEqual(([], {1}), (unmatched, {p for _, p, _ in got}))
+        got, unmatched = PT.resolve(K, notes, tables, {})
+        self.assertEqual(([], {1}), (unmatched, {p for _, p, _ in got}))
+        arranged = {74: [(i * 60, min(127, i)) for i in range(256)], 71: [(0, 0)]}
+        got, unmatched = PT.resolve(K, notes, tables, arranged)
+        self.assertEqual(([], len(notes)), (got, len(unmatched)))
+        nudged = {cc: [(t_, min(127, v + 1)) for t_, v in vals] for cc, vals in ride.items()}
+        self.assertEqual({0}, {p for _, p, _ in PT.resolve(K, notes, tables, nudged)[0]})
+
+
 class TestLoopFiles(unittest.TestCase):
     def test_every_cycle_of_the_loop_files_resolves_to_slices(self):
         """Every note of every phrase lane's channel in both Loop files resolves to a slice of one of its tables, at
@@ -436,9 +500,12 @@ class TestLoopFiles(unittest.TestCase):
             K = kits.module(kit)
             for variant in ('vox', 'novox'):
                 notes = PT.file_notes(K, loop_file(kit, variant))
+                ccs = PT.file_ccs(loop_file(kit, variant))
                 for ch in sorted({s.ch for s in PT.specs(kit)}):
                     tables = [table_of(K, s) for s in PT.specs(kit) if s.ch == ch]
-                    _, unmatched = PT.resolve(K, notes.get(ch, []), tables)
+                    got, unmatched = PT.resolve(K, notes.get(ch, []), tables, ccs.get(ch, {}))
+                    if (kit, ch) == ('FUT04', 1):
+                        self.assertEqual({0}, {p for _, p, _ in got}, 'the Loop files play the Ride stem')
                     with self.subTest(kit=kit, variant=variant, ch=ch):
                         self.assertEqual([], unmatched)
 
