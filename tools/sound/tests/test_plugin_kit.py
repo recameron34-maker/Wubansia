@@ -156,7 +156,7 @@ class TestContract(unittest.TestCase):
                     self.assertEqual(keys, list(ins))
                     self.assertRegex(ins['id'], r'^[a-z0-9_]{1,32}$')
                     self.assertIn(ins['lane'], LANE_IDS)
-                    self.assertEqual(PK.MIX_CHANNELS[kit][ins['mix_channel']], ins['lane'])
+                    self.assertEqual(PK.mix_channels(kit)[ins['mix_channel']], ins['lane'])
                     self.assertIn(ins['mode'], ('one_shot', 'gated', 'sustain_loop'))
                     self.assertIn(ins['align'], ('start', 'end'))
                     self.assertIn(ins['velocity_law'], ('layer_only', 'pow15'))
@@ -243,7 +243,7 @@ class TestContract(unittest.TestCase):
             frames = {f['path']: f['frames'] for f in m['files']}
             self.assertEqual([PT.table(s, index, frames) for s in PT.specs(kit)], m['phrases'], kit)
             for s, ph in zip(PT.specs(kit), m['phrases']):
-                self.assertEqual(PK.MIX_CHANNELS[kit][ph['mix_channel']], ph['lane'])
+                self.assertEqual(PK.mix_channels(kit)[ph['mix_channel']], ph['lane'])
                 for f in (ph['stems']['a'], ph['stems']['b']):
                     if f >= 0:
                         self.assertEqual(s.frames if s.derived else PT.cycle_frames(K, s.cycle),
