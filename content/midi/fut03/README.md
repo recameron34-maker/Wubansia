@@ -56,10 +56,10 @@ plays its zone's file repitched by the distance to its root.
 
 | Channel | Track | Instrument | Zones: name (MIDI number) | Velocity |
 |---|---|---|---|---|
-| 1 | Bass | Rubber Bass Clean (A) or Rubber Bass Warm (B) | G1 (31), D2 (38), G2 (43) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 2 | Lead | Keys EP | G3 (55), D4 (62), G4 (67), D5 (74), G5 (79) | layers at velocity 64, 127 (the nearest layer plays, the louder on a tie) |
-| 4 | Chords | Dub Stab Gm9 | G3 (55) | layers at velocity 64, 95, 127 (the nearest layer plays, the louder on a tie) |
-| 5 | Vox | Vox Synth | G3 (55), D4 (62), G4 (67), D5 (74) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
+| 1 | Bass | Rubber Bass Clean (A) or Rubber Bass Warm (B) | G1 (31), D2 (38), G2 (43) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 2 | Lead | Keys EP | G3 (55), D4 (62), G4 (67), D5 (74), G5 (79) | layers at velocity 64, 127 (a velocity plays the nearest, the louder on a tie) |
+| 4 | Chords | Dub Stab Gm9 | G3 (55) | layers at velocity 64, 95, 127 (a velocity plays the nearest, the louder on a tie) |
+| 5 | Vox | Vox Synth | G3 (55), D4 (62), G4 (67), D5 (74) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
 | 11 | Pad Warm | Pad Warm | G3 (55) | one layer |
 
 On channel 3, Chord voicing is the chords as single notes for your own synth; Wubansia ignores channel 3.

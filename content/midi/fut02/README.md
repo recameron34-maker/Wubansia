@@ -51,13 +51,13 @@ plays its zone's file repitched by the distance to its root.
 
 | Channel | Track | Instrument | Zones: name (MIDI number) | Velocity |
 |---|---|---|---|---|
-| 1 | Bass | Roll Bass Clean (A) or Roll Bass Warm (B) | D1 (26), A1 (33), D2 (38) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 2 | Lead | Chrome Arp | D4 (62), G4 (67), C5 (72), F5 (77), A#5 (82) | layers at velocity 70, 127 (the nearest layer plays, the louder on a tie) |
+| 1 | Bass | Roll Bass Clean (A) or Roll Bass Warm (B) | D1 (26), A1 (33), D2 (38) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 2 | Lead | Chrome Arp | D4 (62), G4 (67), C5 (72), F5 (77), A#5 (82) | layers at velocity 70, 127 (a velocity plays the nearest, the louder on a tie) |
 | 4 | Chords | Starfield Pad Dm9 | D3 (50) | one layer |
-| 5 | Vox | Vox Synth | D4 (62), F4 (65), A4 (69), C5 (72), F5 (77), A5 (81) | layers at velocity 64 'oh', 95 'ah', 127 'ee' (the nearest layer plays, the louder on a tie) |
-| 11 | Drop Glide | Drop Glide Clean (A) or Drop Glide Warm (B) | D1 (26) | layers at velocity 89, 127 (the nearest layer plays, the louder on a tie) |
-| 12 | Laser Chord Stab | Laser Chord Stab | A#3 (58), D4 (62) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 13 | Glass Ping | Glass Ping | D6 (86) | layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
+| 5 | Vox | Vox Synth | D4 (62), F4 (65), A4 (69), C5 (72), F5 (77), A5 (81) | layers at velocity 64 'oh', 95 'ah', 127 'ee' (a velocity plays the nearest, the louder on a tie) |
+| 11 | Drop Glide | Drop Glide Clean (A) or Drop Glide Warm (B) | D1 (26) | layers at velocity 89, 127 (a velocity plays the nearest, the louder on a tie) |
+| 12 | Laser Chord Stab | Laser Chord Stab | A#3 (58), D4 (62) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 13 | Glass Ping | Glass Ping | D6 (86) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
 
 On channel 3, Chord voicing is the chords as single notes for your own synth; Wubansia ignores channel 3.
 The drop glide (channel 11) follows the bass A/B switch: Drop Glide Clean (A) or Warm (B), rooted at D1 (26).
@@ -69,15 +69,15 @@ it), so a gated pad plays the whole file; an end-aligned sound's note ends on th
 
 | Key | Channel | Sound | File (in `content/samples/fut02/`) | How it plays |
 |---|---|---|---|---|
-| 48 | 6 | Laser Chord Stab D4 | `Music/Laser Chord Stab D4 v2.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 49 | 6 | Laser Chord Stab A#3 | `Music/Laser Chord Stab A#3 v2.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 50 | 6 | Glass Ping | `Drums/Glass Ping v2 rr1.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
+| 48 | 6 | Laser Chord Stab D4 | `Music/Laser Chord Stab D4 v2.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 49 | 6 | Laser Chord Stab A#3 | `Music/Laser Chord Stab A#3 v2.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 50 | 6 | Glass Ping | `Drums/Glass Ping v2 rr1.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
 | 51 | 6 | Starfield Sweep | `FX/Starfield Sweep.wav` | end-aligned: ends on its beat; one layer |
-| 52 | 6 | Reverse Chord | `FX/Reverse Chord v2.wav` | end-aligned: ends on its beat; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 53 | 6 | Arp Stab | `Music/Arp Stab v2.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
+| 52 | 6 | Reverse Chord | `FX/Reverse Chord v2.wav` | end-aligned: ends on its beat; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 53 | 6 | Arp Stab | `Music/Arp Stab v2.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
 | 54 | 6 | Noise Uplifter | `FX/Noise Uplifter.wav` | end-aligned: ends on its beat; one layer |
-| 55 | 6 | Resonant Zap | `Drums/Resonant Zap v2.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
-| 56 | 6 | Vox Synth Stab | `Music/Vox Synth Stab v2.wav` | starts on its note; layers at velocity 76, 127 (the nearest layer plays, the louder on a tie) |
+| 55 | 6 | Resonant Zap | `Drums/Resonant Zap v2.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 56 | 6 | Vox Synth Stab | `Music/Vox Synth Stab v2.wav` | starts on its note; layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
 | 48 | 7 | Laser Fill | `FX/Laser Fill.wav` | end-aligned: ends on its beat; one layer |
 | 49 | 7 | Laser Riser | `FX/Laser Riser.wav` | end-aligned: ends on its beat; one layer |
 | 50 | 7 | Sub Drop | `Bass/Sub Drop.wav` | starts on its note; one layer |
