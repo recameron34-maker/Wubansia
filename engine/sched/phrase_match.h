@@ -29,14 +29,16 @@
 // - A matched note stays where it is, with phrase = its phrase and slice = -1: its multisample twin. A
 //   note a slice holds gets its phrase too, slice -1, and NoteFlag::held.
 // - Beside each matched note, a slice note: phrase, slice (the global Kit::slices index: the phrase's
-//   firstSlice + its own), placed from the slice's start frame on the cycle: pos = the cycle's start +
-//   start (frames as milliticks at the kit's BPM), preroll = the onset (the slice's 16th on the swung
-//   grid) - pos, which can be a few milliticks below 0 where the frame rounds past the onset, len = the
-//   slice's frames (end - start: past the stem's end for a wrapping last slice) at the kit's BPM, so a
-//   chase finds a slice that plays on past its note. NoteFlag::continues when the phrase's next slice
-//   note plays the slice that follows it in the stem: the next slice in the same cycle (end == its
-//   start), or on a looped stem (its last slice's end - frames == slice 0's start) slice 0 in the next
-//   cycle, round the loop in a loop. Its other fields are its note's; no endAligned, dip or held.
+//   firstSlice + its own), placed from the slice's start frame on the stem's own timeline: pos = the
+//   cycle's start + start (frames as milliticks at the kit's BPM); a slice 0 whose pre-roll precedes its
+//   cycle (start + lead >= the stem's frames: it wraps) sits a cycle earlier, round a loop to its end and
+//   before a song's start. preroll = the onset (the slice's 16th on the swung grid) - pos, unwrapped, so a
+//   few milliticks below 0 where the frame rounds past the onset; len = the slice's frames (end - start,
+//   past the stem's end for a wrapping slice) at the kit's BPM, so a chase finds a slice that plays on past
+//   its note. NoteFlag::continues when the phrase's next slice note plays the slice that follows it: the
+//   next slice in the same cycle, or slice 0 in the next cycle after the last (round the loop in a loop),
+//   starting where it ends modulo the stem's frames. Its other fields are its note's; no endAligned, dip
+//   or held.
 // - Everything else is as it was (phrase = -1). The notes are sorted again by (pos, channel, key),
 //   stably.
 // A cycle is floorDiv (onset, cycle_16ths x 240000): cycles start on even 16ths, where swing moves

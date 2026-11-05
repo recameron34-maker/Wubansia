@@ -182,7 +182,7 @@ namespace wubansia::engine
         setup.slices = kit.slices.data() + p.firstSlice;
         setup.count = p.sliceCount;
         setup.frames = frames;
-        setup.looped = frames > 0 && setup.slices[setup.count - 1].end - frames == setup.slices[0].start;
+        setup.looped = frames > 0 && (setup.slices[setup.count - 1].end - setup.slices[0].start) % frames == 0;
         setup.gain = std::pow (10.0, (static_cast<double> (p.gainMdb) / 1000.0) / 20.0); // the model's undb (gain_mdb / 1000)
         setup.channel = p.mixChannel;
         setup.fadeFrames = stemFramesOf (p.fadeUs);
@@ -291,7 +291,7 @@ namespace wubansia::engine
         Head& h = newHead();
         startHead (h, note, slice, pos, follows);
         h.delay = delay;
-        const auto fadeUs = s.lead == 0 ? kRunFadeLeadlessUs : kRunFadeUs;
+        const auto fadeUs = s.lead == 0 ? setup.phrase->fadeInUs : kRunFadeUs;
         if (chase > 0.0)
             h.timeInLength = samplesOf (Sampler::kChaseFadeUs, rate);
         else if (pos > static_cast<double> (s.start))

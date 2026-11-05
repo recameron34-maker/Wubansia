@@ -39,7 +39,8 @@ namespace
     }
 
     // A 2-bar phrase at 128 BPM, no swing: 8 slices of four 16ths, lead 0, each fading over the last 5 ms of its end;
-    // on a looped stem (the first slice starts on frame 0, the last ends on the stem's end).
+    // on a looped stem (the first slice starts on frame 0, the last ends on the stem's end). Its runs come in over
+    // 3 ms (fade_in_us 3000), as through a pre-roll, so the tests below see one run fade.
     struct SineKit
     {
         PhraseKit k;
@@ -60,6 +61,7 @@ namespace
             p.cycle16ths = 32;
             p.tolerancePm = 20;
             p.fadeUs = 5000;
+            p.fadeInUs = 3000;
             std::vector<SliceSpec> slices;
             for (int j = 0; j < 8; ++j)
             {
@@ -115,6 +117,8 @@ namespace
         phrase.cycle16ths = static_cast<std::int32_t> (integer (p, "cycle_16ths"));
         phrase.tolerancePm = static_cast<std::int32_t> (integer (p, "tolerance_pm"));
         phrase.fadeUs = static_cast<std::int32_t> (integer (p, "fade_us"));
+        phrase.fadeInUs = static_cast<std::int32_t> (integer (p, "fade_in_us"));
+        phrase.throwMode = at (p, "throw").string == "baked" ? PhraseThrow::baked : PhraseThrow::live;
         std::vector<SliceSpec> slices;
         for (const auto& s : at (p, "slices").items)
             slices.push_back ({ static_cast<int> (s.items.at (0).integer), static_cast<int> (s.items.at (1).integer),
@@ -122,16 +126,24 @@ namespace
         return k.addPhrase (phrase, slices);
     }
 
-    // The vectors' notes over `passes` passes of a loop of `length` frames.
-    std::vector<Hit> passesOf (const json::Value& events, int index, std::int64_t length, int passes)
+    // The vectors' notes over one pass from silence, `shift` samples late (a slice the model starts before the song,
+    // whose part before it the model drops, starts at 0 here: the test drops the first `shift` samples instead).
+    std::vector<Hit> passOf (const json::Value& events, int index, std::int64_t shift)
     {
         std::vector<Hit> hits;
-        for (int pass = 0; pass < passes; ++pass)
-            for (const auto& e : events.items)
-                hits.push_back ({ pass * length + e.items.at (0).integer,
-                    phraseNote (index, static_cast<int> (e.items.at (1).integer), e.items.at (2).integer != 0) });
+        for (const auto& e : events.items)
+            hits.push_back ({ shift + e.items.at (0).integer,
+                phraseNote (index, static_cast<int> (e.items.at (1).integer), e.items.at (2).integer != 0) });
         std::stable_sort (hits.begin(), hits.end(), [] (const Hit& a, const Hit& b) { return a.at < b.at; });
         return hits;
+    }
+
+    std::int64_t shiftOf (const json::Value& events)
+    {
+        std::int64_t first = 0;
+        for (const auto& e : events.items)
+            first = std::min (first, e.items.at (0).integer);
+        return -first;
     }
 }
 
@@ -206,6 +218,8 @@ TEST_CASE ("phrase voice: SYN01's lead lane is its looped stem, bit for bit, for
 
 TEST_CASE ("phrase voice: the four kits' Loop lanes are the Python model's, bit for bit", "[phrase][voice][vectors]")
 {
+    // One pass of each Loop file from silence, as play () models it (and FUT02's riff twice over two cycles, its slice 0
+    // starting before the song and wrapping through the stem's end).
     const auto v = readJson ("voice.json");
     const auto block = integer (v, "block");
     for (const auto& c : at (v, "cases").items)
@@ -216,11 +230,12 @@ TEST_CASE ("phrase voice: the four kits' Loop lanes are the Python model's, bit 
         const int index = phraseFromJson (k, p, noiseStem (static_cast<std::uint32_t> (integer (c, "seed")),
             integer (p, "stem_frames"), static_cast<int> (integer (c, "channels"))));
         const auto length = integer (c, "loop_frames");
+        const auto shift = shiftOf (at (c, "events"));
         Rig rig (kRate, 1, 4);
-        rig.run (k.kit, passesOf (at (c, "events"), index, length, 3), 3 * length);
+        rig.run (k.kit, passOf (at (c, "events"), index, shift), shift + length);
         const auto& l = rig.left[0];
         const auto& r = rig.right[0];
-        const auto from = static_cast<std::size_t> (2 * length); // the third pass: tails wrapped round, as the model's
+        const auto from = static_cast<std::size_t> (shift); // the pass, from the song's start
         const auto& blocks = at (c, "blocks").items;
         std::size_t firstBad = blocks.size();
         for (std::size_t b = 0; b < blocks.size() && firstBad == blocks.size(); ++b)
@@ -247,8 +262,9 @@ TEST_CASE ("phrase voice: its fades are the recipe's masks: FUT02's 5 ms mute ed
         PhraseKit k;
         const int index = phraseFromJson (k, p, stemOf (integer (p, "stem_frames"), 2, [] (std::int64_t, int) { return 1.0f; }));
         const auto length = integer (c, "loop_frames");
+        const auto shift = shiftOf (at (c, "events"));
         Rig rig (kRate, 1, 4);
-        rig.run (k.kit, passesOf (at (c, "events"), index, length, 3), 3 * length);
+        rig.run (k.kit, passOf (at (c, "events"), index, shift), shift + length);
         for (const auto& span : at (c, "spans").items)
         {
             const auto lo = integer (span, "from");
@@ -257,11 +273,34 @@ TEST_CASE ("phrase voice: its fades are the recipe's masks: FUT02's 5 ms mute ed
             double worst = 0.0;
             for (auto f = lo; f < hi; ++f)
             {
-                const auto got = static_cast<double> (rig.left[0][static_cast<std::size_t> (2 * length + f)]);
+                const auto got = static_cast<double> (rig.left[0][static_cast<std::size_t> (shift + f)]);
                 worst = std::max (worst, std::fabs (got - static_cast<double> (values[static_cast<std::size_t> (offset + f - lo)])));
             }
             CAPTURE (lo, hi);
             CHECK (worst <= 1e-6);
+        }
+    }
+}
+
+TEST_CASE ("phrase voice: a run starting on its onset fades in over the phrase's fade_in_us, through a pre-roll over 3 ms", "[phrase][voice]")
+{
+    // SYN01's lead: fade_in_us 2000 (96 frames); its slice at step 16 has no pre-roll, the others 48 frames.
+    const auto kit = testing::makeSyntheticKit();
+    const auto& phrase = kit->phrases.at (0);
+    REQUIRE (phrase.fadeInUs == 2000);
+    const auto stem = kit->view (phrase.stem[0]);
+    for (const int j : { 1, 4 })
+    {
+        const auto& s = kit->slices.at (phrase.firstSlice + static_cast<std::size_t> (j));
+        CAPTURE (j, s.lead);
+        const double fade = s.lead == 0 ? 96.0 : 144.0;
+        Rig rig (kRate, static_cast<int> (kit->mix.channels.size()), 2);
+        rig.run (*kit, { { 0, phraseNote (0, phrase.firstSlice + j, false) } }, 256);
+        const auto& out = rig.left[static_cast<std::size_t> (phrase.mixChannel)];
+        for (std::int64_t n = 0; n < 256; ++n)
+        {
+            const double g = static_cast<double> (n) < fade ? raisedIn (static_cast<double> (n), fade) : 1.0;
+            REQUIRE (same (out[static_cast<std::size_t> (n)], static_cast<float> (static_cast<double> (stem.left[s.start + n]) * g)));
         }
     }
 }

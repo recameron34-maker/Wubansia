@@ -13,14 +13,16 @@
 //
 // What it does with the notes, as the model:
 // - A run of slices reads the stem continuously: a note whose slice is the next one (or, on a looped
-//   stem, slice 0 after the last: the cycle's wrap) reads on, without a seam. A looped stem's last slice may
-//   wrap through the stem's end (its end up to frames + slice 0's start): it is read modulo the stem's length.
+//   stem, slice 0 after the last: the cycle's wrap) reads on, without a seam. A looped stem is read modulo
+//   its frames, and a slice continues into one that starts where it ends modulo the stem's frames: its last
+//   slice may wrap through the stem's end, or its slice 0 start before its cycle and wrap.
 // - A slice whose note has NoteFlag::continues reads on into the next slice. One without it fades from its
 //   fade frame over the phrase's fade_us (0.5 + 0.5 cos), and stops at its end.
-// - A run's first slice comes in from its start frame (0.5 - 0.5 cos) over kRunFadeUs, or kRunFadeLeadlessUs
-//   when its lead is 0, under whatever still plays out: a slice that doesn't continue fades on its own
-//   schedule, so a run can start under the last one's tail (FUT03's throw slice plays across the cycle's wrap
-//   while the next cycle starts).
+// - A run's first slice comes in from its start frame (0.5 - 0.5 cos): over the phrase's fade_in_us when its
+//   lead is 0 (it starts on its onset: plucks, arps and blips keep their transients), over kRunFadeUs through a
+//   pre-roll; under whatever still plays out: a slice that doesn't continue fades on its own schedule, so a run
+//   can start under the last one's tail (FUT03's throw slice plays across the cycle's wrap while the next
+//   cycle starts).
 // What it adds for a live host (the model plays a fixed grid):
 // - At the kit's tempo, reading on tolerates a note up to 2 frames off where the voice reads. At a cycle's
 //   wrap it re-syncs: 1 or 2 frames off, it crossfades over 1 ms to where the note says. Further, another
@@ -68,11 +70,9 @@ namespace wubansia::engine
     public:
         static constexpr int kHeads = 4; // read positions sounding at once: a run, and what fades under it
         static constexpr int kMaxEvents = 16; // per render () call; more are dropped (Stats::dropped)
-        // A run's first slice comes in over this from its start frame (by position, as the model). A slice with
-        // no lead takes kRunFadeLeadlessUs: the design check's 0.5 ms (500) keeps plucks' transients, and moves
-        // here with P2's play (), which still brings every run in over 3 ms.
+        // A run's first slice comes in over this from its start frame (by position, as the model) when it starts
+        // in its pre-roll (lead > 0); on its onset (lead 0) over the phrase's fade_in_us.
         static constexpr std::int32_t kRunFadeUs = 3000;
-        static constexpr std::int32_t kRunFadeLeadlessUs = 3000;
         static constexpr std::int32_t kJumpFadeUs = 3000; // a jump's crossfade
         static constexpr std::int32_t kResyncFadeUs = 1000; // a cycle wrap's (or a chase's) re-sync
         static constexpr std::int32_t kMissedFadeUs = 1000; // a follower that doesn't come
@@ -192,7 +192,7 @@ namespace wubansia::engine
             const PhraseSlice* slices = nullptr;
             int count = 0;
             std::int64_t frames = 0; // the shorter stem's
-            bool looped = false; // its last slice ends (wrapping) where slice 0 starts: end - frames == slice 0's start
+            bool looped = false; // its last slice ends where slice 0 starts, modulo the stem's frames
             double gain = 1.0; // gain_mdb
             int channel = 0; // its mix channel
             double fadeFrames = 0.0; // fade_us in stem frames, as the model counts them
