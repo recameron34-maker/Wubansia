@@ -138,8 +138,9 @@ namespace wubansia::engine
         // Message thread, with the audio thread stopped. Allocates every buffer and capacity for this
         // rate (11025-192000 Hz), the largest block process () will get, and 1 or 2 outputs. It can
         // be called again at another rate without anything in between; voices and position reset,
-        // the adopted Kit stays.
-        void prepare (double sampleRate, int maxBlock, int numOutputs);
+        // the adopted Kit stays. hold: the club master limiter's (twoSided only for groovecore render's
+        // verification renders); latencySamples () follows it.
+        void prepare (double sampleRate, int maxBlock, int numOutputs, MasterHold hold = MasterHold::lookBack);
 
         // Audio thread (the plugin's reset flag). Silences every voice and tail at once; the adopted
         // Kit stays.

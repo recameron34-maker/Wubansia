@@ -126,15 +126,16 @@ namespace wubansia::engine
         static constexpr int kMaxLatchedPhrases = 32; // phrases with a latched decision; any further decide per note
         static constexpr double kContinuePpm = 20.0; // slice notes continue within this of the kit's tempo
 
-        // Message thread, the audio thread stopped: sizes everything for this rate and 1 or 2 outputs.
-        // Voices, position and fades reset; the adopted Kit stays.
-        void prepare (double sampleRate, int maxBlock, int numOutputs)
+        // Message thread, the audio thread stopped: sizes everything for this rate and 1 or 2 outputs, with
+        // the club master's limiter holding as `hold` says. Voices, position and fades reset; the adopted
+        // Kit stays.
+        void prepare (double sampleRate, int maxBlock, int numOutputs, MasterHold hold = MasterHold::lookBack)
         {
             rate_ = sampleRate > 0.0 && std::isfinite (sampleRate) ? sampleRate : 48000.0;
             (void) maxBlock; // pieces are at most kControlFrame, whatever the host's block
             outputs_ = std::clamp (numOutputs, 1, 2);
             voices_.prepare (rate_, kControlFrame);
-            mixer_.prepare (rate_, kControlFrame, outputs_);
+            mixer_.prepare (rate_, kControlFrame, outputs_, hold);
             mixer_.setConfig (kit_ != nullptr ? &kit_->mix : nullptr);
             stopFadeSamples_ = std::max (1, static_cast<int> (std::lround (kStopFadeSeconds * rate_)));
             kitFadeSamples_ = std::max (1, static_cast<int> (std::lround (kKitFadeSeconds * rate_)));

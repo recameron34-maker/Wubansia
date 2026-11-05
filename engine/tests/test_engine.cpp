@@ -1072,3 +1072,48 @@ TEST_CASE ("the voices get the scheduler's tempo once per block: the host's, or 
         CHECK (h.loop.voices().tempo == Catch::Approx (hostBpm > 0.0 ? hostBpm : 120.0));
     }
 }
+
+TEST_CASE ("the engine reports its mixer's latency for either limiter hold: 424 looking back, 3280 two-sided at 48 kHz", "[engine][latency]")
+{
+    for (const double rate : { 44100.0, 48000.0, 96000.0 })
+        for (const auto hold : { MasterHold::lookBack, MasterHold::twoSided })
+        {
+            CAPTURE (rate, static_cast<int> (hold));
+            Engine engine;
+            engine.prepare (rate, 512, 2, hold);
+            Mixer mixer;
+            mixer.prepare (rate, 32, 2, hold);
+            CHECK (engine.latencySamples() == mixer.latencySamples());
+            if (rate > 47999.0 && rate < 48001.0)
+                CHECK (engine.latencySamples() == (hold == MasterHold::lookBack ? 424 : 3280));
+        }
+
+    // The default is the look-back hold, as the plugin prepares it.
+    Engine plugin;
+    plugin.prepare (48000.0, 512, 2);
+    CHECK (plugin.latencySamples() == 424);
+
+    // And a note's impulse comes out that late with either hold (club off, a mix with no inserts).
+    const Kit kit = synKit (0, true);
+    for (const auto hold : { MasterHold::lookBack, MasterHold::twoSided })
+    {
+        CAPTURE (static_cast<int> (hold));
+        LoopHarness<RecordingVoices> h;
+        h.loop.prepare (48000.0, 512, 2, hold);
+        Controls controls;
+        controls.club = false;
+        std::vector<float> left (8192), right (8192);
+        float* out[2] { left.data(), right.data() };
+        TransportInfo t;
+        h.loop.process (out, 2, 64, t, controls, nullptr, 0, h.pending, h.retired, h.telemetry);
+        h.pending.publish (&kit);
+        const MidiEvent kick { 0, 0x99, 36, 100 };
+        h.loop.process (out, 2, 8192, t, controls, &kick, 1, h.pending, h.retired, h.telemetry);
+        const auto latency = static_cast<std::size_t> (h.loop.latencySamples());
+        REQUIRE (latency < left.size());
+        for (std::size_t s = 0; s < left.size(); ++s)
+            if (s != latency)
+                CHECK_FALSE ((left[s] > 1.0e-9f || left[s] < -1.0e-9f));
+        CHECK (left[latency] > 0.0f);
+    }
+}
