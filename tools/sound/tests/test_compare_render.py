@@ -98,6 +98,21 @@ class Bands(unittest.TestCase):
         self.assertLess(judged, 5)
 
 
+class Clicks(unittest.TestCase):
+    def test_a_step_counts_as_a_click_and_a_faded_join_does_not(self):
+        t = np.arange(48000)
+        ref = 0.5 * np.sin(2 * np.pi * 220.0 * t / SR)
+        cut = ref.copy()
+        cut[24000:] = 0.0                                       # stopped dead mid-cycle
+        faded = ref.copy()
+        faded[24000:24480] *= 0.5 + 0.5 * np.cos(np.pi * np.arange(480) / 480)
+        faded[24480:] = 0.0
+        x = lambda u: np.stack([u, u], 1)  # noqa: E731
+        self.assertEqual(0, C.clicks(x(ref), x(ref)))
+        self.assertGreater(C.clicks(x(cut), x(ref)), 0)
+        self.assertEqual(0, C.clicks(x(faded), x(ref)))
+
+
 class Gates(unittest.TestCase):
     L = 4 * 24000
     KICKS = [0, 24000, 48000, 72000]
@@ -199,6 +214,14 @@ class Plan(unittest.TestCase):
         for opt in (('--space', '0'), ('--echo', '0'), ('--club', 'off'), ('--bass', 'a'), ('--variant', 'novox')):
             i = dry.args.index(opt[0])
             self.assertEqual(opt[1], dry.args[i + 1])
+
+    def test_the_exact_master_and_the_tempos(self):
+        self.assertEqual(('--variant', 'vox', '--bass', 'b', '--passes', '3', '--master', 'exact'), C.exact_render('vox').args)
+        r = C.tempo_render(134.0, -3)
+        self.assertEqual('loop_vox_bassb_tempo-3', r.name)
+        self.assertEqual('129.980000', r.args[r.args.index('--tempo') + 1])
+        self.assertTrue(r.taps)
+        self.assertEqual('loop_vox_bassb_tempo+1', C.tempo_render(134.0, 1).name)
 
     def test_a_section_render_is_8_bars_of_that_section(self):
         r = C.section_render('novox', 'a', 3)

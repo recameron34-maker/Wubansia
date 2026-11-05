@@ -116,6 +116,21 @@ def section_render(variant, bass, number):
                   ('--mode', 'song', '--variant', variant, '--bass', bass, '--section', str(number), '--bars', str(SECTION_BARS)))
 
 
+TEMPO_PCT = (-3, -1, 1, 3)    # off the kit's tempo: inside the phrase lanes' 2 % (slices anchored on onsets) and past it
+
+
+def exact_render(variant):
+    """The club mix on master.py's two-sided limiter hold (--master exact), bass B: the verification master."""
+    return Render(f'loop_{variant}_bassb_exact', ('--variant', variant, '--bass', 'b', '--passes', '3', '--master', 'exact'))
+
+
+def tempo_render(kit_bpm, pct, variant='vox'):
+    """The club mix at the kit's tempo moved by pct percent, bass B, with taps."""
+    bpm = kit_bpm * (1 + pct / 100.0)
+    return Render(f'loop_{variant}_bassb_tempo{pct:+d}', ('--variant', variant, '--bass', 'b', '--passes', '3', '--tempo',
+                                                          f'{bpm:.6f}'), taps=True)
+
+
 def multisample_render(variant='vox'):
     """The loop with the phrase lanes on their multisamples (--phrases off), bass B, with taps: what the lanes play off
     the kit's tempo or from MIDI in (FUT04's squelch ticks are measured on it)."""
@@ -157,7 +172,10 @@ def ensure(groovecore, kit, renders, root, content=None, fresh=False, log=print)
         log(f'  render {kit} {r.name}')
         return run_render(groovecore, kit, r, renders, root, content)
 
-    for r in plan_loops() + [multisample_render()]:
+    from tools.sound import plugin_mix as PM
+    _, bpm = PM.loop_info(kit)
+    extra = [multisample_render()] + [exact_render(v) for v in VARIANTS] + [tempo_render(bpm, t) for t in TEMPO_PCT]
+    for r in plan_loops() + extra:
         code, err = one(r)
         if code != 0:
             problems.append(f'{kit} {r.name}: groovecore render exit {code}: {err.strip()}')
@@ -549,6 +567,90 @@ def squelch_ticks(got, want, bpm, L):
     return rows
 
 
+def master_checks(kit, renders):
+    """The look-back master (the plugin's) against master.py's two-sided hold on the same mix, pass 2, and the exact
+    one against the Club loop: reported, no gate (the gates hold the look-back master)."""
+    from tools.sound import engine_ref as E
+    from tools.sound import mixmeter as MM
+    from tools.sound import plugin_mix as PM
+    L, _ = PM.loop_info(kit)
+    kicks = E.full_kicks(kit)
+    out = []
+    for v in VARIANTS:
+        look = load(wav_path(renders, kit, f'loop_{v}_bassb'))
+        exact = load(wav_path(renders, kit, exact_render(v).name))
+        if look is None or exact is None:
+            continue
+        a, b = look[0][L:2 * L], exact[0][L:2 * L]
+        r = compare(a, b, kicks)
+        values = {**r['diff'], 'lookback_lufs_i': MM.lufs_i(a), 'exact_lufs_i': MM.lufs_i(b),
+                  'lookback_tp': MM.true_peak_db(a), 'exact_tp': MM.true_peak_db(b), 'null_db': null_db(a, b),
+                  'latency_lookback': look[1].get('latency'), 'latency_exact': exact[1].get('latency')}
+        out.append(Check(kit, 'master', f'{v}: look-back against exact (same mix)', values, None,
+                         "the DC stage is the causal 5 Hz blocker in both (master.py's zero-phase clean can't stream)"))
+        _, club_item = E.items(kit, v)
+        club_ref, club_rep = E.reference(kit, club_item)
+        c = gate_check(kit, 'master', f'{v}: exact master vs {club_item}', b * D.undb(club_rep['gain_db']), club_ref, kicks)
+        c.ok = None
+        out.append(c)
+    return out
+
+
+def tempo_checks(kit, renders, root=None):
+    """The club mix off the kit's tempo, pass 2 (that tempo's loop length), against the Club loop: loudness, bands,
+    true peak and the kick crest (not short-term loudness, whose curve is in time); and each phrase lane's tap against
+    its own at the kit's tempo: its bands, and its clicks (samples whose second difference passes the loudest at the
+    kit's tempo by 6 dB). Reported, no gate: the gates are at the kit's tempo."""
+    from tools.sound import engine_ref as E
+    from tools.sound import plugin_mix as PM
+    L, bpm = PM.loop_info(kit)
+    kicks = E.full_kicks(kit)
+    phrases = set(phrase_channels(kit, root))
+    base = meta_of(wav_path(renders, kit, 'loop_vox_bassb'))
+    _, club_item = E.items(kit, 'vox')
+    club_ref, club_rep = E.reference(kit, club_item)
+    out = []
+    for pct in TEMPO_PCT:
+        r = tempo_render(bpm, pct)
+        got = load(wav_path(renders, kit, r.name))
+        if got is None:
+            continue
+        x, m = got
+        Lt = int(round(L * bpm / m['bpm']))
+        a = x[Lt:2 * Lt] * D.undb(club_rep['gain_db'])
+        ga, gb = measure(a, [int(round(k * Lt / L)) for k in kicks]), measure(club_ref, kicks)
+        worst_band = max(((fc, ga['bands'][fc] - gb['bands'][fc]) for fc in ga['bands']), key=lambda t: abs(t[1]))
+        crest = np.abs(np.array(ga['kick_crest']) - np.array(gb['kick_crest'])) if len(ga['kick_crest']) else np.zeros(1)
+        values = {'bpm': m['bpm'], 'lufs_i': ga['lufs_i'] - gb['lufs_i'], 'bands': worst_band,
+                  'true_peak': ga['true_peak'] - gb['true_peak'], 'kick_crest': float(np.max(crest))}
+        out.append(Check(kit, 'tempo', f'{pct:+d} % ({m["bpm"]:.2f} BPM): club vs {club_item}', values, None,
+                         'inside the phrase lanes\' 2 %: slices anchored on their onsets' if abs(pct) <= 2 else
+                         'past 2 %: the phrase lanes play their multisamples'))
+        if base is None:
+            continue
+        for ch in sorted(phrases):
+            t = load(taps_dir(renders, kit, r.name) / f'{ch}.wav')
+            t0 = load(taps_dir(renders, kit, 'loop_vox_bassb') / f'{ch}.wav')
+            if t is None or t0 is None or rms_db(pass_slice(t0[0], L, 1)) <= SILENT_DB:
+                continue
+            here, there = pass_slice(t[0], Lt, 1), pass_slice(t0[0], L, 1)
+            worst, judged = band_diff(here, there)
+            out.append(Check(kit, 'tempo', f'{pct:+d} %: {ch} (phrase) against itself at the kit tempo',
+                             {'worst_band': worst, 'bands_judged': judged, 'level_db': rms_db(here) - rms_db(there),
+                              'clicks': clicks(here, there)}, None, ''))
+    return out
+
+
+def clicks(x, ref, margin_db=6.0):
+    """Samples of x whose second difference (either side) passes ref's largest by margin_db: steps a fade didn't
+    smooth."""
+    d2 = lambda u: np.abs(np.diff(D.st(u), n=2, axis=0)).max(axis=1)  # noqa: E731
+    top = float(d2(ref).max()) if len(ref) > 2 else 0.0
+    if top <= 0.0:
+        return 0
+    return int(np.count_nonzero(d2(x) > top * 10 ** (margin_db / 20)))
+
+
 def cpu_checks(kit, renders):
     out = []
     for r in plan_loops():
@@ -559,9 +661,13 @@ def cpu_checks(kit, renders):
     return out
 
 
-def run_kit(kit, renders, root=None, groups=('mix', 'dry', 'lane', 'song', 'low', 'multisample', 'cpu')):
+GROUPS = ('mix', 'dry', 'lane', 'master', 'tempo', 'song', 'low', 'multisample', 'cpu')
+
+
+def run_kit(kit, renders, root=None, groups=GROUPS):
     out = []
     fns = {'mix': mix_checks, 'dry': dry_checks, 'lane': lambda k, r: lane_checks(k, r, root), 'song': section_checks,
+           'master': master_checks, 'tempo': lambda k, r: tempo_checks(k, r, root),
            'low': low_checks, 'multisample': lambda k, r: multisample_checks(k, r, root), 'cpu': cpu_checks}
     for g in groups:
         out += fns[g](kit, renders)
@@ -596,7 +702,7 @@ def report_md(checks, kits):
         if not ks:
             continue
         lines += [f'## {kit}', '']
-        gate_rows = [c for c in ks if c.group in ('mix', 'dry', 'low')]
+        gate_rows = [c for c in ks if c.group in ('mix', 'dry', 'low', 'master') or (c.group == 'tempo' and 'lufs_i' in c.values)]
         if gate_rows:
             lines += ['| check | LUFS-I | short-term | worst 1/3 oct | true peak | kick crest | result |',
                       '|---|---|---|---|---|---|---|']
@@ -605,7 +711,7 @@ def report_md(checks, kits):
                 lines.append(f"| {c.group}: {c.name} | {_fmt(v.get('lufs_i'))} | {_fmt(v.get('lufs_s'))} | {_fmt(v.get('bands'))} "
                              f"| {_fmt(v.get('true_peak'))} | {_fmt(v.get('kick_crest'))} | {verdict(c.ok)} |")
             lines.append('')
-        lane_rows = [c for c in ks if c.group in ('lane', 'multisample')]
+        lane_rows = [c for c in ks if c.group in ('lane', 'multisample') or (c.group == 'tempo' and 'clicks' in c.values)]
         if lane_rows:
             lines += ['| lane | null pass 1 (shift) | null pass 2 (shift) | worst band | level | result |',
                       '|---|---|---|---|---|---|']
@@ -613,7 +719,8 @@ def report_md(checks, kits):
                 v = c.values
                 p1 = '' if 'null_pass1_db' not in v else f"{_fmt(v['null_pass1_db'], 1)} ({v['shift_pass1']:+d})"
                 p2 = '' if 'null_pass2_db' not in v else (f"{_fmt(v['null_pass2_db'], 1)}" + (f" ({v['shift_pass2']:+d})" if 'shift_pass2' in v else ''))
-                lines.append(f"| {c.group}: {c.name} | {p1} | {p2} | {_fmt(v.get('worst_band'))} | {_fmt(v.get('level_db'))} | {verdict(c.ok)} |")
+                extra = f" ({v['clicks']} clicks)" if 'clicks' in v else ''
+                lines.append(f"| {c.group}: {c.name}{extra} | {p1} | {p2} | {_fmt(v.get('worst_band'))} | {_fmt(v.get('level_db'))} | {verdict(c.ok)} |")
                 if 'squelch_ticks' in v:
                     for t in v['squelch_ticks']:
                         lines.append(f"| ↳ squelch tick 16th {t['16th']} | | | sub {t['sub_db']:+.1f} dB ({t['sub_got_dbfs']:.1f} dBFS) | full {t['full_db']:+.1f} dB | info |")
@@ -657,7 +764,7 @@ def main(argv=None):
     ap.add_argument('--content', help='the content folder (default: $WUBANSIA_CONTENT_DIR)')
     ap.add_argument('--fresh', action='store_true', help='render everything again')
     ap.add_argument('--out', default='build/v0.1-fidelity')
-    ap.add_argument('--only', action='append', choices=('mix', 'dry', 'lane', 'song', 'low', 'multisample', 'cpu'))
+    ap.add_argument('--only', action='append', choices=GROUPS)
     a = ap.parse_args(argv)
     root = Path(__file__).resolve().parents[2]
     kits = a.kit or list(KITS)
@@ -672,7 +779,7 @@ def main(argv=None):
             problems = ensure(a.groovecore, kit, a.renders, root, a.content, a.fresh)
             for p in problems:
                 print('compare_render:', p, file=sys.stderr)
-        checks += run_kit(kit, a.renders, root, tuple(a.only or ('mix', 'dry', 'lane', 'song', 'low', 'multisample', 'cpu')))
+        checks += run_kit(kit, a.renders, root, tuple(a.only or GROUPS))
     path = write_report(checks, kits, a.out)
     failed = [c for c in checks if c.ok is False]
     print(f'{len(failed)} failing of {sum(c.ok is not None for c in checks)} gated checks: {path}')
