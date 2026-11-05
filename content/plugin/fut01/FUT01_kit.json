@@ -2989,7 +2989,7 @@
       "id": "air_pad_fsm9",
       "name": "Air Pad F#m9",
       "lane": "chords",
-      "mix_channel": "stab",
+      "mix_channel": "pad",
       "mode": "sustain_loop",
       "align": "start",
       "attack_us": 2000,

@@ -125,8 +125,8 @@ KICK_AB = {'FUT01': ('KickSplit', 'KickGarage')}   # drum note 36's A and B (con
 # P3's mix channels (content/plugin/<kit>/<KIT>_mix.json): {id: lane}
 MIX_CHANNELS = {
     'FUT01': {'kick': 'kick', 'bass': 'bass', 'bass_organ': 'bass', 'clap': 'snare', 'rim': 'perc', 'hat_c': 'hats',
-              'hat_o': 'hats', 'tamb': 'perc', 'perc': 'perc', 'stab': 'chords', 'pluck': 'lead', 'fill': 'fx',
-              'vsynth': 'vox', 'acc_rev': 'accents', 'acc_up': 'accents', 'acc_hit': 'accents',
+              'hat_o': 'hats', 'tamb': 'perc', 'perc': 'perc', 'stab': 'chords', 'pad': 'chords', 'pluck': 'lead',
+              'fill': 'fx', 'vsynth': 'vox', 'acc_rev': 'accents', 'acc_up': 'accents', 'acc_hit': 'accents',
               'acc_warp': 'accents'},
     'FUT02': {'kick': 'kick', 'clap': 'snare', 'hat': 'hats', 'zap': 'perc', 'bass': 'bass', 'glide': 'bass',
               'pad': 'chords', 'arp': 'lead', 'fill': 'fx', 'vox': 'vox', 'acc_laser': 'accents',
@@ -142,7 +142,7 @@ MIX_CHANNELS = {
 MIX = {
     'FUT01': dict(drums={'KickGarage': 'kick', 'KickSplit': 'kick', 'ClapGarage': 'clap', 'RimShot': 'rim',
                          'HatClosed': 'hat_c', 'HatOpen': 'hat_o', 'Tambourine': 'tamb', 'AlloyHit': 'perc'},
-                  channels={1: 'bass', 2: 'pluck', 4: 'stab', 5: 'vsynth', 11: 'bass_organ', 12: 'pluck', 13: 'stab'},
+                  channels={1: 'bass', 2: 'pluck', 4: 'stab', 5: 'vsynth', 11: 'bass_organ', 12: 'pluck', 13: 'pad'},
                   accents={'ReverseStab': 'acc_rev', 'NoiseUplifter': 'acc_up', 'OrganHit': 'acc_hit',
                            'WarpStab': 'acc_warp', None: 'acc_hit'},
                   fx='fill', chops='vsynth'),
