@@ -781,3 +781,68 @@ TEST_CASE ("P0's synthetic kit's four files build: sorted notes, lengths, sectio
                 CHECK (((n.pos + n.preroll) % 480000 + 480000) % 480000 != 240000 + 29000);
     }
 }
+
+TEST_CASE ("buildSliceThrough pairs each slice note with its twin and keeps the milliticks to the twin's end", "[timeline][phrase]")
+{
+    auto make = [] (std::int64_t pos, std::int64_t len, int key, std::int16_t phrase, std::int16_t slice, std::int32_t preroll,
+                    std::uint8_t flags = 0) {
+        Note n;
+        n.pos = pos;
+        n.len = len;
+        n.channel = 0;
+        n.key = static_cast<std::uint8_t> (key);
+        n.velocity = 100;
+        n.phrase = phrase;
+        n.slice = slice;
+        n.preroll = preroll;
+        n.flags = flags;
+        return n;
+    };
+
+    SECTION ("a song: the slice starts its lead before the twin's onset")
+    {
+        Timeline t;
+        t.length = 4 * kMilliticksPerBar;
+        t.notes = {
+            make (900000, 2000000, 40, 0, 3, 60000), // 0: slice 3, onset 960000
+            make (960000, 480000, 40, 0, -1, 0), // 1: its twin
+            make (960000, 480000, 41, 0, 4, 0), // 2: a slice whose key no twin has
+            make (1200000, 100000, 40, 0, -1, 0, NoteFlag::held), // 3: a note the slice holds: no twin
+            make (1200000, 300000, 40, 0, 5, 0), // 4: a slice whose only match is held: no entry
+            make (1920000, 240000, 40, -1, -1, 0), // 5: an ordinary note
+        };
+        buildSliceThrough (t);
+        REQUIRE (t.sliceThrough.size() == 1u);
+        CHECK (t.sliceThrough[0].note == 0u);
+        CHECK (t.sliceThrough[0].through == 960000 + 480000 - 900000); // the twin's end, from the slice's pos
+
+        t.sliceThrough.push_back ({ 9, 9 });
+        buildSliceThrough (t);
+        CHECK (t.sliceThrough.size() == 1u); // replaced, not appended
+    }
+
+    SECTION ("a loop: a slice placed in the cycle before (pos wrapped to the end, preroll unwrapped)")
+    {
+        Timeline t;
+        t.length = kLoopLength;
+        t.loops = true;
+        t.notes = {
+            make (0, 240000, 40, 0, -1, 0), // 0: the twin, on the loop's first 16th
+            make (480000, 240000, 42, 0, -1, 0), // 1: another twin
+            make (470000, 300000, 42, 0, 1, 10000), // 2: its slice, 10 ticks early
+            make (kLoopLength - 9, 400000, 40, 0, 0, 9), // 3: slice 0, 9 milliticks before the loop
+        };
+        buildSliceThrough (t);
+        REQUIRE (t.sliceThrough.size() == 2u);
+        CHECK (t.sliceThrough[0].note == 2u);
+        CHECK (t.sliceThrough[0].through == 10000 + 240000);
+        CHECK (t.sliceThrough[1].note == 3u);
+        CHECK (t.sliceThrough[1].through == 9 + 240000);
+    }
+
+    SECTION ("the builder runs it: no phrases, no entries")
+    {
+        const auto t = build (synLoopSmf(), synManifest(), synMix(), 15360);
+        CHECK (t.sliceThrough.empty());
+    }
+}

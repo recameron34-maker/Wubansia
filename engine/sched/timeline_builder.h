@@ -35,6 +35,7 @@
 // 8. annotatePhrases (P6, sched/phrase_match.h).
 // 9. The chase list: notes longer than a beat, notes pre-roll moved earlier, and phrase notes. After
 //    a start or a jump the scheduler starts them mid-sample.
+// 10. Timeline::sliceThrough (buildSliceThrough below): each slice note paired with its twin.
 //
 // Notes that no keymap entry plays (channel 3, the voicing; channel 9; unmapped keys) are left out:
 // nothing would ever play them.
@@ -61,6 +62,14 @@ namespace wubansia::engine
     // "smf: <the reader's error>" or "smf: 480 ticks per quarter; the content has 960".
     [[nodiscard]] util::Result<Timeline> buildTimeline (std::span<const std::uint8_t> smf, const KitManifest& kit,
         const MixConfig& mix, TimelineOptions options);
+
+    // Step 10: pairs each slice note (phrase >= 0, slice >= 0) with its twin, the matched note it slices
+    // (phrase >= 0, slice < 0, not held; the same channel and key; the same onset, pos + preroll, floorMod
+    // in a loop), and lists in Timeline::sliceThrough, by note index, the milliticks from the slice note's
+    // pos to its twin's end. The onsets being equal, that is slice.preroll - twin.preroll + twin.len,
+    // however either position wrapped. A slice note with no twin, or whose twin ends before it starts, has
+    // no entry. Replaces whatever sliceThrough held.
+    void buildSliceThrough (Timeline& timeline);
 
     // The steps' arithmetic, for the tests and the phrase matcher.
 

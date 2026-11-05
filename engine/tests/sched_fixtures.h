@@ -727,6 +727,14 @@ namespace p7
 
         void setLaneGains (const std::array<float, kLanes>& gains) noexcept { laneGains = gains; }
 
+        double tempo = 0.0; // the last setTempo ()
+        int tempoCalls = 0;
+        void setTempo (double bpm) noexcept
+        {
+            tempo = bpm;
+            ++tempoCalls;
+        }
+
         static float impulse (const NoteOn& n) noexcept
         {
             return 0.01f * static_cast<float> (n.instrument + 1) + 0.0001f * static_cast<float> (n.key)
