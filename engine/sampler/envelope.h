@@ -86,7 +86,6 @@ namespace wubansia::engine
             fading = false;
             fadeFrom = 1.0;
             over = false;
-            last = attacking ? 0.0 : 1.0;
         }
 
         // The release starts at the next value (whose gain is 1 x the rest).
@@ -154,7 +153,6 @@ namespace wubansia::engine
                 if (fadeRamp.done())
                     over = true;
             }
-            last = g;
             return g;
         }
 
@@ -164,8 +162,18 @@ namespace wubansia::engine
         // Neither attacking, releasing nor fading: next () would give 1 until an event changes that.
         bool isIdle() const noexcept { return ! attacking && ! releasing && ! fading && ! over; }
 
-        // The last gain next () gave: the voice's level for choosing what to steal.
-        double level() const noexcept { return last; }
+        // The voice's level for choosing what to steal: the release and the fade where they are now, the
+        // attack counted as done (a voice that has just started is heading for full level). It depends on
+        // the envelope's state alone, so it is the same however the samples were split into pieces.
+        double level() const noexcept
+        {
+            if (over)
+                return 0.0;
+            double g = releasing ? 0.5 + 0.5 * releaseRamp.cosine() : 1.0;
+            if (fading)
+                g *= fadeValue();
+            return g;
+        }
 
     private:
         double fadeValue() const noexcept
@@ -179,7 +187,6 @@ namespace wubansia::engine
         CosineRamp releaseRamp;
         CosineRamp fadeRamp;
         double fadeFrom = 1.0;
-        double last = 1.0;
         FadeCurve fadeCurve = FadeCurve::cos2;
         bool attacking = false;
         bool releasing = false;

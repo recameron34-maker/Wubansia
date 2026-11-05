@@ -28,17 +28,28 @@
 //   part-way in, a shorter one starts late.
 // - Chokes: a note-on of a `chokes` (or `both`) instrument fades every sounding voice of its group's
 //   `choked` (or `both`) instruments over that instrument's fade_us, linear or cos^2, from the note-on.
-// - mono: one held voice per instrument. A note-on while it is held is legato: the voice keeps its zone,
-//   layer and file and moves to the new key's pitch, and its velocity gain to the new note's, along the
-//   glide (a raised cosine over us, or dip_us for NoteOn::dip; an exponential with time constant us; a
-//   straight line over us; none: at once), in semitones. A released voice rings out under the next one.
+//   (FUT02-04's hat lanes do the same; FUT01's choked_lane ends its 5 ms fade on the closed hat, which
+//   would need the next note in advance, so FUT01's open hats ring 5 ms longer here.)
+// - mono: one held voice per instrument and source. A note-on while it is held is legato: the voice
+//   keeps its zone, layer and file and moves to the new key's pitch, and its velocity gain to the new
+//   note's, along the glide (a raised cosine over us, or dip_us for NoteOn::dip; an exponential with time
+//   constant us; a straight line over us; none: at once), in semitones. A released voice rings out under
+//   the next one.
 // - restrike_continues: a note-on on the very sample its own voice was released (the note before ended
 //   there), with startFrame 0, takes the voice back instead of starting another: no new attack.
 // - layered_with: every note-on also starts the layered instrument on the same key, released with it.
-// - 64 voices. A note-on with none free steals the oldest released voice (by start), else the quietest,
-//   which fades out over 2 ms in a slot of its own while the new note starts at once.
+// - Chase (NoteOn::startFrame): the voice starts where its note is now, fading in over at least 5 ms.
+// - 64 voices. A note-on with none free steals the oldest released voice (by start; released: its key is
+//   up or it is fading out), else the quietest, which fades out over 2 ms in a slot of its own while the
+//   new note starts at once.
 // - Reads never leave the file: frames before 0 or past the end read as silence (Hermite: the
 //   recipe's edge, the first frame, before 0). Mono files feed both sides at unity.
+// - Phrase notes (slice >= 0) go to the phrase voices (P6): a voice playing the note's kit, phrase and
+//   source, and not stopping, reads on (continueWith); else a free voice starts it. fadeOut () and
+//   fadeKit () stop phrase voices too, and a stopping voice takes no more notes, so after a jump the chased
+//   note starts afresh while the old one fades. With all 12 busy, a stopping one (the least fade left),
+//   else the oldest, is stolen: it fades over 2 ms in a slot of its own while the new note starts; the
+//   steal counts in droppedEvents (). Note-offs never reach them: a stem has its own lengths.
 // - Interpolation: a copy where the voice's ratio is exactly 1; the 16-tap polyphase sinc
 //   (sinc_bank.h), or 4-point Hermite (hermite.h) where the instrument asks for it. The ratio is
 //   48000 / rate x 2 ^ (semitones / 12).
@@ -99,7 +110,8 @@ namespace wubansia::engine
     public:
         static constexpr int kVoices = 64; // multisample voices sounding at once
         static constexpr int kFadeSlots = 16; // where stolen voices fade out
-        static constexpr int kPhraseVoices = 8;
+        static constexpr int kPhraseVoices = 12; // phrase voices sounding at once (P6's are about 2 KB each)
+        static constexpr int kPhraseFadeSlots = 4; // where stolen phrase voices fade out
         static constexpr int kMaxEvents = 1024; // queued events per render () call; more are dropped
         static constexpr std::int32_t kStealFadeUs = 2000;
         static constexpr std::int32_t kKitFadeUs = 5000; // fadeKit ()
@@ -149,8 +161,13 @@ namespace wubansia::engine
         // Sounding voices after the last render (): multisample voices, fading slots and phrase voices.
         int activeVoices() const noexcept;
 
-        // Events dropped because the queue was full, since prepare ().
+        // Events dropped because the queue was full, and phrase voices stolen with every phrase slot busy,
+        // since prepare ().
         int droppedEvents() const noexcept;
+
+        // A bit per Lane (laneBit) for each phrase lane playing its recording now: a busy phrase voice that
+        // isn't stopping (Telemetry::phraseRecorded). After the last render ().
+        std::uint32_t phraseLanes() const noexcept;
 
     private:
         struct Impl;
