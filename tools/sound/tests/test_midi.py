@@ -843,6 +843,99 @@ class TestExtendedMix(unittest.TestCase):
                     self.assertLessEqual({key for *_, key, _ in t['notes']}, allowed[name], (kit, v, name))
 
 
+class TestLineRules(unittest.TestCase):
+    """Line options a kit's own form uses, on a kit's real PARTS with a scratch form (one 32-bar drop): vox-channel
+    phrases, a lead's call resting in the fill bar where the loop's lead rests there, phrases resting from the kit's
+    fill start when a line asks (phrases_rest), and what the READMEs and regions.json say of a line's phrases."""
+    CHOIR = 'Vox choir chords, the velocity picks the vowel'
+    STAB = 'Laser stab riff, Dm9 and B-flat maj9'
+
+    @staticmethod
+    def mix(kit, lines, variant, **parts):
+        """The scratch form's mix (PARTS overridden by `parts`): (regions.json, its tracks by name, its README)."""
+        k = Mi.kit_of(kit)
+        scratch = Mi.Kit(kit, k.K, {**k.P, **parts, 'form': (Mi.section('Drop', 'drop', lines),)}, items=k.items)
+        made = Mi.extended_of(scratch, variant)
+        R = json.loads(made['regions.json'])
+        return R, {t['name']: t for t in parse(made[R['file']])[2][1:]}, made['README.md'].decode()
+
+    @staticmethod
+    def notes(tracks, name, line):
+        """A track's notes (on, off, ch, key, vel) in the scratch form's nth line, on ticks from the line's start."""
+        lo = line * 8 * BAR
+        return [(on - lo, off - lo, ch, key, vel) for on, off, ch, key, vel in tracks.get(name, {'notes': []})['notes']
+                if lo <= on < lo + 8 * BAR]
+
+    def test_a_vox_phrase_plays_in_the_vox_mix_only_and_in_place_of_the_vox_mode(self):
+        """FUT02's vox choir chords (channel 5) on a line with a vox mode: in the vox mix the Vox track plays the
+        choir's notes alone (the riff's would cut its held chords on the mono vox line); the no-vox mix has no vox."""
+        k = Mi.kit_of('FUT02')
+        choir = next(ph for ph in k.phrases if ph['name'] == self.CHOIR)
+        lines = (Mi.line(Mi.EVERYTHING, vox='riff', phrases=(self.CHOIR,)), Mi.line(Mi.EVERYTHING, vox='riff'),
+                 Mi.line(Mi.GROOVE), Mi.line(Mi.GROOVE))
+        R, tracks, _ = self.mix('FUT02', lines, 'vox')
+        got = self.notes(tracks, 'Vox', 0)
+        want = sorted({(at('FUT02', n[0] + 64 * r), n[1]) for r in (0, 1) for n in choir['notes']})
+        self.assertEqual(want, sorted({(on, key) for on, _, _, key, _ in got}))
+        self.assertTrue(self.notes(tracks, 'Vox', 1))           # the next line sings its riff
+        R, tracks, _ = self.mix('FUT02', lines, 'novox')
+        self.assertNotIn('Vox', tracks)
+
+    def test_the_leads_call_rests_in_the_fill_bar_where_the_loops_lead_does(self):
+        """On a fill line the lead's skeleton (here its whole phrase, so its second bar falls in the fill bar) and its
+        call rest from the fill bar, a note held into it cut there, where the loop's lead rests there (FUT02's arp,
+        context.ARP_REST); FUT01's pluck plays on through its fill bar, as its loop does; a line with no fill plays its
+        last bar."""
+        lines = (Mi.line(Mi.EVERYTHING, lead='skeleton', end='fill'), Mi.line(Mi.EVERYTHING, lead='skeleton'),
+                 Mi.line(Mi.EVERYTHING, lead='call', end='fill'), Mi.line(Mi.GROOVE))
+        for kit, rests in (('FUT02', True), ('FUT01', False)):
+            lead = Mi.kit_of(kit).P['lead']
+            for v in VARIANTS:
+                _, tracks, _ = self.mix(kit, lines, v, lead={**lead, 'skeleton': lead['notes']})
+                with self.subTest(kit=kit, variant=v):
+                    self.assertEqual(rests, not [n for n in self.notes(tracks, 'Lead', 0) if n[0] >= 7 * BAR])
+                    self.assertTrue([n for n in self.notes(tracks, 'Lead', 1) if n[0] >= 7 * BAR])
+                    if rests:
+                        for line in (0, 2):
+                            self.assertFalse([n for n in self.notes(tracks, 'Lead', line) if n[1] > 7 * BAR])
+
+    def test_phrases_rest_from_the_fill_start_only_when_a_line_asks(self):
+        """phrases_rest=True on a fill line: the line's phrases rest from the kit's fill start (FUT02's laser fill
+        takes the whole last bar; FUT01's glitch fill plays from its 16th 12), a note held over it cut there. Without
+        it, the phrases play on under the fill (FUT01's loop plays its lead and bass under its fill)."""
+        for kit, phrase, start in (('FUT02', self.STAB, 0), ('FUT01', 'Organ riff', 12)):
+            lines = (Mi.line(Mi.EVERYTHING, phrases=(phrase,), phrases_rest=True, end='fill'),
+                     Mi.line(Mi.EVERYTHING, phrases=(phrase,), end='fill'), Mi.line(Mi.GROOVE), Mi.line(Mi.GROOVE))
+            k = Mi.kit_of(kit)
+            track = Mi.phrase_track(k, next(ph for ph in k.phrases if ph['name'] == phrase))
+            _, tracks, _ = self.mix(kit, lines, 'vox')
+            rest = (7 * 16 + start) * 240
+            with self.subTest(kit=kit):
+                rested = self.notes(tracks, track, 0)
+                self.assertTrue(rested)
+                self.assertFalse([n for n in rested if n[0] >= rest or n[1] > rest])
+                if start:
+                    self.assertTrue([n for n in rested if 7 * BAR <= n[0] < rest])
+                self.assertTrue([n for n in self.notes(tracks, track, 1) if n[0] >= rest])
+
+    def test_the_readme_and_regions_name_the_phrases_that_play(self):
+        """A vox-channel phrase's line reads 'vox (the vox choir chords)', not the vox mode it replaces; regions.json
+        lists only the phrases that play in its variant (no choir in the no-vox mix) and no vox mode a phrase
+        replaced."""
+        lines = (Mi.line(Mi.EVERYTHING, vox='riff', phrases=(self.CHOIR, self.STAB)), Mi.line(Mi.GROOVE),
+                 Mi.line(Mi.GROOVE), Mi.line(Mi.GROOVE))
+        R, _, text = self.mix('FUT02', lines, 'vox')
+        info = R['sections'][0]['lines'][0]
+        self.assertEqual([self.CHOIR, self.STAB], info['phrases'])
+        self.assertNotIn('vox', info)
+        self.assertIn('vox (the vox choir chords)', text)
+        self.assertNotIn('vox (riff)', text)
+        R, _, text = self.mix('FUT02', lines, 'novox')
+        info = R['sections'][0]['lines'][0]
+        self.assertEqual([self.STAB], info['phrases'])
+        self.assertNotIn('choir', text)
+
+
 class TestSchema(unittest.TestCase):
     """A kit's PARTS (tools/sound/README.md, 'MIDI'): the required fields alone export a complete kit."""
 
