@@ -199,72 +199,71 @@ DRUMS = Mi.DRUMS                    # kick, snare (the clap), hats, perc
 GROOVE = DRUMS + ' bass'
 ROLL = dict(lane='snare', bars=1, every=((1, 2),), last=1, ramp=(0.45, 1.0))   # the clap: 8ths, then 16ths
 SWITCH_CANDY = (Hit(22, 'VoxSynthStab', 2), Hit(86, 'VoxSynthStab', 2))         # 16th 6 of the line's bars 2 and 6
-line, section = Mi.line, Mi.section
 FORM = (
     # drums to mix in on: the off-beat open hats over the kick and the tambourine, the shuffle, the clap, busier hats
-    section('Intro', 'intro', (
-        line('kick hats perc', hats='thin', end='turn', turn='thin'),
-        line('kick hats perc', end='turn', turn='gap'),
-        line(DRUMS, end='turn'),
-        line(DRUMS, hats='busy', end='turn', turn='flam'))),
+    Mi.section('Intro', 'intro', (
+        Mi.line('kick hats perc', hats='thin', end='turn', turn='thin'),
+        Mi.line('kick hats perc', end='turn', turn='gap'),
+        Mi.line(DRUMS, end='turn'),
+        Mi.line(DRUMS, hats='busy', end='turn', turn='flam'))),
     # the organ bass's Low line, then the stabs, the pluck's call (the alloy hit moving), the vox answering it over
     # busier hats
-    section('Groove', 'groove', (
-        line(GROOVE, bass='Low', end='turn'),
-        line(GROOVE + ' chords', bass='Low', end='fill', into='swell'),
-        line(GROOVE + ' chords lead', bass='Low', lead='call', drums='alloy', end='turn', turn='flam', stab=True),
-        line(GROOVE + ' chords lead vox', bass='Low', hats='busy', lead='call', vox='answer', cue='Vox', end='fill',
-             into='uplift'))),
+    Mi.section('Groove', 'groove', (
+        Mi.line(GROOVE, bass='Low', end='turn'),
+        Mi.line(GROOVE + ' chords', bass='Low', end='fill', into='swell'),
+        Mi.line(GROOVE + ' chords lead', bass='Low', lead='call', drums='alloy', end='turn', turn='flam', stab=True),
+        Mi.line(GROOVE + ' chords lead vox', bass='Low', hats='busy', lead='call', vox='answer', cue='Vox', end='fill',
+                into='uplift'))),
     # no kick: the riff over the pad (the loop's accents in its second half), then the stabs, the pluck's call and the
     # off-beat hats rising into the fill
-    section('Break', 'break', (
-        line('pad vox', vox='riff', cue='Vox', downbeat='sweep', accents='alternate'),
-        line('hats pad chords lead vox', hats='thin', rise=('hats', 0.4, 1.0), lead='call', vox='riff',
-             accents='lead-in', end='fill'))),
+    Mi.section('Break', 'break', (
+        Mi.line('pad vox', vox='riff', cue='Vox', downbeat='sweep', accents='alternate'),
+        Mi.line('hats pad chords lead vox', hats='thin', rise=('hats', 0.4, 1.0), lead='call', vox='riff',
+                accents='lead-in', end='fill'))),
     # UK garage: the 2-step kick, the off-beat open hats and the tambourine on, the bass out, the stabs swelling, the
     # vox's call over the riser; the clap in 8ths, then 16ths up to the whole glitch fill on beat 3
-    section('Build', 'build', (
-        line('kick snare hats perc chords vox', hats='thin', drums='tamb', vox='call', rise=('Chords', 0.55, 1.0),
-             cue='Riser', end='fill', fill='GlitchFillLift', roll=ROLL),)),
+    Mi.section('Build', 'build', (
+        Mi.line('kick snare hats perc chords vox', hats='thin', drums='tamb', vox='call', rise=('Chords', 0.55, 1.0),
+                cue='Riser', end='fill', fill='GlitchFillLift', roll=ROLL),)),
     # the warp bass's Bounce and the whole vox riff from the sub drop, the pluck out; then its call under the riff; the
     # vox resting while the pluck plays its phrase over busy hats; the call and the answer, the drums out in bar 120
-    section('Drop', 'drop', (
-        line(GROOVE + ' chords vox', vox='riff', cue='Vox', accents='loop', downbeat='impact', end='turn'),
-        line(GROOVE + ' chords lead vox', lead='call', vox='riff', accents='loop', end='fill'),
-        line(GROOVE + ' chords lead', hats='busy', drums='rims', accents='alternate', end='turn', turn='gap'),
-        line(GROOVE + ' chords lead vox', lead='call', vox='answer', cue='Vox', drums='alloy', accents='loop',
-             end='drop', into='swell'))),
+    Mi.section('Drop', 'drop', (
+        Mi.line(GROOVE + ' chords vox', vox='riff', cue='Vox', accents='loop', downbeat='impact', end='turn'),
+        Mi.line(GROOVE + ' chords lead vox', lead='call', vox='riff', accents='loop', end='fill'),
+        Mi.line(GROOVE + ' chords lead', hats='busy', drums='rims', accents='alternate', end='turn', turn='gap'),
+        Mi.line(GROOVE + ' chords lead vox', lead='call', vox='answer', cue='Vox', drums='alloy', accents='loop',
+                end='drop', into='swell'))),
     # speed garage: the 4x4 kick and clap, the Speed line between the kicks, the vox synth stab as ear candy, a rave
     # stab into the second line, where the stabs come back over busy hats
-    section('Switch-up', 'switch', (
-        line(GROOVE, drums='4x4', bass='Speed', downbeat='impact', end='turn', turn='4x4',
-             hits=SWITCH_CANDY + (Hit(126, 'RaveStab', 2),)),
-        line(GROOVE + ' chords', drums='4x4', bass='Speed', hats='busy', end='fill', hits=SWITCH_CANDY))),
+    Mi.section('Switch-up', 'switch', (
+        Mi.line(GROOVE, drums='4x4', bass='Speed', downbeat='impact', end='turn', turn='4x4',
+                hits=SWITCH_CANDY + (Hit(126, 'RaveStab', 2),)),
+        Mi.line(GROOVE + ' chords', drums='4x4', bass='Speed', hats='busy', end='fill', hits=SWITCH_CANDY))),
     # the organ riff over the pad's slower harmony (F#m9 for 2 bars, Bm9 for 2), then the stabs on it and the hats
     # rising under the riser into the loop's fill on beat 4 (the whole fill's opening F#4 would rub on the riff's G#4)
-    section('Break 2', 'break', (
-        line('pad', chords='slow', phrases=('Organ riff',), downbeat='sweep'),
-        line('hats pad chords', chords='slow', hats='thin', rise=('hats', 0.4, 1.0), phrases=('Organ riff',),
-             cue='Riser', end='fill'))),
+    Mi.section('Break 2', 'break', (
+        Mi.line('pad', chords='slow', phrases=('Organ riff',), downbeat='sweep'),
+        Mi.line('hats pad chords', chords='slow', hats='thin', rise=('hats', 0.4, 1.0), phrases=('Organ riff',),
+                cue='Riser', end='fill'))),
     # the organ riff as the new top line, the vox answering it; the warp riff under the riff and the pluck's call; the
     # organ riff alone over the e-piano stab rhythm; the vox calling, the pluck answering; then the organ bass alone
     # with the drums, stripping into the outro
-    section('Drop 2', 'drop2', (
-        line(GROOVE + ' chords vox', hats='busy', drums='alloy2', vox='answer', cue='Vox', phrases=('Organ riff',),
-             accents='loop', downbeat='impact', end='turn'),
-        line(DRUMS + ' chords lead vox', hats='busy', lead='call', vox='riff', phrases=('Warp riff',),
-             accents='loop', end='fill'),
-        line(GROOVE + ' chords', drums='rims', phrases=('Organ riff', 'E-piano stab rhythm'), accents='alternate',
-             end='turn', turn='flam'),
-        line(GROOVE + ' chords lead vox', hats='busy', lead='answer', vox='call', cue='Vox', accents='loop',
-             end='fill'),
-        line(GROOVE, bass='Low', end='turn', turn='gap'))),
+    Mi.section('Drop 2', 'drop2', (
+        Mi.line(GROOVE + ' chords vox', hats='busy', drums='alloy2', vox='answer', cue='Vox', phrases=('Organ riff',),
+                accents='loop', downbeat='impact', end='turn'),
+        Mi.line(DRUMS + ' chords lead vox', hats='busy', lead='call', vox='riff', phrases=('Warp riff',),
+                accents='loop', end='fill'),
+        Mi.line(GROOVE + ' chords', drums='rims', phrases=('Organ riff', 'E-piano stab rhythm'), accents='alternate',
+                end='turn', turn='flam'),
+        Mi.line(GROOVE + ' chords lead vox', hats='busy', lead='answer', vox='call', cue='Vox', accents='loop',
+                end='fill'),
+        Mi.line(GROOVE, bass='Low', end='turn', turn='gap'))),
     # drums to mix out on, the percussion thinning while the kick and the shuffle carry on: busy hats and the rims on
     # the 'a', the alloy hit moving, the clap out under a lighter tambourine, then the tambourine alone
-    section('Outro', 'outro', (
-        line(DRUMS, hats='busy', drums='rims', end='turn', turn='gap'),
-        line(DRUMS, drums='alloy', end='turn', turn='flam'),
-        line('kick hats perc', drums='tamb8', end='turn'),
-        line('kick hats perc', drums='tamb', end='turn', turn='gap'))),
+    Mi.section('Outro', 'outro', (
+        Mi.line(DRUMS, hats='busy', drums='rims', end='turn', turn='gap'),
+        Mi.line(DRUMS, drums='alloy', end='turn', turn='flam'),
+        Mi.line('kick hats perc', drums='tamb8', end='turn'),
+        Mi.line('kick hats perc', drums='tamb', end='turn', turn='gap'))),
 )
 PARTS['form'] = FORM
