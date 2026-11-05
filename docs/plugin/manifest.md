@@ -257,8 +257,8 @@ because at the exact BPM a cycle isn't a whole number of samples. FUT03's is: 36
 |---|---|---|---|
 | `step` | integer | 0 to `cycle_16ths` − 1 | the 16th in the cycle where its note starts |
 | `key` | integer | 0-127 | its note's key; (`step`, `key`) is unique in a phrase |
-| `start` | integer | ≥ 0 | the first frame: the onset (`phrase.Grid.at(step)`) less `lead` |
-| `end` | integer | `start` + 1 to the shorter stem's frames; a looped stem's last slice up to frames + slice 0's `start` | the frame after the last (below, for a wrapping slice) |
+| `start` | integer | 0 to the stem's frames − 1 | the first frame: the onset (`phrase.Grid.at(step)`) less `lead`; modulo the stem's frames in a looped stem (below) |
+| `end` | integer | `start` + 1 to the shorter stem's frames; in a looped stem, up to `start` + frames | the frame after the last (below, for a wrapping slice) |
 | `fade` | integer | `start` to `end` | where it starts fading when no slice follows it (the recipe's mute edge) |
 | `lead` | integer | 0-48 000 | frames of the slice before its onset |
 | `holds` | array of integers | 0-8 keys, each 0-127 | the notes after the slice's own that it plays itself (below); `[]` for most slices |
@@ -272,12 +272,15 @@ Each held note starts after the slice's note and before the next note the phrase
 The matcher gives held notes no sound of their own: the stem already has them. A note that fits neither a slice nor
 a hold stays on the multisample.
 
-A looped stem (one the phrase plays cycle after cycle) may hold its last slice's tail at its start. That slice wraps
-through the stem's end:
-- its `end`, and its `fade`, may exceed the stem's frames, up to frames + slice 0's `start`;
-- the voice reads it modulo the stem's length;
-- the last slice owns the wrapped tail, and slice 0 starts at its own pre-roll (its onset less its `lead`);
-- the last slice continues into the next cycle's slice 0 when its `end` − frames == slice 0's `start`.
+A looped stem is one the phrase plays cycle after cycle, so it holds what wraps round its cycle:
+- A looped stem is read modulo its frames. A slice's start is its onset less its lead, modulo the stem's frames.
+  Its end and fade may run past the stem's frames, up to start + frames.
+- The last slice owns the tail that wraps to the stem's start. It ends where the next cycle's slice 0 starts:
+  frames + slice 0's start, or slice 0's start when slice 0 wraps.
+- Slice 0 starts at its own pre-roll. Where that is before its cycle's start, it starts at frames + onset − lead and
+  wraps through the stem's end (FUT02's riff twice: [352062, 368899), lead 2400).
+- A slice continues into the next one (the last into the next cycle's slice 0) when its end equals that slice's
+  start, modulo the stem's frames.
 
 `ride` has the keys `cc74` and `cc71`, in that order. Each is an array of either 0 or `cycle_16ths` × 4 integers,
 each 0-127.
