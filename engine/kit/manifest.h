@@ -92,6 +92,7 @@ namespace wubansia::engine
         std::int32_t attackUs = 0;
         std::int32_t releaseUs = 0;
         std::int32_t gainMdb = 0;
+        std::int64_t startFrames = 0;
         VelocityLaw velocityLaw = VelocityLaw::layerOnly;
         Interp interp = Interp::sinc;
         bool mono = false;
@@ -136,6 +137,7 @@ namespace wubansia::engine
         std::int64_t end = 0;
         std::int64_t fade = 0;
         std::int32_t lead = 0;
+        std::int32_t hits = 1;
 
         friend bool operator== (const SliceEntry&, const SliceEntry&) = default;
     };
