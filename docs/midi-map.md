@@ -59,10 +59,12 @@ instrument, and the sound on each key of channels 6, 7 and 8.
   before is held 12 ticks into it, so a mono synth set to legato glides there. A glide inside one note (FUT03's rubber
   bass) is written the same way: the note, then its target slid into from the glide's start. FUT04's blip ratchets are
   retriggers a 16th / n apart.
-- **Velocity.** round(v x 127) for the recipe's velocity v, unless that would pick another sample layer than the
-  recipe picks from v (the nearest layer, the louder on a tie): then the integer nearest v x 127 that picks the
-  recipe's layer (FUT01's 0.9 kicks, halfway between its 0.8 and 1.0 layers, are 115, not 114). The exporter refuses
-  anything else. One-shots the recipes place by layer carry round(layer x 127); on the vox synths the velocity picks
+- **Velocity.** A velocity plays the layer nearest it by |velocity - round(layer x 127)|, the louder on a tie (Wubansia's
+  sampler; each kit's README lists every layer's velocity). The files write round(v x 127) for the recipe's velocity
+  v, unless that would play another layer than the recipe picks from v (the nearest layer, the louder on a tie), or
+  sits where reading velocity / 127 against the layers would: then the integer nearest v x 127 that plays the
+  recipe's layer both ways. FUT01's 0.9 kicks, halfway between its 0.8 and 1.0 layers, are 115, not 114; FUT01's and
+  FUT03's 0.3 ghost claps are 37, not 38 (as near 25 as 51). One-shots the recipes place by layer carry round(layer x 127); on the vox synths the velocity picks
   the vowel (FUT02: 64 'oh', 95 'ah', 127 'ee'; FUT04: 64 'oo', 127 'oh').
 - **End-aligned sounds** (reverse swells, risers, uplifters, sweeps, fills) end on their target: the note starts at
   the target less the sample's length at the kit's tempo and ends on the target, a bar or beat line. A plain sampler

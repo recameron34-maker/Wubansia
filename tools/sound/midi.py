@@ -25,8 +25,8 @@ its BPM) and key (FF 59) on the conductor track. Odd 16ths land round((swing - 0
 note-offs come first, then controllers, then note-ons; no note overlaps its own key; tracks end on a bar line. Gates
 are note lengths, and swing never runs a note into the next one on its track unless it was written to: where a note
 slides (a written glide), the note before is held SLIDE_TICKS into it, so a mono synth set to legato glides there.
-Velocities are round(v x 127) and must pick the layer the recipe picks from v (Kit.velocity refuses one that
-doesn't). End-aligned sounds end on their target, starting the sample's length (PARTS['frames']) before it. Filter
+Velocities are round(v x 127), moved to the nearest integer that plays the recipe's layer where that would not
+(written_velocity: the engine plays the layer whose round(layer x 127) is nearest, the louder on a tie). End-aligned sounds end on their target, starting the sample's length (PARTS['frames']) before it. Filter
 rides are CC74/CC71 every CC_STEP ticks while they move; a thrown note has CC91 and CC94 at 127 on its tick and back
 to 0 at its end.
 
@@ -91,15 +91,23 @@ def nearest_layer(layers, v):
     return min(range(len(layers)), key=lambda i: (abs(layers[i] - v), -i))
 
 
+def velocity_layer(layers, c):
+    """The layer Wubansia's sampler plays for a MIDI velocity c (the engine's integer rule, 0-based): the one whose
+    round(layer x 127), half up, is nearest c, the louder on a tie."""
+    return min(range(len(layers)), key=lambda i: (abs(c - math.floor(layers[i] * 127 + 0.5)), -i))
+
+
 def written_velocity(layers, v, where=''):
-    """A velocity 0-1 as MIDI's 1-127: round(v x 127), unless that picks another of the layers than v does; then the
-    integer nearest v x 127 that picks v's layer (FUT01's 0.9 kick, halfway between the 0.8 and 1.0 layers, which
-    the recipe plays on the louder: 115, where round() gives 114, the 0.8 layer's)."""
+    """A recipe's velocity 0-1 as MIDI's 1-127: round(v x 127), unless the engine's integer rule (velocity_layer) or
+    the float rule on velocity / 127 would play another of the layers than the recipe picks from v; then the integer
+    nearest v x 127 (the lower on a tie) that both play on the recipe's layer. FUT01's 0.9 kicks, halfway between the
+    0.8 and 1.0 layers (the recipe plays the louder): 115, where round() gives 114, the 0.8 layer's; FUT01's and
+    FUT03's 0.3 ghost claps (the recipe plays 0.2): 37, where 38 is as near 25 as 51 and the engine takes 51's."""
     vel = max(1, min(127, round(v * 127)))
     if not layers:
         return vel
     want = nearest_layer(layers, v)
-    ok = [c for c in range(1, 128) if nearest_layer(layers, c / 127) == want]
+    ok = [c for c in range(1, 128) if velocity_layer(layers, c) == want and nearest_layer(layers, c / 127) == want]
     if not ok:
         raise ValueError(f'{where}: no velocity picks layer {want + 1} of {layers}')
     return vel if vel in ok else min(ok, key=lambda c: (abs(c - v * 127), c))
@@ -559,9 +567,8 @@ class Kit:
         return it is not None and ch in (6, 7) and 'cut_end' in it.flags
 
     def velocity(self, ch, key, v):
-        """The MIDI velocity of the recipe's velocity v: round(v x 127), or where that would pick another layer than
-        the recipe picks from v (a velocity halfway between two layers: the recipe takes the louder), the integer
-        nearest v x 127 that picks the recipe's layer. Checked: the layer it picks is the recipe's."""
+        """The MIDI velocity of the recipe's velocity v on the note's instrument: written_velocity(), which plays the
+        recipe's layer under the engine's integer rule and the float rule alike."""
         return written_velocity(self.layers(ch, key), v, f'{self.kit}: channel {ch} key {key}')
 
     def frames(self, item, zone=None):
@@ -1585,8 +1592,8 @@ def layer_text(it, vowels=None):
         return 'one layer'
     parts = []
     for i, v in enumerate(it.layers):
-        parts.append(f'{round(v * 127)}' + (f" '{vowels[i]}'" if vowels else ''))
-    return 'layers at velocity ' + ', '.join(parts) + ' (the nearest layer plays, the louder on a tie)'
+        parts.append(f'{math.floor(v * 127 + 0.5)}' + (f" '{vowels[i]}'" if vowels else ''))
+    return 'layers at velocity ' + ', '.join(parts) + ' (a velocity plays the nearest, the louder on a tie)'
 
 
 def instrument_rows(k):
