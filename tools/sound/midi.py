@@ -1634,16 +1634,19 @@ def extended_of(k, variant):
     used = [t for t in k.tracks() if any(s['notes'].get(t) or s['ccs'].get(t) for s in secs)]
     title = k.title(f'extended mix, {VARIANT_NAME[variant]}')
     whole_name = f'{kit}_ExtendedMix_{VARIANT_NAME[variant]}_{total}bars.mid'
-    out, whole, marks = {}, {t: [] for t in used}, []
+    out, notes, ccs, marks = {}, {t: [] for t in used}, {t: [] for t in used}, []
     for s in secs:
-        tracks = section_tracks(k, s, s['bars'] * bar, used)
         sm = section_marks(s)
-        out[s['file']] = smf(k.conductor(f'{title}: {s["name"]}', sm), tracks, s['bars'] * bar)
+        out[s['file']] = smf(k.conductor(f'{title}: {s["name"]}', sm), section_tracks(k, s, s['bars'] * bar, used),
+                             s['bars'] * bar)            # a region: its notes stop on its last bar line
         off = (s['start_bar'] - 1) * bar
-        for name, events in tracks:
-            whole[name] += [(t + off, order, m) for t, order, m in events]
+        for name in used:
+            notes[name] += shifted(s['notes'].get(name, []), (s['start_bar'] - 1) * BAR)
+            ccs[name] += [(t + off, c, v) for t, c, v in s['ccs'].get(name, [])]
         marks += [(t + off, m) for t, m in sm]
-    out[whole_name] = smf(k.conductor(title, marks), list(whole.items()), total * bar)
+    # the whole mix from the plan's notes over all of it: a note held over a section line keeps its length
+    whole = [(name, k.events(name, notes[name], ccs[name], total * bar)) for name in used]
+    out[whole_name] = smf(k.conductor(title, marks), whole, total * bar)
     R = dict(kit=kit, title=K.TITLE, variant=variant, bpm=int(K.BPM), tempo_us=tempo_us(K.BPM), key=K.KEY,
              camelot=K.CAMELOT, swing_pm=round(K.SWING * 1000), ppq=PPQ, bars=total,
              length_ms=round(total * 240_000 / K.BPM), length=length(total, K.BPM), file=whole_name,
@@ -2029,8 +2032,9 @@ Set the project to {K.BPM:g} BPM in 4/4 first: every file carries the tempo, but
 dropped file.
 - **The whole mix:** drop `{R['file']}` on bar 1: a track per instrument, in the order above.
 - **Your own order:** drop the region files on bar lines, each where you want its section. A region starts on its first
-  downbeat and ends on its last bar line, so regions laid end to end play exactly like the whole mix. Every region has
-  the same tracks; if a DAW leaves an empty one out, move the clips under it onto the tracks of the same name.
+  downbeat and ends on its last bar line, so regions laid end to end play like the whole mix, except that a note held
+  over a section line there (a vox throw into a break, a long one-shot) stops on the line. Every region has the same
+  tracks; if a DAW leaves an empty one out, move the clips under it onto the tracks of the same name.
 - **Ableton Live:** drag the files into the Arrangement view: a file's tracks come in as clips on consecutive MIDI
   tracks. Clips keep the notes, not their channels: route each track to its instrument (`docs/midi-map.md`).
 - **Logic Pro:** File > Open on the whole-mix file brings its tempo, key and section markers with it (an import
