@@ -13,11 +13,6 @@
   "length": "6:54",
   "file": "FUT02_ExtendedMix_NoVox_224bars.mid",
   "note_names": "C4 = 60, as the sample names",
-  "basslines": {
-    "main": "Orbit",
-    "switch": "Orbit",
-    "drop2": "Relay"
-  },
   "tracks": [
     {
       "track": "Kick",
@@ -283,7 +278,13 @@
           "bass": "Orbit",
           "lead": "skeleton",
           "accents": "alternate",
-          "end": "fill"
+          "end": "fill",
+          "ride": {
+            "Lead": [
+              "hold",
+              12
+            ]
+          }
         },
         {
           "start_bar": 49,
@@ -301,7 +302,13 @@
           "bass": "Orbit",
           "lead": "skeleton",
           "accents": "alternate",
-          "end": "turn"
+          "end": "turn",
+          "ride": {
+            "Lead": [
+              "hold",
+              20
+            ]
+          }
         },
         {
           "start_bar": 57,
@@ -320,7 +327,14 @@
           "bass": "Orbit",
           "lead": "skeleton",
           "accents": "loop",
-          "end": "fill"
+          "end": "fill",
+          "ride": {
+            "Lead": [
+              "ramp",
+              20,
+              40
+            ]
+          }
         }
       ],
       "cues": [
@@ -358,7 +372,13 @@
             "accents"
           ],
           "lead": "call",
-          "accents": "loop"
+          "accents": "loop",
+          "ride": {
+            "Lead": [
+              "hold",
+              48
+            ]
+          }
         },
         {
           "start_bar": 73,
@@ -378,7 +398,14 @@
             "to_pm": 1000
           },
           "accents": "lead-in",
-          "end": "fill"
+          "end": "fill",
+          "ride": {
+            "Lead": [
+              "ramp",
+              48,
+              96
+            ]
+          }
         }
       ],
       "cues": [
@@ -423,7 +450,14 @@
           "hats": "thin",
           "bass": "Orbit",
           "lead": "phrase",
-          "end": "turn"
+          "end": "turn",
+          "ride": {
+            "Lead": [
+              "ramp",
+              0,
+              64
+            ]
+          }
         },
         {
           "start_bar": 89,
@@ -439,7 +473,14 @@
           "lead": "phrase",
           "roll": "snare",
           "roll_bars": 8,
-          "end": "fill"
+          "end": "fill",
+          "ride": {
+            "Lead": [
+              "ramp",
+              64,
+              127
+            ]
+          }
         }
       ],
       "cues": [
@@ -489,6 +530,7 @@
           "bass": "Orbit",
           "lead": "phrase",
           "accents": "loop",
+          "drums": "pingpong",
           "end": "turn"
         },
         {
@@ -528,6 +570,7 @@
           "phrases": [
             "Laser stab riff, Dm9 and B-flat maj9"
           ],
+          "drums": "pingpong",
           "end": "turn"
         },
         {
@@ -598,6 +641,7 @@
           "hats": "busy",
           "bass": "Orbit",
           "accents": "alternate",
+          "drums": "tresillo",
           "end": "turn"
         },
         {
@@ -616,7 +660,14 @@
           "bass": "Orbit",
           "lead": "skeleton",
           "accents": "alternate",
-          "end": "turn"
+          "drums": "tresillo",
+          "end": "turn",
+          "ride": {
+            "Lead": [
+              "hold",
+              24
+            ]
+          }
         }
       ],
       "cues": []
@@ -647,7 +698,13 @@
           ],
           "hats": "thin",
           "lead": "call",
-          "accents": "loop"
+          "accents": "loop",
+          "ride": {
+            "Lead": [
+              "hold",
+              64
+            ]
+          }
         },
         {
           "start_bar": 153,
@@ -722,6 +779,7 @@
           "phrases": [
             "Glass melody"
           ],
+          "drums": "tresillo",
           "end": "turn"
         },
         {
@@ -761,6 +819,7 @@
           "bass": "Relay",
           "lead": "call",
           "accents": "loop",
+          "drums": "pingpong",
           "end": "turn"
         },
         {
@@ -826,6 +885,7 @@
             "perc"
           ],
           "hats": "busy",
+          "drums": "pingpong",
           "end": "turn"
         },
         {
@@ -838,6 +898,7 @@
             "perc"
           ],
           "hats": "full",
+          "drums": "tresillo",
           "end": "turn"
         },
         {

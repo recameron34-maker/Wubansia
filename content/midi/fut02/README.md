@@ -27,8 +27,8 @@ integer nearest 130 BPM) and the key signature (FF 59: 1 flat, minor) on its fir
 | `FUT02_Phrase_VoxChoirChords_4bars.mid` | Vox choir chords, the velocity picks the vowel, on Vox Synth | channel 5 |
 | `FUT02_Phrase_VoxSynthRiff_2bars.mid` | Vox synth riff, the velocity picks the vowel (soft oh, medium ah, hard ee), on Vox Synth | channel 5 |
 
-The extended mix: `extended/vox/` (with the vox synth) and `extended/novox/` (without), each a 224-bar mix in the
-genre's form, one region file per section, `regions.json` and a README.
+The extended mix: `extended/vox/` (with the vox synth) and `extended/novox/` (without), each a 224-bar mix in the kit's
+own form, one region file per section, `regions.json` and a README.
 
 ## Drums (channel 10)
 
