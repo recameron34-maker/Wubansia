@@ -37,6 +37,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #if ! defined(_WIN32)
@@ -94,6 +95,8 @@ namespace wubansia::cli
                   "                         aligned time)\n"
                   "  --hold <N>             a CPU stress: N notes held from the start through MIDI in, spread over the kit's\n"
                   "                         polyphonic sustained instruments (with the sequence, up to the 64 voices)\n"
+                  "  --profile <FILE.csv>   each block's CPU time and what the voices did in it (note-ons by kind, chases,\n"
+                  "                         note-ons with every voice sounding, fades), one row a block\n"
                   "\n"
                   "Files:\n"
                   "  --out <FILE>           the WAV to write (its folder must exist)\n"
@@ -210,10 +213,50 @@ namespace wubansia::cli
 
         // P5's sampler, copying the buses after each render (): the engine's block loop clears them before the voices
         // add into them, so after render () they hold exactly what the voices played.
+        // What the voices were asked to do in a block, for --profile.
+        struct VoiceEvents
+        {
+            int sequenced = 0; // multisample note-ons from the timeline
+            int slices = 0; // phrase slice notes
+            int live = 0; // note-ons from MIDI in
+            int chased = 0; // note-ons that start part-way in (a chase)
+            int onsFull = 0; // note-ons while every multisample voice sounds (a steal follows)
+            int fades = 0; // fadeOut () and fadeKit () calls
+        };
+
         class TapVoices : public engine::Sampler
         {
         public:
             void setTaps (Taps* t) noexcept { taps = t; }
+
+            void noteOn (const engine::Kit& kit, const engine::NoteOn& note) noexcept
+            {
+                if (note.slice >= 0)
+                    ++events.slices;
+                else if (note.source == engine::Source::live)
+                    ++events.live;
+                else
+                    ++events.sequenced;
+                if (note.startFrame > 0)
+                    ++events.chased;
+                if (note.slice < 0 && activeVoices() >= engine::Sampler::kVoices)
+                    ++events.onsFull;
+                engine::Sampler::noteOn (kit, note);
+            }
+
+            void fadeOut (engine::Source source, int offset, int fadeSamples) noexcept
+            {
+                ++events.fades;
+                engine::Sampler::fadeOut (source, offset, fadeSamples);
+            }
+
+            void fadeKit (const engine::Kit* kit, int offset) noexcept
+            {
+                ++events.fades;
+                engine::Sampler::fadeKit (kit, offset);
+            }
+
+            VoiceEvents events;
 
             void prepare (double sampleRate, int maxBlock)
             {
@@ -252,6 +295,8 @@ namespace wubansia::cli
                 const engine::MidiEvent* midi, int numMidi) = 0;
             virtual int latency() const = 0;
             virtual int voices() const = 0;
+            // The voice events since the last call (TapPlayer only).
+            virtual VoiceEvents takeEvents() { return {}; }
         };
 
         class EnginePlayer final : public Player
@@ -274,7 +319,7 @@ namespace wubansia::cli
         class TapPlayer final : public Player
         {
         public:
-            explicit TapPlayer (Taps& taps) { loop.voices().setTaps (&taps); }
+            explicit TapPlayer (Taps* taps) { loop.voices().setTaps (taps); }
             void prepare (double rate, int block, engine::MasterHold hold) override { loop.prepare (rate, block, 2, hold); }
             void publish (const engine::Kit* kit) override { (void) pending.publish (kit); }
             void process (float* const* out, int n, const engine::TransportInfo& t, const engine::Controls& c, const engine::MidiEvent* midi,
@@ -284,6 +329,7 @@ namespace wubansia::cli
             }
             int latency() const override { return loop.latencySamples(); }
             int voices() const override { return telemetry.voices.load (std::memory_order_relaxed); }
+            VoiceEvents takeEvents() override { return std::exchange (loop.voices().events, VoiceEvents {}); }
 
         private:
             engine::BlockLoop<TapVoices> loop;
@@ -315,6 +361,7 @@ namespace wubansia::cli
             long long block = 512;
             bool keepLatency = false;
             long long hold = 0;
+            std::string profile;
             std::string out;
             WavFormat format = WavFormat::float32;
             std::string content;
@@ -324,7 +371,7 @@ namespace wubansia::cli
 
         constexpr std::string_view kValued[] = { "--kit", "--mode", "--variant", "--kick", "--bass", "--stab", "--passes", "--start-bar",
             "--bars", "--section", "--tempo", "--phrases", "--space", "--echo", "--pump", "--club", "--master", "--solo", "--taps", "--taps-of", "--rate",
-            "--block", "--hold", "--out", "--format", "--content", "--manifests", "--midi" };
+            "--block", "--hold", "--profile", "--out", "--format", "--content", "--manifests", "--midi" };
 
         // 0: parsed; else the exit code (help printed, or a usage error reported).
         int parseOptions (std::span<const std::string_view> args, Options& o, std::ostream& out, std::ostream& err)
@@ -467,6 +514,8 @@ namespace wubansia::cli
                     if (! parseInt (v, 0, 256, o.hold))
                         r = usage ("--hold takes a number of notes from 0 to 256, not \"" + vs + "\"");
                 }
+                else if (a == "--profile")
+                    o.profile = vs;
                 else if (a == "--out")
                     o.out = vs;
                 else if (a == "--format")
@@ -698,6 +747,7 @@ namespace wubansia::cli
         const double quarters = 4.0 * static_cast<double> (bars);
         const auto frames = static_cast<std::int64_t> (std::floor (quarters * 60.0 / tempo * o.rate + 0.5));
         const bool tapping = ! o.taps.empty() || ! solo.empty();
+        const bool profiling = ! o.profile.empty();
         if (tapping && bars > 64)
         {
             err << "groovecore render: --taps and --solo keep every channel in memory: at most 64 bars, not " << bars << "\n";
@@ -710,8 +760,10 @@ namespace wubansia::cli
         if (tapping)
         {
             taps.prepare (static_cast<int> (mixChannels.size()), frames);
-            player = std::make_unique<TapPlayer> (taps);
+            player = std::make_unique<TapPlayer> (&taps);
         }
+        else if (profiling)
+            player = std::make_unique<TapPlayer> (nullptr);
         else
             player = std::make_unique<EnginePlayer>();
         const int block = static_cast<int> (o.block);
@@ -749,6 +801,9 @@ namespace wubansia::cli
         float* chunk[2] { blockL.data(), blockR.data() };
         std::vector<double> blockLoad; // each block's CPU time over its duration
         blockLoad.reserve (static_cast<std::size_t> (total / block + 2));
+        std::ostringstream profile;
+        if (profiling)
+            profile << "block,sample,beat,cpu_us,load_percent,voices_before,voices_after,sequenced,slices,live,chased,ons_full,fades\n";
         double wall = 0.0;
         int maxVoices = 0;
         const double cpu0 = threadSeconds();
@@ -759,8 +814,17 @@ namespace wubansia::cli
             const auto t0 = std::chrono::steady_clock::now();
             const double c0 = threadSeconds();
             const bool first = done == 0;
+            const int voicesBefore = player->voices();
             player->process (chunk, n, transport, controls, first ? held.data() : nullptr, first ? static_cast<int> (held.size()) : 0);
-            blockLoad.push_back ((threadSeconds() - c0) / (static_cast<double> (n) / o.rate));
+            const double spent = threadSeconds() - c0;
+            blockLoad.push_back (spent / (static_cast<double> (n) / o.rate));
+            if (profiling)
+            {
+                const auto e = player->takeEvents();
+                profile << blockLoad.size() - 1 << ',' << done << ',' << fixed (transport.ppq, 4) << ',' << fixed (1e6 * spent, 1) << ','
+                        << fixed (100.0 * blockLoad.back(), 2) << ',' << voicesBefore << ',' << player->voices() << ',' << e.sequenced << ','
+                        << e.slices << ',' << e.live << ',' << e.chased << ',' << e.onsFull << ',' << e.fades << '\n';
+            }
             wall += std::chrono::duration<double> (std::chrono::steady_clock::now() - t0).count();
             maxVoices = std::max (maxVoices, player->voices());
             for (int i = 0; i < n; ++i)
@@ -809,6 +873,16 @@ namespace wubansia::cli
         {
             err << "groovecore render: " << w.error << '\n';
             return exitFailed;
+        }
+        if (profiling)
+        {
+            const std::string text = profile.str();
+            if (const auto w = util::writeBinaryFile (o.profile, std::span<const std::uint8_t> (reinterpret_cast<const std::uint8_t*> (text.data()), text.size()));
+                ! w.ok())
+            {
+                err << "groovecore render: " << w.error << '\n';
+                return exitFailed;
+            }
         }
         std::vector<std::string> tapFiles;
         if (! o.taps.empty())
