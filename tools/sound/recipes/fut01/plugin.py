@@ -57,12 +57,14 @@ def render_derived():
 
 
 def phrases():
-    """The lead (the chrome pluck phrase) and the vox (the vox synth riff), as the loop plays their files."""
+    """The lead (the chrome pluck phrase) and the vox (the vox synth riff), as the loop plays their files. The riff
+    has its last chop's throw in the audio (voxsynth.throw: the dotted-8th ping-pong and plate): its throw is baked."""
     riff_pre = {s: int(math.floor(V.ONSET_LEAD[o] * SR + 0.5)) for s, _, _, _, _, o in V.RIFF}
     return (
         Spec('FUT01', 'pluck', 'lead', 2, (loops_path('ChromePluckPhrase'), None), '', M.PHRASE_STEPS,
              tuple((s, n, ()) for s, n, _, _ in M.PHRASE), 0, 'pluck',
              'tools.sound.recipes.fut01.music.pluck_phrase'),
         Spec('FUT01', 'riff', 'vox', 5, (loops_path('VoxSynthRiff'), None), '', V.RIFF_STEPS,
-             tuple((s, n, ()) for s, n, *_ in V.RIFF), riff_pre, 'vsynth', 'tools.sound.recipes.fut01.voxsynth.riff'),
+             tuple((s, n, ()) for s, n, *_ in V.RIFF), riff_pre, 'vsynth', 'tools.sound.recipes.fut01.voxsynth.riff',
+             throw='baked'),
     )

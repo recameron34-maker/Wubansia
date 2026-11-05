@@ -10,10 +10,18 @@ match the notes the MIDI plays, cycle by cycle, and the phrase voice (engine/sam
   slice starts. Slices tile the stem, so contiguous slices read on and the lane at the kit's tempo is the stem.
 - A slice's lead is the note's own pre-roll (a vox's breath, a sub's swell); on a bass line that rests on every kick, a
   slice that follows a kick starts on that kick, so a slice played alone starts and ends in the line's silence.
-- A looped stem's first slice starts on frame 0: its lead holds the tail the stem wraps round from its end.
+- A looped stem (one the phrase plays cycle after cycle, its tails wrapped round to its start) is read round, modulo
+  its frames. Its last slice owns the tail that wraps to the stem's start: it ends past the stem's end, where the next
+  cycle's slice 0 starts (FUT01's riff: its last chop's release and throw). Slice 0 starts at its own pre-roll; where
+  that is before its cycle's start, at the stem's end, wrapping through it (FUT02's riff twice: its first breath).
 - A slice with no follower fades over the phrase's fade_us from its fade frame, by default fade_us before its end (the
-  recipe's mute edges: FUT02's glide mute on the kick, its arp's 10 ms rest). A slice that doesn't continue the one
-  before comes in over the voice's 3 ms crossfade (XFADE_US).
+  recipe's mute edges: FUT02's glide mute on the kick, its arp's 10 ms rest). A run's first slice (one that doesn't
+  continue the slice before) comes in from its first frame: over 3 ms through its pre-roll (RUN_FADE_US), and over the
+  phrase's fade_in_us where it starts on its onset (lead 0): 0.5 ms (ONSET_FADE_US), so plucks and blips keep their
+  transients, except where the recipe brings the lane in more slowly (FUT02's arp: 3 ms on the downbeat after its
+  rest).
+- throw: "baked" where the stem has its throw in the audio (FUT01's and FUT03's riffs), so the engine sends its slice
+  notes no live throw; "live" for the rest.
 - holds: the notes after the slice's own that it plays itself, by key, in order: retriggers of its key (FUT04's
   ratchets, which MIDI v2 retriggers) and the targets its note glides to inside it (FUT03's in-note glides, which MIDI
   v2 writes as legato notes). They make no sound of their own.
@@ -24,7 +32,9 @@ match the notes the MIDI plays, cycle by cycle, and the phrase voice (engine/sam
   channel's live filter instead. Empty: the stem follows no controller (a live filter on its mix channel rides it).
 
 play() and resolve() are the Python model of the engine's phrase voice and matcher, the reference its tests (P6) and
-the fidelity checks (P12) use.
+the fidelity checks (P12) use. play() renders the song from its start, from silence, each slice anchored on its note's
+onset. At the kit's tempo and 48 kHz the engine plays it exactly over a loop's first pass, then re-syncs at each cycle
+wrap (a cycle at the exact tempo isn't a whole number of frames): the reference tests compare one pass at a time.
 
     python3 tools/sound/phrase_tables.py --kit FUT02 --render-stems content/samples     # the derived stems
 """
@@ -48,20 +58,22 @@ import numpy as np  # noqa: E402
 from tools.sound import dsp48 as D  # noqa: E402
 from tools.sound import kits, listen  # noqa: E402
 from tools.sound import phrase as Ph  # noqa: E402
+from tools.sound import plugin_common as PC  # noqa: E402
 
 SR = 48000
 TOLERANCE_PM = 20             # slices play while the host tempo is within 2 % of the kit's (ADR 0020)
 FADE_US = 5000                # a slice with no follower fades over this, unless the recipe mutes it otherwise
-XFADE_US = 3000               # the phrase voice's crossfade into a slice that doesn't continue the one before
+RUN_FADE_US = 3000            # a run's first slice comes in over this from its first frame, through its pre-roll...
+ONSET_FADE_US = 500           # ...and over its phrase's fade_in_us on its onset (lead 0): by default this, keeping the
+#                               note's transient
+THROWS = ('live', 'baked')    # how a phrase's slice notes reach the throw sends (kit.h's kPhraseThrowIds)
 MAX_LEAD = 48000              # docs/plugin/manifest.md: a slice's lead, at most 1 s
 PPQ, TICKS_16 = 960, 240      # the MIDI files' grid
 RIDE_TICKS = 60               # a ride's grid: midi.CC_STEP, one controller value per 60 ticks while it moves
 RIDE_SLACK = 1                # a cycle's controller values match a stem's ride within this
 
 
-def iround(x, scale=1):
-    """A float in a manifest unit: round half up, floor(x x scale + 0.5) (docs/plugin/manifest.md section 1)."""
-    return int(math.floor(x * scale + 0.5))
+iround = PC.iround            # a float in a manifest unit: round half up, floor(x x scale + 0.5)
 
 
 def words(name):
@@ -107,11 +119,13 @@ class Spec:
     why: str                  # the recipe function that synthesizes the lane
     kicks: tuple = ()         # the cycle's kick 16ths, where a bass line rests
     fade_us: int = FADE_US
+    fade_in_us: int = ONSET_FADE_US   # how a run that starts on its slice's onset (lead 0) comes in
     gain_mdb: int = 0         # the stem's own gain: a derived stem stored under the lane's level gets it back
     derived: bool = False     # a stem rendered for the plugin (Stems/), not a Loops/ file
     frames: int = 0           # a derived stem's length (a Loops/ stem is its cycle long)
     looped: bool = True       # the stem is a loop of its cycle (its tail wraps round to its start)
     ride: tuple = None        # ((CC74 values), (CC71 values)) the stem was rendered with, one per 60 ticks; None: none
+    throw: str = 'live'       # 'baked': the stem has its throw in the audio (the engine sends its notes no live throw)
 
     def pre_of(self, step):
         return self.pre.get(step, 0) if isinstance(self.pre, dict) else self.pre
@@ -133,44 +147,54 @@ def derived(kit):
 
 # ------------------------------------------------------------------ the tables
 def slices(spec, frames):
-    """The spec's slices on a stem of `frames` frames: [{step, key, start, end, fade, lead, holds}], by step."""
+    """The spec's slices on a stem of `frames` frames: [{step, key, start, end, fade, lead, holds}], by step. A looped
+    stem's are read round it: its last slice ends where the next cycle's slice 0 starts, past the stem's end when slice
+    0 starts after frame 0; a slice 0 whose pre-roll starts before its cycle starts at the stem's end and wraps."""
     K = kits.module(spec.kit)
-    g = Ph.Grid(K, spec.cycle, cycle_frames(K, spec.cycle))
+    cf = cycle_frames(K, spec.cycle)
+    if spec.looped and frames != cf:
+        raise ValueError(f'{spec.kit} {spec.line}: a looped stem is its cycle long ({cf} frames), not {frames}')
+    g = Ph.Grid(K, spec.cycle, cf)
     on = [g.at(s) for s, _, _ in spec.notes]
     kick = sorted(g.at(k) for k in spec.kicks)
-    starts = []
+    if spec.looped:
+        kick = [k - frames for k in kick] + kick        # slice 0 may follow the cycle before's last kick
+    starts = []                                         # on the cycle's frames: slice 0's may be before its start
     for i, (s, _, _) in enumerate(spec.notes):
         b = on[i] - spec.pre_of(s)
-        ks = [k for k in kick if (on[i - 1] if i else -1) < k <= b]
+        before = on[i - 1] if i else (on[-1] - frames if spec.looped else -1)
+        ks = [k for k in kick if before < k <= b]
         starts.append(ks[-1] if ks else b)
-    if spec.looped:
-        starts[0] = 0         # a looped stem: the first slice holds the tail wrapped round from the stem's end
-    ends = starts[1:] + [frames]
+    ends = starts[1:] + [starts[0] + frames if spec.looped else frames]
     fade = spec.fade_us * SR // 1_000_000
-    wrapped = max(0, spec.pre_of(spec.notes[0][0]) - on[0]) if spec.looped else 0   # the first note's pre-roll
-    out = []                                                                        # that wraps to the stem's end
+    out = []
     for i, (s, key, holds) in enumerate(spec.notes):
         a, e = starts[i], ends[i]
-        f = e - fade - (wrapped if i == len(spec.notes) - 1 else 0)
-        x = dict(step=s, key=key, start=a, end=e, fade=max(a, f), lead=on[i] - a, holds=list(holds))
-        if not (0 <= a < e and 0 <= x['lead'] <= MAX_LEAD and len(holds) <= 8):
+        wrap = frames if a < 0 and spec.looped and i == 0 else 0    # read from the stem's end
+        x = PC.ordered('slice', step=s, key=key, start=a + wrap, end=e + wrap, fade=max(a, e - fade) + wrap,
+                       lead=on[i] - a, holds=list(holds))
+        if not (0 <= x['start'] < frames and a < e and 0 <= x['lead'] <= MAX_LEAD and len(holds) <= 8):
             raise ValueError(f'{spec.kit} {spec.line}: slice {x} is out of range')
         out.append(x)
     return out
 
 
 def table(spec, index, frames):
-    """The phrase as kit.json holds it. index: {stem path: file index}; frames: {stem path: frames}."""
+    """The phrase as kit.json holds it, in the contract's key order. index: {stem path: file index}; frames: {stem
+    path: frames}."""
     stems = [p for p in spec.stems if p]
     cc74, cc71 = spec.ride or ((), ())
     if spec.ride and not len(cc74) == len(cc71) == spec.cycle * TICKS_16 // RIDE_TICKS:
         raise ValueError(f'{spec.kit} {spec.line}: a ride is one value per {RIDE_TICKS} ticks over the cycle')
-    return {'lane': spec.lane, 'ch': spec.ch, 'ab': spec.ab, 'mix_channel': spec.mix_channel,
-            'gain_mdb': spec.gain_mdb,
-            'stems': {'a': index[spec.stems[0]], 'b': index[spec.stems[1]] if spec.stems[1] else -1},
-            'cycle_16ths': spec.cycle, 'tolerance_pm': TOLERANCE_PM, 'fade_us': spec.fade_us,
-            'ride': {'cc74': list(cc74), 'cc71': list(cc71)},
-            'slices': slices(spec, min(frames[p] for p in stems))}
+    if spec.throw not in THROWS:
+        raise ValueError(f'{spec.kit} {spec.line}: throw {spec.throw!r} is not one of {THROWS}')
+    return PC.ordered(
+        'phrase', lane=spec.lane, ch=spec.ch, ab=spec.ab, mix_channel=spec.mix_channel, gain_mdb=spec.gain_mdb,
+        throw=spec.throw,
+        stems=PC.ordered('stems', a=index[spec.stems[0]], b=index[spec.stems[1]] if spec.stems[1] else -1),
+        cycle_16ths=spec.cycle, tolerance_pm=TOLERANCE_PM, fade_us=spec.fade_us, fade_in_us=spec.fade_in_us,
+        ride=PC.ordered('ride', cc74=list(cc74), cc71=list(cc71)),
+        slices=slices(spec, min(frames[p] for p in stems)))
 
 
 # ------------------------------------------------------------------ the matcher and the voice, as models
@@ -240,47 +264,66 @@ def resolve(K, notes, tables, ccs=None):
     return got, unmatched
 
 
+def run_fade(t, s):
+    """The frames a run whose first slice is table t's slice s comes in over, from the slice's first frame: the
+    phrase's fade_in_us where it starts on its onset (lead 0), RUN_FADE_US through its pre-roll."""
+    return (t['fade_in_us'] if s['lead'] == 0 else RUN_FADE_US) * SR // 1_000_000
+
+
+def slice_frame(K, t, pos, j):
+    """Where the note at 16th `pos` starts slice j of table t, in frames from song 16th 0 at the kit's tempo and
+    48 kHz: its onset (its cycle's start plus phrase.Grid.at(step) on the stem's grid) less its lead. A wrapping slice
+    0 starts in the cycle before (FUT02's riff twice: its breath)."""
+    cyc = t['cycle_16ths']
+    cf = cycle_frames(K, cyc)
+    s = t['slices'][j]
+    return math.floor(pos) // cyc * cf + Ph.Grid(K, cyc, cf).at(s['step']) - s['lead']
+
+
 def play(K, t, audio, resolved, length, table_index=0):
     """The phrase voice, as a model: the notes resolved to table t's slices (resolve(); those of table `table_index`)
-    read from `audio`, the stem ((n, 2), at its table gain), round a loop of `length` frames at the kit's tempo and
-    48 kHz. Each slice is read from its start at its note's onset on the loop's grid, less its lead; contiguous slices
-    read on (across the cycle's wrap too); a slice that doesn't continue the one before comes in over XFADE_US; a slice
-    with no follower fades over the phrase's fade_us from its fade frame. Tails wrap round the loop."""
+    read from `audio`, the stem ((n, 2), at its table gain), into `length` frames from song 16th 0, from silence, at
+    the kit's tempo and 48 kHz. Each slice is anchored on its note's onset: it plays from its start at slice_frame()
+    (frames before the song's start aren't played). A slice that continues the one before (the next slice of its
+    cycle, or slice 0 after the last in the next cycle, starting where that one ends, modulo the stem's length) reads
+    on, so a run reads the stem continuously, round a looped stem. A run's first slice comes in from its first frame
+    over run_fade() (0.5 - 0.5 cos); a slice that no slice continues fades from its fade frame over the phrase's
+    fade_us (0.5 + 0.5 cos) and stops at its end, while the next run may already play."""
     sl, cyc = t['slices'], t['cycle_16ths']
     notes = sorted((pos, j) for pos, ti, j in resolved if ti == table_index)
     out = np.zeros((length, 2))
-    if not notes:
-        return out
-    if length % cycle_frames(K, cyc):
-        raise ValueError(f'a loop of {length} frames is not whole cycles of {cycle_frames(K, cyc)}')
-    ring = length // cycle_frames(K, cyc)
-    grid = Ph.Grid(K, ring * cyc, length)
-    fade, xfade = t['fade_us'] * SR // 1_000_000, XFADE_US * SR // 1_000_000
+    n = len(audio)
+    stem = D.st(audio)
+    if any(s['end'] > n for s in sl):
+        stem = np.concatenate([stem, stem])            # a wrapping slice reads on round the stem
+    fade = t['fade_us'] * SR // 1_000_000
     cycle_of = lambda pos: math.floor(pos) // cyc  # noqa: E731
 
     def continues(a, b):
-        """Whether note b's slice continues note a's: the next slice of the same cycle, or the stem's wrap into the
-        next cycle's first slice."""
+        """Whether note b's slice continues note a's: the next slice of its cycle, or the next cycle's first after the
+        last, starting where a's ends on the stem (modulo its length: across a looped stem's end)."""
         (pa, ja), (pb, jb) = a, b
-        if jb == ja + 1 and cycle_of(pa) == cycle_of(pb):
-            return sl[ja]['end'] == sl[jb]['start']
-        if ja == len(sl) - 1 and jb == 0 and (cycle_of(pb) - cycle_of(pa)) % ring == 1 % ring:
-            return sl[ja]['end'] == len(audio) and sl[jb]['start'] == 0
-        return False
+        nxt = (jb == ja + 1 and cycle_of(pb) == cycle_of(pa)) or \
+            (ja == len(sl) - 1 and jb == 0 and cycle_of(pb) == cycle_of(pa) + 1)
+        return nxt and (sl[ja]['end'] - sl[jb]['start']) % n == 0
 
     for i, (pos, j) in enumerate(notes):
         s = sl[j]
         a, e = s['start'], s['end']
         g = np.ones(e - a)
-        if len(notes) == 1 or not continues((pos, j), notes[(i + 1) % len(notes)]):
+        if i + 1 == len(notes) or not continues(notes[i], notes[i + 1]):
             f = s['fade'] - a
             m = min(fade, e - a - f)
             g[f:f + m] = 0.5 + 0.5 * np.cos(np.pi * np.arange(m) / fade)
             g[f + m:] = 0.0
-        if len(notes) == 1 or not continues(notes[i - 1], (pos, j)):
-            m = min(xfade, e - a)
-            g[:m] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(m) / xfade)
-        Ph.place(out, D.st(audio[a:e]) * g[:, None], grid.at(cycle_of(pos) * cyc + s['step']) - s['lead'])
+        if i == 0 or not continues(notes[i - 1], notes[i]):
+            r = run_fade(t, s)
+            m = min(r, e - a)
+            g[:m] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(m) / r)
+        at = slice_frame(K, t, pos, j)
+        lo, hi = max(0, at), min(length, at + e - a)
+        if lo < hi:
+            out[lo:hi] += stem[a + lo - at:a + hi - at] * g[lo - at:hi - at, None]
     return out
 
 

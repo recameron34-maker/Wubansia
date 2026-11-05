@@ -4057,6 +4057,7 @@
       "ab": "",
       "mix_channel": "pluck",
       "gain_mdb": 0,
+      "throw": "live",
       "stems": {
         "a": 187,
         "b": -1
@@ -4064,6 +4065,7 @@
       "cycle_16ths": 32,
       "tolerance_pm": 20,
       "fade_us": 5000,
+      "fade_in_us": 500,
       "ride": {
         "cc74": [],
         "cc71": []
@@ -4185,6 +4187,7 @@
       "ab": "",
       "mix_channel": "vsynth",
       "gain_mdb": 0,
+      "throw": "baked",
       "stems": {
         "a": 188,
         "b": -1
@@ -4192,6 +4195,7 @@
       "cycle_16ths": 32,
       "tolerance_pm": 20,
       "fade_us": 5000,
+      "fade_in_us": 500,
       "ride": {
         "cc74": [],
         "cc71": []
@@ -4200,10 +4204,10 @@
         {
           "step": 6,
           "key": 73,
-          "start": 0,
+          "start": 31951,
           "end": 49037,
           "fade": 48797,
-          "lead": 32239,
+          "lead": 288,
           "holds": []
         },
         {
@@ -4264,8 +4268,8 @@
           "step": 30,
           "key": 69,
           "start": 160906,
-          "end": 171940,
-          "fade": 171700,
+          "end": 203891,
+          "fade": 203651,
           "lead": 288,
           "holds": []
         }

@@ -1914,7 +1914,7 @@
         "fade_us": 0,
         "curve": "linear"
       },
-      "duck_key": false,
+      "duck_key": true,
       "pan_cycle_pm": [],
       "rr_block_16ths": 64,
       "layered_with": "",
@@ -3248,6 +3248,7 @@
       "ab": "bass",
       "mix_channel": "bass",
       "gain_mdb": 0,
+      "throw": "live",
       "stems": {
         "a": 131,
         "b": 132
@@ -3255,6 +3256,7 @@
       "cycle_16ths": 32,
       "tolerance_pm": 20,
       "fade_us": 5000,
+      "fade_in_us": 500,
       "ride": {
         "cc74": [],
         "cc71": []
@@ -3466,6 +3468,7 @@
       "ab": "bass",
       "mix_channel": "bass",
       "gain_mdb": 0,
+      "throw": "live",
       "stems": {
         "a": 133,
         "b": 134
@@ -3473,6 +3476,7 @@
       "cycle_16ths": 32,
       "tolerance_pm": 20,
       "fade_us": 5000,
+      "fade_in_us": 500,
       "ride": {
         "cc74": [],
         "cc71": []
@@ -3648,6 +3652,7 @@
       "ab": "",
       "mix_channel": "arp",
       "gain_mdb": 0,
+      "throw": "live",
       "stems": {
         "a": 135,
         "b": -1
@@ -3655,6 +3660,7 @@
       "cycle_16ths": 32,
       "tolerance_pm": 20,
       "fade_us": 10000,
+      "fade_in_us": 3000,
       "ride": {
         "cc74": [],
         "cc71": []
@@ -3938,6 +3944,7 @@
       "ab": "",
       "mix_channel": "vox",
       "gain_mdb": 3000,
+      "throw": "live",
       "stems": {
         "a": 136,
         "b": -1
@@ -3945,6 +3952,7 @@
       "cycle_16ths": 64,
       "tolerance_pm": 20,
       "fade_us": 5000,
+      "fade_in_us": 500,
       "ride": {
         "cc74": [],
         "cc71": []
@@ -4057,6 +4065,7 @@
       "ab": "",
       "mix_channel": "vox",
       "gain_mdb": 3000,
+      "throw": "live",
       "stems": {
         "a": 137,
         "b": -1
@@ -4064,6 +4073,7 @@
       "cycle_16ths": 64,
       "tolerance_pm": 20,
       "fade_us": 5000,
+      "fade_in_us": 500,
       "ride": {
         "cc74": [],
         "cc71": []
@@ -4072,10 +4082,10 @@
         {
           "step": 0,
           "key": 74,
-          "start": 0,
-          "end": 14437,
-          "fade": 14197,
-          "lead": 0,
+          "start": 352062,
+          "end": 368899,
+          "fade": 368659,
+          "lead": 2400,
           "holds": []
         },
         {
@@ -4262,7 +4272,7 @@
           "step": 60,
           "key": 69,
           "start": 329908,
-          "end": 354462,
+          "end": 352062,
           "fade": 351822,
           "lead": 2400,
           "holds": []

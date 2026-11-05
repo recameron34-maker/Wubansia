@@ -6,13 +6,16 @@ and strings only (ADR 0020).
 
 Where everything comes from:
 - the instruments: the kit's r5 Items (kits.items(..., sets=['r5'])) as MIDI v2 plays them (tools/sound/midi.py's
-  PARTS: which Item each channel and key plays), with the rules the recipes play them by (PLAY below, each value with
-  the recipe it comes from);
+  PARTS: which Item each channel and key plays), with the rules the recipes play them by (rules () below and the kit's
+  plugin module, each value with the recipe it comes from);
 - the files: each take's WAV (listen.plain), its frames, channels and SHA-256 read off the WAV, its loop points off
   build/<kit>-r5/qa_report.json;
 - the phrase tables: tools/sound/phrase_tables.py;
 - the mix channels each instrument and phrase plays on: P3's channel ids (its MIX_CHANNELS), in content/plugin/<kit>/
   <KIT>_mix.json.
+
+tools/sound/plugin_common.py (P0's) writes it: every object in the contract's key order (ordered ()), the canonical
+layout (dumps ()) and the artists and slurs denylists over every string (check_strings ()).
 
 build/ isn't in git and CI has no samples, so the committed manifest is the source of truth for every file's facts:
 where a WAV or the report isn't here, the exporter takes the fact from the committed manifest, and --check compares
@@ -33,9 +36,10 @@ if __package__ in (None, ''):  # run as a script: import the tools.sound package
     import tools.sound  # noqa: F401
 
 from tools.sound import channels as CH  # noqa: E402
-from tools.sound import denylist, kits, listen  # noqa: E402
+from tools.sound import kits, listen  # noqa: E402
 from tools.sound import midi as Mi  # noqa: E402
 from tools.sound import phrase_tables as PT  # noqa: E402
+from tools.sound import plugin_common as PC  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[2]
 CONTENT_VERSION = 1
@@ -44,71 +48,8 @@ KITS = ('FUT01', 'FUT02', 'FUT03', 'FUT04')   # the kits the plugin plays (each 
 ONE_KEY = {6: 'accents', 7: 'fx', 8: 'chops'}
 
 
-# ------------------------------------------------------------------ the writer (manifest.md section 1)
-# plugin_common.py's, until P0 lands it: the same rules, the same bytes
-iround = PT.iround          # round half up: floor(x x scale + 0.5)
-
-
-def _string(s):
-    out = ['"']
-    for c in s:
-        if c in '"\\':
-            out.append('\\' + c)
-        elif c == '\n':
-            out.append('\\n')
-        elif c == '\t':
-            out.append('\\t')
-        elif ord(c) < 0x20:
-            out.append(f'\\u{ord(c):04x}')
-        else:
-            out.append(c)
-    return ''.join(out + ['"'])
-
-
-def _scalar(x):
-    if isinstance(x, bool):
-        return 'true' if x else 'false'
-    if isinstance(x, int):
-        return str(x)
-    if isinstance(x, str):
-        return _string(x)
-    raise ValueError(f'not an integer, string or flag: {x!r}')
-
-
-def _dump(x, ind):
-    pad = '  ' * (ind + 1)
-    if isinstance(x, dict):
-        if not x:
-            return '{}'
-        body = ',\n'.join(f'{pad}{_string(k)}: {_dump(v, ind + 1)}' for k, v in x.items())
-        return '{\n' + body + '\n' + '  ' * ind + '}'
-    if isinstance(x, list):
-        if not x:
-            return '[]'
-        if all(not isinstance(v, (dict, list)) for v in x):
-            return '[' + ', '.join(_scalar(v) for v in x) + ']'
-        return '[\n' + ',\n'.join(pad + _dump(v, ind + 1) for v in x) + '\n' + '  ' * ind + ']'
-    return _scalar(x)
-
-
-def dumps(obj):
-    """The canonical layout: 2 spaces an indent, a member a line, arrays of scalars on one line, a final newline."""
-    return _dump(obj, 0) + '\n'
-
-
-def strings(obj):
-    """Every string value in a manifest."""
-    if isinstance(obj, dict):
-        return [s for v in obj.values() for s in strings(v)]
-    if isinstance(obj, list):
-        return [s for v in obj for s in strings(v)]
-    return [obj] if isinstance(obj, str) else []
-
-
-def denied(obj):
-    """(string, list) for every string a denylist (artists, slurs) catches: none may."""
-    lists = {n: denylist.load(n) for n in ('artists', 'slurs')}
-    return [(s, n) for s in strings(obj) for n, d in lists.items() if denylist.hits(s, d)]
+# ------------------------------------------------------------------ the writer: plugin_common (manifest.md section 1)
+iround = PC.iround          # round half up: floor(x x scale + 0.5)
 
 
 # ------------------------------------------------------------------ each kit's own: tools/sound/recipes/<kit>/plugin.py
@@ -133,11 +74,11 @@ def mix_channels(kit):
 
 
 def glide(g):
-    return {'curve': g[0], 'us': g[1], 'dip_us': g[2]}
+    return PC.ordered('glide', curve=g[0], us=g[1], dip_us=g[2])
 
 
 def choke(group='', role='none', fade_us=0, curve='linear'):
-    return {'group': group, 'role': role, 'fade_us': fade_us, 'curve': curve}
+    return PC.ordered('choke', group=group, role=role, fade_us=fade_us, curve=curve)
 
 
 def rules(kit, kind, item, it, key=None):
@@ -409,8 +350,8 @@ def export(kit):
             raise FileNotFoundError(f'{kit}: the loop points of {path} need build/{kit.lower()}-r5/qa_report.json '
                                     f'(set WUBANSIA_BUILD_DIR)')
         index[path] = len(files)
-        files.append({'path': path, 'frames': frames, 'channels': channels, 'sha256': sha,
-                      'loop_start': loop[0], 'loop_end': loop[1], 'preroll_frames': preroll})
+        files.append(PC.ordered('file', path=path, frames=frames, channels=channels, sha256=sha,
+                                loop_start=loop[0], loop_end=loop[1], preroll_frames=preroll))
         return index[path]
 
     out = []
@@ -434,13 +375,10 @@ def export(kit):
             for li, v in enumerate(it.layers, 1):
                 rr = [file_of(take_path(it, t), r['mode'] == 'sustain_loop', pre)
                       for t in it.takes(kit) if (t.note, t.layer) == (note, li)]
-                layers.append({'vel': iround(v * 127), 'rr': rr})
-            zones.append({'root': root, 'lo': lo, 'hi': hi, 'layers': layers})
-        out.append({'id': ins['id'], 'name': ins['name'], 'lane': ins['lane'], 'mix_channel': ins['mix_channel'],
-                    **{f: r[f] for f in ('mode', 'align', 'attack_us', 'release_us', 'gain_mdb', 'start_frames',
-                                         'velocity_law', 'interp', 'mono', 'glide', 'restrike_continues', 'choke',
-                                         'duck_key', 'pan_cycle_pm', 'rr_block_16ths', 'layered_with')},
-                    'zones': zones})
+                layers.append(PC.ordered('layer', vel=iround(v * 127), rr=rr))
+            zones.append(PC.ordered('zone', root=root, lo=lo, hi=hi, layers=layers))
+        out.append(PC.ordered('instrument', r, id=ins['id'], name=ins['name'], lane=ins['lane'],
+                              mix_channel=ins['mix_channel'], zones=zones))
     frames = {}
     for s in PT.specs(kit):
         for p in s.stems:
@@ -454,21 +392,20 @@ def export(kit):
     ab['bass'] = tuple(words(n) for n in k.channel_items()[1])
     if len(k.channel_items()[4]) == 2:
         ab['stab'] = tuple(words(n) for n in k.channel_items()[4])
-    manifest = {
-        'kit': {'id': kit, 'title': K.TITLE, 'direction': K.DIRECTION, 'bpm': int(K.BPM), 'key': K.KEY,
-                'camelot': K.CAMELOT, 'swing_pm': iround(K.SWING * 1000), 'content_version': CONTENT_VERSION,
-                'lanes': {lane: label if any(i['lane'] == lane for i in out) else ''
-                          for lane, label in zip(CH.LANES, labels)},
-                'ab': {s: {'a': a, 'b': b} for s, (a, b) in ab.items()}},
-        'files': files,
-        'instruments': out,
-        'keymap': [{'ch': ch, 'keys': [lo, hi], 'a': a, 'b': b, 'ab': sw} for ch, lo, hi, a, b, sw in keymap],
-        'extras': [{'ch': ch, 'name': n, 'lane': lane} for ch, n, lane in CH.extras(kit)],
-        'phrases': [PT.table(s, index, frames) for s in PT.specs(kit)],
-    }
-    bad = denied(manifest)
-    if bad:
-        raise ValueError(f'{kit}: strings a denylist catches: {bad}')
+    manifest = PC.ordered(
+        'kit.json',
+        kit=PC.ordered('kit', id=kit, title=K.TITLE, direction=K.DIRECTION, bpm=int(K.BPM), key=K.KEY,
+                       camelot=K.CAMELOT, swing_pm=iround(K.SWING * 1000), content_version=CONTENT_VERSION,
+                       lanes=PC.ordered('lanes', {lane: label if any(i['lane'] == lane for i in out) else ''
+                                                  for lane, label in zip(CH.LANES, labels)}),
+                       ab=PC.ordered('ab', {s: PC.ordered('ab_labels', a=a, b=b) for s, (a, b) in ab.items()})),
+        files=files,
+        instruments=out,
+        keymap=[PC.ordered('keymap', ch=ch, keys=[lo, hi], a=a, b=b, ab=sw) for ch, lo, hi, a, b, sw in keymap],
+        extras=[PC.ordered('extra', ch=ch, name=n, lane=lane) for ch, n, lane in CH.extras(kit)],
+        phrases=[PT.table(s, index, frames) for s in PT.specs(kit)],
+    )
+    PC.check_strings(manifest)          # the artists and slurs denylists: every string, keys included
     return manifest
 
 
@@ -530,16 +467,14 @@ def main(argv=None):
         if a.report:
             print('\n'.join(report(kit)))
             continue
-        text = dumps(export(kit))
-        p = manifest_path(kit)
+        p, m = manifest_path(kit), export(kit)
         if a.check:
-            same = p.exists() and p.read_text(encoding='utf-8') == text
+            same = PC.write(p, m, check=True)
             print(f'{p.relative_to(REPO)}: {"up to date" if same else "STALE"}')
             stale += not same
         else:
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(text, encoding='utf-8', newline='\n')
-            print(f'{p.relative_to(REPO)}: {len(text.encode())} bytes')
+            PC.write(p, m)
+            print(f'{p.relative_to(REPO)}: {p.stat().st_size} bytes')
     return 1 if stale else 0
 
 

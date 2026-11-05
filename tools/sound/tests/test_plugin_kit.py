@@ -14,9 +14,10 @@ import unittest
 from pathlib import Path
 
 from tools.sound import channels as CH
-from tools.sound import denylist, kits, listen
+from tools.sound import kits, listen
 from tools.sound import midi as Mi
 from tools.sound import phrase_tables as PT
+from tools.sound import plugin_common as PC
 from tools.sound import plugin_kit as PK
 
 REPO = Path(__file__).resolve().parents[3]
@@ -436,6 +437,26 @@ class TestKeymap(unittest.TestCase):
         self.assertEqual(('rumble', 'kick', False, 'sustain_loop'),
                          (ins['id'], ins['lane'], ins['duck_key'], ins['mode']))
 
+    def test_the_duck_keys(self):
+        """The notes that key the onset ducks (mix.json): the kicks and claps (not FUT04's rumble), and FUT02's vox
+        synth on channel 5, whose riff keys the arp's pocket (context5.ARP_POCKET: two onset ducks on the vox lane,
+        100 ms early); its vox chops, on the same lane, don't. The timeline builds the duck keys from the notes before
+        it matches phrases (engine/sched/timeline.h), so the riff keys the pocket whether its notes play the phrase
+        lane's stem or the multisample: a phrase has no key of its own."""
+        for kit in KITS:
+            m = manifest(kit)
+            drums = {i['id'] for i in m['instruments'] if any(e['ch'] == 10 and i['id'] in (e['a'], e['b'])
+                                                               for e in m['keymap'])}
+            for ins in m['instruments']:
+                if ins['id'] in drums:
+                    want = ins['lane'] in ('kick', 'snare') and (kit, ins['id']) != ('FUT04', 'rumble')
+                else:
+                    want = (kit, ins['id']) == ('FUT02', 'vox_synth')
+                self.assertEqual(want, ins['duck_key'], (kit, ins['id']))
+        ins, _ = resolve(manifest('FUT02'), 5, 60)
+        self.assertEqual(('vox_synth', 'vox', True), (ins['id'], ins['lane'], ins['duck_key']))
+        self.assertNotIn('duck_key', PC.KEYS['phrase'])
+
     def test_how_the_recipes_play(self):
         """The playing rules the loops were rendered with: chokes (FUT01 5 ms linear, FUT02-04 4 ms cos2, FUT04's ride
         outside), glides (FUT01 raised cosine 70/30 ms, FUT02 exponential 18 ms, FUT03 and FUT04 raised cosine 50 ms:
@@ -510,35 +531,61 @@ class TestExport(unittest.TestCase):
             strict(text)
             self.assertFalse(text.startswith('﻿'))
             self.assertTrue(text.endswith('\n') and '\r' not in text)
-            self.assertEqual(text, PK.dumps(strict(text)), 'the canonical layout (manifest.md section 1)')
+            self.assertEqual(text, PC.dumps(strict(text)), 'the canonical layout (manifest.md section 1)')
 
     def test_a_second_export_is_byte_identical_and_equals_the_committed_one(self):
+        """plugin_common writes it (render (): the denylist check, then the canonical layout)."""
         for kit in KITS:
-            a, b = PK.dumps(PK.export(kit)), PK.dumps(PK.export(kit))
+            a, b = PC.render(PK.export(kit)), PC.render(PK.export(kit))
             self.assertEqual(a, b, kit)
             p = PK.manifest_path(kit)
             if p.exists():
                 self.assertEqual(p.read_text(encoding='utf-8'), a, f'{p} is stale: run plugin_kit.py --kit {kit}')
+                self.assertTrue(PC.write(p, PK.export(kit), check=True), kit)
 
     def test_every_string_passes_the_denylist(self):
-        lists = [denylist.load(n) for n in ('artists', 'slurs')]
+        """Every string, keys included, past the artists and slurs lists."""
         for kit in KITS:
-            for s in PK.strings(PK.export(kit)):
-                for digests in lists:
-                    self.assertEqual([], denylist.hits(s, digests), (kit, s))
+            PC.check_strings(PK.export(kit))
 
-    def test_dumps_is_the_canonical_layout(self):
-        obj = {'a': 1, 'b': [1, 2, 3], 'c': {'d': 'x"\\\n', 'e': []}, 'f': [{'g': -2}], 'h': {}, 'i': True,
-               'j': ['é', 'k']}
-        self.assertEqual('{\n  "a": 1,\n  "b": [1, 2, 3],\n  "c": {\n    "d": "x\\"\\\\\\n",\n    "e": []\n  },\n'
-                         '  "f": [\n    {\n      "g": -2\n    }\n  ],\n  "h": {},\n  "i": true,\n'
-                         '  "j": ["é", "k"]\n}\n',
-                         PK.dumps(obj))
-        with self.assertRaises(ValueError):
-            PK.dumps({'x': 1.5})
-        self.assertEqual(3, PK.iround(2.5))
-        self.assertEqual(-2, PK.iround(-2.5))
-        self.assertEqual(-2500, PK.iround(-2.5, 1000))
+    def test_every_object_has_the_contracts_keys_in_order(self):
+        """Every object of every manifest has exactly its kind's keys, in the contract's order (plugin_common.KEYS)."""
+        for kit in KITS:
+            m = manifest(kit)
+
+            def check(kind, obj):
+                self.assertEqual(list(PC.KEYS[kind]), list(obj), (kit, kind))
+
+            check('kit.json', m)
+            check('kit', m['kit'])
+            check('lanes', m['kit']['lanes'])
+            check('ab', m['kit']['ab'])
+            for labels in m['kit']['ab'].values():
+                check('ab_labels', labels)
+            for f in m['files']:
+                check('file', f)
+            for ins in m['instruments']:
+                check('instrument', ins)
+                check('glide', ins['glide'])
+                check('choke', ins['choke'])
+                for z in ins['zones']:
+                    check('zone', z)
+                    for layer in z['layers']:
+                        check('layer', layer)
+            for e in m['keymap']:
+                check('keymap', e)
+            for e in m['extras']:
+                check('extra', e)
+            for ph in m['phrases']:
+                check('phrase', ph)
+                check('stems', ph['stems'])
+                check('ride', ph['ride'])
+                for s in ph['slices']:
+                    check('slice', s)
+
+    def test_integer_units_round_half_up(self):
+        self.assertIs(PC.iround, PK.iround)
+        self.assertEqual((3, -2, -2500), (PK.iround(2.5), PK.iround(-2.5), PK.iround(-2.5, 1000)))
 
 
 if __name__ == '__main__':
