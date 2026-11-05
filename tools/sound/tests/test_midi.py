@@ -1,5 +1,7 @@
 """MIDI v2 (tools/sound/midi.py; ADR 0019, docs/midi-map.md): every kit's written music as Standard MIDI Files on the
-one channel map (tools/sound/channels.py), the files Wubansia plays and drags out.
+one channel map (tools/sound/channels.py), the files Wubansia plays and drags out. The kit-agnostic properties; each
+kit's own expectations (its context loop lane by lane, its roots, phrase channels, rides and throws) are in
+test_fut0N_midi.py, so each kit's engineer edits only their own.
 
 What these tests pin (the design's midi_plan section 9, and the guarantees the v1 export already kept):
 - committed files equal a fresh export, the same bytes in fresh processes;
@@ -8,20 +10,17 @@ What these tests pin (the design's midi_plan section 9, and the guarantees the v
 - valid format 1 files at 960 PPQ, the kit's tempo, 4/4 and key (FF59); on a tick note-offs, then controllers, then
   note-ons; no same-key overlaps; no note past its track's end; tracks end on bar lines; swing written in; gates that
   never run a swung note into the next one unless it slides; slides that reach their note;
-- the Loop files reproduce each kit's round 5 context loop (context5.py) lane by lane, with the vox synth or without;
-  the vox and no-vox files differ only where they should;
-- velocities pick the recipe's layers; end-aligned notes end on bar or beat lines; CC74/71 rides only on the channels
-  whose filter rides, CC91/94 only around thrown notes;
-- the extended mixes: their forms, regions that tile them, an integer-only regions.json, 32-bar drums-only ends, cues
-  with their notes, builds that roll up to the fill, busier hats that are busier, drops that aren't grooves.
+- the vox and no-vox files differ only where they should; end-aligned notes end on beat lines; CC74/71 rides only on
+  the channels whose filter rides, on the shared law, CC91/94 only around thrown notes;
+- the extended mixes: regions that tile them, an integer-only regions.json, 32-bar drums-only ends, cues with their
+  notes, builds that roll up to the fill, busier hats that are busier, turnarounds, drops that aren't grooves; and,
+  while a kit plays its genre's default form, that form's own rules.
 """
-import functools
 import hashlib
 import json
 import math
 import os
 import re
-import struct
 import subprocess
 import sys
 import types
@@ -33,276 +32,23 @@ from tools.sound import kits
 from tools.sound import midi as Mi
 from tools.sound import qa as Q
 from tools.sound.item import Item
+from tools.sound.tests.midi_testlib import (BAR, CUE, KEYSIG, KITS, MARKER, METER, NAME, REPO, TEMPO, VARIANTS, at,
+                                            bars, ext, kit_files, lane_ons, lane_tracks, late, loop, mids, ons, parse,
+                                            parsed, whole)
 
-REPO = Path(__file__).resolve().parents[3]
-SOUND = REPO / 'tools' / 'sound'
-KITS = [k for k in kits.names() if (SOUND / 'recipes' / k.lower() / 'midi.py').exists()]
-MARKER, CUE, TEMPO, METER, KEYSIG = 0x06, 0x07, 0x51, 0x58, 0x59
-VARIANTS = ('vox', 'novox')
-NAME = {'vox': 'Vox', 'novox': 'NoVox'}
-LATE = {'FUT01': 43, 'FUT02': 10, 'FUT03': 29, 'FUT04': 19}           # round((swing - 0.5) x 480)
-KEYSIGS = {'FUT01': (3, 1), 'FUT02': (-1, 1), 'FUT03': (-2, 1), 'FUT04': (1, 1)}   # sharps (+) or flats (-), minor
-RIDE_CHANNELS = {'FUT01': {1}, 'FUT02': {2}, 'FUT03': {4}, 'FUT04': {1}}
-BAR = 4 * 960
+MINOR = ('A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#')      # the minor keys with 0-7 sharps
+MINOR_FLATS = ('A', 'D', 'G', 'C', 'F', 'Bb', 'Eb', 'Ab')  # ... and with 0-7 flats
 
 
-# ------------------------------------------------------------------ an independent SMF reader
-def vlq_at(d, j):
-    v = 0
-    while True:
-        c = d[j]
-        j += 1
-        v = (v << 7) | (c & 0x7F)
-        if not c & 0x80:
-            return v, j
+def signature(key):
+    """A minor key's signature, read off the circle of fifths: (sharps, or minus the flats; 1 for minor)."""
+    root = key.split()[0]
+    return (MINOR.index(root) if root in MINOR else -MINOR_FLATS.index(root)), 1
 
 
-def parse(data):
-    """(format, ppq, tracks). A track: name, end (its end-of-track tick), events [(tick, kind, ch, a, b)] in file
-    order, kind 'on', 'off', 'cc' or 'meta' (a: the meta type, b: its body); notes [(on, off, ch, key, vel)] paired;
-    ccs [(tick, ch, controller, value)]; meta [(tick, type, body)]; tempo (us a quarter, or None)."""
-    assert data[:4] == b'MThd'
-    _, fmt, ntrk, ppq = struct.unpack('>IHHH', data[4:14])
-    i, tracks = 14, []
-    for _ in range(ntrk):
-        assert data[i:i + 4] == b'MTrk'
-        n = struct.unpack('>I', data[i + 4:i + 8])[0]
-        d, i = data[i + 8:i + 8 + n], i + 8 + n
-        j = t = 0
-        tr = dict(name=None, end=None, events=[], meta=[], tempo=None)
-        while j < len(d):
-            assert tr['end'] is None, 'an event after the end of track'
-            v, j = vlq_at(d, j)
-            t += v
-            st = d[j]
-            if st == 0xFF:
-                kind = d[j + 1]
-                ln, j = vlq_at(d, j + 2)
-                body, j = d[j:j + ln], j + ln
-                if kind == 0x2F:
-                    tr['end'] = t
-                    continue
-                if kind == 0x03:
-                    tr['name'] = body.decode()
-                if kind == TEMPO:
-                    tr['tempo'] = int.from_bytes(body, 'big')
-                tr['meta'].append((t, kind, body))
-                tr['events'].append((t, 'meta', None, kind, body))
-            else:
-                hi = st & 0xF0
-                assert hi in (0x80, 0x90, 0xB0), f'status {st:#x}: running status or an unexpected message'
-                a, b = d[j + 1], d[j + 2]
-                assert a < 128 and b < 128
-                kind = 'cc' if hi == 0xB0 else ('off' if hi == 0x80 or b == 0 else 'on')
-                tr['events'].append((t, kind, (st & 0x0F) + 1, a, b))
-                j += 3
-        assert tr['end'] is not None and j == len(d)
-        sounding, notes = {}, []
-        for t, kind, ch, a, b in tr['events']:
-            if kind == 'on':
-                assert (ch, a) not in sounding, f'{tr["name"]}: a second note-on of {a} on {ch} at {t}'
-                sounding[(ch, a)] = (t, b)
-            elif kind == 'off':
-                on, vel = sounding.pop((ch, a))
-                assert t > on, f'{tr["name"]}: a zero-length note {a} at {t}'
-                notes.append((on, t, ch, a, vel))
-        assert not sounding, f'{tr["name"]}: notes left on: {sounding}'
-        tr['notes'] = sorted(notes)
-        tr['ccs'] = [(t, ch, a, b) for t, kind, ch, a, b in tr['events'] if kind == 'cc']
-        tracks.append(tr)
-    assert i == len(data)
-    return fmt, ppq, tracks
-
-
-def bars(name):
-    return int(re.search(r'_(\d+)bars\.mid$', name).group(1))
-
-
-@functools.lru_cache(maxsize=None)
-def kit_files(kit):
-    return Mi.files(kit)
-
-
-@functools.lru_cache(maxsize=None)
-def ext(kit, variant):
-    """The kit's extended mix in a variant: (its files, regions.json as data)."""
-    made = Mi.extended(kit, variant)
-    return made, json.loads(made['regions.json'])
-
-
-@functools.lru_cache(maxsize=None)
-def parsed(kit, path):
-    """A MIDI file of the kit by its path in content/midi/<kit>/, parsed."""
-    return parse(mids(kit)[path])
-
-
-@functools.lru_cache(maxsize=None)
-def mids(kit):
-    """Every MIDI file of the kit, by its path in content/midi/<kit>/."""
-    out = {n: d for n, d in kit_files(kit).items() if n.endswith('.mid')}
-    for v in VARIANTS:
-        out.update({f'{Mi.EXTENDED}/{v}/{n}': d for n, d in ext(kit, v)[0].items() if n.endswith('.mid')})
-    return out
-
-
-def loop(kit, variant):
-    """The kit's Loop file in a variant: {track name: track}."""
-    _, _, tracks = parsed(kit, f'{kit}_Loop_{NAME[variant]}_4bars.mid')
-    return {t['name']: t for t in tracks[1:]}
-
-
-def whole(kit, variant):
-    """(regions.json, the whole mix's tracks by name, its conductor)."""
-    made, R = ext(kit, variant)
-    _, _, tracks = parse(made[R['file']])
-    return R, {t['name']: t for t in tracks[1:]}, tracks[0]
-
-
-def ons(track, lo=0, hi=None):
-    """A track's notes starting in [lo, hi): (on, key, vel)."""
-    return [(on, key, vel) for on, _, _, key, vel in track['notes'] if lo <= on and (hi is None or on < hi)]
-
-
-def lane_tracks(kit, tracks, lane):
-    return [t for name, t in tracks.items() if CH.track_lane(kit, name) == lane]
-
-
-def lane_ons(kit, tracks, lane, lo=0, hi=None):
-    return sorted(n for t in lane_tracks(kit, tracks, lane) for n in ons(t, lo, hi))
-
-
-def at(kit, step):
-    """A 16th as a tick on the kit's swing (a fractional 16th: its whole 16th's tick plus the rest, straight)."""
-    base = math.floor(step)
-    return round(base * 240) + (LATE[kit] if base % 2 else 0) + round((step - base) * 240)
-
-
-def v127(v, layers=None):
-    """A velocity 0-1 as written: round(v x 127), unless that picks another layer than v does (the recipe takes the
-    louder layer on a tie), then the integer nearest v x 127 that picks v's layer."""
-    vel = max(1, min(127, round(v * 127)))
-    if not layers or nearest(layers, vel / 127) == nearest(layers, v):
-        return vel
-    ok = [c for c in range(1, 128) if nearest(layers, c / 127) == nearest(layers, v)]
-    return min(ok, key=lambda c: (abs(c - v * 127), c))
-
-
-def nearest(layers, v):
-    """The layer the recipes pick for a velocity: the nearest, the louder on a tie (phrase.hits_lane)."""
-    return min(range(len(layers)), key=lambda i: (abs(layers[i] - v), -i))
-
-
-def layers_of(kit, name):
-    K = kits.load(kit)
-    return kits.items(K, only=(name,))[0].layers
-
-
-def ticks(kit, frames):
-    """A sample's length at 48 kHz in ticks at the kit's tempo."""
-    return round(frames * kits.load(kit).BPM / 3000)
-
-
-# ------------------------------------------------------------------ each kit's round 5 context loop, from its recipes
-def expected_loop(kit, variant):
-    """The kit's context5 loop, lane by lane, read off its recipe modules (not off PARTS): {track: sorted [(on tick,
-    key, the recipe's velocity 0-1, off tick or None)]}, None where the gate is checked separately (the melodic
-    lanes)."""
-    k = Mi.kit_of(kit)
-    a = lambda s: at(kit, s)  # noqa: E731
-    drum = lambda pairs, key: [(a(s), key, v, a(s) + 120) for s, v in pairs]  # noqa: E731
-    out = {}
-
-    def one_shot(role, item, step, layer, align, zone=None, start=0, gate=None, vel=None):
-        key = k.key_of(role, item, zone, start)
-        v = layers_of(kit, item)[layer - 1] if vel is None else vel
-        length = round(gate * 240) if gate else ticks(kit, k.frames(item, zone)) - round(start * 240)
-        if align == 'end':
-            return (a(step) - length, key, v, a(step))
-        return (a(step), key, v, min(a(step) + length, 64 * 240))
-
-    if kit == 'FUT01':
-        from tools.sound.recipes.fut01 import context4 as C, context5 as C5, keys as Ky, music as M, voxsynth as V
-        out['Kick'] = drum(C.KICK, 36)
-        out['Clap'] = drum(C.CLAP, 38)
-        out['Hats'] = drum(C.HAT_C, 42) + drum(C.HAT_O, 46)
-        out['Perc'] = drum(C.TAMB, 54) + drum(C.RIM, 37) + drum(C.PERC, 47)
-        out['Bass'] = [(a(s + 32 * r), n, v, None) for r in (0, 1) for s, _, n, v, _ in C.WARP_LINE]
-        out['Lead'] = [(a(s + 32 * r), n, v, None) for r in (0, 1) for s, n, _, v in M.PHRASE]
-        stabs = [(s, z, v) for s, z, v in C.STABS if s not in C5.STAB_DROP[variant]]
-        out['Chords'] = [(a(s), z, v, a(s) + 240) for s, z, v in stabs]
-        out['Chord voicing'] = [(a(s), z + d, v, a(s) + 240) for s, z, v in stabs for d in Ky.SHAPE]
-        if variant == 'vox':
-            out['Vox'] = [(a(s + at_), n, v, None) for at_ in C5.RIFF_AT['vox'] for s, n, _, v, _ in V.RIFF_NOTES]
-        out['Accents'] = [one_shot('accents', name, step, layer, how, gate=gate)
-                          for _, name, step, layer, how, gate in C5.ACCENTS[variant]]
-        out['FX'] = [one_shot('fx', 'GlitchFillLift', C.FILL_AT, 1, 'on', start=C.FILL_FROM)]
-    elif kit == 'FUT02':
-        from tools.sound.recipes.fut02 import bass as B, context as C, context5 as C5, lead as L, pad as Pd
-        from tools.sound.recipes.fut02 import voxsynth as Vs
-        out['Kick'] = drum(C.KICK, 36)
-        out['Clap'] = drum(C.CLAP, 38)
-        out['Hats'] = drum(C.HAT_CLOSED, 42) + drum(C.HAT_OPEN, 46)
-        out['Perc'] = drum(C.ZAP, 47)
-        out['Bass'] = [(a(s + 32 * r), n, v, None) for r in (0, 1) for s, n, _, v, _ in B.LINES[B.PICK]
-                       if not C.GLIDE[0] <= s + 32 * r < C.GLIDE[1]]
-        early = round(C.GLIDE_EARLY * kits.load(kit).BPM / 60 * 960)
-        out['Drop Glide'] = [(a(C.GLIDE[0]), 26, layers_of(kit, 'DropGlideClean')[C.GLIDE_LAYER - 1],
-                              a(C.GLIDE[1]) - early)]
-        out['Lead'] = [(a(s + 32 * r), n, v, None) for r in (0, 1) for s, n, _, v in L.phrase_notes()
-                       if s + 32 * r < C.ARP_REST[0]]
-        out['Chords'] = [(0, 50, 1.0, 64 * 240)]
-        out['Chord voicing'] = [(0, n, 1.0, 64 * 240) for n in Pd.CHORD]
-        if variant == 'vox':
-            out['Vox'] = [(a(s + C5.RIFF_AT), n, v, None) for s, n, _, v in Vs.RIFF]
-        version = C5.VOX if variant == 'vox' else C5.NOVOX
-        out['Accents'] = [one_shot('accents', item, step, layer, 'end' if ends else 'on', zone=zone)
-                          for step, item, zone, layer, *_, ends in C5.ACCENTS[version]]
-        out['FX'] = [one_shot('fx', 'LaserFill', C.FILL_AT, 1, 'on')]
-    elif kit == 'FUT03':
-        from tools.sound.recipes.fut03 import accents as A, context as C, context5 as C5, rubber as B
-        from tools.sound.recipes.fut03 import voxsynth as VS
-        from tools.sound.recipes.fut03 import midi as P3
-        out['Kick'] = drum(C.KICK, 36)
-        out['Clap'] = drum(C.CLAP, 38)
-        out['Hats'] = sorted(drum([(s, v) for s, kind, v in C.HATS if kind == 'closed'], 42)
-                             + drum([(s, v) for s, kind, v in C.HATS if kind == 'open'], 46))
-        out['Perc'] = drum(C.SHAKER, 54) + [(a(s), 37 if n == 'Rimshot' else P3.HAND[(n, z)], v, a(s) + 120)
-                                            for s, n, z, v in C.PERC]
-        out['Bass'] = []
-        for r in (0, 1):
-            for s, ln, n, v, glide in B.LINES[B.PICK]:
-                out['Bass'].append((a(s + 32 * r), n, v, None))
-                if glide:
-                    out['Bass'].append((at(kit, s + 32 * r + ln * glide[1]), glide[0], v, None))
-        out['Chords'] = [(a(s), 55, v, a(s) + 360) for s, v in C.STAB]
-        out['Chord voicing'] = [(a(s), n, v, a(s) + 360) for s, v in C.STAB for n in A.GM9]
-        out['Pad Warm'] = [(0, 55, 1.0, 64 * 240)]
-        if variant == 'vox':
-            out['Vox'] = [(a(s + C5.VOX_AT), m, v, None) for s, m, _, v in VS.VOX_RIFF]
-        out['Accents'] = [one_shot('accents', name, 64 if step == 'end' else step, 1, 'end' if step == 'end' else 'on')
-                          for step, name in C5.ACCENTS[variant]]
-    elif kit == 'FUT04':
-        from tools.sound import dsp48 as D
-        from tools.sound.recipes.fut04 import bass as B, context as C, context5 as C5, lead as L, pad as Pd
-        line = B.LINE_BY_NAME[B.PICK]
-        out['Kick'] = drum(C.KICK, 36)
-        out['Rumble'] = [(0, 35, 1.0, 32 * 240), (a(32), 35, 1.0, a(C.KICK_OUT))]
-        out['Snare'] = drum(C.SNARE, 38)
-        out['Hats'] = drum(C.HAT_CLOSED, 42) + drum(C.HAT_OPEN, 46) + drum(C.RIDE, 51)
-        out['Perc'] = drum(C.ANVIL, 47)
-        out['Bass'] = [(a(s + 32 * r), n, v, None) for r in (0, 1)
-                       for s, n, _, v, *_ in tuple(line.notes) + tuple(line.ticks)]
-        out['Lead'] = [(at(kit, s + 32 * r) + round(k_ * 240 / rt), n, v * D.undb(L.RATCHET_DB * k_), None)
-                       for r in (0, 1) for s, n, _, v, rt in L.PHRASE for k_ in range(rt)]
-        out['Chords'] = [(0, 52, 1.0, 64 * 240)]
-        out['Chord voicing'] = [(0, n, 1.0, 64 * 240) for n in Pd.CHORD]
-        if variant == 'vox':
-            out['Vox'] = [(a(s), m, v, None) for s, m, _, v in C5.VOX_NOTES]
-        mode = C5.VOX if variant == 'vox' else C5.NOVOX
-        out['Accents'] = [one_shot('accents', name, 64 if s == 'end' else s, 1, 'end' if s == 'end' else 'on')
-                          for s, name in C5.ACCENTS[mode]]
-        out['FX'] = [one_shot('fx', 'StutterFill', C.FILL_AT, 1, 'on')]
-    return {name: sorted(rows) for name, rows in out.items()}
+def own_form(kit):
+    """Whether the kit plays its own form (PARTS['form']) rather than its genre's default."""
+    return bool(Mi.kit_of(kit).P.get('form'))
 
 
 class TestChannels(unittest.TestCase):
@@ -403,7 +149,7 @@ class TestFiles(unittest.TestCase):
         for kit in KITS:
             folder = REPO / 'content' / 'midi' / kit.lower()
             self.assertEqual([Mi.EXTENDED], sorted(p.name for p in folder.iterdir() if p.is_dir()), kit)
-            self.assertEqual(list(VARIANTS), sorted(p.name for p in (folder / Mi.EXTENDED).iterdir()), kit)
+            self.assertEqual(sorted(VARIANTS), sorted(p.name for p in (folder / Mi.EXTENDED).iterdir()), kit)
             subs = [(folder, kit_files(kit))] + [(folder / Mi.EXTENDED / v, ext(kit, v)[0]) for v in VARIANTS]
             for sub, made in subs:
                 with self.subTest(kit=kit, folder=str(sub.relative_to(folder))):
@@ -483,7 +229,7 @@ class TestTiming(unittest.TestCase):
             us = round(60_000_000 / K.BPM)
             self.assertEqual(us, Mi.tempo_us(K.BPM))
             self.assertLess(abs(60_000_000 / us / K.BPM - 1), 1.1e-6)
-            sf, mi = KEYSIGS[kit]
+            sf, mi = signature(K.KEY)
             self.assertEqual((sf, mi), Mi.key_signature(K.KEY))
             for path in mids(kit):
                 with self.subTest(kit=kit, file=path):
@@ -526,18 +272,16 @@ class TestTiming(unittest.TestCase):
         each Loop file sit on exactly those ticks."""
         for kit in KITS:
             K = kits.load(kit)
-            self.assertEqual(LATE[kit], round((K.SWING - 0.5) * 480))
-            self.assertEqual(LATE[kit], Mi.kit_of(kit).late)
+            self.assertEqual(late(kit), Mi.kit_of(kit).late)
             for v in VARIANTS:
                 for t in lane_tracks(kit, loop(kit, v), 'hats'):
                     offsets = {on % 480 for on, *_ in t['notes']}
-                    self.assertLessEqual(offsets, {0, 240 + LATE[kit]}, (kit, t['name']))
+                    self.assertLessEqual(offsets, {0, 240 + late(kit)}, (kit, t['name']))
 
     def test_gates_never_run_a_swung_note_into_the_next_one(self):
         """On a bass or vox track (a mono line) a note ends by the next note's start, unless that note is a written
-        slide, which it runs into by SLIDE_TICKS at most (audit A, defect 5): FUT01's Bounce F#1 on its swung 16th 11
-        no longer runs into the straight F#2 on 12, nor FUT04's E1 on 1 into E2 on 2. In each bassline file the
-        overlaps are exactly the slides the line writes."""
+        slide, which it runs into by SLIDE_TICKS at most (audit A, defect 5; the kits' files check the audit's
+        examples). In each bassline file the overlaps are exactly the slides the line writes."""
         for kit in KITS:
             for path in mids(kit):
                 for t in parsed(kit, path)[2][1:]:
@@ -562,12 +306,6 @@ class TestTiming(unittest.TestCase):
                 slid = {at(kit, n.step) for n in (Mi.Note(*row) for row in line) if n.slide}
                 with self.subTest(kit=kit, line=name):
                     self.assertLessEqual(overlaps, slid)
-        bounce = {(on, key): off for on, off, _, key, _ in parse(kit_files('FUT01')[
-            'FUT01_Bassline_Bounce_InTheLoop_2bars.mid'])[2][1]['notes']}
-        self.assertEqual(12 * 240, bounce[(11 * 240 + 43, 30)])
-        acid = {(on, key): off for on, off, _, key, _ in parse(kit_files('FUT04')[
-            'FUT04_Bassline_AcidLine1_InTheLoop_2bars.mid'])[2][1]['notes']}
-        self.assertEqual(2 * 240, acid[(240 + 19, 28)])
 
     def test_a_slide_holds_the_note_before_into_it(self):
         """A slide marks a note glided into from the note before (FUT01 "legato from the note before", FUT02 "slide
@@ -606,59 +344,12 @@ class TestTiming(unittest.TestCase):
 
 
 class TestLoops(unittest.TestCase):
-    def test_each_loop_reproduces_its_context_loop_lane_by_lane(self):
-        """The Loop files are the kit's round 5 context loop (context5.py) as its club master plays it, lane by lane:
-        every onset, key and velocity, and every length but the melodic lanes' gates (checked by the timing tests):
-        FUT02's line muted under its drop glide (on channel 11), FUT04's rumble on 35 muted from 16th 60, FUT03's pad
-        on channel 11, FUT04's blip ratchets as retriggers, the variant's accents and FX."""
-        for kit in KITS:
-            for v in VARIANTS:
-                got = loop(kit, v)
-                want = expected_loop(kit, v)
-                with self.subTest(kit=kit, variant=v):
-                    self.assertEqual(sorted(want), sorted(n for n, t in got.items() if t['notes']))
-                k = Mi.kit_of(kit)
-                for name, rows in want.items():
-                    with self.subTest(kit=kit, variant=v, track=name):
-                        notes = got[name]['notes']
-                        ch = CH.track_channel(kit, name)
-                        self.assertEqual([(on, key, v127(vel, k.layers(ch, key))) for on, key, vel, _ in rows],
-                                         [(on, key, vel) for on, _, _, key, vel in notes])
-                        for (on, key, vel, off), n in zip(rows, notes):
-                            if off is not None:
-                                self.assertEqual(off, n[1], (on, key))
-
-    def test_velocities_pick_the_recipes_layers(self):
-        """Every Loop file velocity picks the layer the recipe picks from its own velocity (the nearest layer, the
-        louder on a tie), on the r5 Items; one-shots placed by layer carry round(layer x 127)."""
-        for kit in KITS:
-            k = Mi.kit_of(kit)
-            for v in VARIANTS:
-                got = loop(kit, v)
-                for name, rows in expected_loop(kit, v).items():
-                    for (on, key, want, _), n in zip(rows, got[name]['notes']):
-                        ch, vel = n[2], n[4]
-                        if ch == 3:
-                            continue
-                        with self.subTest(kit=kit, variant=v, track=name, on=on, key=key):
-                            layers = k.layers(ch, key)
-                            self.assertEqual(nearest(layers, want), nearest(layers, vel / 127))
-
-    def test_the_vox_synths_velocity_picks_its_vowel(self):
-        """On FUT02 and FUT04 the vox synth's velocity picks the vowel: every vox note sits on a layer's velocity."""
-        for kit, vowels in (('FUT02', {64: 'oh', 95: 'ah', 127: 'ee'}), ('FUT04', {64: 'oo', 127: 'oh'})):
-            layers = layers_of(kit, 'VoxSynth')
-            self.assertEqual(sorted(vowels), [v127(x) for x in layers])
-            for path in mids(kit):
-                for t in parsed(kit, path)[2][1:]:
-                    if t['name'] == 'Vox':
-                        self.assertLessEqual({vel for *_, vel in t['notes']}, set(vowels), path)
-
     def test_vox_and_novox_differ_only_where_they_should(self):
         """The loops (and the extended mixes, below) differ only in the Vox and Accents tracks, the throw controllers,
-        and FUT01's stab drop at 16th 30, where its no-vox warp stab plays instead."""
+        and the chord stabs the no-vox accents take over (PARTS['loop']['stab_drop']: FUT01's at 16th 30)."""
         for kit in KITS:
             a, b = loop(kit, 'vox'), loop(kit, 'novox')
+            drop = {at(kit, st) for st in Mi.kit_of(kit).P['loop'].get('stab_drop', {}).get('novox', ())}
             with self.subTest(kit=kit):
                 self.assertIn('Vox', a)
                 self.assertNotIn('Vox', b)
@@ -666,24 +357,25 @@ class TestLoops(unittest.TestCase):
                     if name in ('Vox', 'Accents'):
                         continue
                     na, nb = a[name]['notes'], b[name]['notes']
-                    if kit == 'FUT01' and name in ('Chords', 'Chord voicing'):
-                        self.assertEqual({at(kit, 30)}, {n[0] for n in na} - {n[0] for n in nb})
-                        self.assertEqual([n for n in na if n[0] != at(kit, 30)], nb)
+                    if name in ('Chords', 'Chord voicing'):
+                        self.assertEqual([n for n in na if n[0] not in drop], nb, name)
                     else:
                         self.assertEqual(na, nb, name)
                     plain = lambda t: [c for c in t['ccs'] if c[2] not in (91, 94)]  # noqa: E731
                     self.assertEqual(plain(a[name]), plain(b[name]), name)
 
     def test_ccs(self):
-        """CC74 and CC71 lie in 0-127, every 60 ticks on the 60-tick grid, only on the channels whose filter rides;
-        CC91 and CC94 only around thrown notes: 127 on its tick before its note-on, 0 at its note-off."""
+        """CC74 and CC71 lie in 0-127, on the 60-tick grid, only on the channels (and controllers) the kit's rides
+        name; CC91 and CC94 only around thrown notes: 127 on its tick before its note-on, 0 at its note-off (the kits'
+        files check where the throws fall)."""
         for kit in KITS:
             for path in mids(kit):
                 for t in parsed(kit, path)[2][1:]:
                     with self.subTest(kit=kit, file=path, track=t['name']):
                         rides = [c for c in t['ccs'] if c[2] in (74, 71)]
                         for tick, ch, cc, val in rides:
-                            self.assertIn(ch, RIDE_CHANNELS[kit])
+                            self.assertIn((ch, cc), {(CH.track_channel(kit, r['on']), r['cc'])
+                                                     for r in Mi.kit_of(kit).rides})
                             self.assertEqual(0, tick % 60)
                         for cc in (74, 71):
                             ticks_ = [c[0] for c in rides if c[2] == cc]
@@ -694,43 +386,6 @@ class TestLoops(unittest.TestCase):
                         want = sorted([(n[0], n[2], cc, 127) for n in thrown for cc in (91, 94)]
                                       + [(n[1], n[2], cc, 0) for n in thrown for cc in (91, 94)])
                         self.assertEqual(want, sorted(throws))
-        for kit, steps in (('FUT02', (44,)), ('FUT04', (30, 46))):
-            got = sorted(c[0] for c in loop(kit, 'vox')['Vox']['ccs'] if c[2] == 91 and c[3] == 127)
-            self.assertEqual([at(kit, s) for s in steps], got, kit)
-        got = sorted(c[0] for c in loop('FUT04', 'novox')['Accents']['ccs'] if c[2] == 91 and c[3] == 127)
-        self.assertEqual([at('FUT04', 30), at('FUT04', 46)], got)
-        for kit in ('FUT01', 'FUT03'):
-            self.assertFalse([c for t in loop(kit, 'vox').values() for c in t['ccs'] if c[2] in (91, 94)])
-
-    def test_the_rides_follow_the_recipes(self):
-        """FUT02's arp ride closed on the downbeat and widest at 16th 46; FUT03's stab low-pass closed at the loop's
-        ends and open at its middle; FUT01's wobble open in the middle of every 8th, widest in bar 4; FUT04's acid
-        resonance at rest over bars 1-2, highest on the fill bar."""
-        def ride(kit, track, cc):
-            return {tick: val for tick, _, c, val in loop(kit, 'vox')[track]['ccs'] if c == cc}
-        def value_at(r, tick):
-            return r[max(t for t in r if t <= tick)]
-        r = ride('FUT02', 'Lead', 74)
-        self.assertEqual(0, r[0])
-        self.assertEqual(127, max(r.values()))
-        self.assertEqual(127, value_at(r, at('FUT02', 46)))
-        self.assertLess(value_at(r, at('FUT02', 30)), 127)
-        r = ride('FUT03', 'Chords', 74)
-        self.assertEqual(0, r[0])
-        self.assertEqual(127, value_at(r, 32 * 240))
-        self.assertLess(value_at(r, 16 * 240), 127)
-        r = ride('FUT01', 'Bass', 74)
-        peaks = [max(v for t, v in r.items() if b * BAR <= t < (b + 1) * BAR) for b in range(4)]
-        self.assertEqual(127, peaks[3])
-        self.assertEqual(sorted(peaks), [peaks[0], peaks[2], peaks[1], peaks[3]])
-        self.assertEqual(0, r[0])
-        self.assertEqual(peaks[0], r[240])
-        for cc in (74, 71):
-            r = ride('FUT04', 'Bass', cc)
-            self.assertEqual({0}, {v for t, v in r.items() if t < 32 * 240})
-            self.assertEqual(127, max(r.values()))
-            self.assertEqual(at('FUT04', 56), max(r, key=lambda t: (r[t], -t)))
-
 
 class TestRideLaw(unittest.TestCase):
     def test_one_law_for_the_rides(self):
@@ -744,57 +399,38 @@ class TestRideLaw(unittest.TestCase):
         self.assertEqual((0, 127, 64), (CH.cc_linear(0.9, 0.9, 0.96), CH.cc_linear(0.96, 0.9, 0.96),
                                         CH.cc_linear(0.93, 0.9, 0.96)))
 
-    def test_the_ride_ranges(self):
-        """The mix manifests' maps: FUT01's wobble 650-2210 Hz, FUT02's arp 1.6-16 kHz, FUT03's dub stab 900-5000 Hz,
-        FUT04's acid ride 5400-14040 Hz (its multiplier, x1-x2.6) and its resonance 0.90-0.96; no resonance ride where
-        the Q is fixed."""
-        want = {'FUT01': [(74, 650, 2210)], 'FUT02': [(74, 1600, 16000)], 'FUT03': [(74, 900, 5000)],
-                'FUT04': [(74, 5400, 14040), (71, 900, 960)]}
-        for kit in KITS:
-            self.assertEqual(want[kit], [(r['cc'], r['lo'], r['hi']) for r in Mi.kit_of(kit).rides], kit)
-
-
 class TestPartFiles(unittest.TestCase):
     def test_the_chords_on_channel_4_at_their_roots_and_the_voicing_on_3(self):
-        """The chord sample sits on channel 4 at its musical root (no more note 60): FUT01's organ stabs on 54 and 59,
-        FUT02's starfield pad on 50, FUT03's dub stab on 55 (Gm9) and 60 (Cm9), FUT04's drone on 52; the voicing alone
-        on channel 3 (the v1 trigger shared it, audit A defect 1)."""
-        roots = {'FUT01': {54, 59}, 'FUT02': {50}, 'FUT03': {55}, 'FUT04': {52}}
+        """The chord sample sits on channel 4 at its roots, the zones (or the root) of its Items (no more note 60); the
+        voicing alone on channel 3 (the v1 trigger shared it, audit A defect 1). The kits' files name the roots."""
         for kit in KITS:
+            k = Mi.kit_of(kit)
             made = kit_files(kit)
             (trig,) = [n for n in made if n.startswith(f'{kit}_Chords_') and not n.endswith('_Voicing_4bars.mid')]
             (voic,) = [n for n in made if n.endswith('_Voicing_4bars.mid')]
             with self.subTest(kit=kit):
                 notes = parse(made[trig])[2][1]['notes']
                 self.assertEqual({4}, {ch for _, _, ch, _, _ in notes})
-                self.assertEqual(roots[kit], {key for _, _, _, key, _ in notes})
+                self.assertLessEqual({key for _, _, _, key, _ in notes}, set(k.zones(4)))
                 self.assertEqual({3}, {ch for _, _, ch, _, _ in parse(made[voic])[2][1]['notes']})
-        phrase = parse(kit_files('FUT03')['FUT03_Phrase_DubChords_4bars.mid'])[2][1]['notes']
-        self.assertEqual({55, 60}, {key for *_, key, _ in [(n[0], n[1], n[2], n[3], n[4]) for n in phrase]})
 
     def test_phrases_on_their_instruments_channels(self):
-        """Every phrase file plays on its instrument's channel (no more channel 4 for all, audit A defect 2)."""
-        want = {
-            'FUT01': {'OrganRiff': 12, 'WarpRiff': 1, 'PluckRiff': 2, 'EPianoStabRhythm': 4, 'VoxSynthRiff': 5},
-            'FUT02': {'VoxSynthRiff': 5, 'LaserStabRiff': 12, 'GlassMelody': 13, 'VoxChoirChords': 5},
-            'FUT03': {'RubberRiff': 1, 'DubChords': 4, 'KeysArp': 2, 'VoxSynthRiff': 5},
-            'FUT04': {'VoxSynthRiff': 5, 'AcidStabRiff': 11, 'MetalChords': 12, 'RaveStabRiff': 13},
-        }
+        """Every phrase file plays on its instrument's channel (no more channel 4 for all, audit A defect 2), and the
+        instrument there is the phrase's Item; every bassline on its line's track (FUT01's Low on Organ Bass)."""
         for kit in KITS:
+            k = Mi.kit_of(kit)
             made = kit_files(kit)
-            got = {}
-            for n, d in made.items():
-                m = re.fullmatch(rf'{kit}_Phrase_([A-Za-z0-9]+)_\d+bars\.mid', n)
-                if m:
-                    (chans,) = [{ch for _, _, ch, _, _ in t['notes']} for t in parse(d)[2][1:]]
-                    got[m[1]] = chans.pop()
-            self.assertEqual(want[kit], got, kit)
-
-    def test_the_low_line_plays_the_organ_bass_on_channel_11(self):
-        notes = parse(kit_files('FUT01')['FUT01_Bassline_Low_2bars.mid'])[2][1]['notes']
-        self.assertEqual({11}, {ch for _, _, ch, _, _ in notes})
-        for name in ('FUT01_Bassline_Bounce_InTheLoop_2bars.mid', 'FUT01_Bassline_Speed_2bars.mid'):
-            self.assertEqual({1}, {ch for _, _, ch, _, _ in parse(kit_files('FUT01')[name])[2][1]['notes']})
+            for ph in k.phrases:
+                with self.subTest(kit=kit, phrase=ph['name']):
+                    (tr,) = parse(made[Mi.phrase_file(kit, ph)])[2][1:]
+                    ch = CH.track_channel(kit, Mi.phrase_track(k, ph))
+                    self.assertEqual({ch}, {c for _, _, c, _, _ in tr['notes']})
+                    self.assertIn(ph['item'], k.items_on(ch))
+            on = k.P['bass'].get('on', {})
+            for name in k.P['bass']['lines']:
+                f = next(n for n in made if re.fullmatch(rf'{kit}_Bassline_{name}(_InTheLoop)?_2bars\.mid', n))
+                chans = {c for _, _, c, _, _ in parse(made[f])[2][1]['notes']}
+                self.assertEqual({CH.track_channel(kit, on.get(name, 'Bass'))}, chans, (kit, name))
 
     def test_the_accent_and_fx_files_are_the_loops(self):
         for kit in KITS:
@@ -894,16 +530,19 @@ class TestExtendedMix(unittest.TestCase):
         'future garage / 2-step': ['intro', 'groove', 'break', 'build', 'drop', 'switch', 'break', 'drop2', 'outro']}
 
     def test_the_form(self):
-        """Each genre's form: 32-bar intro and outro, every section and line on an 8-bar line, the sections tiling
-        the mix; both variants share it."""
+        """Every form: a 32-bar intro and outro, every section and line on an 8-bar line, the sections tiling the mix;
+        both variants share it. A kit on its genre's default form plays that form's sections."""
         self.assertEqual(set(self.FORM_KINDS), set(Mi.FORMS))
+        for genre, form in Mi.FORMS.items():
+            self.assertEqual(self.FORM_KINDS[genre], [kind for _, kind, _ in form], genre)
         for kit in KITS:
             K = kits.load(kit)
             for v in VARIANTS:
                 R = ext(kit, v)[1]
                 with self.subTest(kit=kit, variant=v):
-                    self.assertEqual(self.FORM_KINDS.get(K.DIRECTION, self.FORM_KINDS['default']),
-                                     [s['kind'] for s in R['sections']])
+                    if not own_form(kit):
+                        self.assertEqual(self.FORM_KINDS.get(K.DIRECTION, self.FORM_KINDS['default']),
+                                         [s['kind'] for s in R['sections']])
                     self.assertEqual(32, R['sections'][0]['bars'])
                     self.assertEqual(32, R['sections'][-1]['bars'])
                     start = 1
@@ -915,6 +554,19 @@ class TestExtendedMix(unittest.TestCase):
                     self.assertEqual(R['bars'] + 1, start)
             self.assertEqual([s['name'] for s in ext(kit, 'vox')[1]['sections']],
                              [s['name'] for s in ext(kit, 'novox')[1]['sections']])
+
+    def test_the_default_forms_use_the_machinery(self):
+        """Every genre's default form has busy hats, turnarounds, a roll in its build's last line, vox modes, the
+        accents' rules and the cues' sounds: what a kit's own form can build on."""
+        for genre, form in Mi.FORMS.items():
+            lines = [ln for _, _, ls in form for ln in ls]
+            with self.subTest(genre=genre):
+                self.assertTrue(any(ln.get('hats') == 'busy' for ln in lines))
+                self.assertTrue(any(ln.get('end') == 'turn' for ln in lines))
+                self.assertTrue(next(ls for _, kind, ls in form if kind == 'build')[-1].get('roll'))
+                self.assertLessEqual({'loop', 'riff', 'call'}, {ln.get('vox') for ln in lines})
+                self.assertLessEqual({'loop', 'alternate', 'lead-in'}, {ln.get('accents') for ln in lines})
+                self.assertTrue(any(ln.get('downbeat') for ln in lines) and any(ln.get('into') for ln in lines))
 
     def test_the_regions_tile_the_whole_mix(self):
         """Every region has the whole mix's tracks in the same order and ends on its last bar line; its notes,
@@ -973,7 +625,7 @@ class TestExtendedMix(unittest.TestCase):
                             got = {(on - lo) // BAR for on, *_ in lane_ons(kit, tracks, lane, lo, lo + 8 * BAR)}
                             self.assertEqual(set(range(8)), got, lane)
 
-    def test_the_intro_brings_the_drums_in_on_8_bar_lines_and_the_bass_at_33(self):
+    def test_the_intro_brings_the_drums_in_on_8_bar_lines_and_the_bass_after_it(self):
         for kit in KITS:
             R, tracks, _ = whole(kit, 'vox')
             first = {}
@@ -986,7 +638,10 @@ class TestExtendedMix(unittest.TestCase):
                 for lane in ('snare', 'hats', 'perc'):
                     self.assertLess(first[lane], 32)
                     self.assertEqual(0, first[lane] % 8, lane)
-                self.assertEqual(32, first['bass'])
+                self.assertGreaterEqual(first['bass'], 32)
+                self.assertEqual(0, first['bass'] % 8)
+                if not own_form(kit):
+                    self.assertEqual(32, first['bass'])          # the default forms: the bass at 33
                 self.assertLessEqual(first['bass'], first['chords'])
                 self.assertEqual(0, first['chords'] % 8)
 
@@ -1001,7 +656,7 @@ class TestExtendedMix(unittest.TestCase):
                             self.assertEqual([], lane_ons(kit, {'Kick': tracks['Kick']}, 'kick'))
                             self.assertIn('chords', s['lanes'])
                         if s['kind'] in ('drop', 'drop2'):
-                            for lane in ('kick', 'snare', 'hats', 'bass', 'chords', 'lead', 'accents'):
+                            for lane in ('kick', 'hats', 'bass', 'accents'):
                                 self.assertIn(lane, s['lanes'])
                             self.assertEqual(v == 'vox', 'vox' in s['lanes'])
 
@@ -1010,8 +665,10 @@ class TestExtendedMix(unittest.TestCase):
         the vox or the accents change; drop 2 plays a bassline other than the switch-up's (cross-kit issue 4)."""
         for kit in KITS:
             R, tracks, _ = whole(kit, 'vox')
-            groove = next(s for s in R['sections'] if s['kind'] == 'groove')
-            drop = next(s for s in R['sections'] if s['kind'] == 'drop')
+            groove = next((s for s in R['sections'] if s['kind'] == 'groove'), None)
+            drop = next((s for s in R['sections'] if s['kind'] == 'drop'), None)
+            if groove is None or drop is None:
+                continue
             g0 = (groove['lines'][-1]['start_bar'] - 1) * BAR
             d0 = (drop['start_bar'] - 1) * BAR
             changed = []
@@ -1050,9 +707,9 @@ class TestExtendedMix(unittest.TestCase):
                             self.assertTrue([n for n in fx if n[1] == t + BAR and n[0] >= t])
 
     def test_the_builds_roll_up_to_the_fill(self):
-        """Each genre's build: its roll's last hit falls before its fill starts, inside the fill's bar or the bar
-        before, its velocities rise hit by hit; the kick sits the roll out in sci-fi club and plays on in house,
-        techno and UK garage."""
+        """A build's roll: its last hit falls before its fill starts, inside the fill's bar or the bar before, its
+        velocities rise hit by hit. In the default forms the kick sits the roll out in sci-fi club and plays on in
+        house, techno and UK garage."""
         for kit in KITS:
             K = kits.load(kit)
             R, tracks, _ = whole(kit, 'vox')
@@ -1071,8 +728,9 @@ class TestExtendedMix(unittest.TestCase):
                 vels = [vel for _, _, vel in rolled]
                 self.assertEqual(sorted(vels), vels)
                 self.assertGreater(vels[-1], vels[0])
-                kick = lane_ons(kit, tracks, 'kick', lo, lo + 7 * BAR)
-                self.assertEqual(K.DIRECTION == 'sci-fi club', not kick)
+                if not own_form(kit):           # the default builds: the kick sits the roll out in sci-fi club only
+                    kick = lane_ons(kit, tracks, 'kick', lo, lo + 7 * BAR)
+                    self.assertEqual(K.DIRECTION == 'sci-fi club', not kick)
 
     def test_busy_hats_are_busier(self):
         """A busy line plays the kit's own busy pattern, or a hat on every 16th its full hats leave empty, at a
@@ -1081,21 +739,21 @@ class TestExtendedMix(unittest.TestCase):
             R, tracks, _ = whole(kit, 'vox')
             k = Mi.kit_of(kit)
             busy = [ln for s in R['sections'] for ln in s['lines'] if ln.get('hats') == 'busy']
-            self.assertTrue(busy, kit)
             authored = k.P['drums'].get('busy')
             for ln in busy:
                 lo = (ln['start_bar'] - 1) * BAR
                 for b in range(7):
                     hats = lane_ons(kit, tracks, 'hats', lo + b * BAR, lo + (b + 1) * BAR)
                     with self.subTest(kit=kit, bar=ln['start_bar'] + b):
-                        steps = {round((on - lo - b * BAR - (LATE[kit] if on % 480 else 0)) / 240) for on, _, _ in hats}
+                        steps = {round((on - lo - b * BAR - (late(kit) if on % 480 else 0)) / 240)
+                                 for on, _, _ in hats}
                         if authored:
                             self.assertLessEqual({round(n[0]) % 16 for n in authored}, steps)
                         else:
                             self.assertEqual(set(range(16)), steps)
                             full = {round(n.step) % 16 for n in k.drums('hats', 'groove') if n.step // 16 == b % 4}
                             added = [vel for on, _, vel in hats if round((on - lo - b * BAR
-                                                                          - (LATE[kit] if on % 480 else 0)) / 240)
+                                                                          - (late(kit) if on % 480 else 0)) / 240)
                                      not in full]
                             self.assertGreaterEqual(min(added, default=127), 44)
 
@@ -1103,7 +761,6 @@ class TestExtendedMix(unittest.TestCase):
         for kit in KITS:
             R, tracks, _ = whole(kit, 'vox')
             turns = [ln for s in R['sections'] for ln in s['lines'] if ln.get('end') == 'turn']
-            self.assertTrue(turns, kit)
             for ln in turns:
                 lo = (ln['start_bar'] - 1) * BAR
                 drums = lambda a, b: sorted((on - a, key) for lane in CH.DRUM_LANES  # noqa: E731
@@ -1112,17 +769,20 @@ class TestExtendedMix(unittest.TestCase):
                                     (kit, ln['start_bar']))
 
     def test_the_mixes_differ_only_where_they_should(self):
+        """The vox and no-vox mixes differ only in Vox, Accents (and their throws) and the chord stabs the no-vox
+        accents take over (PARTS['loop']['stab_drop'], only in the blocks those accents play)."""
         for kit in KITS:
             Ra, a, _ = whole(kit, 'vox')
             Rb, b, _ = whole(kit, 'novox')
+            drop = {at(kit, st) for st in Mi.kit_of(kit).P['loop'].get('stab_drop', {}).get('novox', ())}
             with self.subTest(kit=kit):
                 self.assertEqual(set(a) - {'Vox'}, set(b))
                 for name in b:
                     if name == 'Accents':
                         continue
-                    if kit == 'FUT01' and name in ('Chords', 'Chord voicing'):
+                    if name in ('Chords', 'Chord voicing'):
                         extra = [n for n in a[name]['notes'] if n not in b[name]['notes']]
-                        self.assertEqual({at(kit, 30) % (4 * BAR)}, {n[0] % (4 * BAR) for n in extra})
+                        self.assertLessEqual({n[0] % (4 * BAR) for n in extra}, drop)
                         self.assertFalse([n for n in b[name]['notes'] if n not in a[name]['notes']])
                         continue
                     self.assertEqual(a[name]['notes'], b[name]['notes'], name)
