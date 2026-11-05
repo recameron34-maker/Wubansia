@@ -13,11 +13,6 @@
   "length": "7:00",
   "file": "FUT03_ExtendedMix_Vox_224bars.mid",
   "note_names": "C4 = 60, as the sample names",
-  "basslines": {
-    "main": "Rubber",
-    "switch": "Deep",
-    "drop2": "Rubber"
-  },
   "tracks": [
     {
       "track": "Kick",
@@ -311,6 +306,7 @@
           "bass": "Rubber",
           "lead": "call",
           "vox": "call",
+          "throw": 1,
           "accents": "alternate",
           "end": "fill"
         }

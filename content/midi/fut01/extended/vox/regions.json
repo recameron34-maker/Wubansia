@@ -13,11 +13,6 @@
   "length": "6:41",
   "file": "FUT01_ExtendedMix_Vox_224bars.mid",
   "note_names": "C4 = 60, as the sample names",
-  "basslines": {
-    "main": "Bounce",
-    "switch": "Low",
-    "drop2": "Bounce"
-  },
   "tracks": [
     {
       "track": "Kick",
@@ -317,6 +312,7 @@
           "bass": "Bounce",
           "lead": "call",
           "vox": "call",
+          "throw": 1,
           "accents": "alternate",
           "end": "fill"
         }

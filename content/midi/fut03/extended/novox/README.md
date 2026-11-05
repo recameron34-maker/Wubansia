@@ -42,31 +42,31 @@ Line by line (bars of the whole mix):
 - 57-64: kick, clap, hats, perc, bass (Rubber), the lead's call, chords, accents, fx; the fill in its last bar
 
 **3. Break** (bars 65-80)
-- 65-72: the lead's call, chords
-- 73-80: off-beat hats, lead, chords, accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
+- 65-72: the lead's call, chords, pad
+- 73-80: off-beat hats, lead, chords, pad, accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **4. Build** (bars 81-96)
 - 81-88: kick, clap, off-beat hats, perc, bass (Rubber), chords; a turnaround in its last bar
 - 89-96: kick, clap, off-beat hats, chords, fx; the clap rolls over the line's last 4 bars up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 97-128)
-- 97-104: kick, clap, hats, perc, bass (Rubber), lead, chords, accents, fx; a turnaround in its last bar
-- 105-112: kick, clap, hats, perc, bass (Rubber), lead, chords, accents, fx; the fill in its last bar
-- 113-120: kick, clap, busy hats, perc, bass (Rubber), lead, chords, accents; a turnaround in its last bar
-- 121-128: kick, clap, hats, perc, bass (Rubber), lead, chords, accents; the drums out in its last bar
+- 97-104: kick, clap, hats, perc, bass (Rubber), lead, chords, pad, accents, fx; a turnaround in its last bar
+- 105-112: kick, clap, hats, perc, bass (Rubber), lead, chords, pad, accents, fx; the fill in its last bar
+- 113-120: kick, clap, busy hats, perc, bass (Rubber), lead, chords, pad, accents; a turnaround in its last bar
+- 121-128: kick, clap, hats, perc, bass (Rubber), lead, chords, pad, accents; the drums out in its last bar
 
 **6. Switch-up** (bars 129-144)
 - 129-136: kick, clap, busy hats, perc, bass (Deep), accents; a turnaround in its last bar
 - 137-144: kick, clap, busy hats, perc, bass (Deep), chords, accents, fx; the fill in its last bar
 
 **7. Break 2** (bars 145-160)
-- 145-152: the lead's call, chords
-- 153-160: off-beat hats, lead, chords, accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
+- 145-152: the lead's call, chords, pad
+- 153-160: off-beat hats, lead, chords, pad, accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **8. Drop 2** (bars 161-192)
-- 161-168: kick, clap, busy hats, perc, bass (Rubber), lead, chords, accents, fx; a turnaround in its last bar
-- 169-176: kick, clap, busy hats, perc, bass (Rubber), lead, chords, accents, fx; the fill in its last bar
-- 177-184: kick, clap, busy hats, perc, bass (Rubber), lead, chords, accents; a turnaround in its last bar
+- 161-168: kick, clap, busy hats, perc, bass (Rubber), lead, chords, pad, accents, fx; a turnaround in its last bar
+- 169-176: kick, clap, busy hats, perc, bass (Rubber), lead, chords, pad, accents, fx; the fill in its last bar
+- 177-184: kick, clap, busy hats, perc, bass (Rubber), lead, chords, pad, accents; a turnaround in its last bar
 - 185-192: kick, clap, hats, perc, bass (Rubber), chords, accents, fx; the fill in its last bar
 
 **9. Outro** (bars 193-224)
