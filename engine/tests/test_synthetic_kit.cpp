@@ -32,7 +32,7 @@ namespace
 {
     // One digest over every byte the synthetic kit is: both manifests, every WAV and every SMF. A change
     // to the synthetic kit changes it: update it in the same commit, and tell the packages that use it.
-    constexpr const char* kSyntheticContentSha256 = "3fca50423a3da82242c4375c760f0afc82cc4c776e329a9e98805c23528ae1ea";
+    constexpr const char* kSyntheticContentSha256 = "b399c2d5d95b378936b95b4de4c4e486c2ddecf9fcf0b7eb7e9652518bb56751";
 
     std::string contentDigest (const SyntheticContent& c)
     {
@@ -316,7 +316,8 @@ TEST_CASE ("the synthetic manifests are strict integer-only JSON in the document
     CHECK (keysOf (instruments->items.at (0)) == std::vector<std::string> { "id", "name", "lane", "mix_channel", "mode", "align", "attack_us", "release_us", "gain_mdb", "start_frames", "velocity_law", "interp", "mono", "glide", "restrike_continues", "choke", "duck_key", "pan_cycle_pm", "rr_block_16ths", "layered_with", "zones" });
     const auto* phrases = kit.value.find ("phrases");
     REQUIRE (phrases != nullptr);
-    CHECK (keysOf (phrases->items.at (0)) == std::vector<std::string> { "lane", "ch", "ab", "mix_channel", "gain_mdb", "stems", "cycle_16ths", "tolerance_pm", "fade_us", "slices" });
+    CHECK (keysOf (phrases->items.at (0)) == std::vector<std::string> { "lane", "ch", "ab", "mix_channel", "gain_mdb", "stems", "cycle_16ths", "tolerance_pm", "fade_us", "ride", "slices" });
+    CHECK (keysOf (*phrases->items.at (0).find ("ride")) == std::vector<std::string> { "cc74", "cc71" });
     CHECK (keysOf (phrases->items.at (0).find ("slices")->items.at (0)) == std::vector<std::string> { "step", "key", "start", "end", "fade", "lead", "holds" });
 
     const auto mix = json::parse (syntheticMixJson());
@@ -453,6 +454,58 @@ TEST_CASE ("the phrase lane's notes are its slices and their holds", "[synthetic
     }
     CHECK (sliced == 16);
     CHECK (held == 2);
+}
+
+TEST_CASE ("the lead phrase's ride matches the files' controllers in every cycle it plays", "[synthetic]")
+{
+    const auto m = syntheticKitManifest();
+    const auto& phrase = m.phrases.at (0);
+    REQUIRE (phrase.ride74.size() == static_cast<std::size_t> (phrase.cycle16ths * 240 / kRideTicks));
+    CHECK (phrase.ride71.empty()); // no constraint on CC71
+
+    // The contract's rule: a cycle's value at a grid tick is the last CC on the phrase's channel at or
+    // before it, 0 before any; the cycle matches where every value is within kRideSlack.
+    auto controllers = [&phrase] (const std::vector<std::uint8_t>& smf) {
+        std::vector<midi::Controller> cc74;
+        const auto read = midi::readSmf (smf);
+        REQUIRE (read.ok());
+        for (const auto& track : read.value.tracks)
+            for (const auto& c : midi::controllersOf (track))
+                if (c.channel == phrase.ch - 1 && c.number == 74)
+                    cc74.push_back (c);
+        std::stable_sort (cc74.begin(), cc74.end(), [] (const midi::Controller& a, const midi::Controller& b) { return a.tick < b.tick; });
+        return cc74;
+    };
+    auto matches = [&phrase] (const std::vector<midi::Controller>& cc74, int cycle, const std::vector<std::uint8_t>& ride) {
+        const std::int64_t start = static_cast<std::int64_t> (cycle) * phrase.cycle16ths * 240;
+        for (std::size_t i = 0; i < ride.size(); ++i)
+        {
+            const auto at = start + static_cast<std::int64_t> (i) * kRideTicks;
+            int value = 0;
+            for (const auto& c : cc74)
+                if (c.tick <= at)
+                    value = c.value;
+            if (std::abs (value - ride[i]) > kRideSlack)
+                return false;
+        }
+        return true;
+    };
+
+    const auto loop = controllers (syntheticSmf (PlayMode::loop, Variant::vox));
+    CHECK (matches (loop, 0, phrase.ride74));
+    CHECK (matches (loop, 1, phrase.ride74));
+
+    auto nudged = phrase.ride74; // within 1 still matches
+    nudged[40] = static_cast<std::uint8_t> (nudged[40] + 1);
+    CHECK (matches (loop, 0, nudged));
+    auto other = phrase.ride74; // 2 off at one point is another ride: the multisample plays
+    other[40] = static_cast<std::uint8_t> (other[40] + 2);
+    CHECK_FALSE (matches (loop, 0, other));
+
+    const auto song = controllers (syntheticSmf (PlayMode::song, Variant::novox));
+    for (const int cycle : { 2, 3, 4, 5 }) // the Drop's lead
+        CHECK (matches (song, cycle, phrase.ride74));
+    CHECK_FALSE (matches (song, 0, phrase.ride74)); // the Intro: no ride written (0), and no lead either
 }
 
 TEST_CASE ("layOutKit lays the synthetic kit out as kit.h describes", "[synthetic]")

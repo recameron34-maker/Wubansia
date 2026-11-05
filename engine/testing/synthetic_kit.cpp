@@ -160,6 +160,13 @@ namespace wubansia::engine::testing
         constexpr std::size_t kHeldNote = 4; // the retrigger, held by the slice before it
         constexpr std::int64_t kPhraseFadeFrames = 240; // 5 ms
 
+        // The phrase's CC74 ride, value i of the 128 on its cycle's 60-tick grid: up from 32 over the first
+        // bar, back down over the second. Its CC71 ride is empty (no constraint).
+        int leadRide (int i)
+        {
+            return i < 64 ? 32 + i : 96 - (i - 64);
+        }
+
         std::int64_t onsetFrames (int step)
         {
             return step * kSyntheticSixteenthFrames + (step % 2 != 0 ? kSyntheticSwingFrames : 0);
@@ -508,6 +515,8 @@ namespace wubansia::engine::testing
             phrase.cycle16ths = 32;
             phrase.tolerancePm = 20;
             phrase.fadeUs = 5000;
+            for (int i = 0; i < phrase.cycle16ths * 240 / kRideTicks; ++i)
+                phrase.ride74.push_back (static_cast<std::uint8_t> (leadRide (i)));
             for (std::size_t i = 0; i < kPhrase.size(); ++i)
             {
                 const auto& note = kPhrase[i];
@@ -774,8 +783,12 @@ namespace wubansia::engine::testing
         void loopLead (SmfBuilder::Track& t, int o)
         {
             for (const int rep : { o, o + 32 })
+            {
+                for (int i = 0; i < 128; ++i) // the ride the phrase's stem matches: CC74 every 60 ticks
+                    t.cc (tick (rep) + i * kRideTicks, 2, 74, leadRide (i));
                 for (const auto& n : kPhrase)
                     t.note (tick (rep + n.step), n.steps * 240, 2, n.key, 100);
+            }
         }
 
         void loopVoicing (SmfBuilder::Track& t, int o)
