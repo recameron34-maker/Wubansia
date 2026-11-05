@@ -131,7 +131,11 @@ def close_loop(y, a0, L, xfade=0.02, search=0.02):
 
 
 def allpass(x, d, a):
-    """Schroeder all-pass: a flat magnitude and a phase that wanders with frequency, a decorrelator."""
+    """Schroeder all-pass: a flat magnitude and a phase that wanders with frequency, a decorrelator. Its output holds
+    -a times the input at no delay (its first sample is -a x[0]), so a side built from it carries an anti-phase copy
+    of the sound: with a = 0.6 it combs left against right and can lean the top to one side (FUT02's arp read 4.4 dB
+    louder right above 3 kHz in round 3). Check a wide part's lean per band (mixmeter.lean_db), not only its side
+    over mid."""
     b, den = np.zeros(d + 1), np.zeros(d + 1)
     b[0], b[d], den[0], den[d] = -a, 1.0, 1.0, -a
     return signal.lfilter(b, den, x)

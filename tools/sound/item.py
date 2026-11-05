@@ -14,7 +14,9 @@ from tools.sound import dsp48 as D
 from tools.sound import qa
 
 GROUPS = ('Drums', 'Perc', 'Bass', 'Stabs', 'Pad', 'Lead', 'Vox', 'FX', 'Textures', 'Loops')
-QA_KEYS = ('mud', 'tonal', 'tune_cents', 'tune_window', 'sustain', 'harm_tol', 'loop_check', 'crest', 'why')
+QA_KEYS = ('mud', 'tonal', 'tune_cents', 'tune_window', 'sustain', 'harm_tol', 'loop_check', 'loop_choke', 'crest',
+           'club_bands', 'club_max_reduction_db', 'club_crest_loss_db', 'why')
+INSTRUMENT_KEYS = ('loop_check', 'loop_choke', 'why')   # qa keys the renderer reads per instrument, not QA's Spec
 NAME = re.compile(r'[A-Z][A-Za-z0-9]*')
 LOW_END_GROUPS = ('Bass', 'Loops')   # their mud rule may be 'off' only with a reason (qa['why'])
 
@@ -32,7 +34,10 @@ class Out:
     f0s: tuple = ()          # fundamentals present (a chord's notes), Hz, for the alias check
     hits: tuple = ()         # kick onsets (samples) in a loop: the mud gate then also runs per gap between them; in a
                              # bass-body phrase, the kicks it plays against (tag 'with_kick' if they're in the file)
-    meta: dict = None        # facts about the file for the report (and later index.json): slices, a target's settings
+    top_hits: tuple = ()     # the onsets of a loop's full-velocity kicks (samples): QA reads the kick crest floor on
+                             # each as the loop plays it (ADR 0011's measure, over 200 ms from each)
+    meta: dict = None        # facts about the file for the report (and later index.json): slices, a target's settings;
+                             # a club loop's 'master' is its master's report, which QA reads
 
 
 @dataclass(frozen=True, eq=False)
@@ -96,8 +101,48 @@ class Item:
         if self.category in qa.CATEGORIES and qa.CATEGORY_RULES[self.category]['crest'] \
                 and self.qa.get('crest') is False and not self.qa.get('why'):
             bad.append("turning the kick crest floor off needs qa['why']")
+        bad += self._club_problems()
         if bad:
             raise ValueError(f'Item {self.name!r}: ' + '; '.join(bad))
+
+    def _club_problems(self):
+        """A 'club' item is a mastered loop (master.py, ADR 0014): the master ends it, so the renderer adds no high-pass
+        after it (a filter after the limiter moves the peaks off the ceiling) and no LUFS target (the master sets the
+        loudness). Its club overrides, each an exception with a reason: octave windows off or some bands exempted
+        (club_bands: False, or the band names), a cap on peak reduction other than the standard's
+        (club_max_reduction_db), and more crest lost to the master than the standard allows (club_crest_loss_db). A
+        bass shot's groove loop may choke (loop_choke, with a reason: a mono voice ends each hit on the next)."""
+        out = []
+        if 'club' in self.tags:
+            if self.category != 'loop' or not self.loop:
+                out.append("a 'club' item is a mastered loop: category 'loop' and loop=True")
+            if self.hp_hz is not None:
+                out.append("a 'club' loop takes hp_hz=None: the master has its own low cut, and a filter after it "
+                           "moves the peaks off the ceiling")
+            if self.level is not None:
+                out.append("a 'club' loop takes level=None: the master sets its loudness (qa.CLUB)")
+        for key in ('club_bands', 'club_max_reduction_db', 'club_crest_loss_db'):
+            if key not in self.qa:
+                continue
+            v = self.qa[key]
+            if 'club' not in self.tags:
+                out.append(f"qa {key} is for a 'club' loop")
+            elif not self.qa.get('why'):
+                out.append(f"qa {key} is an exception: it needs qa['why']")
+            if key == 'club_bands' and v is not False and (isinstance(v, str) or not isinstance(v, (tuple, list))
+                                                           or not v or set(v) - set(qa.CLUB_BANDS)):
+                out.append(f'qa club_bands is False or the names of the bands it exempts, from {qa.CLUB_BANDS}')
+            if key != 'club_bands' and (isinstance(v, bool) or not isinstance(v, (int, float)) or not v > 0):
+                out.append(f'qa {key} is a number of dB, over 0')
+        if 'loop_choke' in self.qa:
+            checked = self.qa.get('loop_check', qa.CATEGORY_RULES.get(self.category, {}).get('loop_check'))
+            if self.qa['loop_choke'] is not True:
+                out.append('qa loop_choke is True or left out')
+            elif self.loop or not checked:
+                out.append('qa loop_choke is for a one-shot with the groove loop check')
+            elif not self.qa.get('why'):
+                out.append("qa loop_choke changes the groove loop: it needs qa['why']")
+        return out
 
     def takes(self, kit):
         """Every file of the instrument, ordered note, layer, round robin."""
@@ -139,9 +184,24 @@ class Take:
         return D.rng(self.kit, self.sound, self.layer, self.rr, *extra)
 
     def spec(self, out):
-        """The QA spec of this take as rendered."""
+        """The QA spec of this take as rendered. A 'club' loop also gets its genre, the kit's DIRECTION, and its
+        master's report (out.meta['master'])."""
         it = self.item
-        rules = {k: v for k, v in it.qa.items() if k not in ('loop_check', 'why')}
+        rules = {k: v for k, v in it.qa.items() if k not in INSTRUMENT_KEYS}
+        if isinstance(rules.get('club_bands'), list):
+            rules['club_bands'] = tuple(rules['club_bands'])
+        club = 'club' in it.tags
         return qa.Spec(it.category, oneshot=not it.loop, f0=self.f0, f0s=tuple(out.f0s), flags=it.flags, tags=it.tags,
                        splices=tuple(out.splices), loop=out.loop if it.loop else None, hits=tuple(out.hits),
-                       top=self.layer == len(it.layers), **rules)
+                       top=self.layer == len(it.layers), genre=self.genre if club else None,
+                       master=(out.meta or {}).get('master') if club else None,
+                       top_hits=tuple(int(h) for h in out.top_hits), **rules)
+
+    @property
+    def genre(self):
+        """The kit's DIRECTION; None for a kit that isn't in tools/sound/kits (QA then fails the club loop on it)."""
+        from tools.sound import kits                  # kits imports this module
+        try:
+            return getattr(kits.module(self.kit), 'DIRECTION', None)
+        except UnknownName:
+            return None
