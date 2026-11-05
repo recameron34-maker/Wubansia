@@ -54,6 +54,8 @@ LANE_NULL_DB = -40.0          # a phrase lane against the recipe's, one pass at 
 LANE_BAND_DB = 1.0            # a sampled lane: each 1/3 octave within LANE_BAND_RANGE_DB of its loudest
 LANE_BAND_RANGE_DB = 40.0
 CHASE_S = 0.005               # a start chases a phrase's slices in over 5 ms (the sampler's chase fade)
+RESYNC_S = 0.002              # after pass 1 a phrase voice re-syncs at each cycle's wrap over 1 ms (P6): this much after
+#                               each wrap is left out of the gated pass 2 null (the whole pass's is reported)
 MAX_SHIFT = 3                 # samples either way a pass may sit off the recipe's tiled loop
 SILENT_DB = -100.0            # a lane quieter than this (RMS, dBFS) is silent
 SECTION_CEILING_DB = -0.9     # a Song section's true peak, at most (the limiter's ceiling is -1.02 dBTP)
@@ -111,6 +113,16 @@ def plan_loops(variants=VARIANTS):
     return out
 
 
+def side_render(switch, side, variant='vox'):
+    """The club mix with one A/B switch on its other side (kick A, stab B), with taps: that lane against the recipe's
+    lane on that side."""
+    return Render(f'loop_{variant}_{switch}{side}', ('--variant', variant, f'--{switch}', side, '--passes', '3'), taps=True)
+
+
+DEFAULT_SIDE = {'kick': 'b', 'bass': 'b', 'stab': 'a'}
+SWITCH_LANE = {'kick': 'kick', 'bass': 'bass', 'stab': 'chords'}
+
+
 def section_render(variant, bass, number):
     return Render(f'song_{variant}_bass{bass}_s{number:02d}',
                   ('--mode', 'song', '--variant', variant, '--bass', bass, '--section', str(number), '--bars', str(SECTION_BARS)))
@@ -129,6 +141,13 @@ def tempo_render(kit_bpm, pct, variant='vox'):
     bpm = kit_bpm * (1 + pct / 100.0)
     return Render(f'loop_{variant}_bassb_tempo{pct:+d}', ('--variant', variant, '--bass', 'b', '--passes', '3', '--tempo',
                                                           f'{bpm:.6f}'), taps=True)
+
+
+def bench_render(variant='vox'):
+    """The CPU stress: the club mix at 128-sample blocks with notes held on the kit's polyphonic sustained instruments
+    through MIDI in, so the voices fill up (the design's 64 voices and every effect)."""
+    return Render(f'loop_{variant}_bassb_bench', ('--variant', variant, '--bass', 'b', '--passes', '3', '--block', '128',
+                                                  '--hold', '64'))
 
 
 def multisample_render(variant='vox'):
@@ -160,9 +179,15 @@ def run_render(groovecore, kit, render, renders, root, content=None):
     return p.returncode, p.stderr
 
 
-def ensure(groovecore, kit, renders, root, content=None, fresh=False, log=print):
-    """Renders every loop the comparisons need and 8 bars of every Song section (both variants, bass A and B) that the
-    renders folder lacks, or all of them with fresh. Returns the problems met ([str])."""
+SONG_SETS = {'all': tuple((v, b) for v in VARIANTS for b in 'ab'),   # the design's: both variants, bass A and B
+             'some': (('vox', 'b'), ('novox', 'a')),                    # each variant once, each bass once
+             'none': ()}
+
+
+def ensure(groovecore, kit, renders, root, content=None, fresh=False, log=print, songs='all'):
+    """Renders every loop the comparisons need and 8 bars of every Song section (by default in both variants with bass
+    A and B; songs='some' or 'none' for fewer) that the renders folder lacks, or all of them with fresh. Returns the
+    problems met ([str])."""
     problems = []
 
     def one(r):
@@ -174,20 +199,20 @@ def ensure(groovecore, kit, renders, root, content=None, fresh=False, log=print)
 
     from tools.sound import plugin_mix as PM
     _, bpm = PM.loop_info(kit)
-    extra = [multisample_render()] + [exact_render(v) for v in VARIANTS] + [tempo_render(bpm, t) for t in TEMPO_PCT]
+    extra = [multisample_render(), bench_render()] + [exact_render(v) for v in VARIANTS] + [tempo_render(bpm, t) for t in TEMPO_PCT]
+    extra += [side_render(sw, 'a' if DEFAULT_SIDE[sw] == 'b' else 'b') for sw in switches(kit, root) if sw != 'bass']
     for r in plan_loops() + extra:
         code, err = one(r)
         if code != 0:
             problems.append(f'{kit} {r.name}: groovecore render exit {code}: {err.strip()}')
-    for v in VARIANTS:
-        for b in 'ab':
-            for n in range(1, 64):
-                code, err = one(section_render(v, b, n))
-                if code == 2 and 'no section' in err:
-                    break
-                if code != 0:
-                    problems.append(f'{kit} song {v} bass {b} section {n}: exit {code}: {err.strip()}')
-                    break
+    for v, b in SONG_SETS[songs]:
+        for n in range(1, 64):
+            code, err = one(section_render(v, b, n))
+            if code == 2 and 'no section' in err:
+                break
+            if code != 0:
+                problems.append(f'{kit} song {v} bass {b} section {n}: exit {code}: {err.strip()}')
+                break
     return problems
 
 
@@ -307,11 +332,36 @@ def lane_reference(cap, channel, bass):
     return None if x is None else D.st(x)
 
 
+def kit_json(kit, root=None):
+    root = Path(root) if root else Path(__file__).resolve().parents[2]
+    return json.loads((root / 'content' / 'plugin' / kit.lower() / f'{kit}_kit.json').read_text())
+
+
 def phrase_channels(kit, root=None):
     """The mix channels kit.json's phrases play into."""
-    root = Path(root) if root else Path(__file__).resolve().parents[2]
-    k = json.loads((root / 'content' / 'plugin' / kit.lower() / f'{kit}_kit.json').read_text())
-    return sorted({p['mix_channel'] for p in k['phrases']})
+    return sorted({p['mix_channel'] for p in kit_json(kit, root)['phrases']})
+
+
+def phrase_cycles(kit, root=None):
+    """{mix channel: its phrases' cycle in 16ths} (one cycle per channel: P4's parser enforces it per MIDI channel)."""
+    return {p['mix_channel']: p['cycle_16ths'] for p in kit_json(kit, root)['phrases']}
+
+
+def switches(kit, root=None):
+    """The kit's A/B switches (kit.json's kit.ab with labels): a subset of kick, bass, stab."""
+    return [k for k, v in kit_json(kit, root)['kit'].get('ab', {}).items() if v.get('a') or v.get('b')]
+
+
+def resync_mask(L, cycle_16ths, at=RESYNC_S):
+    """The samples of one pass a phrase voice's wrap re-syncs may touch: `at` seconds from each cycle's start (a pass
+    is 64 16ths), as a boolean mask, True where kept."""
+    keep = np.ones(L, dtype=bool)
+    if cycle_16ths:
+        n = int(round(at * SR))
+        for j in range(0, max(1, 64 // cycle_16ths)):
+            a = int(round(j * cycle_16ths * L / 64.0))
+            keep[a:a + n] = False
+    return keep
 
 
 # ------------------------------------------------------------------ the checks
@@ -396,9 +446,10 @@ def dry_checks(kit, renders):
     return out
 
 
-def lane_check(kit, variant, bass, channel, tap, want, L, phrase):
-    """One mix channel's dry tap against the recipe's lane: a phrase lane's null per pass, a sampled lane's bands."""
-    name = f'{variant} bass {bass.upper()}: {channel}' + (' (phrase)' if phrase else '')
+def lane_check(kit, variant, bass, channel, tap, want, L, phrase, cycle_16ths=0, label=None):
+    """One mix channel's dry tap against the recipe's lane: a phrase lane's null per pass (pass 2 gated outside its
+    wraps' re-syncs), a sampled lane's bands."""
+    name = (label or f'{variant} bass {bass.upper()}') + f': {channel}' + (' (phrase)' if phrase else '')
     have_tap = tap is not None and rms_db(pass_slice(tap, L, 1)) > SILENT_DB
     have_ref = want is not None and rms_db(want) > SILENT_DB
     if not have_tap and not have_ref:
@@ -416,8 +467,15 @@ def lane_check(kit, variant, bass, channel, tap, want, L, phrase):
     values = {'null_pass1_db': first, 'shift_pass1': s1, 'null_pass2_db': second, 'shift_pass2': s2,
               'worst_band': worst, 'bands_judged': judged, 'level_db': level}
     if phrase:
-        ok = first <= LANE_NULL_DB and second <= LANE_NULL_DB
-        note = '' if ok else f'nulls {first:.1f} / {second:.1f} dB (gate {LANE_NULL_DB:.0f}): likely ' + OWNERS['phrase']
+        keep = resync_mask(L, cycle_16ths)
+        outside = null_db(pass_slice(tap, L, 1, s2)[keep], want[keep])
+        values['null_pass2_outside_resync_db'] = outside
+        ok = first <= LANE_NULL_DB and outside <= LANE_NULL_DB
+        note = '' if ok else (f'nulls {first:.1f} / {outside:.1f} dB outside the re-syncs (gate {LANE_NULL_DB:.0f}): likely '
+                              + OWNERS['phrase'])
+        if ok and second > LANE_NULL_DB:
+            note = (f'pass 2 whole: {second:.1f} dB; outside the 1 ms re-syncs at its cycle wraps (P6, by design): '
+                    f'{outside:.1f} dB')
     else:
         ok = worst is not None and abs(worst[1]) <= LANE_BAND_DB
         note = '' if ok else f'{worst[0]:g} Hz off by {worst[1]:+.2f} dB (gate {LANE_BAND_DB:g}): likely ' + OWNERS['sampled']
@@ -425,27 +483,47 @@ def lane_check(kit, variant, bass, channel, tap, want, L, phrase):
 
 
 def lane_checks(kit, renders, root=None):
-    """Every mix channel's tap against the recipe's lane, bass B in both variants and the bass channels with bass A."""
+    """Every mix channel's tap against the recipe's lane: the default renders (kick B, bass B, stab A) in both
+    variants, and each switch's other side (bass A in both variants; kick A, stab B with vox) on that switch's lane,
+    where the recipe's trace holds that side (an info row says where it doesn't)."""
     from tools.sound import plugin_mix as PM
     L, _ = PM.loop_info(kit)
     phrases = set(phrase_channels(kit, root))
+    cycles = phrase_cycles(kit, root)
+    kit_switches = switches(kit, root)
     out = []
     for v in VARIANTS:
         cap = references(kit, v)
-        for b in 'ba':
-            name = f'loop_{v}_bass{b}'
+        jobs = [(f'loop_{v}_bassb', None, None, f'{v} bass B')]
+        if 'bass' in kit_switches:
+            jobs.append((f'loop_{v}_bassa', 'bass', 'a', f'{v} bass A'))
+        if v == 'vox':
+            for sw in kit_switches:
+                if sw != 'bass':
+                    side = 'a' if DEFAULT_SIDE[sw] == 'b' else 'b'
+                    jobs.append((side_render(sw, side).name, sw, side, f'{v} {sw} {side.upper()}'))
+        for name, switch, side, label in jobs:
             m = meta_of(wav_path(renders, kit, name))
             if m is None:
-                out.append(Check(kit, 'lane', f'{v} bass {b.upper()}', ok=False, note='no render'))
+                out.append(Check(kit, 'lane', label, ok=False, note='no render'))
                 continue
+            compared = 0
             for c in m['channels']:
                 ch = c['id']
-                if b == 'a' and not any((ch, 'a') == key for key in cap.sides):
-                    continue
+                if switch is None:
+                    want = lane_reference(cap, ch, 'b')
+                else:
+                    if c['lane'] != SWITCH_LANE[switch] or (ch, side) not in cap.sides:
+                        continue
+                    want = D.st(cap.sides[(ch, side)])
                 t = load(taps_dir(renders, kit, name) / f'{ch}.wav')
-                r = lane_check(kit, v, b, ch, None if t is None else t[0], lane_reference(cap, ch, b), L, ch in phrases)
+                r = lane_check(kit, v, side or 'b', ch, None if t is None else t[0], want, L, ch in phrases, cycles.get(ch, 0), label)
                 if r is not None:
                     out.append(r)
+                    compared += 1
+            if switch is not None and compared == 0:
+                out.append(Check(kit, 'lane', f'{label}: {SWITCH_LANE[switch]} lane', {}, None,
+                                 "the recipe's trace holds no lane for this side: covered by the dry loops only"))
     return out
 
 
@@ -652,12 +730,17 @@ def clicks(x, ref, margin_db=6.0):
 
 
 def cpu_checks(kit, renders):
+    """The engine's CPU per render (the render thread's CPU clock against the audio's length): the loops at 512-sample
+    blocks and the stress at 128 with the voices full. Reported: this machine isn't the macos-15 runner the 15 % gate
+    is measured on."""
     out = []
-    for r in plan_loops():
+    for r in plan_loops() + [bench_render()]:
         m = meta_of(wav_path(renders, kit, r.name))
         if m is not None:
             out.append(Check(kit, 'cpu', r.name, {'cpu_percent': m.get('cpu_percent'), 'max_voices': m.get('max_voices'),
-                                                   'worst_block_percent': m.get('worst_block_percent')}, None, ''))
+                                                   'p99_block_percent': m.get('p99_block_percent'),
+                                                   'worst_block_percent': m.get('worst_block_percent'),
+                                                   'block': m.get('block'), 'held_notes': m.get('held_notes')}, None, ''))
     return out
 
 
@@ -735,10 +818,12 @@ def report_md(checks, kits):
             lines.append('')
         cpu_rows = [c for c in ks if c.group == 'cpu']
         if cpu_rows:
-            lines += ['| render | CPU % of one core | worst block % | voices |', '|---|---|---|---|']
+            lines += ['| render | block | CPU % of one core | 99 % of blocks under | worst block % | voices (held) |',
+                      '|---|---|---|---|---|---|']
             for c in cpu_rows:
                 v = c.values
-                lines.append(f"| {c.name} | {v.get('cpu_percent')} | {v.get('worst_block_percent')} | {v.get('max_voices')} |")
+                lines.append(f"| {c.name} | {v.get('block')} | {v.get('cpu_percent')} | {v.get('p99_block_percent')} "
+                             f"| {v.get('worst_block_percent')} | {v.get('max_voices')} ({v.get('held_notes') or 0}) |")
             lines.append('')
         notes = [c for c in ks if c.note and c.ok is False]
         if notes:
@@ -763,6 +848,8 @@ def main(argv=None):
     ap.add_argument('--groovecore', help='render what the renders folder lacks with this groovecore')
     ap.add_argument('--content', help='the content folder (default: $WUBANSIA_CONTENT_DIR)')
     ap.add_argument('--fresh', action='store_true', help='render everything again')
+    ap.add_argument('--songs', default='all', choices=tuple(SONG_SETS),
+                    help="which Song renders to make: all (both variants, bass A and B), some (vox with B, no-vox with A), none")
     ap.add_argument('--out', default='build/v0.1-fidelity')
     ap.add_argument('--only', action='append', choices=GROUPS)
     a = ap.parse_args(argv)
@@ -776,7 +863,7 @@ def main(argv=None):
     checks = []
     for kit in kits:
         if a.groovecore:
-            problems = ensure(a.groovecore, kit, a.renders, root, a.content, a.fresh)
+            problems = ensure(a.groovecore, kit, a.renders, root, a.content, a.fresh, songs=a.songs)
             for p in problems:
                 print('compare_render:', p, file=sys.stderr)
         checks += run_kit(kit, a.renders, root, tuple(a.only or GROUPS))

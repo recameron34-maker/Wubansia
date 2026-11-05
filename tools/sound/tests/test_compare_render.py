@@ -177,6 +177,27 @@ class Lanes(unittest.TestCase):
         self.assertFalse(c.ok)
         self.assertIn('P5', c.note)
 
+    def test_pass_2_of_a_phrase_lane_is_gated_outside_its_wraps_re_syncs(self):
+        """After pass 1 the phrase voice re-syncs at each cycle's wrap over 1 ms (P6): a residual there alone leaves
+        the gate passing, and the whole pass's null is still reported."""
+        L = 48000
+        want = _noise(L, 11)
+        got = self._tap(want)
+        got[L:L + 48] += want[:48]                             # 1 ms off at the second pass's wrap
+        c = C.lane_check('FUT09', 'vox', 'b', 'vox', got, want, L, phrase=True, cycle_16ths=32)
+        self.assertTrue(c.ok, c.values)
+        self.assertGreater(c.values['null_pass2_db'], -40.0)
+        self.assertEqual(-math.inf, c.values['null_pass2_outside_resync_db'])
+        self.assertIn('re-syncs', c.note)
+        got[L + 30000:L + 30100] += 0.5                         # a burst mid-cycle is not a re-sync
+        self.assertFalse(C.lane_check('FUT09', 'vox', 'b', 'vox', got, want, L, phrase=True, cycle_16ths=32).ok)
+
+    def test_the_re_sync_windows_start_each_cycle(self):
+        keep = C.resync_mask(64000, 32)
+        self.assertFalse(keep[0] or keep[95] or keep[32000] or keep[32095])
+        self.assertTrue(keep[96] and keep[31999] and keep[32096])
+        self.assertTrue(C.resync_mask(64000, 0).all())
+
     def test_sound_where_the_recipe_has_none_and_silence_where_it_has_some_fail(self):
         x = _noise(self.L, 9)
         c = C.lane_check('FUT09', 'vox', 'b', 'fx', self._tap(x), None, self.L, False)
@@ -222,6 +243,12 @@ class Plan(unittest.TestCase):
         self.assertEqual('129.980000', r.args[r.args.index('--tempo') + 1])
         self.assertTrue(r.taps)
         self.assertEqual('loop_vox_bassb_tempo+1', C.tempo_render(134.0, 1).name)
+
+    def test_a_switch_on_its_other_side(self):
+        r = C.side_render('kick', 'a')
+        self.assertEqual('loop_vox_kicka', r.name)
+        self.assertEqual(('--variant', 'vox', '--kick', 'a', '--passes', '3'), r.args)
+        self.assertTrue(r.taps)
 
     def test_a_section_render_is_8_bars_of_that_section(self):
         r = C.section_render('novox', 'a', 3)
