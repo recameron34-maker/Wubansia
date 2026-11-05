@@ -1,13 +1,11 @@
 """The streaming references (rt_ref.py) against the offline stages they stand in for, the streaming mix (engine_ref.py)
 on a synthetic mix, and the gates against each kit's committed Wet and Club loops.
 
-The rt_ref tests are small and run everywhere. The gates need the round 5 reference loops (the FLAC masters in
-build/<kit>-r5, or the WAVs in content/samples/<kit>/Loops) and re-render each kit's recipe once (about 30 s a
-variant): they run when WUBANSIA_R5_BUILD points at a folder holding <kit>-r5/ (or the repo's build/ has it), and
-skip otherwise.
+The rt_ref tests are small and run everywhere. The gates need the round 5 renders (build/<kit>-r5: the FLAC masters,
+sample for sample the WAVs committed in content/samples/<kit>/Loops, and qa_report.json, which holds each loop's
+gain) and re-render each kit's recipe once (about 30 s a variant): they run when WUBANSIA_R5_BUILD points at a
+folder holding <kit>-r5/ (or the repo's build/ has it), and skip otherwise.
 """
-import math
-import os
 import unittest
 
 import numpy as np
