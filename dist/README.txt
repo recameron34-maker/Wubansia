@@ -26,8 +26,11 @@ By hand: in Finder, choose Go > Go to Folder, paste
 
     ~/Library/Application Support/Wubansia Audio/Wubansia/Content
 
-(make the folders if they aren't there), and move each kit folder (fut01, fut02, ...) from "Wubansia Content"
-into it, so you have for example .../Content/fut01/v1/Drums/.
+(make the folders if they aren't there). In it, make a folder for each kit (fut01, fut02, ...) if there isn't
+one, and move only the kit's version folder (v1) from "Wubansia Content/fut01" into it, so you have for example
+.../Content/fut01/v1/Drums/. If a v1 folder is already there, don't click Replace: that's another build of the
+same version. Move the old one aside first, or use install-macos.sh, which checks. (INSTALL.md, in the plugin
+download, also has the same steps as Terminal commands that stop at the first problem.)
 
 Or leave "Wubansia Content" wherever you like and point the plugin at it: "Choose content folder…" in the
 plugin's window.
