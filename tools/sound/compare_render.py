@@ -80,9 +80,13 @@ DRY = {
 }
 
 # Gaps the lead has accepted for now, with their owner: they stay in the report, marked, and don't fail the run.
+FUT04_GRID = ("exact-tempo grid (338823.53 samples a loop) vs the recipe's rounded 338824-sample loop; the kick lands 1 "
+              "sample off the bar-anchored stem on some beats (accepted: inaudible as timing; the Club and Wet crests pass)")
 KNOWN = {
     ('FUT01', 'lane', 'novox bass B: acc_warp'):
         "the warp stab's release runs 15-30 ms past its 16th, where the recipe gates it: P2 manifest (integration)",
+    ('FUT04', 'dry', 'vox bass A vs ContextLoopVox'): FUT04_GRID,
+    ('FUT04', 'dry', 'vox bass B vs ContextLoopVoxWarm'): FUT04_GRID,
 }
 
 # Who a failing gate most likely belongs to (the plan's packages), by what fails.
