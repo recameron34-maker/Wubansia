@@ -91,7 +91,7 @@ def zap(take):
 
 
 ITEMS = [
-    Item('Perc', 'Zap', 'perc', zap, layers=LAYERS, rr=2, root=ZAP_NOTE, sets=('r2', 'r3'),
+    Item('Perc', 'Zap', 'perc', zap, layers=LAYERS, rr=2, root=ZAP_NOTE, sets=('r2', 'r3', 'r5'),
          about="laser zap: wire partials falling 1.6-3 octaves onto D5 in 75-95 ms, most of its energy in the fall, "
                "with an FM bite and a spark; the kit's pitch-drop gesture"),
 ]

@@ -142,17 +142,17 @@ GROOVE_LUFS = {'OrbitGrooveClean': -13.17}   # each line's A and B at one loudne
                                               # against -13.17 LUFS-I), so A comes down to B, which keeps its peak;
                                               # Relay's two read within 0.02 LU at their peaks and keep them
 ITEMS = [
-    Item('Loops', name, 'loop', fn, loop=True, sets=('r2', 'r3'), tags=('preview', 'with_kick'), qa=GROOVE_QA[char],
+    Item('Loops', name, 'loop', fn, loop=True, sets=('r2', 'r3', 'r5'), tags=('preview', 'with_kick'), qa=GROOVE_QA[char],
          level=GROOVE_LUFS.get(name),
          about=f"preview, 2 bars at 130 BPM: the {line} line, {'A, clean' if char == C.CLEAN else 'B, warm'}, over the "
                f"kit kick (every beat) and the hats, at the context loop's faders")
     for name, fn, line, char in GROOVES
 ] + [
-    Item('Loops', 'StarfieldPadLoop', 'loop', pad_loop, loop=True, sets=('r2', 'r3'), tags=('preview',),
+    Item('Loops', 'StarfieldPadLoop', 'loop', pad_loop, loop=True, sets=('r2', 'r3', 'r5'), tags=('preview',),
          qa={'mud': 'lowcut', 'why': 'a pad loop: the low cut, like the pad'},
          about='preview: the starfield pad Dm9 held, its 4-bar loop alone (the sweep closed at bar 1, open at bar 3)'),
-    Item('Loops', 'LaserFillPreview', 'loop', fill_preview, loop=True, sets=('r2', 'r3'), tags=('preview',), qa=WITH_KICK,
+    Item('Loops', 'LaserFillPreview', 'loop', fill_preview, loop=True, sets=('r2', 'r3', 'r5'), tags=('preview',), qa=WITH_KICK,
          about='preview, 2 bars at 130 BPM: a bar of kick, clap and hats, then the laser fill landing on the downbeat'),
-    Item('Loops', 'LaserRiserPreview', 'loop', riser_preview, loop=True, sets=('r2', 'r3'), tags=('preview',),
+    Item('Loops', 'LaserRiserPreview', 'loop', riser_preview, loop=True, sets=('r2', 'r3', 'r5'), tags=('preview',),
          qa=WITH_KICK, about='preview, 9 bars at 130 BPM: the 8-bar laser riser, then the bar of groove it lands on'),
 ]

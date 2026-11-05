@@ -174,10 +174,10 @@ def arp_phrase(take):
 
 
 ITEMS = [
-    Item('Lead', 'ChromeArp', 'lead', arp_note, layers=ARP_LAYERS, notes=ARP_NOTES, sets=('r2', 'r3'),
+    Item('Lead', 'ChromeArp', 'lead', arp_note, layers=ARP_LAYERS, notes=ARP_NOTES, sets=('r2', 'r3', 'r5'),
          about='chrome arp: a plucked pulse body under seven sines on the kit ratios that drop a fourth onto the note '
                '(the laser), wide from a detuned unison on its side, D4 to B-flat 5 every fourth'),
-    Item('Loops', 'ChromeArpPhrase', 'loop', arp_phrase, loop=True, sets=('r2', 'r3'),
+    Item('Loops', 'ChromeArpPhrase', 'loop', arp_phrase, loop=True, sets=('r2', 'r3', 'r5'),
          qa={'mud': 'lowcut', 'why': 'a lead loop: the low cut, like the lead'},
          about='2-bar 16th chrome arp in D minor at 130 BPM: a tresillo melody (F5 A5 G5 | F5 E5 C5, then lifting to '
                'C6 A5 E5) over a D5-A4 drone'),

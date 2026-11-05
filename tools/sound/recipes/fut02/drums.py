@@ -298,18 +298,18 @@ def hat_loop(take):
 
 
 ITEMS = [
-    Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('r2', 'r3'),
+    Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('r2', 'r3', 'r5'),
          about='split kick: a clean A1 sub that holds about 60 ms and is 20 dB down by 0.12 s (a quiet tail to '
                '0.40 s), a gently saturated knock gone by 85 ms, a driven chrome top with a laser tick above 1 kHz'),
-    Item('Drums', 'ElectroClap', 'snare', electro_clap, layers=LAYERS, rr=2, sets=('r2', 'r3'),
+    Item('Drums', 'ElectroClap', 'snare', electro_clap, layers=LAYERS, rr=2, sets=('r2', 'r3', 'r5'),
          about='electro clap: four flams of band noise in the kit room, layered with a short snare on D4 (wire '
                'partials, a pitch drop) and bright wires'),
-    Item('Drums', 'ClosedHat', 'hat', closed_hat, layers=LAYERS, rr=3, sets=('r2', 'r3'),
+    Item('Drums', 'ClosedHat', 'hat', closed_hat, layers=LAYERS, rr=3, sets=('r2', 'r3', 'r5'),
          about='closed hat: six squares on the stiff wire partials 5-20 over noise, 30 dB down inside a 16th; chokes '
                'the open hat'),
-    Item('Drums', 'OpenHat', 'hat', open_hat, layers=LAYERS, rr=3, sets=('r2', 'r3'),
+    Item('Drums', 'OpenHat', 'hat', open_hat, layers=LAYERS, rr=3, sets=('r2', 'r3', 'r5'),
          about='open hat: the same wire metal as a wide sizzle about a beat long, choked by the closed hat'),
-    Item('Loops', 'HatLoop', 'loop', hat_loop, loop=True, sets=('r2', 'r3'), tags=('preview',),
+    Item('Loops', 'HatLoop', 'loop', hat_loop, loop=True, sets=('r2', 'r3', 'r5'), tags=('preview',),
          qa={'mud': 'lowcut', 'why': 'a hat loop: the low cut, like the hats'},
          about='2-bar hat preview at 130 BPM: closed 16ths around an open hat on every off-beat, choked by the next '
                'closed hat'),

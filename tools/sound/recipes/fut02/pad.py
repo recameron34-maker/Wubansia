@@ -126,7 +126,7 @@ def starfield_pad(take):
 
 
 ITEMS = [
-    Item('Pad', 'StarfieldPadDm9', 'pad', starfield_pad, root=CHORD[0], loop=True, sets=('r2', 'r3'),
+    Item('Pad', 'StarfieldPadDm9', 'pad', starfield_pad, root=CHORD[0], loop=True, sets=('r2', 'r3', 'r5'),
          about='starfield pad, Dm9 (D3 A3 C4 F4 A4 E5): detuned saws under a 4-bar filter sweep, wide wire-ratio chrome '
                'and twinkling stars; high-passed at 100 Hz, its body in the middle (mono under 320 Hz); a 4-bar loop'),
 ]
