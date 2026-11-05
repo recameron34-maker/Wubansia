@@ -83,6 +83,8 @@ namespace wubansia::cli
                   "                         one mix channel (its mix.json id), before any insert: the dry bus, in aligned time\n"
                   "  --taps <DIR>           also write every mix channel's dry bus to DIR/<channel>.wav and the voices'\n"
                   "                         throws to DIR/send_space.wav, send_echo.wav (at most 64 bars)\n"
+                  "  --taps-of <LIST>       with --taps, only these: lanes or mix channel ids, comma-separated (and\n"
+                  "                         \"sends\" for the throws)\n"
                   "\n"
                   "The host:\n"
                   "  --rate <HZ>            the sample rate, 11025 to 192000 (default 48000)\n"
@@ -307,6 +309,7 @@ namespace wubansia::cli
             bool exactMaster = false;
             std::string solo;
             std::string taps;
+            std::string tapsOf;
             double rate = 48000.0;
             long long block = 512;
             bool keepLatency = false;
@@ -319,7 +322,7 @@ namespace wubansia::cli
         };
 
         constexpr std::string_view kValued[] = { "--kit", "--mode", "--variant", "--kick", "--bass", "--stab", "--passes", "--start-bar",
-            "--bars", "--section", "--tempo", "--phrases", "--space", "--echo", "--pump", "--club", "--master", "--solo", "--taps", "--rate",
+            "--bars", "--section", "--tempo", "--phrases", "--space", "--echo", "--pump", "--club", "--master", "--solo", "--taps", "--taps-of", "--rate",
             "--block", "--hold", "--out", "--format", "--content", "--manifests", "--midi" };
 
         // 0: parsed; else the exit code (help printed, or a usage error reported).
@@ -446,6 +449,8 @@ namespace wubansia::cli
                     o.solo = vs;
                 else if (a == "--taps")
                     o.taps = vs;
+                else if (a == "--taps-of")
+                    o.tapsOf = vs;
                 else if (a == "--rate")
                 {
                     if (! parseReal (v, 11025.0, 192000.0, o.rate) || std::fmod (o.rate, 1.0) > 0.0)
@@ -497,6 +502,8 @@ namespace wubansia::cli
                 return usage ("--section and --start-bar each set the start: give one");
             if (! o.solo.empty() && ! o.taps.empty())
                 return usage ("--solo and --taps: give one");
+            if (! o.tapsOf.empty() && o.taps.empty())
+                return usage ("--taps-of goes with --taps <DIR>");
             return 0;
         }
 
@@ -616,6 +623,34 @@ namespace wubansia::cli
                     ids += (ids.empty() ? "" : ", ") + c.id;
                 err << "groovecore render: --solo " << o.solo << ": " << (lane >= 0 ? "the kit has no mix channel on that lane" : "no such lane or mix channel")
                     << " (lanes: kick, snare, hats, perc, bass, lead, chords, vox, accents, fx; " << o.kit << "'s channels: " << ids << ")\n";
+                return exitUsage;
+            }
+        }
+
+        // What --taps-of names: mix channels by id or by lane, and "sends". Everything when it isn't given.
+        std::vector<bool> tapChannel (mixChannels.size(), o.tapsOf.empty());
+        bool tapSends = o.tapsOf.empty();
+        for (std::size_t from = 0; from < o.tapsOf.size();)
+        {
+            auto to = o.tapsOf.find (',', from);
+            if (to == std::string::npos)
+                to = o.tapsOf.size();
+            const std::string item = o.tapsOf.substr (from, to - from);
+            from = to + 1;
+            if (item == "sends")
+            {
+                tapSends = true;
+                continue;
+            }
+            const int channel = kit.mix.channelIndex (item);
+            const int lane = engine::laneIndex (item);
+            bool any = false;
+            for (std::size_t c = 0; c < mixChannels.size(); ++c)
+                if (static_cast<int> (c) == channel || (channel < 0 && static_cast<int> (mixChannels[c].lane) == lane))
+                    any = tapChannel[c] = true;
+            if (! any && lane < 0)
+            {
+                err << "groovecore render: --taps-of " << item << ": no such lane or mix channel\n";
                 return exitUsage;
             }
         }
@@ -787,6 +822,8 @@ namespace wubansia::cli
             };
             for (std::size_t c = 0; c < mixChannels.size(); ++c)
             {
+                if (! tapChannel[c])
+                    continue;
                 const std::array<std::span<const float>, 2> chans { std::span<const float> (taps.bus[2 * c]), std::span<const float> (taps.bus[2 * c + 1]) };
                 if (const auto w = write (mixChannels[c].id, chans); ! w.ok())
                 {
@@ -795,7 +832,7 @@ namespace wubansia::cli
                 }
             }
             constexpr std::array<std::string_view, engine::kSends> sendNames { "send_space", "send_echo", "send_resonator" };
-            for (std::size_t s = 0; s < sendNames.size(); ++s)
+            for (std::size_t s = 0; tapSends && s < sendNames.size(); ++s)
             {
                 const std::array<std::span<const float>, 1> mono { std::span<const float> (taps.sends[s]) };
                 if (const auto w = write (std::string (sendNames[s]), mono); ! w.ok())
