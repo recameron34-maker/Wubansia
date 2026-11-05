@@ -28,9 +28,13 @@ namespace wubansia::engine
 
     struct SampleSource
     {
+        SampleSource() = default;
+        SampleSource (const SampleSource&) = delete; // a source is used through a reference, never copied
+        SampleSource& operator= (const SampleSource&) = delete;
+
         // The file at relativePath (kit.json's files[].path: forward slashes, relative to the kit's
         // folder). The error names the file and what is wrong; P4's reader starts it with one of
-        // lfs_pointer, rate, format, truncated or missing.
+        // lfs_pointer, rate, format, truncated, missing or unreadable (an I/O error, or a folder at that path).
         virtual util::Result<SampleData> read (std::string_view relativePath) = 0;
 
         virtual ~SampleSource() = default;
