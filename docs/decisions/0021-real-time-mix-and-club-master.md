@@ -42,7 +42,7 @@ The latency is reported in prepare, stays the same with the club master off (its
 **4. Lane clips and drives run on a 4x half-band cascade; the club master's clip keeps os_fir(4)'s taps.**
 - The cascade is rt_ref's `halfband(47, 7.0)` for 1x↔2x and `halfband(15, 7.0)` for 2x↔4x, with 27 samples of latency.
 - On a 5 kHz sine 6 dB over the knee, the loudest alias under 20 kHz reads -93.3 dB (the gate is -60 dB).
-- Against master.soft_clip on drum material, the residual under 16 kHz is -69 dB. It costs 63 ns a sample in stereo, about 4.6 times cheaper than the exact oversampler.
+- Against master.soft_clip on drum material, the residual under 16 kHz is -69 dB. In stereo it costs 41 ns a sample, against 118 ns for the same clip on os_fir(4): about 2.9 times cheaper.
 - The master's clip keeps os_fir(4)'s exact taps, with 48 samples of latency.
 
 **5. The limiter's hold looks back, over twice the hold, and reaches 24 samples past its lookahead.**
@@ -60,8 +60,8 @@ The latency is reported in prepare, stays the same with the club master off (its
 | 220 Hz-7 kHz | -77.7 to -103.4 | unchanged | unchanged |
 
   `engine_tests` keeps the 55, 110 and 220 Hz cases at -60 dB, through the whole club master. A bare 55 Hz saw at 6 dB with no glue leaves -57 dB in master.py's two-sided limiter too, so the test uses master.py's glued fixture.
-- Each peak still holds the gain down for 125 ms, as in master.py, now after the peak instead of round it. P3 measures the look-back master within 0.13 LU of the exact one on every loop.
-- master.py's two-sided hold stays available (`Limiter::Hold::twoSided`) for `groovecore render`'s verification renders.
+- Each peak still holds the gain down for 125 ms, as in master.py, now after the peak instead of round it. P3 measures the look-back master within 0.14 LU of the exact one on every loop (the worst, FUT04 novox, -0.140 LU), with its true peak at -1.020 dBTP on all eight.
+- master.py's two-sided hold stays available for `groovecore render`'s verification renders: `Mixer::prepare (rate, block, outputs, MasterHold::twoSided)`, with its own fixed latency (3280 samples at 48 kHz).
 
 **6. A causal DC blocker before the limiter.** It is a 2nd-order Butterworth high-pass at the manifest's `dc_hz` (5 Hz), after the clip, and it replaces master.py's zero-phase clean. It is ADR 0014 §5's option (a), with the limiter after it, so no catch limiter is needed.
 
@@ -75,28 +75,30 @@ The latency is reported in prepare, stays the same with the club master off (its
 - `Mixer::prepare` allocates every line for the manifest's largest values at the rate: the echo holds 16 16ths at 40 BPM, the FDN 1 s lines, the shimmer window 16384 frames, 512 insert slots. That is 10.9 MB per instance at 48 kHz and 34 MB at 192 kHz.
 - Adopting a mix builds the plan in place, with no allocation.
 - The mixer runs with flush-to-zero, so silent tails never go subnormal.
-- The FIRs sum in four partial sums joined in a fixed order: the same bytes on every run and IEEE platform, about four times faster than one running sum.
+- The FIRs sum in four partial sums joined in a fixed order: the same bytes on every run and IEEE platform, about four times faster than one running sum. They pair their symmetric taps (checked at compile time), which halves their multiplies.
 - The output is identical for any host block size.
 
 ## Consequences
 - The plugin plays the round 5 mixes live:
-  - its whole chain matches engine_ref's streaming render (P3) of FUT01's vox loop with a residual of -137.9 dB on Linux (the gate is -80 dB);
-  - every channel matches to -141..-157 dB and the pre-master bus to -139.6 dB.
+  - its whole chain matches engine_ref's streaming render (P3) of all eight loops, FUT01-FUT04 with and without the vocal, with residuals of -137.5 to -139.9 dB on Linux (the gate is -80 dB), no sample more than 3.6e-7 apart;
+  - on FUT01's vox loop every channel matches to -141..-157 dB and the pre-master bus to -139.6 dB.
+- The match needs the timeline (P7) to send each lane's keys early by its onset ducks' `pre_us` (manifest §3.2), as engine_ref does. Without it FUT02's vox loop reads -40.6 dB.
 - The total latency is 8.8 ms at 48 kHz, so live MIDI in plays that much late. Hosts compensate playback, and the latency doesn't change with the kit, the variant or the club master switch.
-- The look-back master changes peaks and transients slightly against the approved club loops. P3 measures it per kit (within 0.13 LU), and P12's fidelity runs gate it.
-- CPU at 48 kHz on this session's shared x86 machine (best of 5), with the rest unmeasured, notably the Mac:
-  - the club master: 1.5 % of a core;
-  - a lane clip: 0.3 %;
+- The look-back master changes peaks and transients slightly against the approved club loops. P3 measures it per kit (within 0.14 LU integrated, up to 0.196 LU short-term), and P12's fidelity runs gate it.
+- CPU at 48 kHz on this session's shared x86 machine, in the thread's CPU time, with the rest unmeasured, notably the Mac:
+  - one round 5 kit's whole mix and club master: 0.7 to 1.35 µs a sample, 3.3 to 6.5 % of a core. FUT03 is the lightest; FUT01, with nine lane clips, the heaviest. Blocks of 128 and 512 samples cost the same.
+  - the club master: 1.1 %;
+  - a lane clip: 0.27 %;
   - the Space: 0.46 %;
-  - the limiter: 0.52 %;
-  - a busy five-channel test mix with every effect: 4.9 %.
+  - the limiter: 0.35 %;
+  - a busy five-channel test mix with every effect: 3.8 %.
 
-  The same figures come from `engine_tests "[cpu]"` on any machine.
+  The same figures come from `engine_tests "[cpu]"` on any machine, and a kit's from `"[wholechain]"`.
 
 ## Alternatives
 - **master.py's two-sided hold in real time.** It is exact, but it adds 65.5 ms of latency to every note, and 69 ms in all.
 - **A 0.02 dB lower limiter ceiling instead of the 24-sample reach.** It passes the overshoot tests, but it doesn't remove the cause and it costs loudness.
 - **A 60 ms look-back window.** It fails master.py's alias test on driven 55 and 110 Hz tones (above).
-- **os_fir(4) for every clip and drive.** About 4.6 times the CPU, for a difference of -69 dB under 16 kHz.
+- **os_fir(4) for every clip and drive.** About 2.9 times the CPU, for a difference of -69 dB under 16 kHz.
 - **A latency that follows the kit's mix.** Hosts handle latency changes badly, and the plugin reports its latency before any kit is loaded.
 - **A fixed 48 kHz engine with an output resampler.** It would remap every event at 44.1 kHz (ADR 0017, rejected there).

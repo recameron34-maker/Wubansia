@@ -1,7 +1,12 @@
 #include "mix_harness.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+
+#if defined(__unix__) || defined(__APPLE__)
+    #include <time.h>
+#endif
 
 namespace mixtest
 {
@@ -218,5 +223,16 @@ namespace mixtest
                     out[static_cast<std::size_t> ((start + i) * numOutputs + k)] = outs[k][i];
         }
         return out;
+    }
+
+    double threadCpuNs()
+    {
+#if defined(__unix__) || defined(__APPLE__)
+        timespec t {};
+        clock_gettime (CLOCK_THREAD_CPUTIME_ID, &t);
+        return 1e9 * static_cast<double> (t.tv_sec) + static_cast<double> (t.tv_nsec);
+#else
+        return std::chrono::duration<double, std::nano> (std::chrono::steady_clock::now().time_since_epoch()).count();
+#endif
     }
 }

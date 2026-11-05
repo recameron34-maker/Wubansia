@@ -28,6 +28,8 @@ namespace wubansia::engine::fx
             return out;
         }
 
+        // Each half-band's even taps are symmetric (h[2 j] = h[N - 1 - 2 j]), so the dot products pair them.
+        static_assert (symmetricTaps (kHalfband1) && symmetricTaps (kHalfband2), "the dot products below pair the taps");
         constexpr auto kUp1 = evenTaps<47, 24> (kHalfband1, 2.0);
         constexpr auto kUp2 = evenTaps<15, 8> (kHalfband2, 2.0);
         constexpr auto kDown1 = evenTaps<47, 24> (kHalfband1, 1.0);
@@ -39,7 +41,7 @@ namespace wubansia::engine::fx
     {
         stage2.push (y);
         const double* h = stage2.newest();
-        out[0] = dotBack (kUp2.data(), h, kHalf2);
+        out[0] = dotSymmetricEven (kUp2.data(), h, kHalf2);
         out[1] = h[-((kCentre2 - 1) / 2)];
     }
 
@@ -48,7 +50,7 @@ namespace wubansia::engine::fx
     {
         stage1.push (x);
         const double* h = stage1.newest();
-        const double filtered = dotBack (kUp1.data(), h, kHalf1);
+        const double filtered = dotSymmetricEven (kUp1.data(), h, kHalf1);
         const double copy = h[-((kCentre1 - 1) / 2)];
         up2 (filtered, out);
         up2 (copy, out + 2);
@@ -59,13 +61,13 @@ namespace wubansia::engine::fx
     // before this step's two w join.
     double HalfbandDownsampler4::push (const double* in) noexcept
     {
-        const double v = dotBack (kDown1.data(), odds2.newest(), kHalf1) + 0.5 * evens2.newest()[-((kCentre1 + 1) / 2 - 1)];
+        const double v = dotSymmetricEven (kDown1.data(), odds2.newest(), kHalf1) + 0.5 * evens2.newest()[-((kCentre1 + 1) / 2 - 1)];
 
         evens4.push (in[0]);
-        const double w0 = dotBack (kDown2.data(), evens4.newest(), kHalf2) + 0.5 * odds4.newest()[-((kCentre2 - 1) / 2)];
+        const double w0 = dotSymmetricEven (kDown2.data(), evens4.newest(), kHalf2) + 0.5 * odds4.newest()[-((kCentre2 - 1) / 2)];
         odds4.push (in[1]);
         evens4.push (in[2]);
-        const double w1 = dotBack (kDown2.data(), evens4.newest(), kHalf2) + 0.5 * odds4.newest()[-((kCentre2 - 1) / 2)];
+        const double w1 = dotSymmetricEven (kDown2.data(), evens4.newest(), kHalf2) + 0.5 * odds4.newest()[-((kCentre2 - 1) / 2)];
         odds4.push (in[3]);
 
         evens2.push (w0);

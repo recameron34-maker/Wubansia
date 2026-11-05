@@ -19,7 +19,6 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include <algorithm>
-#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -537,9 +536,9 @@ TEST_CASE ("mixer: the whole chain against engine_ref's render of a kit's loop",
             else
                 mixer.cc (e.a, e.b, e.c, offset, e.d);
         }
-        const auto t0 = std::chrono::steady_clock::now();
+        const double t0 = threadCpuNs();
         mixer.process (outs, 2, n, controls, bpm);
-        processNs += std::chrono::duration<double, std::nano> (std::chrono::steady_clock::now() - t0).count();
+        processNs += threadCpuNs() - t0;
         for (int i = 0; i < n; ++i)
         {
             out[static_cast<std::size_t> (2 * (start + i))] = l[static_cast<std::size_t> (i)];
@@ -567,10 +566,10 @@ TEST_CASE ("mixer: the whole chain against engine_ref's render of a kit's loop",
 
 // ------------------------------------------------------------------ CPU (P12's gate reads these)
 
-// Hidden: ns per sample at 48 kHz (best of 5) for the costly blocks and a whole busy mix. Run it on a quiet machine.
+// Hidden: ns per sample at 48 kHz (best of 5) for the costly blocks and a whole busy mix, in the thread's CPU time
+// where the platform keeps it (threadCpuNs). Run it on a quiet machine all the same: a busy one slows the caches.
 TEST_CASE ("mixer: CPU of the lane clip, the FDN, the limiter, the club master and a busy mix", "[.][cpu]")
 {
-    using clock = std::chrono::steady_clock;
     constexpr int n = 48000 * 2, block = 256;
     std::vector<float> l (n), r (n), ol (block), orr (block);
     for (int i = 0; i < n; ++i)
@@ -582,9 +581,9 @@ TEST_CASE ("mixer: CPU of the lane clip, the FDN, the limiter, the club master a
         double ns = 1e30;
         for (int rep = 0; rep < 5; ++rep)
         {
-            const auto t0 = clock::now();
+            const double t0 = threadCpuNs();
             run();
-            ns = std::min (ns, std::chrono::duration<double, std::nano> (clock::now() - t0).count() / n);
+            ns = std::min (ns, (threadCpuNs() - t0) / n);
         }
         return ns;
     };
