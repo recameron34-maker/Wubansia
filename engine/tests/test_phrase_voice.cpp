@@ -31,10 +31,11 @@ namespace
     double raisedIn (double n, double len) { return 0.5 - 0.5 * std::cos (kPi * n / len); }
     double raisedOut (double n, double len) { return 0.5 + 0.5 * std::cos (kPi * n / len); }
 
-    // A smooth test stem: a 55 Hz sine at 0.25 (its own steps stay under -55 dBFS), the right side at 0.9.
+    // A smooth test stem: a sine of 207 periods over 2 bars (55.2 Hz, so it loops seamlessly) at 0.25 (its own steps
+    // stay under -55 dBFS), the right side at 0.9 of it.
     float sine (std::int64_t n, int c)
     {
-        return static_cast<float> ((c == 0 ? 0.25 : 0.225) * std::sin (2.0 * kPi * 55.0 * static_cast<double> (n) / kRate));
+        return static_cast<float> ((c == 0 ? 0.25 : 0.225) * std::sin (2.0 * kPi * 207.0 * static_cast<double> (n % kCycle) / static_cast<double> (kCycle)));
     }
 
     // A 2-bar phrase at 128 BPM, no swing: 8 slices of four 16ths, lead 0, each fading over the last 5 ms of its end;
@@ -408,7 +409,8 @@ TEST_CASE ("phrase voice: a jump crossfades over 3 ms; a slice without a followe
         rig.run (s.kit(), { { 0, phraseNote (s.phrase, 2, false) } }, 6 * k16th);
         const auto& out = rig.left[0];
         const auto& sl = s.slice (2);
-        for (std::int64_t f = 0; f < 6 * k16th; ++f)
+        std::int64_t firstWrong = -1;
+        for (std::int64_t f = 0; f < 6 * k16th && firstWrong < 0; ++f)
         {
             const auto frame = sl.start + f;
             double g = 1.0;
@@ -418,8 +420,12 @@ TEST_CASE ("phrase voice: a jump crossfades over 3 ms; a slice without a followe
                 g = 0.0;
             if (f < 144)
                 g *= raisedIn (static_cast<double> (f), 144.0); // the run's fade-in
-            REQUIRE (same (out[static_cast<std::size_t> (f)], static_cast<float> (static_cast<double> (stemView.left[frame]) * g)));
+            const auto want = frame < stemView.frames ? static_cast<float> (static_cast<double> (stemView.left[frame]) * g) : 0.0f;
+            if (! same (out[static_cast<std::size_t> (f)], want))
+                firstWrong = f;
         }
+        CAPTURE (firstWrong, sl.start, sl.fade, sl.end);
+        CHECK (firstWrong == -1);
         CHECK_FALSE (rig.voice (0).active());
     }
 }
@@ -433,12 +439,17 @@ TEST_CASE ("phrase voice: cycle wraps re-sync over 1 ms; no drift after 1,000 cy
     Rig rig (kRate, 1, 2);
     rig.collect = false;
     double worstStep = 0.0;
+    std::int64_t worstAt = -1;
     float last = 0.0f;
     rig.listen = [&] (std::int64_t start, int n, const MixBus& bus, const SendBus&) {
         for (int i = 0; i < n; ++i)
         {
-            if (start + i > 0)
-                worstStep = std::max (worstStep, std::fabs (static_cast<double> (bus.left (0)[i]) - last));
+            const double step = std::fabs (static_cast<double> (bus.left (0)[i]) - last);
+            if (start + i > 0 && step > worstStep)
+            {
+                worstStep = step;
+                worstAt = start + i;
+            }
             last = bus.left (0)[i];
         }
     };
@@ -450,6 +461,7 @@ TEST_CASE ("phrase voice: cycle wraps re-sync over 1 ms; no drift after 1,000 cy
     CHECK (stats.resyncs >= 250);
     CHECK (stats.resyncs <= 400);
     CHECK (std::fabs (rig.voice (0).readPosition() - 100.0) <= 1.0); // where the last cycle's note says
+    CAPTURE (worstAt, worstAt % kCycle);
     CHECK (worstStep <= 0.01);
 }
 
@@ -540,19 +552,22 @@ TEST_CASE ("phrase voice: the other A/B stem mid-run crossfades to it at the sam
     CHECK (rig.voice (0).stats().jumps == 1);
 }
 
-TEST_CASE ("phrase voice: a follower that never comes fades over fade_us once it reads 2 frames into it", "[phrase][voice]")
+TEST_CASE ("phrase voice: a follower that never comes fades over fade_us once past where it could still come", "[phrase][voice]")
 {
+    // It could still come 2 frames, 1 ms and the tolerance of the slice before (2 % of 22500 frames) late: 500.
     const SineKit s;
     Rig rig (kRate, 1, 2);
     rig.run (s.kit(), { { 0, phraseNote (s.phrase, 2, true) } }, 8 * k16th);
     const auto& stemView = s.kit().view (0);
     const auto& out = rig.left[0];
     const auto end = static_cast<std::size_t> (s.slice (3).start - s.slice (2).start);
-    for (std::size_t i = 144; i <= end + 2; ++i)
+    const std::size_t late = 2 + 48 + 22500 * 20 / 1000;
+    REQUIRE (late == 500u);
+    for (std::size_t i = 144; i <= end + late; ++i)
         REQUIRE (same (out[i], stemView.left[s.slice (2).start + static_cast<std::int64_t> (i)]));
-    for (std::size_t i = end + 3; i < end + 3 + 240; ++i)
-        REQUIRE (std::fabs (out[i] - stemView.left[s.slice (2).start + static_cast<std::int64_t> (i)] * raisedOut (static_cast<double> (i - end - 3), 240.0)) <= 1e-7);
-    CHECK (silent (out.data() + end + 3 + 240, out.size() - (end + 3 + 240)));
+    for (std::size_t i = end + late + 1; i < end + late + 1 + 240; ++i)
+        REQUIRE (std::fabs (out[i] - stemView.left[s.slice (2).start + static_cast<std::int64_t> (i)] * raisedOut (static_cast<double> (i - end - late - 1), 240.0)) <= 1e-7);
+    CHECK (silent (out.data() + end + late + 1 + 240, out.size() - (end + late + 1 + 240)));
     CHECK (rig.voice (0).stats().missed == 1);
     CHECK_FALSE (rig.voice (0).active());
 }
@@ -638,7 +653,7 @@ TEST_CASE ("phrase voice: nothing allocates or frees on the audio path", "[phras
     {
         bus.clear (32);
         sends.clear (32);
-        if (piece % 150 == 7)
+        if (piece % 150 == 7 && piece < 1900)
             v.continueWith (phraseNote (s.phrase, (piece / 150) % 8, piece % 300 != 7), 11);
         if (piece == 1900)
             v.stop (0, 64);

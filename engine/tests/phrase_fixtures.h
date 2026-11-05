@@ -426,8 +426,12 @@ namespace phrase_test
 
     // ------------------------------------------------------------------ measures
 
-    // Bit for bit (the project warns on float ==).
-    inline bool same (float a, float b) noexcept { return std::bit_cast<std::uint32_t> (a) == std::bit_cast<std::uint32_t> (b); }
+    // Bit for bit (the project warns on float ==), but for the sign of a zero: 0.0 + (-0.0) is 0.0 in a sum.
+    inline bool same (float a, float b) noexcept
+    {
+        return std::bit_cast<std::uint32_t> (a) == std::bit_cast<std::uint32_t> (b)
+               || (std::fpclassify (a) == FP_ZERO && std::fpclassify (b) == FP_ZERO);
+    }
 
     inline bool sameBits (const std::vector<float>& a, const std::vector<float>& b)
     {

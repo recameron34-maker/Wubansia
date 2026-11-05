@@ -21,8 +21,9 @@
 // - Reading on tolerates a note up to 2 frames off where the voice reads. At a cycle's wrap it
 //   re-syncs: a frame or more off, it crossfades over 1 ms to where the note says. Further off mid-cycle,
 //   another slice than the expected one, or the other A/B stem: it crossfades over 3 ms (a jump).
-// - A slice that expected a follower which doesn't come (a switch, a tempo past the tolerance) fades
-//   over the phrase's fade_us once it reads 2 frames into the follower.
+// - A slice that expected a follower which doesn't come (a switch, a tempo past the tolerance) reads on
+//   into it as far as a follower within the tolerance could still come (2 frames, 1 ms, and tolerance_pm
+//   of the slice it left), then fades over the phrase's fade_us. A late follower re-syncs as above.
 // - startFrame > 0 (a chase after a start or a seek) starts mid-slice, fading in over the sampler's
 //   chase fade.
 // - Off 48 kHz it resamples with the sampler's sinc bank (no pitch: 48000 / rate frames a sample).
@@ -61,6 +62,7 @@ namespace wubansia::engine
         static constexpr std::int32_t kThrowRampUs = 1000; // a throw's send moving to the next slice's
         static constexpr double kReadOnFrames = 2.0; // a next slice's note this close to the read position reads on
         static constexpr double kResyncFrames = 1.0; // at a cycle wrap, this far off re-syncs
+        static constexpr double kLateMarginFrames = 48.0; // a follower may come this much later than the drift allows
 
         // What the voice did, since prepare () or reset (): for tests and telemetry.
         struct Stats
@@ -135,6 +137,7 @@ namespace wubansia::engine
             bool seen = false; // the note of `slice` has come
             bool follows = false; // ...with NoteFlag::continues
             bool wrapped = false; // it came into `slice` across the stem's end (a cycle's wrap)
+            double late = 0.0; // how far into `slice` its note may still come
             int earlySlice = -1; // the next slice's note, come before the position reached it
             bool earlyFollows = false;
             float earlySpace = 0.0f;
