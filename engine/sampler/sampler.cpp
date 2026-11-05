@@ -427,7 +427,7 @@ namespace wubansia::engine
 
     int Sampler::droppedEvents() const noexcept
     {
-        return impl->dropped;
+        return impl->dropped + impl->pool.phraseSteals;
     }
 
     std::uint32_t Sampler::phraseLanes() const noexcept

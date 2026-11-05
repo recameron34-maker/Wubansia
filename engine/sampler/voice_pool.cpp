@@ -97,9 +97,34 @@ namespace wubansia::engine
             }
         if (slot == nullptr)
         {
-            (void) stealFadeSamples; // every slot busy: the first restarts, cut
-            slot = &phrases[0];
+            // Every slot busy: a stopping one with the least fade left, else the oldest started.
+            for (auto& p : phrases)
+                if (p.stopping && (slot == nullptr || p.fadeLeft < slot->fadeLeft))
+                    slot = &p;
+            if (slot == nullptr)
+                for (auto& p : phrases)
+                    if (slot == nullptr || p.order < slot->order)
+                        slot = &p;
+
+            // It fades in a slot of its own: a free one, else the one with the least fade left (cut).
+            PhraseSlot* fade = nullptr;
+            for (auto& f : phraseFading)
+                if (! f.busy)
+                {
+                    fade = &f;
+                    break;
+                }
+            if (fade == nullptr)
+                for (auto& f : phraseFading)
+                    if (fade == nullptr || f.fadeLeft < fade->fadeLeft)
+                        fade = &f;
+            *fade = *slot;
+            const std::int64_t end = static_cast<std::int64_t> (offset) + std::max (0, stealFadeSamples);
+            fade->fadeLeft = fade->stopping ? std::min (fade->fadeLeft, end) : end;
+            fade->stopping = true;
+            fade->voice.stop (offset, stealFadeSamples);
             slot->voice.reset();
+            ++phraseSteals;
         }
 
         slot->kit = &kit;

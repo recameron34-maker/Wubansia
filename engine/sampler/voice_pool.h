@@ -1,7 +1,8 @@
 #pragma once
 
 // The sampler's voices: 64 multisample voices, 16 slots where stolen voices fade out, and the phrase
-// voices (P6's PhraseVoice). Fixed arrays: nothing here allocates.
+// voices (P6's PhraseVoice): 12 slots, and 4 where stolen phrase voices fade out. Fixed arrays: nothing
+// here allocates.
 //
 // Stealing (a note-on with no voice free): the oldest released voice (by start; key up, or fading
 // out), else the quietest (by its gain now, a rising attack counting as its end; the older on a tie, so
@@ -73,9 +74,12 @@ namespace wubansia::engine
         // The phrase voices. Every call into PhraseVoice is in these (and prepare and reset), so a change to
         // its interface is an edit here.
         // A phrase note: a busy slot playing the same kit, phrase and source, and not stopping, reads on
-        // (continueWith); else a free slot starts it (start), and with every slot busy the first restarts.
-        // So after a jump the chased note starts in a fresh slot while the old one fades, and a stop then a
-        // start within the fade never cut it.
+        // (continueWith); else a free slot starts it (start). With every slot busy one is stolen: a stopping
+        // slot first (the one with the least fade left), else the oldest started. Its voice is copied into
+        // a fading slot of its own and fades there over stealFadeSamples (a sooner end stays) while the
+        // slot, reset, starts the new note at once; the steal is counted (phraseSteals). So after a jump
+        // the chased note starts in a fresh slot while the old one fades, and a stop then a start within
+        // the fade never cut it.
         void phraseNoteOn (const Kit& kit, const NoteOn& note, int offset, int stealFadeSamples) noexcept;
         // Fades the phrase voices of a source, or of a kit, over fadeSamples from offset (stop). They are
         // stopping from then on.
@@ -91,7 +95,7 @@ namespace wubansia::engine
         std::array<Voice, Sampler::kVoices> voices {};
         std::array<Voice, Sampler::kFadeSlots> fading {};
         std::array<PhraseSlot, Sampler::kPhraseVoices> phrases {};
-        std::array<PhraseSlot, Sampler::kPhraseFadeSlots> phraseFading {}; // (unused until the steal policy)
+        std::array<PhraseSlot, Sampler::kPhraseFadeSlots> phraseFading {}; // stolen phrase voices fading out
         int phraseSteals = 0; // since prepare ()
 
     private:
