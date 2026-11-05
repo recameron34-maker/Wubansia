@@ -25,12 +25,15 @@
 #include "mix/mix_config.h"
 #include "midi/smf.h"
 #include "midi/writer.h"
+#include "sched/scheduler.h"
 #include "sched/timeline.h"
 #include "sched/timeline_builder.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
+#include <tuple>
 #include <span>
 #include <string>
 #include <vector>
@@ -437,4 +440,150 @@ namespace p7
         const auto loop = build (synLoopSmf(), m, mix, 15360);
         return assemble (m, mix, { loop, loop, loop, loop }, index);
     }
+
+    // ---- a recording Sink for the scheduler ------------------------------------------------------
+
+    struct Event
+    {
+        enum class Kind : std::uint8_t {
+            stop,
+            off,
+            cc,
+            key,
+            on
+        };
+
+        Kind kind = Kind::on;
+        std::int64_t sample = 0; // absolute: the scheduler's sample index
+        std::uint8_t channel = 0;
+        std::uint8_t key = 0; // the key; a cc's controller; a duck key's lane
+        std::uint8_t value = 0; // a note's velocity; a cc's value; a duck key's velocity
+        std::int64_t length = 0; // a note-on's lengthSamples; a cc's ramp
+        std::int64_t chase = 0; // a note-on's chaseSamples
+        std::int64_t pos = 0; // a note-on's timeline position
+        int tag = -1;
+
+        friend bool operator== (const Event&, const Event&) = default;
+    };
+
+    // Records what the scheduler tells a Sink, at absolute samples. Set `base` to the scheduler's sample
+    // index before each sync () and advance ().
+    struct RecordingSink
+    {
+        std::int64_t base = 0;
+        std::vector<Event> events;
+        int nextTag = 0;
+        int sounding = 0; // note-ons less note-offs since the last stopSequenced
+        bool playNothing = false; // noteOn returns -1
+
+        int noteOn (const Note& n, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples) noexcept
+        {
+            Event e;
+            e.kind = Event::Kind::on;
+            e.sample = base + offset;
+            e.channel = n.channel;
+            e.key = n.key;
+            e.value = n.velocity;
+            e.length = lengthSamples;
+            e.chase = chaseSamples;
+            e.pos = n.pos;
+            if (playNothing)
+            {
+                events.push_back (e);
+                return -1;
+            }
+            e.tag = nextTag++;
+            events.push_back (e);
+            ++sounding;
+            return e.tag;
+        }
+
+        void noteOff (std::uint8_t channel, std::uint8_t key, int tag, int offset) noexcept
+        {
+            Event e;
+            e.kind = Event::Kind::off;
+            e.sample = base + offset;
+            e.channel = channel;
+            e.key = key;
+            e.tag = tag;
+            events.push_back (e);
+            --sounding;
+        }
+
+        void cc (std::uint8_t channel, std::uint8_t controller, std::uint8_t value, int offset, int rampSamples) noexcept
+        {
+            Event e;
+            e.kind = Event::Kind::cc;
+            e.sample = base + offset;
+            e.channel = channel;
+            e.key = controller;
+            e.value = value;
+            e.length = rampSamples;
+            events.push_back (e);
+        }
+
+        void keyHit (std::uint8_t lane, std::uint8_t velocity, int offset) noexcept
+        {
+            Event e;
+            e.kind = Event::Kind::key;
+            e.sample = base + offset;
+            e.key = lane;
+            e.value = velocity;
+            events.push_back (e);
+        }
+
+        void stopSequenced (int offset) noexcept
+        {
+            Event e;
+            e.kind = Event::Kind::stop;
+            e.sample = base + offset;
+            events.push_back (e);
+            sounding = 0;
+        }
+
+        std::vector<Event> only (Event::Kind kind) const
+        {
+            std::vector<Event> out;
+            for (const auto& e : events)
+                if (e.kind == kind)
+                    out.push_back (e);
+            return out;
+        }
+    };
+
+    // The scheduler as an engine-like type for P0's FakeHost: each block syncs, then advances in pieces
+    // of at most `piece` samples on the absolute 32-sample grid (0: the whole block), as the engine does.
+    struct SchedulerHarness
+    {
+        Scheduler scheduler;
+        RecordingSink sink;
+        const Timeline* timeline = nullptr;
+        double defaultBpm = kSynBpm;
+        int piece = 32;
+        std::vector<SyncEvent> syncs;
+
+        void prepare (double rate, int, int) { scheduler.prepare (rate); }
+
+        void process (float* const* out, int numOutputs, int n, const TransportInfo& transport, const Controls&, const MidiEvent*, int)
+        {
+            for (int c = 0; c < numOutputs; ++c)
+                if (out[c] != nullptr)
+                    std::fill_n (out[c], n, 0.0f);
+            sink.base = scheduler.sampleIndex();
+            syncs.push_back (scheduler.sync (timeline, transport, defaultBpm, sink));
+            int done = 0;
+            while (done < n)
+            {
+                int k = n - done;
+                if (piece > 0)
+                {
+                    const auto toGrid = piece - static_cast<int> (scheduler.sampleIndex() % piece);
+                    k = std::min (k, toGrid);
+                }
+                sink.base = scheduler.sampleIndex();
+                scheduler.advance (timeline, k, sink);
+                done += k;
+            }
+        }
+    };
 }
