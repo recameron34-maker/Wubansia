@@ -32,6 +32,7 @@ import argparse
 import bisect
 import functools
 import hashlib
+import importlib
 import math
 import struct
 import sys
@@ -58,6 +59,25 @@ RIDE_TICKS = 60               # a ride's grid: midi.CC_STEP, one controller valu
 RIDE_SLACK = 1                # a cycle's controller values match a stem's ride within this
 
 
+def iround(x, scale=1):
+    """A float in a manifest unit: round half up, floor(x x scale + 0.5) (docs/plugin/manifest.md section 1)."""
+    return int(math.floor(x * scale + 0.5))
+
+
+def words(name):
+    """An Item's CamelCase name in plain words, as its WAV is named: 'AcidLine1' -> 'Acid Line 1'."""
+    return ' '.join(listen.note(w) for w in listen.WORD.findall(name))
+
+
+def plugin_module(kit):
+    """The kit's plugin module, tools/sound/recipes/<kit>/plugin.py, read through the kit's RECIPES (shared code never
+    imports a kit, ADR 0008), or None for a kit without one."""
+    try:
+        return importlib.import_module(f'{kits.module(kit).RECIPES}.plugin')
+    except ModuleNotFoundError:
+        return None
+
+
 def cycle_frames(K, cycle):
     """A cycle of `cycle` 16ths in frames, as the context loops count it: whole 2-bar phrases (context4.L, FUT02-04's
     L = 2 x loop_len(K, 32)), so a 2-bar stem tiles a 4-bar one exactly."""
@@ -68,7 +88,7 @@ def cycle_frames(K, cycle):
 
 def loops_path(name):
     """The WAV of a Loops/ Item, from the kit's folder: its CamelCase name in words (listen.plain)."""
-    return f"Loops/{' '.join(listen.note(w) for w in listen.WORD.findall(name))}.wav"
+    return f"Loops/{words(name)}.wav"
 
 
 @dataclass(frozen=True)
@@ -97,102 +117,18 @@ class Spec:
         return self.pre.get(step, 0) if isinstance(self.pre, dict) else self.pre
 
 
-# ------------------------------------------------------------------ the lanes, kit by kit
-def _fut01():
-    from tools.sound.recipes.fut01 import music as M, voxsynth as V
-    riff_pre = {s: int(np.floor(V.ONSET_LEAD[o] * SR + 0.5)) for s, _, _, _, _, o in V.RIFF}
-    return (
-        Spec('FUT01', 'pluck', 'lead', 2, (loops_path('ChromePluckPhrase'), None), '', M.PHRASE_STEPS,
-             tuple((s, n, ()) for s, n, _, _ in M.PHRASE), 0, 'pluck',
-             'tools.sound.recipes.fut01.music.pluck_phrase'),
-        Spec('FUT01', 'riff', 'vox', 5, (loops_path('VoxSynthRiff'), None), '', V.RIFF_STEPS,
-             tuple((s, n, ()) for s, n, *_ in V.RIFF), riff_pre, 'vsynth', 'tools.sound.recipes.fut01.voxsynth.riff'),
-    )
-
-
-def _fut02():
-    from tools.sound.recipes.fut02 import bass as B, context as C, context5 as C5, lead as Ld, voxsynth as Vs
-    kicks, sub = tuple(B.KICK_STEPS), int(B.SUB_LEAD * SR)
-    lines = tuple(
-        Spec('FUT02', name.lower(), 'bass', 1, (loops_path(f'{name}LineClean'), loops_path(f'{name}LineWarm')),
-             'bass', B.LINE_STEPS, tuple((s, n, ()) for s, n, *_ in B.LINES[name]), sub, 'bass',
-             'tools.sound.recipes.fut02.bass.line_lane', kicks=kicks, fade_us=int(round(C.MUTE_EDGE * 1e6)))
-        for name in (B.PICK,) + tuple(n for n in B.LINES if n != B.PICK))
-    return lines + (
-        Spec('FUT02', 'arp', 'lead', 2, (loops_path('ChromeArpPhrase'), None), '', Ld.PHRASE_STEPS,
-             tuple((s, n, ()) for s, n, _, _ in Ld.phrase_notes()), 0, 'arp',
-             'tools.sound.recipes.fut02.lead.arp_phrase', fade_us=int(round(C.ARP_REST[1] * 1e6))),
-        Spec('FUT02', 'vox', 'vox', 5, ('Stems/Context Vox Riff.wav', None), '', 64,
-             tuple((s + C5.RIFF_AT, n, ()) for s, n, _, _ in Vs.RIFF), int(0.05 * SR), 'vox',
-             'tools.sound.recipes.fut02.voxsynth.sung_parts', gain_mdb=-1000 * STEM_GAIN_DB['FUT02'], derived=True,
-             frames=C5.L, looped=False),
-    )
-
-
-def _fut03():
-    from tools.sound.recipes.fut03 import context5 as C5, rubber as R, voxsynth as VS
-    kicks, sub = tuple(R.KICKS), int(R.SUB_LEAD * SR)
-    lines = tuple(
-        Spec('FUT03', name.lower(), 'bass', 1, (loops_path(f'Line{name}Clean'), loops_path(f'Line{name}Warm')), 'bass',
-             R.LOOP_STEPS, tuple((s, n, (g[0],) if g else ()) for s, _, n, _, g in R.LINES[name]), sub, 'bass',
-             'tools.sound.recipes.fut03.rubber.line_lane', kicks=kicks)
-        for name in (R.PICK,) + tuple(n for n in R.LINES if n != R.PICK))
-    return lines + (
-        Spec('FUT03', 'vox', 'vox', 5, ('Stems/Context Vox Riff.wav', None), '', 64,
-             tuple((s + C5.VOX_AT, m, ()) for s, m, _, _ in VS.VOX_RIFF), int(np.floor(VS.LEAD * SR + 0.5)), 'vox',
-             'tools.sound.recipes.fut03.voxsynth.riff_tail', gain_mdb=-1000 * STEM_GAIN_DB['FUT03'], derived=True,
-             frames=C5.G.at(C5.VOX_AT) + _riff_tail_frames(), looped=False),
-    )
-
-
-def _riff_tail_frames():
-    """FUT03's riff before it wraps: its 2 bars and TAIL_STEPS of echoes (voxsynth.riff_tail's length)."""
-    from tools.sound.kits import fut03 as K
-    from tools.sound.recipes.fut03 import voxsynth as VS
-    g = Ph.Grid(K, VS.RIFF_STEPS)
-    return g.length + int(VS.TAIL_STEPS * g.s16)
-
-
-def _fut04():
-    from tools.sound.kits import fut04 as K
-    from tools.sound.recipes.fut04 import bass as B, lead as Ld, midi as Md
-    cyc = B.RIDE_PASSES * B.LOOP_STEPS          # the ride's 4 bars: every acid phrase on channel 1 is one cycle long
-
-    def notes(name):
-        line = B.LINE_BY_NAME[name]
-        ev = sorted([(s, n) for s, n, *_ in line.notes] + [(s, n) for s, n, *_ in line.ticks])
-        return tuple((s + B.LOOP_STEPS * p, n, ()) for p in range(B.RIDE_PASSES) for s, n in ev)
-
-    rest = ((0,) * (cyc * 4), (0,) * (cyc * 4))   # midi.acid_rides: 0 and 0 at rest, where the samples play as they are
-    acid = dict(kicks=tuple(range(0, cyc, 4)), why='tools.sound.recipes.fut04.bass.play_line')
-    lines = (Spec('FUT04', 'acid', 'bass', 1, (loops_path(f'{B.PICK}RideClean'), loops_path(f'{B.PICK}RideWarm')),
-                  'bass', cyc, notes(B.PICK), 0, 'bass_stem', ride=tuple(map(tuple, Md.RIDES[B.PICK])), **acid),)
-    for i, ln in enumerate(B.LINES, 1):         # each line at rest, its 2-bar Loops/ file twice (Stems/)
-        lines += (Spec('FUT04', f'line{i}', 'bass', 1, tuple(f'Stems/{_words(ln.name)} {c} 4 Bars.wav'
-                                                             for c in ('Clean', 'Warm')),
-                       'bass', cyc, notes(ln.name), 0, 'bass_stem', ride=rest, derived=True,
-                       frames=cycle_frames(K, cyc), **acid),)
-    return lines + (
-        Spec('FUT04', 'blip', 'lead', 2, (loops_path('ModBlipPhrase'), None), '', Ld.PHRASE_STEPS,
-             tuple((s, n, (n,) * (r - 1)) for s, n, _, _, r in Ld.PHRASE), 0, 'lead',
-             'tools.sound.recipes.fut04.lead.blip_phrase'),
-    )
-
-
-def _words(name):
-    return ' '.join(listen.note(w) for w in listen.WORD.findall(name))
-
-
-STEM_GAIN_DB = {'FUT02': -3, 'FUT03': 0}   # each derived vox stem's level under its lane, whole dB: true peak <= -1
-DERIVED = {'FUT02': ('Stems/Context Vox Riff.wav',), 'FUT03': ('Stems/Context Vox Riff.wav',),
-           'FUT04': tuple(f'Stems/Acid Line {n} {c} 4 Bars.wav' for n in (1, 2) for c in ('Clean', 'Warm'))}
-_SPECS = {'FUT01': _fut01, 'FUT02': _fut02, 'FUT03': _fut03, 'FUT04': _fut04}
-
-
 @functools.lru_cache(maxsize=None)
 def specs(kit):
-    """The kit's phrase lanes, channel by channel; on a channel, the loop's own line first."""
-    return _SPECS[kit]() if kit in _SPECS else ()
+    """The kit's phrase lanes (its plugin module's phrases()), channel by channel; on a channel, the loop's own line
+    first."""
+    mod = plugin_module(kit)
+    return tuple(mod.phrases()) if mod else ()
+
+
+def derived(kit):
+    """The kit's derived stems, paths from its folder (its plugin module's DERIVED)."""
+    mod = plugin_module(kit)
+    return tuple(mod.DERIVED) if mod else ()
 
 
 # ------------------------------------------------------------------ the tables
@@ -211,10 +147,12 @@ def slices(spec, frames):
         starts[0] = 0         # a looped stem: the first slice holds the tail wrapped round from the stem's end
     ends = starts[1:] + [frames]
     fade = spec.fade_us * SR // 1_000_000
-    out = []
+    wrapped = max(0, spec.pre_of(spec.notes[0][0]) - on[0]) if spec.looped else 0   # the first note's pre-roll
+    out = []                                                                        # that wraps to the stem's end
     for i, (s, key, holds) in enumerate(spec.notes):
         a, e = starts[i], ends[i]
-        x = dict(step=s, key=key, start=a, end=e, fade=max(a, e - fade), lead=on[i] - a, holds=list(holds))
+        f = e - fade - (wrapped if i == len(spec.notes) - 1 else 0)
+        x = dict(step=s, key=key, start=a, end=e, fade=max(a, f), lead=on[i] - a, holds=list(holds))
         if not (0 <= a < e and 0 <= x['lead'] <= MAX_LEAD and len(holds) <= 8):
             raise ValueError(f'{spec.kit} {spec.line}: slice {x} is out of range')
         out.append(x)
@@ -441,31 +379,10 @@ def file_notes(K, path):
 
 # ------------------------------------------------------------------ the derived stems
 def render_derived(kit):
-    """The kit's derived stems, rendered from their recipes: {path: (n, 2) float audio at the stem's level}, each
-    cycle-aligned (frame 0 is the cycle's 16th 0): FUT02's and FUT03's vox, the loop's lane before its inserts at
-    STEM_GAIN_DB; FUT04's acid lines at rest, each 2-bar line as render.py writes it (phrase.kit_files), twice."""
-    out = {}
-    if kit == 'FUT02':
-        from tools.sound.kits import fut02 as K
-        from tools.sound.recipes.fut02 import context5 as C5, voxsynth as Vs
-        main, throw = Vs.sung_parts(C5.G, C5.RIFF_AT, C5.L, lambda *k: D.rng(K.KIT, 'ContextVoxRiff', *k))
-        out[DERIVED[kit][0]] = (main + throw) * D.undb(STEM_GAIN_DB[kit])
-    elif kit == 'FUT03':
-        from tools.sound.kits import fut03 as K
-        from tools.sound.recipes.fut03 import context5 as C5, voxsynth as VS
-        _, _, gain_db = Ph.kit_files(K, 'PhraseVoxRiff')      # context5.vox_lane: the riff at its item's gain
-        tail = VS.riff_tail() * D.undb(gain_db)
-        at = C5.G.at(C5.VOX_AT)
-        y = np.zeros((at + len(tail), 2))
-        y[at:] = tail                                       # unwrapped: its echoes run 2 bars past the cycle
-        out[DERIVED[kit][0]] = y * D.undb(STEM_GAIN_DB[kit])
-    elif kit == 'FUT04':
-        from tools.sound.kits import fut04 as K
-        for path in DERIVED[kit]:                           # each acid line at rest, its 2-bar Loops/ file twice
-            n, char = path.split('Acid Line ')[1].split(' ')[:2]
-            x = Ph.kit_files(K, f'AcidLine{n}{char}')[1][(None, 1, 1)].audio
-            out[path] = np.concatenate([x, x])
-    return out
+    """The kit's derived stems, rendered from its recipes by its plugin module: {path: (n, 2) float audio at the stem's
+    level}, each cycle-aligned (frame 0 is its cycle's 16th 0)."""
+    mod = plugin_module(kit)
+    return mod.render_derived() if mod else {}
 
 
 def write_derived(kit, root):
@@ -477,7 +394,7 @@ def write_derived(kit, root):
         dest = Path(root) / kit.lower() / path
         dest.parent.mkdir(parents=True, exist_ok=True)
         if np.max(np.abs(audio)) >= 1.0:
-            raise ValueError(f'{kit} {path} clips at 24 bits: lower STEM_GAIN_DB')
+            raise ValueError(f'{kit} {path} clips at 24 bits: store it lower (its plugin module)')
         audio = np.asarray(audio, dtype=float)
         if audio.ndim == 2 and np.array_equal(audio[:, 0], audio[:, 1]):
             audio = audio[:, 0]                             # mono where L = R, as render.py stores its masters
@@ -488,7 +405,7 @@ def write_derived(kit, root):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
-    ap.add_argument('--kit', required=True, choices=sorted(_SPECS))
+    ap.add_argument('--kit', required=True, choices=[k for k in kits.names() if plugin_module(k)])
     ap.add_argument('--render-stems', metavar='ROOT', help='write the derived stems under ROOT/<kit>/Stems/')
     a = ap.parse_args(argv)
     if a.render_stems:

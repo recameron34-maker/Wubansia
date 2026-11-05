@@ -11,7 +11,7 @@ Where everything comes from:
 - the files: each take's WAV (listen.plain), its frames, channels and SHA-256 read off the WAV, its loop points off
   build/<kit>-r5/qa_report.json;
 - the phrase tables: tools/sound/phrase_tables.py;
-- the mix channels each instrument and phrase plays on: P3's channel ids (MIX_CHANNELS), in content/plugin/<kit>/
+- the mix channels each instrument and phrase plays on: P3's channel ids (its MIX_CHANNELS), in content/plugin/<kit>/
   <KIT>_mix.json.
 
 build/ isn't in git and CI has no samples, so the committed manifest is the source of truth for every file's facts:
@@ -40,15 +40,13 @@ from tools.sound import phrase_tables as PT  # noqa: E402
 REPO = Path(__file__).resolve().parents[2]
 CONTENT_VERSION = 1
 SR = 48000
-KITS = ('FUT01', 'FUT02', 'FUT03', 'FUT04')
+KITS = ('FUT01', 'FUT02', 'FUT03', 'FUT04')   # the kits the plugin plays (each has recipes/<kit>/plugin.py)
 ONE_KEY = {6: 'accents', 7: 'fx', 8: 'chops'}
 
 
 # ------------------------------------------------------------------ the writer (manifest.md section 1)
 # plugin_common.py's, until P0 lands it: the same rules, the same bytes
-def iround(x, scale=1):
-    """A float in a unit: round half up, floor(x x scale + 0.5)."""
-    return int(math.floor(x * scale + 0.5))
+iround = PT.iround          # round half up: floor(x x scale + 0.5)
 
 
 def _string(s):
@@ -113,105 +111,25 @@ def denied(obj):
     return [(s, n) for s in strings(obj) for n, d in lists.items() if denylist.hits(s, d)]
 
 
-# ------------------------------------------------------------------ each kit's own
-LANE_LABELS = {   # the lanes in channels.LANES order; each the kit's main sound there (Item names, plain words)
-    'FUT01': ('Kick', 'Clap', 'Hats', 'Perc', 'Warp Bass', 'Chrome Pluck', 'Organ Stab', 'Vox Synth', 'Accents', 'FX'),
-    'FUT02': ('Kick', 'Clap', 'Hats', 'Zap', 'Roll Bass', 'Chrome Arp', 'Starfield Pad', 'Vox Synth', 'Accents', 'FX'),
-    'FUT03': ('Kick', 'Clap', 'Hats', 'Perc', 'Rubber Bass', 'Keys EP', 'Dub Stab', 'Vox Synth', 'Accents', 'FX'),
-    'FUT04': ('Kick', 'Snare', 'Hats', 'Anvil', 'Acid', 'Mod Blip', 'Drone', 'Vox Synth', 'Accents', 'FX'),
-}
-KICK_AB = {'FUT01': ('KickSplit', 'KickGarage')}   # drum note 36's A and B (context4: the loops play B, Garage)
-
-# P3's mix channels (content/plugin/<kit>/<KIT>_mix.json): {id: lane}
-MIX_CHANNELS = {
-    'FUT01': {'kick': 'kick', 'bass': 'bass', 'bass_organ': 'bass', 'clap': 'snare', 'rim': 'perc', 'hat_c': 'hats',
-              'hat_o': 'hats', 'tamb': 'perc', 'perc': 'perc', 'stab': 'chords', 'pad': 'chords', 'pluck': 'lead',
-              'fill': 'fx', 'vsynth': 'vox', 'acc_rev': 'accents', 'acc_up': 'accents', 'acc_hit': 'accents',
-              'acc_warp': 'accents'},
-    'FUT02': {'kick': 'kick', 'clap': 'snare', 'hat': 'hats', 'zap': 'perc', 'bass': 'bass', 'glide': 'bass',
-              'pad': 'chords', 'arp': 'lead', 'fill': 'fx', 'vox': 'vox', 'acc_laser': 'accents',
-              'acc_glass': 'accents', 'acc_sweep': 'accents', 'acc_revchord': 'accents', 'acc_arpstab': 'accents'},
-    'FUT03': {'kick': 'kick', 'clap': 'snare', 'rim': 'perc', 'hat': 'hats', 'shaker': 'perc', 'perc': 'perc',
-              'bass': 'bass', 'stab': 'chords', 'pad': 'chords', 'vox': 'vox', 'accent': 'accents', 'lead': 'lead',
-              'fx': 'fx'},
-    'FUT04': {'kick': 'kick', 'rumble': 'kick', 'bass': 'bass', 'bass_stem': 'bass', 'snare': 'snare', 'hat': 'hats',
-              'ride': 'hats', 'perc': 'perc', 'fill': 'fx', 'pad': 'chords', 'lead': 'lead', 'vox': 'vox',
-              'accent': 'accents'},
-}
-# which channel each instrument plays on: drums and one-key sounds by Item, pitched channels by MIDI channel
-MIX = {
-    'FUT01': dict(drums={'KickGarage': 'kick', 'KickSplit': 'kick', 'ClapGarage': 'clap', 'RimShot': 'rim',
-                         'HatClosed': 'hat_c', 'HatOpen': 'hat_o', 'Tambourine': 'tamb', 'AlloyHit': 'perc'},
-                  channels={1: 'bass', 2: 'pluck', 4: 'stab', 5: 'vsynth', 11: 'bass_organ', 12: 'pluck', 13: 'pad'},
-                  accents={'ReverseStab': 'acc_rev', 'NoiseUplifter': 'acc_up', 'OrganHit': 'acc_hit',
-                           'WarpStab': 'acc_warp', None: 'acc_hit'},
-                  fx='fill', chops='vsynth'),
-    'FUT02': dict(drums={'KickSplit': 'kick', 'ElectroClap': 'clap', 'ClosedHat': 'hat', 'OpenHat': 'hat',
-                         'Zap': 'zap'},
-                  channels={1: 'bass', 2: 'arp', 4: 'pad', 5: 'vox', 11: 'glide', 12: 'pad', 13: 'acc_glass'},
-                  accents={'LaserChordStab': 'acc_laser', 'GlassPing': 'acc_glass', 'StarfieldSweep': 'acc_sweep',
-                           'ReverseChord': 'acc_revchord', 'ArpStab': 'acc_arpstab', 'NoiseUplifter': 'acc_sweep',
-                           None: 'acc_arpstab'},
-                  fx='fill', chops='vox'),
-    'FUT03': dict(drums={'KickDeep': 'kick', 'ClapSnare': 'clap', 'Rimshot': 'rim', 'ClosedHatDeep': 'hat',
-                         'OpenHatDeep': 'hat', 'ShakerDeep': 'shaker', 'Conga': 'perc', 'Bongo': 'perc'},
-                  channels={1: 'bass', 2: 'lead', 4: 'stab', 5: 'vox', 11: 'pad'},
-                  accents={None: 'accent'}, fx='fx', chops='vox'),
-    'FUT04': dict(drums={'KickSplit': 'kick', 'Rumble': 'rumble', 'SnareGated': 'snare', 'ClosedHat': 'hat',
-                         'OpenHat': 'hat', 'Ride': 'ride', 'Anvil': 'perc'},
-                  channels={1: 'bass', 2: 'lead', 4: 'pad', 5: 'vox', 11: 'accent', 12: 'pad', 13: 'accent'},
-                  accents={None: 'accent'}, fx='fill', chops='vox'),
-}
-
-
-# ------------------------------------------------------------------ how the recipes play each instrument
+# ------------------------------------------------------------------ each kit's own: tools/sound/recipes/<kit>/plugin.py
+# Shared code never imports a kit (ADR 0008): every kit-specific fact is in the kit's plugin module, read through its
+# RECIPES (phrase_tables.plugin_module): LANE_LABELS, KICK_AB, MIX_CHANNELS, MIX, EXTRAS, INTERP, GLIDE, BASS_ENV,
+# LEAD_RELEASE, CHORD_LAW, VOX, CHOKE, LAYERS, chop_preroll(), accent_gain_mdb(), play(), phrases(), DERIVED and
+# render_derived().
 NO_GLIDE = ('none', 0, 0)
-GLIDE = {
-    'FUT01': ('raised_cosine', 70000, 30000),   # context4.GLIDES: a slide 70 ms, a dip 30 ms
-    'FUT02': ('exponential', 18000, 0),          # bass.GLIDE_TAU: the line's glide, a time constant
-    'FUT03': ('raised_cosine', 50000, 0),        # rubber.LINES' glides inside notes, 40-70 ms (midi.glided writes them)
-    'FUT04': ('raised_cosine', 50000, 0),        # bass.SLIDE_S, a raised cosine in log frequency (bass.line_parts)
-}
-BASS_ENV = {'FUT01': (1000, 30000), 'FUT02': (1000, 30000), 'FUT03': (1000, 80000), 'FUT04': (1000, 30000)}
-# (attack, release) us: fut01/basslines.ATTACK and RELEASE, the bass voice's; FUT03's files release over 80 ms
-# (rubber.RELEASE_S)
-LEAD_RELEASE = {'FUT01': 40000, 'FUT02': 80000, 'FUT03': 40000, 'FUT04': 30000}
-# fut01/riffs.lead_lane (and FUT03's EP, played the same way); fut02/lead.RELEASE; fut04/lead's 30 ms gate taper
-PAD_ENV = (2000, 20000)                          # sampler.sampler_voice: loop while held, then release
-VOX = {   # (release us, velocity law, pre-roll frames): the vox synth multisample on channel 5
-    'FUT01': (60000, 'pow15', 288),               # voxsynth.CHOP_REL; its 'd' onset 6 ms early (ONSET_LEAD)
-    'FUT02': (50000, 'layer_only', 960),          # voxsynth.RELEASE; the velocity picks the vowel; PRE 20 ms
-    'FUT03': (70000, 'pow15', 1200),              # voxsynth.chop_dry's release; LEAD 25 ms
-    'FUT04': (30000, 'layer_only', 0),            # voxsynth.RELEASE_GRID_S (riff_hit); the velocity picks the vowel
-}
-CHOKE = {'FUT01': (5000, 'linear'), 'FUT02': (4000, 'cos2'), 'FUT03': (4000, 'cos2'), 'FUT04': (4000, 'cos2')}
-# context4.choked_lane (5 ms linear); drums.CHOKE / groove.CHOKE (4 ms cos2). The closed hat (42) chokes the open (46)
-SUB_DEEP_GAIN_MDB = -11000   # FUT03's Sub Deep layered so its sine meets the Rubber Bass's own sub (both hard layers'
-                             # loops under 120 Hz: Sub Deep 10.3-13.2 dB over them, 11.1 on average)
+PAD_ENV = (2000, 20000)              # sampler.sampler_voice: play, loop while held, a 20 ms raised-cosine release
 
 
-def chop_preroll(kit, item):
-    if kit == 'FUT01':
-        from tools.sound.recipes.fut01 import voxsynth as V
-        return int(math.floor(V.ONSET_LEAD[V.CHOP_BY_NAME[item][4]] * SR + 0.5))
-    return {'FUT02': 960, 'FUT03': 1200, 'FUT04': 0}[kit]   # fut02/voxsynth.PRE; fut03/voxsynth.LEAD; none
+def kit_module(kit):
+    mod = PT.plugin_module(kit)
+    if mod is None:
+        raise ValueError(f'{kit} has no plugin module (tools/sound/recipes/{kit.lower()}/plugin.py)')
+    return mod
 
 
-def accent_gain_mdb(kit, item, audio=None):
-    """A sound's own level on an accent lane the kit's accents share: FUT03's trims (context5.ACCENT_TRIM_DB) and
-    FUT04's loudness targets (context5.ACCENT_LUFS, over the file: needs its audio)."""
-    if kit == 'FUT03':
-        from tools.sound.recipes.fut03 import context5 as C5
-        return iround(C5.ACCENT_TRIM_DB.get(item, 0.0) * 1000)
-    if kit == 'FUT04':
-        from tools.sound.recipes.fut04 import context5 as C5
-        if item not in C5.ACCENT_LUFS:
-            return 0
-        if audio is None:
-            return None
-        from tools.sound import qa
-        return iround((C5.ACCENT_LUFS[item] - qa.lufs(audio)) * 1000)
-    return 0
+def mix_channels(kit):
+    """P3's mix channels for the kit (content/plugin/<kit>/<KIT>_mix.json): {id: lane}."""
+    return kit_module(kit).MIX_CHANNELS
 
 
 def glide(g):
@@ -224,66 +142,46 @@ def choke(group='', role='none', fade_us=0, curve='linear'):
 
 def rules(kit, kind, item, it, key=None):
     """An instrument's playing fields (everything but id, name, lane, mix_channel and zones), from the recipe that
-    plays it. kind: 'drum', 'bass', 'lead', 'chords', 'vox', 'accents', 'fx', 'chops', or an extra's name."""
+    plays it: the defaults of its kind, then the kit's own (its plugin module's play()). kind: 'drum', 'bass', 'lead',
+    'chords', 'vox', 'accents', 'fx', 'chops', or an extra's (the module's EXTRAS: 'bass', 'lead', 'pad', 'melodic',
+    'gated_stab', 'drop_glide')."""
+    km = kit_module(kit)
     r = dict(mode='one_shot', align='end' if 'cut_end' in it.flags else 'start', attack_us=0, release_us=0,
              gain_mdb=0, start_frames=0, velocity_law='layer_only', interp='sinc', mono=False, glide=glide(NO_GLIDE),
              restrike_continues=False, choke=choke(), duck_key=False, pan_cycle_pm=[], rr_block_16ths=64,
              layered_with='', preroll=0)
-    pitched = dict(velocity_law='pow15', interp='hermite' if kit == 'FUT01' else 'sinc')
-    bass = dict(mode='sustain_loop', attack_us=BASS_ENV[kit][0], release_us=BASS_ENV[kit][1], mono=True,
-                glide=glide(GLIDE[kit]), **pitched)
-    pad = dict(mode='sustain_loop', attack_us=PAD_ENV[0], release_us=PAD_ENV[1], restrike_continues=True)
+    pitched = dict(velocity_law='pow15', interp=km.INTERP)
     if kind == 'drum':
         lane = CH.TRACKS[Mi.kit_of(kit).part_track(Mi.kit_of(kit).drum_part[key])][1]
-        r['duck_key'] = lane in ('kick', 'snare') and item != 'Rumble'
-        if key in (42, 46):
-            fade, curve = CHOKE[kit]
-            r['choke'] = choke('hats', 'chokes' if key == 42 else 'choked', fade, curve)
-        if item == 'Rumble':     # fut04/context.rumble_lane: 2 bars looped, muted on a 5 ms raised cosine
-            from tools.sound.recipes.fut04 import context as C4
-            r.update(mode='sustain_loop', release_us=iround(C4.MUTE_EDGE * 1e6), restrike_continues=True)
-        if kit == 'FUT02' and item == 'Zap':   # context.ZAP_PAN: each laser its own side, by hit in the 4 bars
-            from tools.sound.recipes.fut02 import context as C2
-            r['pan_cycle_pm'] = [iround(p * 1000) for p in C2.ZAP_PAN]
+        r['duck_key'] = lane in ('kick', 'snare')       # the kicks and claps key the ducks (mix.json)
+        if key in (42, 46):                             # the closed hat chokes the open (the recipes' hat lanes)
+            r['choke'] = choke('hats', 'chokes' if key == 42 else 'choked', *km.CHOKE)
     elif kind == 'bass':
-        r.update(bass)
+        r.update(mode='sustain_loop', attack_us=km.BASS_ENV[0], release_us=km.BASS_ENV[1], mono=True,
+                 glide=glide(km.GLIDE), **pitched)
     elif kind == 'lead':
-        r.update(mode='gated', release_us=LEAD_RELEASE[kit], **pitched)
+        r.update(mode='gated', release_us=km.LEAD_RELEASE, **pitched)
     elif kind == 'chords':
         if it.loop:
-            r.update(pad)
-        elif kit == 'FUT01':     # context4.zoned_lane: the whole file, (v / layer) ^ 1.5
-            r.update(velocity_law='pow15')
+            r.update(mode='sustain_loop', attack_us=PAD_ENV[0], release_us=PAD_ENV[1], restrike_continues=True)
+        else:
+            r.update(velocity_law=km.CHORD_LAW)
+    elif kind == 'pad':
+        r.update(mode='sustain_loop', attack_us=PAD_ENV[0], release_us=PAD_ENV[1], restrike_continues=True)
     elif kind == 'vox':
-        release, law, pre = VOX[kit]
+        release, law, pre = km.VOX
         r.update(mode='gated', release_us=release, velocity_law=law, preroll=pre)
     elif kind == 'chops':
-        r['preroll'] = chop_preroll(kit, item)
+        r['preroll'] = km.chop_preroll(item)
     elif kind == 'accents':
-        if kit == 'FUT01' and item == 'WarpStab':   # context5.accent: gated, a 15 ms fade (GATE_FADE_S)
-            from tools.sound.recipes.fut01 import context5 as C5
-            r.update(mode='gated', release_us=iround(C5.GATE_FADE_S * 1e6))
-        r['gain_mdb'] = accent_gain_mdb(kit, item)
-    elif kind == 'fx':
-        if key is not None and key.start:   # fut01/context4.fill_lane: from its 16th 4, a 2 ms raised-cosine fade-in
-            from tools.sound.recipes.fut01 import context4 as C, fx
-            r.update(start_frames=fx.swung(key.start), attack_us=iround(C.FILL_FADE_S * 1e6))
-    elif kind == 'Organ Bass':
-        r.update(bass)
-    elif kind == 'Organ Lead':
-        r.update(mode='gated', release_us=LEAD_RELEASE[kit], **pitched)
-    elif kind == 'Drop Glide':   # fut02/context.glide_lane: struck, the key lifted, released over 20 ms
-        from tools.sound.recipes.fut02 import context as C2
-        r.update(mode='gated', release_us=iround(C2.GLIDE_RELEASE * 1e6))
-    elif kind == 'Laser Chord Stab':   # fut02/accents.stab_riff: gated, 30 ms, (v / layer) ^ 1.5
+        r['gain_mdb'] = km.accent_gain_mdb(item)
+    elif kind == 'melodic':                     # a one-shot played as a melody, at its accent level (the same file)
+        r.update(velocity_law='pow15', gain_mdb=km.accent_gain_mdb(item))
+    elif kind == 'gated_stab':                  # a stab riff: gated to its note, a 30 ms release (fut02/accents)
         r.update(mode='gated', release_us=30000, velocity_law='pow15')
-    elif kind in ('Pad Warm', 'Air Pad'):
-        r.update(pad)
-    elif kind in ('Glass Ping', 'Acid Stab', 'Metal Chord', 'Rave Stab'):   # one-shots played as melodies, at
-        r.update(velocity_law='pow15', gain_mdb=accent_gain_mdb(kit, item))  # their accent level (the same file)
-    else:
+    elif kind not in ('fx', 'drop_glide'):
         raise ValueError(f'{kit}: no rule for {kind} {item}')
-    return r
+    return km.play(kind, item, it, key, r)
 
 
 # ------------------------------------------------------------------ the instruments, off the MIDI v2 PARTS
@@ -292,8 +190,7 @@ def snake(name):
     return '_'.join(w.lower() for w in listen.WORD.findall(name))
 
 
-def words(name):
-    return ' '.join(listen.note(w) for w in listen.WORD.findall(name))
+words = PT.words
 
 
 @functools.lru_cache(maxsize=None)
@@ -302,14 +199,15 @@ def plan(kit):
     name, item, kind, lane, mix_channel, rules, zones [(root, lo, hi, note)], keys (one-key: its keys)). A keymap
     entry: (ch, lo, hi, a, b, ab)."""
     k = Mi.kit_of(kit)
+    km = kit_module(kit)
     items = {it.name: it for it in kits.items(kits.load(kit), sets=['r5'])}
-    mix = MIX[kit]
+    mix = km.MIX
     out, keymap, by_id = [], [], {}
 
     def add(iid, item, kind, lane, channel, rule, zones, keys=()):
         if iid in by_id:
             raise ValueError(f'{kit}: two instruments called {iid}')
-        if MIX_CHANNELS[kit][channel] != lane:
+        if km.MIX_CHANNELS[channel] != lane:
             raise ValueError(f'{kit}: {iid} plays on lane {lane}, its mix channel {channel} on another')
         ins = dict(id=iid, name=words(item), item=item, kind=kind, lane=lane, mix_channel=channel, rules=rule,
                    zones=zones, keys=tuple(keys))
@@ -330,7 +228,7 @@ def plan(kit):
     drums = {}
     for note in sorted(k.drum_map):
         drums.setdefault(k.drum_map[note], []).append(note)
-    ab_kick = KICK_AB.get(kit)
+    ab_kick = km.KICK_AB
     for note in sorted(k.drum_map):
         name = k.drum_map[note]
         names = ab_kick if note == 36 and ab_kick else (name,)
@@ -346,7 +244,7 @@ def plan(kit):
         else:
             keymap.append((10, note, note, snake(name), '', ''))
     # the pitched channels: 1 bass, 2 lead, 4 chords, 5 vox, 11-16 the extras
-    extras = {ch: (name, lane) for ch, name, lane in CH.extras(kit)}
+    extras = {ch: (km.EXTRAS[name], lane) for ch, name, lane in CH.extras(kit)}
     roles = {1: 'bass', 2: 'lead', 4: 'chords', 5: 'vox'}
     for ch, names in sorted(k.channel_items().items()):
         kind, lane = (roles[ch], CH.ROLE_LANE[roles[ch]]) if ch in roles else extras[ch]
@@ -370,14 +268,14 @@ def plan(kit):
                 [(key, key, key, sound.zone)], (key,))
             out[-1]['item'] = sound.item
             keymap.append((ch, key, key, iid, '', ''))
-    # FUT03: Sub Deep under the Rubber Bass, on its voices (the design's layer; no key of its own)
-    if kit == 'FUT03':
-        it = items['SubDeep']
-        sub = add('sub_deep', 'SubDeep', 'bass', 'bass', 'bass', dict(rules(kit, 'bass', 'SubDeep', it),
-                                                                      gain_mdb=SUB_DEEP_GAIN_MDB),
-                  pitched_zones(it))
-        for name in k.channel_items()[1]:
-            by_id[snake(name)]['rules'] = dict(by_id[snake(name)]['rules'], layered_with=sub['id'])
+    # layers: an Item under others on their multisample voices, no key of its own (FUT03's Sub Deep)
+    for name, (under, gain) in km.LAYERS.items():
+        it = items[name]
+        lane = by_id[snake(under[0])]['lane']
+        layer = add(snake(name), name, 'bass', lane, by_id[snake(under[0])]['mix_channel'],
+                    dict(rules(kit, 'bass', name, it), gain_mdb=gain), pitched_zones(it))
+        for u in under:
+            by_id[snake(u)]['rules'] = dict(by_id[snake(u)]['rules'], layered_with=layer['id'])
     order = {iid: i for i, iid in enumerate(i['id'] for i in out)}
     keymap.sort(key=lambda e: (e[0], e[1]))
     return out, keymap, order
@@ -475,6 +373,7 @@ def committed(kit):
 def export(kit):
     """The kit's manifest as an object, in the contract's key order."""
     K = kits.load(kit)
+    km = kit_module(kit)
     items = {it.name: it for it in kits.items(K, sets=['r5'])}
     instruments, keymap, _ = plan(kit)
     old = committed(kit)
@@ -519,12 +418,12 @@ def export(kit):
         it = items[ins['item']]
         r = dict(ins['rules'])
         pre = r.pop('preroll')
-        if r['gain_mdb'] is None:      # FUT04's accent levels: off the file, else the committed manifest
+        if r['gain_mdb'] is None:      # a level measured off the file (FUT04's accents), else the committed manifest
             wav = find_sample(kit, take_path(it, it.takes(kit)[0]))
             if wav is not None:
                 import soundfile as sf
                 from tools.sound import dsp48 as D
-                r['gain_mdb'] = accent_gain_mdb(kit, ins['item'], D.st(sf.read(wav, dtype='float64')[0]))
+                r['gain_mdb'] = km.accent_gain_mdb(ins['item'], D.st(sf.read(wav, dtype='float64')[0]))
             elif ins['id'] in old_gain:
                 r['gain_mdb'] = old_gain[ins['id']]
             else:
@@ -547,10 +446,10 @@ def export(kit):
         for p in s.stems:
             if p:
                 frames[p] = files[file_of(p, False, 0)]['frames']
-    labels = LANE_LABELS[kit]
+    labels = km.LANE_LABELS
     ab = {'kick': ('', ''), 'bass': ('', ''), 'stab': ('', '')}
-    if kit in KICK_AB:
-        ab['kick'] = tuple(words(n) for n in KICK_AB[kit])
+    if km.KICK_AB:
+        ab['kick'] = tuple(words(n) for n in km.KICK_AB)
     k = Mi.kit_of(kit)
     ab['bass'] = tuple(words(n) for n in k.channel_items()[1])
     if len(k.channel_items()[4]) == 2:
@@ -602,7 +501,9 @@ def report(kit):
         if cycles:
             bars = ', '.join(f'{b}' for _, b, _ in cycles)
             notes = sum(n for *_, n in cycles)
-            lines.append(f'{kit} {variant} ch {ch}: {len(cycles)} cycles ({notes} notes) from bars {bars}')
+            plural = lambda n, w: f'{n} {w}' + ('s' if n != 1 else '')  # noqa: E731
+            lines.append(f'{kit} {variant} ch {ch}: {plural(len(cycles), "cycle")} ({plural(notes, "note")}) from '
+                         f'{plural(len(cycles), "bar")[len(str(len(cycles))) + 1:]} {bars}')
         else:
             lines.append(f'{kit} {variant} ch {ch}: every cycle resolves')
     return lines
