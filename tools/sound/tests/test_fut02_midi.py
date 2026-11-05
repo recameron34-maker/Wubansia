@@ -290,7 +290,8 @@ class TestExtendedMix(unittest.TestCase):
 
     def test_drop_2_plays_relay_the_vox_and_the_glass_melody(self):
         """Audit B FUT02 must 1: drop 2 is on the Relay line (the switch-up kept Orbit), with the glass melody on
-        channel 13 (its phrase's notes) and, in the vox mix, the vox."""
+        channel 13 (its phrase's notes) and, in the vox mix, the vox; its last line strips the vox and the arp into the
+        outro (no vox or arp note starts there)."""
         glass = {m for _, m, _ in A.GLASS_MELODY}
         for v in VARIANTS:
             R, tracks, _ = whole(KIT, v)
@@ -298,6 +299,8 @@ class TestExtendedMix(unittest.TestCase):
             self.assertEqual({'Relay'}, {ln['bass'] for ln in s['lines'] if 'bass' in ln}, v)
             self.assertEqual(glass, {n[2] for n in notes_in(tracks, 'Glass Ping', *span(s))}, v)
             self.assertEqual(v == 'vox', bool(riff_notes(tracks, *span(s))), v)
+            last = span(s['lines'][-1])
+            self.assertFalse(notes_in(tracks, 'Vox', *last) + notes_in(tracks, 'Lead', *last), v)
 
     def test_the_arp_thins_where_the_vox_sings(self):
         """Audit B FUT02 nice 5: the arp and the vox share MIDI 69-84. In every bar where the vox sings more than the

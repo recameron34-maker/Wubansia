@@ -128,6 +128,8 @@ def ramp(a, b):
 
 # FUT02's extended mix, both variants (the no-vox mix has no vox, no choir, and its own accents). Rules it keeps:
 # - the hook is held back: one vox throw in the groove, the choir in the break, the riff itself only from the drop;
+#   drop 2's last line strips the vox and the arp (the answer's thrown A4 at 184 is the vox's last word: a throw on
+#   192's 'and' of 4 would hold into the drums-only outro);
 # - where the vox sings more than the loop's pattern, the arp plays its skeleton (a third over the vox), its call (in
 #   the bars the vox leaves) or rests; the vox calls where the stab riff plays (its call sits on the stabs' Dm9 bars,
 #   the riff's E5 would be a tritone against their B-flat maj9) and where the glass melody plays (the riff's E5 is a
@@ -183,7 +185,7 @@ FORM = (
              phrases_rest=True, end='fill', into='uplift'),                                                   # 169
         line(GROOVE + ' lead vox', bass='drop2', drums='pingpong', lead='call', vox='answer', accents='loop',
              cue='Vox', stab=True, end='turn'),                                                               # 177
-        line(GROOVE, bass='drop2', hats='busy', phrases=(STABS,), phrases_rest=True, throw=True, end='fill'))),  # 185
+        line(GROOVE, bass='drop2', hats='busy', phrases=(STABS,), phrases_rest=True, end='fill'))),           # 185
     section('Outro', 'outro', (                       # 193-224: drums to mix out on, its own lines
         line(DRUMS, hats='busy', drums='pingpong', end='turn'),                           # 193: drop 2's drums
         line(DRUMS, drums='tresillo', end='turn'),                                        # 201: the zaps' 3-3-2
