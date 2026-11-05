@@ -69,7 +69,7 @@ def anvil(take):
 
 
 ITEMS = [
-    Item('Perc', 'Anvil', 'perc', anvil, layers=LAYERS, rr=2, root=ANVIL_NOTE, sets=('r2',),
+    Item('Perc', 'Anvil', 'perc', anvil, layers=LAYERS, rr=2, root=ANVIL_NOTE, sets=('r2', 'r3'),
          about='anvil on E5: the seven modes of the kit\'s iron slab, two beating pairs, a driven clank and a click on '
                'the strike, a little of the dark concrete room'),
 ]

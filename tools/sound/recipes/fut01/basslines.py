@@ -286,7 +286,7 @@ CLEAN = {'mud': 'gate', 'why': 'A, clean: the strict mud gate, in every gap betw
 WARM = {'mud': 'bass-body', 'why': 'B, warm: the proposed bass-body rule (ADR 0011) on ReeseWarm, in every gap between '
                                    'the kicks the loop holds'}
 ITEMS = [
-    Item('Loops', f'Bassline{line}{char.capitalize()}', 'loop', RENDERS[(line, char)], loop=True, sets=('r2',),
+    Item('Loops', f'Bassline{line}{char.capitalize()}', 'loop', RENDERS[(line, char)], loop=True, sets=('r2', 'r3'),
          tags=('with_kick',), qa=CLEAN if char == 'clean' else WARM,
          about=f"2-bar bassline {line}, {NAMES[line]}{' (the pick for the context loop)' if line == PICK else ''}: "
                f"{'A, clean (ReeseClean)' if char == 'clean' else 'B, warm (ReeseWarm)'} with kick A and hat A, "

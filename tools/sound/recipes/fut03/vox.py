@@ -253,20 +253,20 @@ def drop_wet(take):
 # ------------------------------------------------------------------ the items
 ITEMS = [
     Item('Vox', ln.name, 'vox', sung_whole, root=ln.notes[0][2], level=-18.0, flags=VOX, qa=WHY,
-         tags=('clean', 'dry', 'sung'), sets=('r2',), script=ln.text,
+         tags=('clean', 'dry', 'sung'), sets=('r2', 'r3'), script=ln.text,
          about=f'candidate line {ln.name[-1]}{" (the pick: the chops come from it)" if ln.name == PICK else ""}, '
                f'dry: "{ln.text}", G minor, on the kit swing: {ln.about}')
     for ln in LINES
 ] + [
     Item('Vox', name, 'vox', pick_chop, root=root, level=-18.0, flags=VOX, qa=WHY, tags=('clean', 'chop', 'sung'),
-         sets=('r2',), script=words, about=f'sung chop {about}, cut from "{LINE_BY_NAME[PICK].text}"')
+         sets=('r2', 'r3'), script=words, about=f'sung chop {about}, cut from "{LINE_BY_NAME[PICK].text}"')
     for name, first, last, words, root, about in CHOPS
 ] + [
     Item('Vox', 'VocoderDrop', 'vox', drop_dry, root=ROBOT_NOTE, level=-18.0, flags=VOX, qa=WHY,
-         tags=('clean', 'dry', 'robot'), sets=('r2',), script=ROBOT,
+         tags=('clean', 'dry', 'robot'), sets=('r2', 'r3'), script=ROBOT,
          about=f'vocoder drop phrase "{ROBOT}" on the 16th grid at 128 BPM, dry: a G minor chord on the take, '
                f'"drop" falling G3 to D3; {SLICE_NOTE}'),
     Item('Vox', 'VocoderDropWet', 'vox', drop_wet, root=ROBOT_NOTE, level=-16.0, flags=VOX, qa=WHY,
-         tags=('clean', 'wet', 'robot'), sets=('r2',), script=ROBOT,
+         tags=('clean', 'wet', 'robot'), sets=('r2', 'r3'), script=ROBOT,
          about=f'vocoder drop phrase "{ROBOT}", wet: the kit space and a dotted-8th ping-pong; {SLICE_NOTE}'),
 ]

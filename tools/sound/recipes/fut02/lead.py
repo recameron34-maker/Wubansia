@@ -1,5 +1,5 @@
-"""FUT02 "Orbit Relay" lead for listening round 2: the chrome arp, as multisamples (D4 to B-flat 5, every fourth) and an
-original 2-bar 16th arpeggio played on it, the kit's signature melodic element.
+"""FUT02 "Orbit Relay" lead for listening rounds 2 and 3: the chrome arp, as multisamples (D4 to B-flat 5, every
+fourth) and an original 2-bar 16th arpeggio played on it, the kit's signature melodic element.
 
 The voice, one note:
 - the body: a band-limited pulse (35% width, PolyBLEP at 4x) through a 4-pole low-pass that plucks open on the attack,
@@ -8,8 +8,18 @@ The voice, one note:
   it sits. They sit 2 to 31 cents over the body's harmonics 2-7 and beat slowly against them: the kit's shimmer;
 - the laser: the chrome starts a fourth up and drops onto the note in about 10 ms, the kit's pitch-drop gesture in
   miniature, heard as a "pew" on the attack;
-- the width: the chrome above 1 kHz again on the side, through an all-pass, so the mono sum is the voice whole (no
-  harmonic cancels in mono) while the shimmer spreads.
+- the width: the voice again a few cents sharp and a few cents flat, half their difference high-passed at 1 kHz on the
+  side (UNISON): L = voice + side, R = voice - side. The mono sum is the voice exactly, and each channel hears a
+  three-voice unison whose beating differs left and right: width from a decorrelated source, not a comb. It starts
+  in the middle with each note (the copies start in phase) and spreads as they drift apart. Round 3's first pass
+  doubled an all-pass side instead (0.70, round 2 0.35): every channel then played a deep complementary comb above
+  1 kHz (L against the mid -10.2 to +4.2 dB), and the all-pass's direct term (-0.6 times its input) put an
+  anti-phase copy of the voice on the side, so the arp's top leaned 4.4 dB to the right (round 2: 2.8 dB) and its
+  1 kHz region 3.8 dB to the left. In the phrase the side's polarity alternates note by note: the sharp and flat
+  copies leave the body's plucked low-pass not quite alike, so their difference keeps a small image of the voice,
+  always the same way (the chrome's alone has none), which alone would lean the phrase 0.9 dB to the right, most of
+  it at 1-1.6 kHz, near that filter's resting cutoff. A multisample note can't alternate: each is within 0.6 dB
+  left to right above 3 kHz and 1 dB over the whole file.
 High-passed at 150 Hz and mono under 150 Hz: nothing competes with the kick and bass.
 
 The phrase, 2 bars of 16ths at 130 BPM in D minor, on the kit's one swing: a melody on a 3-3-2 accent pattern (the
@@ -18,8 +28,8 @@ motif and falls (F5 A5 G5 | F5 E5 C5, the C5 held); bar 2 starts it again and li
 E5 held, a semitone under the F5 the loop restarts on). The filter opens a little over the 2 bars, so bar 2 answers
 brighter. Every note on phrase.Grid, so its odd 16ths land with the hats'.
 
-Provenance: new for FUT02; the all-pass width follows FUT01's chrome pluck (recipes/fut01/music.py), rebuilt here on
-the shared parts.
+Provenance: new for FUT02, on the shared parts; round 2's all-pass width followed FUT01's chrome pluck
+(recipes/fut01/music.py), and the detuned side replaces it.
 """
 import numpy as np
 
@@ -34,8 +44,9 @@ HP = 150.0                          # nothing under ~150 Hz: the kick and bass o
 PULSE_W = 0.35                      # the body's pulse width
 CHROME_GAIN = 0.55                  # the chrome against the body
 LASER = (5.0, 0.004)                # the chrome starts this many semitones up and drops with this time constant (s)
-SIDE = (0.35, 61, 0.6, 1000.0)      # the width: level, all-pass delay (samples, about 1.3 ms) and coefficient, the
-                                    # side's high-pass (Hz)
+UNISON = (7.0, 1.0, 1000.0)         # the width: the two copies' detune (cents), the side's level against half their
+                                    # difference, its high-pass (Hz, 2nd order, zero phase). At 1.0 the phrase's side
+                                    # sits about 3 dB under its mid at 4-8 kHz, round 3's width
 AMP_TAU = (0.30, 0.45)              # the body's decay, soft to hard layer (s)
 
 
@@ -70,10 +81,20 @@ def note_voice(f, vel, n, gate_s, release_s, open_=1.0):
     return y
 
 
-def stereo(y):
-    """The mono voice as mid, and its top on the side through an all-pass: the mono sum is y exactly."""
-    g, d, a, hp = SIDE
-    side = g * D.bfilt(P.allpass(y, d, a), hp, 'highpass', order=2)
+def detuned(f, *args, **kw):
+    """A note's side source: half the difference of the voice UNISON's cents sharp and as many flat (the other
+    arguments are note_voice's). It is zero at the note's start, where the copies are in phase, and grows as they
+    drift apart."""
+    c = 2.0 ** (UNISON[0] / 1200.0)
+    return 0.5 * (note_voice(f * c, *args, **kw) - note_voice(f / c, *args, **kw))
+
+
+def stereo(y, d, loop=False):
+    """The mono voice y as mid and its detuned difference d (detuned()) as side, above UNISON's high-pass: the mono sum
+    is y exactly. loop: y and d are a loop, so the high-pass runs round it."""
+    _, level, hp = UNISON
+    hpf = lambda u: D.bfilt(u, hp, 'highpass', order=2, zero_phase=True)
+    side = level * (Ph.circular(hpf, d) if loop else hpf(d))
     out = np.stack([y + side, y - side], 1)
     return D.mono_below(D.bfilt(out, HP, 'highpass', order=2), 150.0)
 
@@ -85,9 +106,14 @@ NOTE_S = 2.4                        # rings out; the last 0.6 s fade it to silen
 
 
 def arp_note(take):
+    """One note ringing out. Its mono sum is the voice alone, so the fundamentals the alias check reads are the note's
+    and its chrome's; the detuned copies live on the side only."""
     n = int(NOTE_S * SR)
-    y = note_voice(take.f0, take.vel, n, None, 0.0) * D.taper(n, NOTE_S - 0.6, 0.6)
-    return Out(stereo(y * P.vel_gain(take.vel, 6.0, v_min=0.55)), f0s=(take.f0,) + chrome_partials(take.f0))
+    tail = D.taper(n, NOTE_S - 0.6, 0.6)
+    g = P.vel_gain(take.vel, 6.0, v_min=0.55)
+    y = note_voice(take.f0, take.vel, n, None, 0.0) * tail
+    d = detuned(take.f0, take.vel, n, None, 0.0) * tail
+    return Out(stereo(y * g, d * g), f0s=(take.f0,) + chrome_partials(take.f0))
 
 
 # ------------------------------------------------------------------ the phrase
@@ -128,26 +154,30 @@ def phrase_notes():
 
 def arp_phrase(take):
     """The phrase played on the voice at its exact pitches, each note's gate its length, then released; tails wrap, so
-    it loops."""
+    it loops. Each note's side (its detuned difference) flips polarity from one note to the next (see the docstring)."""
     L = G.length
-    y = np.zeros(L)
-    for step, note, length, vel in phrase_notes():
+    y, d = np.zeros(L), np.zeros(L)
+    for j, (step, note, length, vel) in enumerate(phrase_notes()):
         at = G.at(step)
         n = int((length * K.STEP + RELEASE + 0.01) * SR)
         open_ = 1.0 + SWELL * (0.5 - 0.5 * np.cos(np.pi * at / L))
-        x = note_voice(float(D.midi_hz(note)), vel, n, length * K.STEP, RELEASE, open_)
-        np.add.at(y, (at + np.arange(n)) % L, x * P.vel_gain(vel, 9.0, v_min=0.5))
+        f, g = float(D.midi_hz(note)), P.vel_gain(vel, 9.0, v_min=0.5)
+        idx = (at + np.arange(n)) % L
+        np.add.at(y, idx, note_voice(f, vel, n, length * K.STEP, RELEASE, open_) * g)
+        np.add.at(d, idx, (-1) ** j * detuned(f, vel, n, length * K.STEP, RELEASE, open_) * g)
     meta = {'bpm': K.BPM, 'swing': K.SWING, 'steps': PHRASE_STEPS, 'accents': '3-3-2 per half bar',
             'notes': [{'step': s, 'note': D.note_name(m), 'length_16ths': ln, 'velocity': round(v, 2)}
-                      for s, m, ln, v in phrase_notes()]}
-    return Out(stereo(y), meta=meta)
+                      for s, m, ln, v in phrase_notes()],
+            'width': {'unison_cents': UNISON[0], 'side_level': UNISON[1], 'side_hp_hz': UNISON[2],
+                      'side_polarity': 'alternates note by note'}}
+    return Out(stereo(y, d, loop=True), meta=meta)
 
 
 ITEMS = [
-    Item('Lead', 'ChromeArp', 'lead', arp_note, layers=ARP_LAYERS, notes=ARP_NOTES, sets=('r2',),
+    Item('Lead', 'ChromeArp', 'lead', arp_note, layers=ARP_LAYERS, notes=ARP_NOTES, sets=('r2', 'r3'),
          about='chrome arp: a plucked pulse body under seven sines on the kit ratios that drop a fourth onto the note '
-               '(the laser), D4 to B-flat 5 every fourth'),
-    Item('Loops', 'ChromeArpPhrase', 'loop', arp_phrase, loop=True, sets=('r2',),
+               '(the laser), wide from a detuned unison on its side, D4 to B-flat 5 every fourth'),
+    Item('Loops', 'ChromeArpPhrase', 'loop', arp_phrase, loop=True, sets=('r2', 'r3'),
          qa={'mud': 'lowcut', 'why': 'a lead loop: the low cut, like the lead'},
          about='2-bar 16th chrome arp in D minor at 130 BPM: a tresillo melody (F5 A5 G5 | F5 E5 C5, then lifting to '
                'C6 A5 E5) over a D5-A4 drone'),

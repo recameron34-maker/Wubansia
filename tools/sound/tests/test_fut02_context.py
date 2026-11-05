@@ -2,15 +2,22 @@
 promises holds without rendering a note. The loop is exactly 4 bars on the kit's grid and tiles the 2-bar phrases and
 the pad's loop; the kick is four on the floor, every beat on the hard layer, with one gap for the fill; the bass line
 rests on every kick, the glide sits between two kicks and lifts before the second; the hats are choked; the fill bar
-has no other hats, claps or arp; the arp makes room for the vocals; the vocals call and answer without overlapping;
-every pitch is in D minor; the items carry their low-end rules. One class renders: each bassline summed with the kit's
-own kick (the groove previews and the loop's low end, no vocal models needed) passes its low-end rule in every gap."""
+has no other hats, claps or arp; the arp makes room for the vocals and for every backbeat, and the clap snaps; the
+vocals call and answer without overlapping; every pitch is in D minor; the items carry their low-end rules. Round 3's
+buses do what the mix promises: the drum bus
+shaves the backbeat to the kick's own peak and leaves a kick alone as it is, the pump and the kick's room are back
+before the next 8th, the vocoder's chorus keeps the mono sum, the arp's filter ride opens over three bars and closes in
+the fill bar, the club loop is mastered at the genre's settings. Two classes render: each bassline summed with the
+kit's own kick (the groove previews and the loop's low end, no vocal models needed) passes its low-end rule in every
+gap, and the two bass lanes read the same loudness."""
 import unittest
 
 import numpy as np
 
 from tools.sound import dsp48 as D
 from tools.sound import kits
+from tools.sound import master as MS
+from tools.sound import mixmeter as MM
 from tools.sound import phrase as Ph
 from tools.sound import qa
 from tools.sound import render as R
@@ -159,6 +166,42 @@ class TestArpRides(unittest.TestCase):
         self.assertTrue(np.all(carve <= 0) and np.all(duck <= 0))
         self.assertEqual(0.0, float(duck[C.G.at(32)]))                # back for bar 3's downbeat accent
 
+    def test_it_makes_room_for_every_backbeat(self):
+        """Over the 60-10 ms before every backbeat clap (the clap's jump reads against it), the arp's top is carved at
+        least 4 dB, by a vocal ride or by one of bar 1's own backbeat rides; those are shallower than the vocal rides,
+        in bar 1 only, and leave the attack of the accent on the 16th before alone (they ramp in 100 ms ahead)."""
+        carve = C.ride_db(C.ARP_CARVE + C.ARP_BACKBEAT)
+        for s, v in C.CLAP:
+            if v < 0.8:
+                continue
+            with self.subTest(clap=s):
+                o = C.G.at(s)
+                self.assertLessEqual(float(np.max(carve[o - int(0.060 * D.SR):o - int(0.010 * D.SR)])), -3.9)
+        for a, b, depth in C.ARP_BACKBEAT:
+            self.assertTrue(0 <= a < 16 and b == a + 1, (a, b))
+            self.assertIn((a, 1.0), C.CLAP)
+            self.assertTrue(-6.0 <= depth < 0.0)
+        own = C.ride_db(C.ARP_BACKBEAT)
+        for s in (3, 11):                                              # the tresillo accents before 2 and 4
+            self.assertEqual(0.0, float(own[C.G.at(s) + int(0.008 * D.SR)]))
+
+    def test_the_clap_snaps(self):
+        """The clap's snap: its 1-5 kHz band 3 dB up over the first 12 ms of every backbeat clap, back by 25 ms, and
+        nowhere else; the ghost claps are left alone."""
+        g = C.snap_gain()
+        up = float(D.undb(C.CLAP_SNAP['db']))
+        for s, v in C.CLAP:
+            o = C.G.at(s)
+            with self.subTest(clap=s):
+                if v >= C.CLAP_SNAP['min_vel']:
+                    self.assertAlmostEqual(up, g[o + int(0.006 * D.SR)], places=12)
+                    self.assertEqual(1.0, g[o + int(0.026 * D.SR)])
+                else:
+                    self.assertEqual(1.0, float(np.max(g[o:o + int(0.03 * D.SR)])))
+        self.assertTrue(np.all(g >= 1.0) and 1.0 < up <= D.undb(4.0))
+        self.assertAlmostEqual(1.0, float(np.median(g)), places=12)
+        self.assertLess(C.LANES['clap'][1], C.LANES['kick'][1])          # its fader still under the kick's
+
 
 class TestLowEndWithTheKick(unittest.TestCase):
     """Each bassline over the kit's own kick, as the renderer writes it (its high-pass and its one gain, before the
@@ -175,6 +218,10 @@ class TestLowEndWithTheKick(unittest.TestCase):
         checks = {c.name: c for c in qa.check_take(x, t.spec(out))}
         failed = [(k, c.value) for k, c in checks.items() if c.status == 'fail']
         self.assertEqual([], failed, name)
+        if name.startswith('ContextLoopLow'):       # the club master's kicks, so the crest floor reads each one
+            self.assertEqual(C.club_hits()['kick'], list(out.top_hits))
+            self.assertEqual(15, len(out.top_hits))
+            self.assertEqual('pass', checks['loop_kick_crest'].status)
         rows = qa.loop_mud(x, sorted(out.hits))
         return max(r['vs_sub_db'] for r in rows), max(r['before_hit_db'] for r in rows)
 
@@ -199,15 +246,154 @@ class TestLowEndWithTheKick(unittest.TestCase):
             np.testing.assert_allclose(D.st(low), (lanes['kick'] + lanes['bass'])[:n], atol=1e-12)
 
 
+class TestBuses(unittest.TestCase):
+    """Round 3's mix on buses (context.py, 'the buses'): what each insert promises, on test signals."""
+
+    def lanes_with(self, **given):
+        """Every lane of the loop silent, but the ones given."""
+        z = np.zeros((C.L, 2))
+        return {k: given.get(k, z) for k in C.LANES}
+
+    def kick_like(self, amp=0.5):
+        """A 55 Hz burst on every kick of the loop: a kick lane's shape, peak about amp."""
+        n = int(0.12 * D.SR)
+        t = np.arange(n) / D.SR
+        hit = amp * np.sin(2 * np.pi * 55.0 * t) * np.exp(-t / 0.05)
+        buf = np.zeros((C.L, 2))
+        for o in C.kick_onsets():
+            Ph.place(buf, hit, o)
+        return buf
+
+    def test_the_drum_bus_shaves_the_backbeat_to_the_kick(self):
+        kick = self.kick_like()
+        clap = np.zeros((C.L, 2))
+        burst = 0.4 * np.sin(2 * np.pi * 1500.0 * np.arange(int(0.02 * D.SR)) / D.SR)
+        for s, _ in C.CLAP:
+            Ph.place(clap, burst, C.G.at(s))
+        mix = self.lanes_with(kick=kick, clap=clap)
+        kick_tp = MM.true_peak_db(kick)
+        self.assertAlmostEqual(kick_tp + C.DRUM_CLIP_DB, C.drum_ceiling_db(mix), places=9)
+        self.assertGreater(MM.true_peak_db(kick + clap), kick_tp + 2.0)      # the backbeat sums over the kick...
+        y = C.mixdown(mix)
+        # ...and the bus shaves it to the ceiling (its true peak a few hundredths of a dB over it: the clipper's
+        # oversampled output, downsampled, rings a little between samples)
+        self.assertLessEqual(MM.true_peak_db(y), kick_tp + C.DRUM_CLIP_DB + 0.25)
+        alone = C.mixdown(self.lanes_with(kick=kick))
+        self.assertLess(abs(MM.true_peak_db(alone) - kick_tp), 0.4)        # a kick alone passes about as it is
+        self.assertTrue(-1.0 <= C.DRUM_CLIP_DB <= 1.0)
+        self.assertEqual(('kick', 'clap', 'hat'), C.DRUM_BUS)
+
+    def test_the_pump_breathes_and_is_back_by_the_next_8th(self):
+        eighth = 2 * K.STEP
+        for kw, depth in ((C.PUMP, (2.0, 4.0)), (C.KICK_ROOM, (1.0, 4.0))):
+            with self.subTest(kw=kw):
+                self.assertTrue(depth[0] <= kw['depth_db'] <= depth[1])
+                self.assertLessEqual(kw['ramp'] + kw['hold'] + kw['release'], eighth)
+                g = Ph.pump_db(C.kick_onsets(), C.L, **kw)
+                o = C.kick_onsets()[1]
+                self.assertAlmostEqual(-kw['depth_db'], g[o + int(kw['ramp'] * D.SR)], places=2)
+                self.assertEqual(0.0, g[o + int(eighth * D.SR)])
+        self.assertLessEqual(C.KICK_ROOM['ramp'] + C.KICK_ROOM['hold'] + C.KICK_ROOM['release'], 0.12)
+        self.assertFalse(set(C.PUMPED) & set(C.ROOMED))
+        self.assertTrue(set(C.PUMPED) | set(C.ROOMED) <= set(C.LANES) - set(C.DRUM_BUS) - {'bass'})
+        self.assertEqual({'pad', 'arp'}, set(C.PUMPED))                    # and the returns
+
+    def test_the_music_bus_trims_the_bulge(self):
+        cut = C.MUSIC_EQ[0]
+        self.assertTrue(400.0 <= cut[0] <= 1000.0 and cut[1] < 0)
+        self.assertTrue(all(abs(g) <= 4.0 for _, g, _ in C.MUSIC_EQ))
+        tone = lambda f: np.stack([np.sin(2 * np.pi * f * np.arange(C.L) / D.SR)] * 2, 1)
+        for f, want in ((cut[0], cut[1]), (60.0, 0.0)):
+            y = C.music_eq(tone(f))
+            got = 10 * np.log10(np.mean(y ** 2) / np.mean(tone(f) ** 2))
+            self.assertLess(abs(got - want), 0.6, f)
+
+    def test_the_vocoder_chorus_keeps_the_mono_sum(self):
+        r = D.rng('test', 'chorus')
+        x = np.stack([r.standard_normal(C.L)] * 2, 1) * 0.1
+        y = C.chorus(x, **C.CHORUS)
+        np.testing.assert_allclose(D.mono(y), D.mono(x), atol=1e-12)
+        self.assertGreater(MM.side_mid_db(y, 1000, 20000), -10.0)          # wide above 1 kHz
+        self.assertLess(MM.side_mid_db(y, 0, 500), -20.0)                  # not under it
+        self.assertEqual(int(C.CHORUS['cycles']), C.CHORUS['cycles'])      # the sway joins at the seam
+
+    def test_the_zaps_bounce_across_the_field(self):
+        self.assertEqual(len(C.ZAP), len(C.ZAP_PAN))
+        self.assertTrue(all(-1 <= p <= 1 for p in C.ZAP_PAN))
+        self.assertTrue(all(a * b < 0 for a, b in zip(C.ZAP_PAN, C.ZAP_PAN[1:])))
+        self.assertEqual(0.0, C.LANES['zap'][2])
+
+    def test_the_arp_ride_opens_over_three_bars_and_closes_in_the_fill_bar(self):
+        f = C.ride_hz()
+        top = C.G.at(C.ARP_RIDE['top_step'])
+        self.assertAlmostEqual(C.ARP_RIDE['lo_hz'], f[0], places=6)
+        self.assertAlmostEqual(C.ARP_RIDE['hi_hz'], f[top], delta=1.0)
+        self.assertTrue(np.all(np.diff(f[:top]) >= 0))
+        self.assertTrue(np.all(np.diff(f[top:]) <= 0))
+        self.assertLess(f[-1], 1.01 * C.ARP_RIDE['lo_hz'])
+        self.assertLessEqual(C.ARP_RIDE['top_step'], C.ARP_REST[0])        # open before the arp rests
+        top_melody = max(D.midi_hz(m) for _, m, _ in lead.MELODY)
+        self.assertGreater(C.ARP_RIDE['lo_hz'], top_melody)                # bar 1 is dark, its melody whole
+        self.assertGreater(C.ARP_RIDE['hi_hz'], 12000.0)
+
+    def test_the_vocal_bus_and_the_sends(self):
+        self.assertTrue(3.0 <= C.VOX_COMP['gr_db'] <= 8.0 and C.VOX_COMP['attack_s'] <= 0.010)
+        self.assertEqual(set(C.VOCALS), set(C.VOX_MAKEUP_DB))
+        self.assertTrue(all(v > 0 for v in C.VOX_MAKEUP_DB.values()))
+        self.assertTrue(3.0 <= C.SPACE['t60'] <= 4.0)                      # the standard's 3-4 s hall
+        self.assertAlmostEqual(K.STEP / 2, C.SPACE['predelay'], places=12)  # a 32nd note: 57.7 ms
+        self.assertGreater(C.SPACE['damp_hz'], C.S.SPACE['damp_hz'])        # brighter than the shared hall
+        self.assertGreaterEqual(C.ECHO['hp_hz'], 600.0)                    # the echo out of the 400-800 Hz bulge
+        self.assertGreater(C.ECHO['lp_hz'], C.ECHO['hp_hz'])
+        self.assertLessEqual(C.LANES['arp'][3], 0.10)                      # the arp mostly dry in the hall
+        self.assertGreater(C.LANES['arp'][4], 0.0)                         # ...and on the ping-pong
+
+    def test_the_club_master_settings(self):
+        """The genre's settings, with a cap a quarter dB over the standard's 4 dB (the A&R review asked for 4.5 at
+        most: 6 dB flattened the kick and clap); the item's text states the cap it renders with."""
+        st = MS.settings(K, max_reduction_db=C.MASTER_REDUCTION_DB)
+        self.assertEqual(K.DIRECTION, st.genre)
+        self.assertEqual(qa.CLUB[K.DIRECTION]['lufs'][0], st.target_lufs)
+        self.assertEqual(st.target_lufs, C.CLUB_TARGET_LUFS)
+        self.assertTrue(4.0 <= C.MASTER_REDUCTION_DB <= 4.5)
+        about = {i.name: i for i in C.ITEMS}['ContextLoopClub'].about
+        self.assertIn(f'at most {C.MASTER_REDUCTION_DB:g} dB of peak reduction', about)
+        self.assertIn(f'{C.CLUB_TARGET_LUFS:g} LUFS-I', about)
+
+
+class TestBassLevels(unittest.TestCase):
+    """The two bass lanes read the same loudness in the loop (the A/B is the character alone). Renders the lines."""
+
+    def test_a_and_b_are_level_matched(self):
+        a, b = (qa.lufs(C.low_lanes(ch)['bass']) for ch in (C.CLEAN, C.WARM))
+        self.assertLess(abs(a - b), 0.1, (a, b))
+
+    def test_the_a_b_grooves_play_at_one_loudness(self):
+        """The listening page's bass A/B: each line's groove preview, A and B, as the renderer writes them, within
+        0.2 LU of each other with neither true peak over -1.02 dBTP (each file at its own peak, Orbit's B read 0.95
+        LU under its A). Renders the four grooves (a few seconds)."""
+        got = {}
+        for name in ('OrbitGrooveClean', 'OrbitGrooveWarm', 'RelayGrooveClean', 'RelayGrooveWarm'):
+            x = R.render_item(kits.items(K, only=(name,))[0], K.KIT).audio[0]
+            got[name] = qa.lufs(x)
+            self.assertLessEqual(D.true_peak_db(x), D.TP_TARGET + 1e-6, name)
+        for line in ('Orbit', 'Relay'):
+            a, b = got[f'{line}GrooveClean'], got[f'{line}GrooveWarm']
+            self.assertLess(abs(a - b), 0.2, (line, a, b))
+
+
 class TestContextItems(unittest.TestCase):
     def test_items(self):
         items = {it.name: it for it in C.ITEMS + PV.ITEMS}
         grooves = {f'{line}Groove{c}' for line in bass.LINES for c in ('Clean', 'Warm')}
-        self.assertEqual({'ContextLoop', 'ContextLoopWarm', 'ContextLoopWet', 'ContextLoopLow', 'ContextLoopLowWarm',
-                          'StarfieldPadLoop', 'LaserFillPreview', 'LaserRiserPreview'} | grooves, set(items))
+        self.assertEqual({'ContextLoopClub', 'ContextLoop', 'ContextLoopWarm', 'ContextLoopWet', 'ContextLoopLow',
+                          'ContextLoopLowWarm', 'StarfieldPadLoop', 'LaserFillPreview', 'LaserRiserPreview'} | grooves,
+                         set(items))
         for it in items.values():
             self.assertTrue(it.loop, it.name)
-            self.assertIn('r2', it.sets)
+            self.assertIn('r3', it.sets)
+            if it.name != 'ContextLoopClub':
+                self.assertIn('r2', it.sets)
             self.assertEqual('loop', it.category)
             self.assertTrue(it.qa.get('why'), it.name)
         self.assertEqual('gate', items['ContextLoopLow'].qa['mud'])
@@ -221,6 +407,16 @@ class TestContextItems(unittest.TestCase):
         for name in grooves:
             self.assertIn('with_kick', items[name].tags)
             self.assertEqual('bass-body' if name.endswith('Warm') else 'gate', items[name].qa['mud'])
+
+    def test_the_club_loop_is_a_mastered_loop(self):
+        it = {i.name: i for i in C.ITEMS}['ContextLoopClub']
+        self.assertEqual(('r3',), it.sets)
+        self.assertEqual({'wet', 'club'}, set(it.tags))
+        self.assertIsNone(it.hp_hz)
+        self.assertIsNone(it.level)
+        self.assertEqual('off', it.qa['mud'])
+        self.assertIs(C.context_club, it.render)
+        self.assertEqual(C.ITEMS[0], it)                                   # first: the listening page starts there
 
 
 if __name__ == '__main__':

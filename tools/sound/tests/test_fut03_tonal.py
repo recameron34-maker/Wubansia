@@ -165,6 +165,39 @@ class TestBasslines(unittest.TestCase):
             self.assertTrue(np.all(e[int(B.SETTLE * SR) + 1:] == 0.0))
         self.assertLess(B.SETTLE, B.ATTACK_S)
 
+    def test_the_top_layer_bounces_with_the_dip(self):
+        """Round 3's bright top (the standard: a current future-house bass stacks a top layer that bounces with the
+        pitch dip): its formant falls TOP_SWEEP octaves at the bottom of the dip and is back at rest with the note; it
+        rides on the bite, so A and B share it, through the bite's steep high-pass at MID_HP: as played, at least 70% of
+        it lies over 1 kHz and it is at least 35 dB down under 400 Hz (the low-end rules read 150-400 Hz)."""
+        n = int(0.3 * SR)
+        for note in (31, 38, 43):
+            f = float(D.midi_hz(note))
+            for vel in B.BASS_LAYERS:
+                freq = f * 2.0 ** (B.dip(n, vel) / 12.0)
+                depth = B.dip_depth(freq, f, vel)
+                self.assertAlmostEqual(1.0, depth.max(), places=3)
+                self.assertEqual(0.0, depth[-1])
+                x = B.P.hp_steep(B.top(freq, n, vel, f, D.phase(freq, n), depth), B.MID_HP)
+                X = np.abs(np.fft.rfft(x, n=SR)) ** 2
+                fr = np.fft.rfftfreq(SR, 1 / SR)
+                self.assertGreater(10 * np.log10(X[fr >= 1000].sum() / X.sum()), -1.5, (note, vel))
+                self.assertLess(10 * np.log10(X[fr < 400].sum() / X.sum()), -35, (note, vel))
+        self.assertGreater(B.TOP_LEVEL, 0.0)
+        self.assertEqual(-B.line_dip(n, 1.0).min() / B.P.lerp(B.DIP_ST, 1.0), 1.0)   # a line note's depth, 0..1
+        self.assertLess(B.BODY_LEVEL, B.LINE_BODY_LEVEL)      # the lines' body up, the held notes' as round 2 (bass-body)
+
+    def test_the_top_reads_in_the_lines(self):
+        """The review: at its first level the top sat 21 / 24 dB under the line's sub (its 2 / 4 kHz octaves against its
+        63 Hz one), 10.6 dB under the context loop's 2-4 kHz band while the bass played, so the "yow" was hardly in the
+        mix. Raised 6 dB it reads 16 / 18 dB under the sub, the same in A and B; the sub still leads by 12 dB or more."""
+        from tools.sound import mixmeter as MM
+        for name in B.LINES:
+            for char in B.CHARACTERS:
+                b = MM.balance(B.line_out(name, char).audio)
+                for band, lo in (('2k', -17.0), ('4k', -19.0)):
+                    self.assertTrue(lo < b[band] - b['63'] < -12.0, (name, char, band, round(b[band] - b['63'], 1)))
+
     def test_items_declare_their_low_end(self):
         items = {it.name: it for it in B.ITEMS}
         for name in ('DipBassWarm', 'LineBounceWarm', 'LineRollWarm', 'VowelBassTalkWarm', 'VowelBassRiseWarm'):

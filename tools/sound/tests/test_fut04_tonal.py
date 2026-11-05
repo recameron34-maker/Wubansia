@@ -6,6 +6,8 @@ rendering (and without the vocal models).
   accents, ghosts, a slide, short and held notes, and a motif that comes back varied; the pick holds two notes for most
   of a beat and doesn't play one cell on every beat; no slide crosses the sub octave split; the sub holds the kick's
   note in phase with each kick under the pedal; the pick is one of them.
+- Round 3: the pick's 4-bar ride plays bars 1-2 as written and opens on bar 4; its per-sample ladder is the shared
+  ladder's arithmetic; the edge sits on the squelch alone, so A and B keep one squelch and differ only under SPLIT.
 - The blip sequence: in E minor, inside the multisample zones.
 - The vocals: three candidate lines of 3-6 plain words, the robot 2-4, all clean and in key, none a title a release
   uses; the chops come from the pick, the robot's slices sit on the kit's grid.
@@ -122,11 +124,63 @@ class TestAcidLines(unittest.TestCase):
 
     def test_the_characters(self):
         items = {it.name: it for it in B.ITEMS}
-        for name in ('AcidWarm', 'AcidLine1Warm', 'AcidLine2Warm'):
+        for name in ('AcidWarm', 'AcidLine1Warm', 'AcidLine2Warm', 'AcidLine1RideWarm'):
             self.assertEqual('bass-body', items[name].qa['mud'])
-        for name in ('AcidClean', 'AcidLine1Clean', 'AcidLine2Clean', 'Rumble'):
+        for name in ('AcidClean', 'AcidLine1Clean', 'AcidLine2Clean', 'AcidLine1RideClean', 'Rumble'):
             self.assertEqual('gate', items[name].qa.get('mud', 'gate'))
-        self.assertTrue(all('r2' in it.sets for it in B.ITEMS))
+        self.assertTrue(all('r3' in it.sets for it in B.ITEMS))
+        r3_only = {it.name for it in B.ITEMS if 'r2' not in it.sets}
+        self.assertEqual({'AcidLine1RideClean', 'AcidLine1RideWarm'}, r3_only)
+
+
+class TestAcidRound3(unittest.TestCase):
+    def test_the_ride_opens_on_bar_4(self):
+        """Bars 1-2 play the line as written (the cutoff x1, the resonance RES); the ride opens through bar 3, is widest
+        in bar 4 and closes by the downbeat, under self-oscillation (1.1)."""
+        for name, ride in B.RIDES.items():
+            self.assertEqual(B.PICK, name)
+            n = B.RIDE_GRID.length
+            cut = B.ride_curve(ride['cutoff'], n, True)
+            res = B.ride_curve(ride['res'], n, False)
+            bars12 = slice(0, B.RIDE_GRID.at(32))
+            self.assertTrue(np.allclose(cut[bars12], 1.0) and np.allclose(res[bars12], B.RES))
+            top = int(np.argmax(cut))
+            self.assertTrue(B.RIDE_GRID.at(48) <= top < n, top)
+            self.assertGreaterEqual(cut.max(), 2.0)
+            self.assertLess(res.max(), 1.0)
+            self.assertAlmostEqual(cut[-1], 1.0, delta=0.01)
+            self.assertEqual(2 * B.L, n)
+
+    def test_the_ride_ladder_is_the_shared_ladder(self):
+        """A constant resonance gives dsp48.ladder_tanh's bytes exactly, so the ride's bars 1-2 are the line's voice."""
+        r = np.random.default_rng(4)
+        x, fc = 0.5 * r.standard_normal(4000), np.linspace(500.0, 4000.0, 4000)
+        self.assertTrue(np.array_equal(D.ladder_tanh(x, fc, B.RES, 4 * SR, drive=B.DRIVE),
+                                       B.ladder(x, fc, np.full(4000, B.RES), 4 * SR, drive=B.DRIVE)))
+
+    def test_the_edge_keeps_one_squelch(self):
+        """The edge (the distortion after the filter) runs on the squelch above SPLIT alone, at one level in both
+        characters: with the parts under SPLIT muted, A and B are the same squelch over 1 kHz, octave by octave within
+        0.5 dB (B's 120 Hz high-pass and A's 500 Hz one turn its phase, not its level), so the A/B still differs only
+        in the body; the edge's high-pass keeps its difference tones out of the body (at or over 0.8 x SPLIT)."""
+        n = 24000
+        f = np.full(n, float(D.midi_hz(K.KICK_NOTE)))
+        voice = B.acid(f, np.full(n, 1400.0))
+        gate, sub = np.ones(n), np.zeros(n)
+        saved = dict(B.LOW_LEVEL)
+        try:
+            B.LOW_LEVEL.update(clean=0.0, warm=0.0)
+            a = B.character(sub, voice, gate, gate, 'clean')
+            b = B.character(sub, voice, gate, gate, 'warm')
+        finally:
+            B.LOW_LEVEL.update(saved)
+        def octave(x, lo):
+            return np.sum(D.bfilt(x, (lo, 2 * lo), 'bandpass', order=4, zero_phase=True)[4000:-4000] ** 2)
+        for lo in (1000.0, 2000.0, 4000.0, 8000.0):
+            with self.subTest(octave=lo):
+                self.assertLess(abs(10 * np.log10(octave(a, lo) / octave(b, lo))), 0.5)
+        self.assertGreaterEqual(B.EDGE['hp'], 0.8 * B.SPLIT)
+        self.assertGreater(B.EDGE['drive'], 1.0)
 
 
 class TestBlips(unittest.TestCase):

@@ -1,11 +1,12 @@
-"""FUT04's drone for round 2: a dark Em(add9) bed with an iron hum and a slow, resonant filter over 4 bars.
+"""FUT04's drone for rounds 2 and 3: a dark Em(add9) bed with an iron hum and a slow, resonant filter over 4 bars.
 
 One chord, E3 B3 E4 G4 F#5 (root, 5, octave, b3, 9: the 9 sits a major seventh over the third, dark but open), in
 two layers:
 - the body: detuned saws per chord tone (the root: one steady saw in the middle with a quieter detuned pair, so the
   chord never loses its E), through a resonant low-pass that rises from 450 Hz to 2 kHz and back once every 4 bars
-  at 136 BPM (7.06 s), the two sides a little apart, and a broad 8 dB dip at 230 Hz, so the bed stays dark but out
-  of the low mids (150-400 Hz holds -5.7 dB of it; FUT01's air pad, -6.7);
+  at 136 BPM (7.06 s), the two sides a little apart, and a broad dip at 230 Hz (round 2: 8 dB, so the bed stayed out of
+  the low mids; round 3: 3 dB, so its root and fifth fill the kit's low-mid hole, the deepest of the four kits: the
+  modern-sound standard's FUT04 change 3), kept in the middle up to 450 Hz, where a wide low mid would smear;
 - the iron: the kit's anvil modes (RATIOS) on E4, seven sines breathing at their own slow rates (1 to 4 times per
   loop), so the slab's beating pairs (1.5719 and 1.6124 near C5, 3.2247 and 3.3671) hum through the chord like a
   bowed plate in the furnace.
@@ -13,7 +14,8 @@ two layers:
 The loop is exactly periodic: every oscillator sits on a grid of whole cycles per loop (4 bars), the sweep and the
 breathing repeat a whole number of times per loop, and the crossfaded loop points join cleanly. It fades in over
 1.1 s and loops from its attack's end. High-passed at 100 Hz (the root is E3, 164.8 Hz; 4th order) and mono under
-150 Hz. No noise and no shaper: every component is a declared fundamental (f0s), so the alias check reads it whole.
+450 Hz (round 2: 150). No noise and no shaper: every component is a declared fundamental (f0s), so the alias check
+reads it whole.
 """
 import numpy as np
 
@@ -38,7 +40,9 @@ SWEEP = (450.0, 2000.0, 1.8, 0.5)   # the low-pass: lowest and highest cutoff (H
 IRON_AMPS = (1.0, 0.6, 0.6, 0.35, 0.25, 0.25, 0.15)   # each pair at one level, so it beats
 IRON_RATES = (1, 2, 3, 2, 4, 3, 4)   # breaths per loop, per mode
 MIX = (1.0, 0.20)            # body, iron
-LOW_MID_DIP = (230.0, -8.0, 0.6)   # the body's low-mid dip: centre (Hz), gain (dB), q
+LOW_MID_DIP = (230.0, 0.0, 0.6)    # the body's low-mid dip: centre (Hz), gain (dB), q (round 2: -8 dB; round 3: none)
+MONO_HZ = 450.0              # mono under this (round 2: 150 Hz): its low mids stay in the middle (the whole 250 Hz
+                             # octave, 177-354 Hz)
 
 
 def sweep_lp(x, L, phase):
@@ -88,13 +92,13 @@ def drone(take):
     g_body, g_iron = MIX
     y = g_body * body + g_iron * D.st(iron)
     y = D.bfilt(y, 100.0, 'highpass', order=4)
-    y = D.mono_below(y, 150.0) * (np.sin(0.5 * np.pi * np.clip(P.times(n) / FADE_IN_S, 0, 1)) ** 2)[:, None]
+    y = D.mono_below(y, MONO_HZ) * (np.sin(0.5 * np.pi * np.clip(P.times(n) / FADE_IN_S, 0, 1)) ** 2)[:, None]
     y, loop = P.close_loop(y, A0, L, xfade=0.05)
     return Out(y, loop=loop, f0s=tuple(sorted(f0s)))
 
 
 ITEMS = [
-    Item('Pad', 'DroneEmAdd9', 'pad', drone, root=CHORD[0], loop=True, sets=('r2',),
+    Item('Pad', 'DroneEmAdd9', 'pad', drone, root=CHORD[0], loop=True, sets=('r2', 'r3'),
          about='dark drone, Em(add9) (E3 B3 E4 G4 F#5): detuned saws under a resonant 4-bar filter rise, the anvil '
-               'modes humming on E4; high-passed at 100 Hz, mono under 150 Hz; a 4-bar loop'),
+               'modes humming on E4; high-passed at 100 Hz, mono under 450 Hz; a 4-bar loop'),
 ]

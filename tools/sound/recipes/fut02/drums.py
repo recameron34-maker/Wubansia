@@ -1,4 +1,6 @@
-"""FUT02 drums for round 2: the split kick, the electro clap, the closed and open hats and their 2-bar preview loop.
+"""FUT02 drums for rounds 2 and 3: the split kick, the electro clap, the closed and open hats and their 2-bar preview
+loop. Round 3 changes the hats only (their tick and their width, see below); the kick and the clap are round 2's, the
+same bytes.
 
 Every drum has 5 velocity layers (2 round robins, the hats 3). Velocity moves the brightness, the transient and the
 pitch envelope, not only the level.
@@ -14,7 +16,12 @@ pitch envelope, not only the level.
 - ClosedHat and OpenHat: one metal for both, six square oscillators on the stiff wire's partials 5, 8, 11, 14, 17 and
   20 over a 120 Hz string, where its stiffness has pulled them apart (1 : 1.62 : 2.28 : 2.97 : 3.72 : 4.53, the way
   the classic six-oscillator hat uses inharmonic squares), over noise. The closed hat is 30 dB down inside a 16th;
-  the open one sizzles for a beat. They share a choke group: a closed hat cuts the open one (meta 'choke').
+  the open one sizzles for a beat. They share a choke group: a closed hat cuts the open one (meta 'choke'). Round 3:
+  the tick on the front is spread over about 3 ms instead of a 1 ms needle that stood 11 dB over the metal (the hats
+  read about 4 dB louder at the same peak, crest 20.7 and 15.2 dB against 23.7 and 18.3), and the open hat spreads
+  (side over mid about -4 dB at 8 kHz, the closed hat about -13), its side a second noise of its own, so it sits in the
+  middle (round 3's first pass took the mid's own noise out of the left and doubled it on the right: the open hat
+  read 2.6 dB louder on the right).
 - HatLoop: a 2-bar preview of the pair, closed 16ths around an open hat on every off-beat, played on the files as
   written, each open hat choked by the next closed one (a 4 ms fade, the sampler's choke).
 
@@ -177,7 +184,24 @@ def electro_clap(take):
 HAT_STRING = 120.0                     # Hz: the wire the hat's six squares sit on
 HAT_PARTIALS = (5, 8, 11, 14, 17, 20)  # 605-2741 Hz, 1 : 1.62 : 2.28 : 2.97 : 3.72 : 4.53
 CHOKE = {'group': 'hats', 'closed': 'ClosedHat', 'open': 'OpenHat', 'fade_s': 0.004}
-TICK_RMS = 0.0087            # the tick's energy over the file, as an RMS: the mean a 1 ms burst of the band reads
+# the tick: its energy over the file as an RMS, its envelope (decay, attack, s) and how it grows with velocity
+# (a + b v^p). Round 2's tick was a 1 ms needle (0.0087, decay 1 ms, attack 0.2 ms, 0.15 + 0.85 v) whose peak stood
+# 11 dB over the metal's: the closed hat's crest read 23.7 dB, and in the loop the hats alone reached 0.83 of full
+# scale on the open hat at 16th 46. Spread over about 3 ms and 1.5 dB lower it is still a tick, and the hat reads about
+# 4 dB louder at the same peak, so it no longer eats the mix's headroom; growing with the square of the velocity (a
+# soft stroke barely ticks), every layer stays brighter than the one under it (the spread tick on round 2's linear
+# curve left the centroid falling between two layers in two of the three round robins)
+TICK_RMS = 0.0087 * float(D.undb(-1.5))
+TICK_ENV = (0.0024, 0.0005)
+TICK_VEL = (0.05, 0.95, 2.0)
+# the width: the side is a second noise of the hat's own (hat()), orthogonal to its mid noise, at this share of the
+# mid noise's level. The closed hat stays near the middle (side/mid about -13 dB at 8 kHz); the open hat on the offbeat
+# spreads (about -4 dB). Round 3's first pass made the side width x (second noise - mid noise), which took the mid's
+# noise out of the left channel and doubled it in the right: the open hat read 2.6 dB louder on the right, its noise
+# 7.6 dB, and that lean counted as width. The side alone is the second noise now: the closed hat's at sqrt(2) times the
+# old share (the same side over mid), the open hat's 1.2 times that again, so the balanced loop keeps round 3's width
+# at 8 kHz (the club loop's side over mid -7.5 dB against -7.9; -8.4 at sqrt(2))
+HAT_WIDTH = {'closed': 0.57, 'open': 1.35}
 
 
 def hat_metal(n, v, ph0, k=4):
@@ -202,10 +226,11 @@ def unit_against(x, basis):
     return x / (np.sqrt(np.dot(x, x)) + 1e-30)
 
 
-def hat(take, decay, fade):
-    """The metal and noise through a band that opens with velocity, a tick on the front, on one decay; the side is
-    the same metal under its own noise, so the mono sum keeps every partial. Every noise is made orthogonal to what is
-    already there and given a fixed energy, so the round robins differ in grain, not level."""
+def hat(take, decay, fade, width):
+    """The metal and noise through a band that opens with velocity, a tick on the front, on one decay; the side is a
+    second noise (`width` of the mid noise's level), so the mono sum keeps every partial and both channels carry the
+    same level. Every noise is made orthogonal to what is already there and given a fixed energy, so the round robins
+    differ in grain, not level."""
     v = take.vel
     n = int(0.6 * SR)
     ph0 = D.rng(take.kit, 'hats', 'phases').uniform(0, 1, len(HAT_PARTIALS))   # one metal for both hats
@@ -218,21 +243,22 @@ def hat(take, decay, fade):
     ns = e * unit_against(band(take.rng('hat', 'side').standard_normal(n)) * env, (metal, nm))
     mid = 0.75 * metal + 0.45 * nm
     tick = D.bfilt(take.rng('hat', 'tick').uniform(-1, 1, n), (8000.0, 16000.0), 'bandpass', order=2)
-    tick = (0.15 + 0.85 * v) * TICK_RMS * np.sqrt(n) * unit_against(tick * D.env_exp(n, 0.0010, 0.0002), (mid,))
+    a, b, p = TICK_VEL
+    tick = (a + b * v ** p) * TICK_RMS * np.sqrt(n) * unit_against(tick * D.env_exp(n, *TICK_ENV), (mid,))
     m = mid + tick
-    s = 0.30 * 0.45 * (ns - nm)
+    s = width * 0.45 * ns
     y = np.stack([m + s, m - s], 1)
     return P.low_clean(y, 3000.0) * D.taper(n, *fade)[:, None] * P.vel_gain(v, 13.0)
 
 
 def closed_hat(take):
     """30 dB down in 40-60 ms: inside a 16th at 130 BPM (115 ms), so rolling 16ths stay apart."""
-    return Out(hat(take, lambda v: 0.008 + 0.006 * v, SHORT_FADE), meta={'choke': CHOKE})
+    return Out(hat(take, lambda v: 0.008 + 0.006 * v, SHORT_FADE, HAT_WIDTH['closed']), meta={'choke': CHOKE})
 
 
 def open_hat(take):
     """A sizzle about a beat long, 30 dB down by 0.3-0.4 s and gone by 0.47 s: choked by the next closed hat."""
-    return Out(hat(take, lambda v: 0.085 + 0.035 * v, SHORT_FADE), meta={'choke': CHOKE})
+    return Out(hat(take, lambda v: 0.085 + 0.035 * v, SHORT_FADE, HAT_WIDTH['open']), meta={'choke': CHOKE})
 
 
 # ------------------------------------------------------------------ the 2-bar hat preview loop
@@ -272,18 +298,18 @@ def hat_loop(take):
 
 
 ITEMS = [
-    Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('r2',),
+    Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('r2', 'r3'),
          about='split kick: a clean A1 sub that holds about 60 ms and is 20 dB down by 0.12 s (a quiet tail to '
                '0.40 s), a gently saturated knock gone by 85 ms, a driven chrome top with a laser tick above 1 kHz'),
-    Item('Drums', 'ElectroClap', 'snare', electro_clap, layers=LAYERS, rr=2, sets=('r2',),
+    Item('Drums', 'ElectroClap', 'snare', electro_clap, layers=LAYERS, rr=2, sets=('r2', 'r3'),
          about='electro clap: four flams of band noise in the kit room, layered with a short snare on D4 (wire '
                'partials, a pitch drop) and bright wires'),
-    Item('Drums', 'ClosedHat', 'hat', closed_hat, layers=LAYERS, rr=3, sets=('r2',),
+    Item('Drums', 'ClosedHat', 'hat', closed_hat, layers=LAYERS, rr=3, sets=('r2', 'r3'),
          about='closed hat: six squares on the stiff wire partials 5-20 over noise, 30 dB down inside a 16th; chokes '
                'the open hat'),
-    Item('Drums', 'OpenHat', 'hat', open_hat, layers=LAYERS, rr=3, sets=('r2',),
-         about='open hat: the same wire metal as a sizzle about a beat long, choked by the closed hat'),
-    Item('Loops', 'HatLoop', 'loop', hat_loop, loop=True, sets=('r2',), tags=('preview',),
+    Item('Drums', 'OpenHat', 'hat', open_hat, layers=LAYERS, rr=3, sets=('r2', 'r3'),
+         about='open hat: the same wire metal as a wide sizzle about a beat long, choked by the closed hat'),
+    Item('Loops', 'HatLoop', 'loop', hat_loop, loop=True, sets=('r2', 'r3'), tags=('preview',),
          qa={'mud': 'lowcut', 'why': 'a hat loop: the low cut, like the hats'},
          about='2-bar hat preview at 130 BPM: closed 16ths around an open hat on every off-beat, choked by the next '
                'closed hat'),

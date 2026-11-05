@@ -1,12 +1,16 @@
 """FUT02 "Orbit Relay" tonal parts: the written lines keep the round 1 rules (docs/plans/S1-four-kits.md) without
 rendering a note. The basslines rest on every kick and clear before the next one, stay in D minor inside the bass-body
 range and carry a slide, ghosts and held notes; the arp phrase and the sung lines stay in the key; the lines are 3-6
-words; the vocoder's slices sit on the grid. Nothing here needs the vocal models."""
+words; the vocoder's slices sit on the grid. Round 3's bass bite saturates the mid band and nothing in 150-400 Hz: A
+keeps that band empty, B passes it as it was; and the arp's width is a detuned unison on its side: its mono sum is the
+voice, it starts in the middle with each note, and a note sits balanced between the speakers. Nothing here needs the
+vocal models."""
 import unittest
 
 import numpy as np
 
 from tools.sound import dsp48 as D
+from tools.sound import parts as P
 from tools.sound import qa
 from tools.sound.kits import fut02 as K
 from tools.sound.recipes.fut02 import bass, lead, vox
@@ -78,7 +82,70 @@ class TestFut02DropGlide(unittest.TestCase):
         self.assertFalse(np.any(env[int((a + b) * SR) + 1:]))
 
 
+class TestFut02Bite(unittest.TestCase):
+    """bass.bite on test tones: the low mids stay as the low-end rules measured them, the band above gets denser."""
+
+    def tone(self, f, amp=0.5, n=int(0.5 * SR)):
+        return amp * np.sin(2 * np.pi * f * np.arange(n) / SR)
+
+    def level_db(self, x):
+        k = slice(int(0.1 * SR), len(x) - int(0.05 * SR))               # past the filters' start
+        return 10 * np.log10(np.mean(x[k] ** 2) + 1e-30)
+
+    def test_b_passes_its_low_mids_linearly(self):
+        self.assertGreaterEqual(bass.BITE_SPLIT, 400.0)                  # over the bass-body band
+        for f in (180.0, 260.0):
+            with self.subTest(f=f):
+                x = self.tone(f)
+                ref = D.lr4(x, bass.MID_HP[bass.WARM], 'highpass')
+                self.assertLess(abs(self.level_db(bass.bite(x, bass.WARM)) - self.level_db(ref)), 0.1)
+
+    def test_a_keeps_150_400_hz_empty(self):
+        for f in (180.0, 260.0, 380.0):
+            with self.subTest(f=f):
+                x = self.tone(f)
+                self.assertLess(self.level_db(bass.bite(x, bass.CLEAN)) - self.level_db(x), -60.0)
+
+    def test_the_bite_makes_the_mid_band_denser(self):
+        """A high-passed saw on D2 (the A mids): its crest falls by at least 3 dB through the bite, at about its
+        loudness."""
+        n = int(0.5 * SR)
+        saw = D.down(D.polyblep_saw(float(D.midi_hz(38)), n, 0.0, k=4), 4) * 0.8
+        band = P.hp_steep(saw, bass.MID_HP[bass.CLEAN])
+        out = bass.bite(saw, bass.CLEAN)
+        k = slice(int(0.1 * SR), n - int(0.05 * SR))
+        crest = lambda y: 20 * np.log10(np.abs(y[k]).max() / np.sqrt(np.mean(y[k] ** 2)))
+        self.assertGreater(crest(band) - crest(out), 3.0)
+        self.assertLess(abs(self.level_db(out) - self.level_db(band)), 3.0)
+
+
 class TestFut02Lead(unittest.TestCase):
+    def test_the_arp_widens_and_keeps_its_mono_sum(self):
+        cents, level, hp = lead.UNISON
+        self.assertTrue(3.0 <= cents <= 12.0 and level > 0 and hp >= 1000.0)
+        self.assertFalse(hasattr(lead, 'SIDE'))                          # no all-pass side any more
+        r = D.rng('test', 'arp-width')
+        y, d = r.standard_normal(9600) * 0.1, r.standard_normal(9600) * 0.1
+        ref = D.mono_below(D.bfilt(np.stack([y, y], 1), lead.HP, 'highpass', order=2), 150.0)
+        for loop in (False, True):
+            np.testing.assert_allclose(D.mono(lead.stereo(y, d, loop)), D.mono(ref), atol=1e-12)
+
+    def test_a_note_is_wide_and_sits_in_the_middle(self):
+        """The side starts at zero with the note (its two detuned copies start in phase) and spreads; the note's left
+        and right carry the same level above 2 kHz (an all-pass side's direct term leaned round 3's first arp 4.4 dB
+        to the right), and its side sits within 6 dB of its mid there."""
+        f, vel, n = float(D.midi_hz(77)), 1.0, int(0.4 * SR)
+        d = lead.detuned(f, vel, n, None, 0.0)
+        y = lead.note_voice(f, vel, n, None, 0.0)
+        early, later = slice(0, int(0.002 * SR)), slice(int(0.05 * SR), int(0.15 * SR))
+        self.assertLess(np.sqrt(np.mean(d[early] ** 2)), 0.05 * np.sqrt(np.mean(y[early] ** 2)))
+        self.assertGreater(np.sqrt(np.mean(d[later] ** 2)), 0.2 * np.sqrt(np.mean(y[later] ** 2)))
+        x = D.bfilt(lead.stereo(y, d), 2000.0, 'highpass', order=4, zero_phase=True)
+        lr = 10 * np.log10(np.sum(x[:, 0] ** 2) / np.sum(x[:, 1] ** 2))
+        self.assertLess(abs(lr), 1.0, lr)
+        m, s = 0.5 * (x[:, 0] + x[:, 1]), 0.5 * (x[:, 0] - x[:, 1])
+        self.assertGreater(10 * np.log10(np.sum(s ** 2) / np.sum(m ** 2)), -6.0)
+
     def test_phrase_in_key_on_the_grid(self):
         notes = lead.phrase_notes()
         self.assertEqual(sorted(s for s, *_ in notes), [s for s, *_ in notes])

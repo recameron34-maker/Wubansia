@@ -1,5 +1,5 @@
-"""FUT04 drums for round 2: the split kick on E1, the gated iron snare, the dark closed and open hats and their 2-bar
-preview loop.
+"""FUT04 drums for rounds 2 and 3: the split kick on E1, the gated iron snare, the dark closed and open hats, the iron
+ride (round 3) and their 2-bar preview loop.
 
 Every drum has 5 velocity layers (2 round robins, the hats 3). Velocity moves the brightness, the transient and the
 pitch envelope, not only the level.
@@ -9,15 +9,31 @@ pitch envelope, not only the level.
   sweep's own harmonics 2-5, added, not shaped) that is gone by 80 ms, and the 8x oversampled drive chain, high-passed
   at 300 Hz, so no distortion reaches the sub or the knock: the crunch of the body driven, gated short, and an iron
   click and ring above 1 kHz. Its top layer reads 5.9-6.4 dB of crest, Split's range (5.8-6.4), not Tight's (7.9).
-- SnareGated: an iron plate on B3 (the anvil's modes from the key's fifth), a three-flam clap and bright wires,
+  Round 3, weight where small speakers play (the modern-sound standard, docs/plans/S1-modern-sound.md, FUT04 change 2):
+  the E1 sub put the kick's weight under 44 Hz, its 80-120 Hz sat 14 dB under the whole hit, so the kick gains a low
+  knock, the sweep's own octave (its 2nd harmonic, clean, in cosine phase, so it adds weight without spiking the peak)
+  low-passed at 140 Hz over its first 70 ms; the crunch (the drive chain, still only above 300 Hz) lasts 50-60 ms;
+  and the iron top is 3.6 dB hotter, the distorted top of a warehouse kick. Its sub, unchanged, now reads 20 dB down
+  by 315 ms (2.9 16ths, round 2 340 ms, at the edge of the standard's 3).
+- SnareGated: an iron plate on B3 (the anvil's modes from the key's fifth), a four-hand clap and bright wires,
   soft-clipped at 4x, in the kit's dark concrete room (an FDN on K.space_rng, fed above 500 Hz, t60 2.4 s, damped at
-  4 kHz) held about 10 dB under the hit and chopped by a gate after 150-185 ms: the industrial gated snare.
+  4 kHz) held about 10 dB under the hit and chopped by a gate after 150-185 ms: the industrial gated snare. Round 3:
+  four even hands (round 2's three rose to the last, which also carried the tail, so the first read 4.5 dB under the
+  loudest; the standard asks 2 dB or less), the tail swelling in after the last hand, the plate's B3 body a little
+  fuller (PLATE_LOW) and a harder soft clip, so the hit is less peaky (the top layer's PLR 16.6 and 16.0 to 15.3 dB).
 - ClosedHat and OpenHat: one dark metal for both, seven squares on the anvil's ratios over E4 (330-1388 Hz, the way the
   classic six-oscillator hat uses inharmonic squares), over a little noise, in a 4.3-14 kHz band that opens with
   velocity. The closed hat is 30 dB down inside a 16th; the open one sizzles for about a beat. They share a choke
-  group: a closed hat cuts the open one (meta 'choke').
+  group: a closed hat cuts the open one (meta 'choke'). Round 3: a brighter band (to 16 kHz on the hardest hits, from
+  14), the tick spread over about 2 ms instead of a needle, and a wider side on the open hat.
+- Ride (round 3, rebuilt in the fix pass): the iron ride for the off-beats, the top a warehouse groove rides on: the
+  stick's ping, the anvil's modes on E6 struck with a Hann pulse and gone by 80 ms, over a wash of dense noise in a
+  5-14 kHz band that opens with velocity, coloured by four broad resonators on the anvil's ratios over E7 (Q 4), 20 dB
+  down by 0.38 s on the top layer, driven gently at 4x; its side its own noise of the same colour, so it is the widest
+  thing in the kit's top. Not in the hats' choke group: it fades on its own before the next off-beat. The first round 3
+  ride sustained seven squares, a bell chord that rang 1 s over the 16ths (the comment above RIDE_BELL).
 - HatLoop: a 2-bar preview of the pair on the kit's swing, played on the files as written, each open hat choked by the
-  next closed one (a 4 ms fade, the sampler's choke).
+  next closed one (a 4 ms fade, the sampler's choke), with the ride on every off-beat 8th (round 3).
 
 Everything but the kick is high-passed far above the kick and sub (low_clean) and mono under 150 Hz.
 """
@@ -45,13 +61,26 @@ KNOCK_HARM = ((0.30, 0.55), (0.25, 0.45), (0.15, 0.35), (0.10, 0.25))   # the sw
 KNOCK_SPREAD = 5.0           # their Schroeder phases, pi k (k - 1) / KNOCK_SPREAD: in phase they spiked the crest to
                              # 7.4 dB (Tight's range); spread, the same energy reads 5.9-6.6
 KNOCK_GATE = ((0.010, 0.016), (0.018, 0.024))   # the knock's hold and fall (s), softest to hardest
-CRUNCH_MIX = (0.20, 0.55)    # the driven crunch (all above 300 Hz)
+KNOCK_DIP_DB = -2.0          # the knock's dip at 240 Hz (q 0.8): round 3 -2 dB, round 2 -6, so the knock's first 50 ms
+                             # carry body into the kit's low-mid hole (the top layer's 150-400 Hz share -17.9 to -15.3
+                             # dB; the gate's limit -12; it still falls 30 dB within 54 ms)
+CRUNCH_MIX = (0.15, 0.40)    # the driven crunch (all above 300 Hz); round 2 (0.20, 0.55) over a shorter gate
 CRUNCH_RISE = 0.003          # seconds: the crunch swells in under the knock, so it thickens the body, not the spike
+CRUNCH_GATE = ((0.020, 0.010), (0.015, 0.005), (0.060, 0.030))   # round 3: hold a + b v, fall a + b v, the taper's
+                             # start and length (s): distortion harmonics over the first 50-60 ms (round 2 held 10-16 ms
+                             # and was gone by 75 ms)
+LOW_KNOCK = (0.5, 1.2)       # round 3: the sweep's octave (its 2nd harmonic) against the sub, softest to hardest layer
+LOW_KNOCK_GATE = (0.050, 0.020)   # its hold and fall (s); the taper ends it by 130 ms
+LOW_KNOCK_BAND = (60.0, 140.0)    # LR4 high- and low-pass: 80-120 Hz, where small speakers play, out of 150-400 Hz
+LOW_KNOCK_PHASE = 0.5 * np.pi     # cosine phase against the sub: in sine phase the two summed into a peak 2.4 dB
+                                  # higher at 42 ms (crest 6.8-7.4 dB); in cosine phase the crest stays at 6.3-6.6
+TOP_MIX = (0.12, 0.23)       # the iron top's level, a + b v (round 2: 0.08 + 0.15 v, 3.6 dB less at the top layer)
 
 def kick_split(take):
-    """Four parts shaped apart: the clean sub on the sweep, a clean knock above 110 Hz, the crunch (the same sweep
-    driven through the 8x chain, nothing under 300 Hz, gone by 75 ms) and the iron top (FM click, noise, a ring of the
-    anvil's modes on E6) whose heavy drive is high-passed at 1 kHz."""
+    """Five parts shaped apart: the clean sub on the sweep, a clean knock above 110 Hz, the low knock (the sweep's
+    clean octave at 80-140 Hz over the first 70 ms), the crunch (the same sweep driven through the 8x chain, nothing
+    under 300 Hz, over the first 50-60 ms) and the iron top (FM click, noise, a ring of the anvil's modes on E6) whose
+    heavy drive is high-passed at 1 kHz."""
     v = take.vel
     r = take.rng('split')
     n = int(0.6 * SR)
@@ -73,7 +102,14 @@ def kick_split(take):
     kn = s + sum(P.lerp(a, v) * np.sin(k * ph + np.pi * k * (k - 1) / KNOCK_SPREAD)
                  for k, a in enumerate(KNOCK_HARM, 2))
     knock = D.lr4(kn * a_k, XOVER, 'highpass')
-    knock = D.peaking(D.bfilt(knock, 1500.0 + 1500.0 * v, 'lowpass'), 240.0, -6.0, 0.8)
+    knock = D.peaking(D.bfilt(knock, 1500.0 + 1500.0 * v, 'lowpass'), 240.0, KNOCK_DIP_DB, 0.8)
+
+    # 2b. the low knock (round 3): the sweep's octave, clean and in cosine phase, held over the first 50 ms and gone by
+    #     130 ms, in 60-140 Hz: the punch small speakers play, under the gate's 150-400 Hz band
+    hold, fall = LOW_KNOCK_GATE
+    a_l = P.gate(t, hold, fall) * D.taper(n, hold + 3 * fall, 0.020)
+    low_knock = D.lr4(D.lr4(np.sin(2 * ph + LOW_KNOCK_PHASE) * a_l, LOW_KNOCK_BAND[1], 'lowpass'),
+                      LOW_KNOCK_BAND[0], 'highpass')
 
     # 3. crunch: the sweep's body through the 8x chain (biased tanh, a fold, a clip), then nothing under 300 Hz
     drive, fold = 2.0 + 5.0 * v, 1.0 + 0.6 * v
@@ -83,7 +119,8 @@ def kick_split(take):
         u = D.sinefold_adaa(u, fold)
         return D.hardclip_adaa(u, 1.3)
     cr = D.oversampled(body_chain, s * np.exp(-t / 0.040), 8)
-    a_c = P.raised(n, CRUNCH_RISE) * P.gate(t, 0.010 + 0.006 * v, 0.012 + 0.006 * v) * D.taper(n, 0.045, 0.030)
+    (h0, h1), (f0_, f1), taper = CRUNCH_GATE
+    a_c = P.raised(n, CRUNCH_RISE) * P.gate(t, h0 + h1 * v, f0_ + f1 * v) * D.taper(n, *taper)
     crunch = D.bfilt(D.lr4(cr * a_c, DRIVE_HP, 'highpass'), 3000.0 + 4000.0 * v, 'lowpass')
 
     # 4. top: an iron FM click (modulator on the anvil ratio 2.4446), a noise burst and a ring of the anvil's modes on
@@ -112,18 +149,26 @@ def kick_split(take):
     top_full = np.zeros(n)
     top_full[:nt] = top
 
-    y = sub + P.lerp(KNOCK_MIX, v) * knock + P.lerp(CRUNCH_MIX, v) * crunch + (0.08 + 0.15 * v) * top_full
+    y = (sub + P.lerp(KNOCK_MIX, v) * knock + P.lerp(LOW_KNOCK, v) * low_knock + P.lerp(CRUNCH_MIX, v) * crunch
+         + (TOP_MIX[0] + TOP_MIX[1] * v) * top_full)
     return y * P.vel_gain(v, 12.0)
 
 
 # ------------------------------------------------------------------ the gated iron snare
 SNARE_NOTE = K.ROOT + 19     # B3, 246.94 Hz: the key's fifth; the plate's modes run up to 1.04 kHz
-CLAP_FLAMS = (0.0, 0.0065, 0.0140)   # seconds, at velocity 0.6: tighter on harder hits
+CLAP_FLAMS = (0.0, 0.0070, 0.0145, 0.0230)   # seconds, at velocity 0.6: tighter on harder hits (round 3: four hands;
+                                              # round 2 three, at 0, 6.5 and 14 ms)
+CLAP_HANDS = (1.0, 1.08, 0.95, 0.9)  # round 3: each hand's level, even, so the first reads within 2 dB of the loudest
+                                     # (round 2: 0.8, 0.9, 1.0 and the tail on the last, which put the first 4.5 dB
+                                     # under it)
+CLAP_TAIL = (0.40, 0.040, 0.015, 0.008)   # the last hand's tail: level, decay a + b v (s), and its swell (round 3:
+                                          # 8 ms, so it adds after the hand instead of on it; round 2: 0.45, 1 ms)
 SNARE_MIX = (0.40, 0.50, 0.40, 3.20)  # plate, clap, wires, room (the room about 10 dB under the hit, then flat)
 SNARE_ROOM_WIDTH = 0.5       # the room's side against its mid: the FDN's two outputs are uncorrelated
 SNARE_ROOM = dict(t60=2.4, size=0.8, damp_hz=4000.0, send_hp=500.0)   # big and dark; fed only above 500 Hz
 SNARE_GATE = ((0.150, 0.185), 0.012)  # the gate: open for 150-185 ms (softest to hardest), then a 12 ms cosine close
-SNARE_GRIT = (1.2, 3.0)      # the soft clip on the dry hit, softest to hardest (4x)
+SNARE_GRIT = (1.6, 4.0)      # the soft clip on the dry hit, softest to hardest (4x); round 2 (1.2, 3.0)
+PLATE_LOW = 0.8              # the plate's lowest mode (B3, 247 Hz), the snare's body: round 3 0.8, round 2 0.5
 
 
 def unit_noise(x, basis=()):
@@ -135,7 +180,7 @@ def unit_noise(x, basis=()):
 
 
 def snare_gated(take):
-    """An iron plate on B3 (the anvil's modes, struck by a Hann pulse, starting sharp), a three-flam clap and bright
+    """An iron plate on B3 (the anvil's modes, struck by a Hann pulse, starting sharp), a four-hand clap and bright
     wires, soft-clipped at 4x, then the kit's concrete room, big and dark, chopped by a gate after 150-185 ms: the
     industrial gated snare. Harder hits strike shorter (more upper modes), bend further, tighten the flams, open the
     wires and drive the clip harder; the gate stays open a little longer."""
@@ -147,20 +192,21 @@ def snare_gated(take):
     # plate: the iron modes on B3, the same phases on every take; the strike's width sets how many modes ring
     fk = float(D.midi_hz(SNARE_NOTE)) * RATIOS
     amps = P.hann_pulse_gain(fk, P.lerp((0.0012, 0.0004), v)) / (1 + 0.3 * np.arange(len(RATIOS)))
-    amps[0] *= 0.5                                              # the one mode in the low mids
+    amps[0] *= PLATE_LOW                                        # the one mode in the low mids
     decays = [0.035 / (1 + 0.25 * k) for k in range(len(RATIOS))]
     bend = (0.03 + 0.09 * v) * np.exp(-t / 0.006)
     plate = P.modes(n, fk[0], RATIOS, decays, amps, bend, D.rng(take.kit, take.item.name, 'phases'))
     plate = plate * D.env_exp(n, 1.0, 0.0004)
     plate = np.sqrt(n) * 0.06 * unit_noise(plate)
 
-    # clap: three flams of 0.9-3.2 kHz noise, the last carrying a short tail
+    # clap: four even hands of 0.9-3.2 kHz noise, the last carrying a short tail that swells in after it
     spread = P.lerp((1.25, 0.80), v)
     env = np.zeros(n)
-    for k, at in enumerate(CLAP_FLAMS):
+    for at, level in zip(CLAP_FLAMS, CLAP_HANDS):
         a = int(at * spread * SR)
-        env[a:] += (0.8 + 0.1 * k) * D.env_exp(n - a, 0.0030, 0.0003)
-    env[a:] += 0.45 * D.env_exp(n - a, 0.040 + 0.015 * v, 0.001)
+        env[a:] += level * D.env_exp(n - a, 0.0030, 0.0003)
+    tail, tau_a, tau_b, swell = CLAP_TAIL
+    env[a:] += tail * D.env_exp(n - a, tau_a + tau_b * v, swell)
     clap = P.band_noise(r, n, 900.0 * (1 + 0.2 * v), 3200.0 * (1 + 0.3 * v)) * env
     clap = np.sqrt(n) * 0.05 * unit_noise(clap, (plate,))
 
@@ -190,12 +236,16 @@ def snare_gated(take):
 
 # ------------------------------------------------------------------ the hats: one dark metal, two lengths
 HAT_BASE = float(D.midi_hz(K.ROOT + 24))   # E4, 329.63 Hz: seven squares on the anvil's ratios over it (330-1388 Hz)
-HAT_BAND = ((4300.0, 5200.0), (6000.0, 14000.0))   # high-pass and low-pass (4th order), softest to hardest: dark
+HAT_BAND = ((4500.0, 6000.0), (7000.0, 16000.0))   # high-pass and low-pass (4th order), softest to hardest: dark,
+                                                   # brighter in round 3 (round 2: 4.3-5.2 and 6-14 kHz)
 CHOKE = {'group': 'hats', 'closed': 'ClosedHat', 'open': 'OpenHat', 'fade_s': 0.004}
 HAT_FADE = (0.32, 0.15)      # gone by 0.47 s, so a file is one 400 ms loudness block (LUFS-I can't jump at the
                              # relative gate, ADR 0009)
 HAT_DECAY = {'closed': (0.010, 0.008), 'open': (0.090, 0.040)}   # the decay (s): a + b v
-HAT_TICK = 0.0035             # the tick's RMS over the file at full level: 7-10 dB under the metal on the hardest hits
+HAT_TICK = 0.0030             # the tick's RMS over the file at full level: 7-10 dB under the metal on the hardest hits
+HAT_TICK_ENV = (0.0016, 0.0005)   # the tick's decay and attack (s): round 3 spreads it over about 2 ms (round 2: a
+                                  # 1 ms needle, 0.2 ms up, that set the hats' peak 22 dB over their loudness)
+HAT_SIDE = {'closed': 0.12, 'open': 0.25}   # the side's own noise against the mid (round 2: 0.09 both, near mono)
 
 
 def hat_metal(n, v, ph0, k=4):
@@ -226,9 +276,9 @@ def hat(take, kind):
     ns = e * unit_noise(band(take.rng('hat', 'side').standard_normal(n)) * env, (metal, nm))
     mid = 0.85 * metal + 0.30 * nm
     tick = D.bfilt(take.rng('hat', 'tick').uniform(-1, 1, n), (6000.0, 12000.0), 'bandpass', order=2)
-    tick = (0.10 + 0.60 * v) * HAT_TICK * np.sqrt(n) * unit_noise(tick * D.env_exp(n, 0.0010, 0.0002), (mid,))
+    tick = (0.10 + 0.60 * v) * HAT_TICK * np.sqrt(n) * unit_noise(tick * D.env_exp(n, *HAT_TICK_ENV), (mid,))
     m = mid + tick
-    s_ = 0.30 * 0.30 * (ns - nm)
+    s_ = HAT_SIDE[kind] * (ns - nm)
     y = np.stack([m + s_, m - s_], 1)
     return P.low_clean(y, 3000.0) * D.taper(n, *HAT_FADE)[:, None] * P.vel_gain(v, 13.0)
 
@@ -243,21 +293,85 @@ def open_hat(take):
     return Out(hat(take, 'open'), meta={'choke': CHOKE})
 
 
+# ------------------------------------------------------------------ the iron ride (round 3, rebuilt in the fix pass)
+# The first round 3 ride was a bell chord, not a cymbal wash: its sustain was seven squares on the anvil's ratios, so
+# from 0.2 to 0.7 s 82% of its 1-12 kHz energy sat within 15 Hz of 12 lines (band noise reads 6%), and it rang 20 dB
+# down only at 1.02 s: on every off-beat (441 ms apart) two to three hits overlapped, and the hat loop's 16ths lost
+# their articulation (6-16 kHz, the first 25 ms of each 16th against its last 25 ms: 39.1 dB in round 2, 7.6 with the
+# ride). Now the bell (the anvil's modes on E6) is the stick's ping, gone by 80 ms, and the sustain is dense noise,
+# band-passed and coloured by four broad resonators on the anvil's ratios (Q 4): about 10% in 12 lines, 20 dB down by
+# 0.38 s on the top layer, so each hit has faded more than 20 dB when the next lands
+RIDE_BELL = K.ROOT + 48       # E6, 1318.5 Hz: the ping, the anvil's modes over it (1.3-5.5 kHz)
+RIDE_PING = (0.025, 0.045)    # the ping's decay (s), softest to hardest (a mode's decay falls with its order)
+RIDE_PING_END = (0.040, 0.040)   # the ping's taper: from 40 ms, gone by 80 ms
+RIDE_BAND = ((5000.0, 6000.0), (11000.0, 14000.0))   # the wash's high-pass and low-pass (4th order), softest to hardest
+RIDE_RES = (K.ROOT + 60, (1.5719, 2.4446, 3.2247, 4.2095), 6.0, 4.0)   # the resonators: on E7 (2637 Hz) times these
+                              # anvil ratios (4.1, 6.4, 8.5 and 11.1 kHz), each a peak of this many dB at this Q
+RIDE_DECAY = (0.100, 0.125)   # the wash's decay (s), softest to hardest: the top layer 10 dB down by 0.22 s, 20 dB by
+                              # 0.38 s. A softest layer under 0.1 s left one LUFS block over the relative gate and the
+                              # velocity step under 1.5 dB (ADR 0009)
+RIDE_PING_LEVEL = 0.45        # the ping against the wash (each at unit energy), times 0.7 + 0.3 v
+RIDE_DRIVE = (1.5, 3.0)       # the gentle drive at 4x, softest to hardest, around a fixed level (eight times the wash's
+                              # RMS over the file), so every round robin drives alike
+RIDE_SIDE = 0.40              # the side: the wash's own second noise, the same colour and envelope
+RIDE_TICK = 0.10              # the stick: a 1.5 ms tick of 5-14 kHz noise, against the wash
+RIDE_FADE = (0.50, 0.30)      # gone by 0.80 s
+
+
+def ride(take):
+    """The iron ride: the ping (the anvil's modes on E6, struck), the wash (noise through the anvil-ratio resonators)
+    and the stick, driven gently at 4x; mono under 2 kHz, the side above it."""
+    v = take.vel
+    n = int((RIDE_FADE[0] + RIDE_FADE[1]) * SR)
+    t = P.times(n)
+    fb = float(D.midi_hz(RIDE_BELL))
+    amps = P.hann_pulse_gain(fb * RATIOS, P.lerp((0.0006, 0.00015), v)) / (1 + 0.25 * np.arange(len(RATIOS)))
+    decays = [P.lerp(RIDE_PING, v) / (1 + 0.35 * k) for k in range(len(RATIOS))]
+    bend = (0.001 + 0.004 * v) * np.exp(-t / 0.010)
+    bell = P.modes(n, fb, RATIOS, decays, amps, bend, D.rng(take.kit, take.item.name, 'phases'))
+    bell = bell * D.env_exp(n, 10.0, 0.0002) * D.taper(n, *RIDE_PING_END)
+
+    hp, lp = P.lerp(RIDE_BAND[0], v), P.lerp(RIDE_BAND[1], v)
+    note, ratios, res_db, res_q = RIDE_RES
+
+    def colour(x):
+        x = D.bfilt(D.bfilt(x, hp, 'highpass', order=4), lp, 'lowpass', order=4)
+        for ratio in ratios:
+            x = D.peaking(x, float(D.midi_hz(note)) * ratio, res_db, res_q)
+        return x
+    env = D.env_exp(n, P.lerp(RIDE_DECAY, v), 0.0008)
+    wash = colour(take.rng('ride').standard_normal(n)) * env
+    wash = wash / np.sqrt(np.dot(wash, wash))
+    ns = unit_noise(colour(take.rng('ride', 'side').standard_normal(n)) * env, (wash,))
+    tk = D.bfilt(take.rng('ride', 'tick').uniform(-1, 1, n), (5000.0, 14000.0), 'bandpass', order=2)
+    tk = RIDE_TICK * (0.3 + 0.7 * v) * unit_noise(tk * D.env_exp(n, 0.0015, 0.0004), (wash,))
+    mid = RIDE_PING_LEVEL * (0.7 + 0.3 * v) * bell / (np.sqrt(np.dot(bell, bell)) + 1e-12) + wash + tk
+    ref = 8.0 / np.sqrt(n)
+    mid = D.oversampled(lambda u: P.soft_clip(u / ref, P.lerp(RIDE_DRIVE, v)) * ref, mid)
+    y = np.stack([mid + RIDE_SIDE * ns, mid - RIDE_SIDE * ns], 1)
+    return P.low_clean(y, 2000.0) * D.taper(n, *RIDE_FADE)[:, None] * P.vel_gain(v, 12.0)
+
+
 # ------------------------------------------------------------------ the 2-bar hat preview loop
 # (16th, velocity) on the kit's grid and swing. The open hat on every off-beat 8th (louder on beats 2 and 6), the
 # closed one driving the 16ths around it: on the beat (louder on beats 1 and 3 of each bar), a ghost after it, a push
 # into the next beat that chokes the open hat after one 16th. On beats 4 and 8 the push is left out, so the open hat
 # rings a whole 8th into the bar line
 HAT_STEPS = 32
+HAT_LOOP_RIDE_DB = -11.1      # the ride against the hats in the preview: the context loop's balance (its ride fader
+                              # less its hat fader; a test keeps them equal)
 HAT_OPEN = tuple((4 * b + 2, 0.8 if b in (1, 5) else 0.6) for b in range(8))
 HAT_CLOSED = tuple(sorted([(4 * b, 0.8 if b % 2 else 1.0) for b in range(8)]
                           + [(4 * b + 1, 0.4 if b % 2 else 0.6) for b in range(8)]
                           + [(4 * b + 3, 0.8) for b in range(8) if b not in (3, 7)]))
+RIDE_HITS = tuple((4 * b + 2, 0.8 if b % 2 else 1.0) for b in range(8))   # round 3: the ride on every off-beat 8th,
+                                                                           # with the open hat, a little softer on the
+                                                                           # even beats (2 and 4)
 
 
 def hat_loop(take):
     """The two hats' files exactly as rendered, on the kit's grid and swing; each open hat fades out over 4 ms from the
-    next closed hat (the choke), and tails wrap round the loop."""
+    next closed hat (the choke), and tails wrap round the loop; the ride on the off-beats (round 3), not choked."""
     G = Ph.Grid(K, HAT_STEPS)
     buf = np.zeros((G.length, 2))
     choke_n = int(CHOKE['fade_s'] * SR)
@@ -275,25 +389,30 @@ def hat_loop(take):
                 g[nxt + choke_n:] = 0.0
                 x *= g[:, None]
             Ph.place(buf, x, p)
+    buf += Ph.hits_lane(K, 'Ride', RIDE_HITS, G) * D.undb(HAT_LOOP_RIDE_DB)
     meta = {'grid': {'bpm': K.BPM, 'steps': HAT_STEPS, 'swing': K.SWING}, 'closed': list(HAT_CLOSED),
-            'open': list(HAT_OPEN), 'choke': CHOKE}
+            'open': list(HAT_OPEN), 'ride': list(RIDE_HITS), 'ride_db': HAT_LOOP_RIDE_DB, 'choke': CHOKE}
     return Out(buf, meta=meta)
 
 
 ITEMS = [
-    Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('r2',),
-         about='split kick on E1: a clean sub zero before the next beat, a clean knock above 110 Hz, the 8x drive '
-               'chain only above 300 Hz (a short crunch, an iron click and ring above 1 kHz)'),
-    Item('Drums', 'SnareGated', 'snare', snare_gated, layers=LAYERS, rr=2, sets=('r2',),
-         about='gated iron snare: the anvil modes on B3, a three-flam clap and bright wires, soft-clipped, in the '
+    Item('Drums', 'KickSplit', 'kick', kick_split, layers=LAYERS, rr=2, root=K.KICK_NOTE, sets=('r2', 'r3'),
+         about='split kick on E1: a clean sub zero before the next beat, a clean knock above 110 Hz and its low knock '
+               'at 80-140 Hz (the sweep\'s octave), the 8x drive chain only above 300 Hz (a 50-60 ms crunch, a hot '
+               'iron click and ring above 1 kHz)'),
+    Item('Drums', 'SnareGated', 'snare', snare_gated, layers=LAYERS, rr=2, sets=('r2', 'r3'),
+         about='gated iron snare: the anvil modes on B3, a four-hand clap and bright wires, soft-clipped, in the '
                'dark concrete room chopped by a gate after 150-185 ms'),
-    Item('Drums', 'ClosedHat', 'hat', closed_hat, layers=LAYERS, rr=3, sets=('r2',),
-         about='closed hat, dark: seven squares on the anvil ratios over E4 in a 4.3-14 kHz band, 30 dB down inside a '
+    Item('Drums', 'ClosedHat', 'hat', closed_hat, layers=LAYERS, rr=3, sets=('r2', 'r3'),
+         about='closed hat, dark: seven squares on the anvil ratios over E4 in a 4.5-16 kHz band, 30 dB down inside a '
                '16th; chokes the open hat'),
-    Item('Drums', 'OpenHat', 'hat', open_hat, layers=LAYERS, rr=3, sets=('r2',),
-         about='open hat: the same dark iron metal as a sizzle about a beat long, choked by the closed hat'),
-    Item('Loops', 'HatLoop', 'loop', hat_loop, loop=True, sets=('r2',), tags=('preview',),
+    Item('Drums', 'OpenHat', 'hat', open_hat, layers=LAYERS, rr=3, sets=('r2', 'r3'),
+         about='open hat: the same dark iron metal as a sizzle about a beat long, wider, choked by the closed hat'),
+    Item('Drums', 'Ride', 'hat', ride, layers=LAYERS, rr=2, sets=('r3',),
+         about='iron ride for the off-beats: a ping of the anvil modes on E6 over a noise wash, 5-14 kHz through '
+               'resonators on the anvil ratios, 20 dB down by 0.4 s, driven at 4x, wide; not choked'),
+    Item('Loops', 'HatLoop', 'loop', hat_loop, loop=True, sets=('r2', 'r3'), tags=('preview',),
          qa={'mud': 'lowcut', 'why': 'a hat loop: the low cut, like the hats'},
          about='2-bar hat preview at 136 BPM on the kit swing: closed 16ths driving round an open hat on every '
-               'off-beat, choked by the next closed hat'),
+               'off-beat, choked by the next closed hat, with the ride on the off-beats'),
 ]

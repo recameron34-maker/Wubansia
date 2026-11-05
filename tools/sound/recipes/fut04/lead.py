@@ -124,10 +124,10 @@ def blip_phrase(take):
 
 
 ITEMS = [
-    Item('Lead', 'ModBlip', 'lead', blip, layers=BLIP_LAYERS, notes=BLIP_NOTES, sets=('r2',),
+    Item('Lead', 'ModBlip', 'lead', blip, layers=BLIP_LAYERS, notes=BLIP_NOTES, sets=('r2', 'r3'),
          about='modular blip: a sine VCO with a pitch blip and an FM clank on the iron ratio 1.5719, a soft fold, a '
                'low-pass gate that closes as it dies, an iron tine on the strike; A#4-C#6 every 3 semitones'),
-    Item('Loops', 'ModBlipPhrase', 'loop', blip_phrase, loop=True, sets=('r2',),
+    Item('Loops', 'ModBlipPhrase', 'loop', blip_phrase, loop=True, sets=('r2', 'r3'),
          qa={'mud': 'lowcut', 'why': 'a lead loop: the low cut, like the lead'},
          about='2-bar modular blip sequence in E minor at 136 BPM on the kit swing: E5 B4 G5 F#5 E5, D5 E5 up to an '
                'accent on B5; bar 2 answers up to a C6 ratchet and falls B5 G5 F#5 home'),

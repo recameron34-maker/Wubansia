@@ -1,13 +1,15 @@
-"""FUT03 chord stab for round 2: the supersaw Gm9 stab, short, and its 2-bar sidechained preview.
+"""FUT03 chord stab: the supersaw Gm9 stab, short, and its 2-bar sidechained preview.
 
-- StabGm9: Gm9 in stacked thirds, G3 Bb3 D4 F4 A4 (root, minor third, fifth, minor seventh, ninth on top), each
-  note a seven-voice supersaw (exactly band-limited saws, spread about +-9 cents and across the stereo field). No two
+- StabGm9: Gm9 in stacked thirds, G3 Bb3 D4 F4 A4 (root, minor third, fifth, minor seventh, ninth on top), over the
+  fifth below the root, D3 (round 3: the standard's "voice the stab from about 150 Hz", the 125 Hz octave's body),
+  each note a seven-voice supersaw (exactly band-limited saws, spread about +-9 cents and across the stereo field). No two
   voices closer than a minor third: the first voicing put the ninth a semitone under the third (A4 under Bb4, 26 Hz
   apart, inside one critical band), a rough cluster on every hit of a kit meant to be hyper-clean. The top stays on
   A4, under most of the pluck's phrase (Bb4-G5). A 4-pole low-pass snaps down from 6-14 kHz to 2 kHz in 60-90 ms,
   so it speaks like a pluck; the chord holds a dotted 16th and is gone by 0.28 s. Harder hits open the filter further
   and keep it open a little longer. 3 velocity layers, 2 round robins (each its own saw phases). High-passed at
-  110 Hz, mono under 150 Hz: the root, G3 at 196 Hz, is the lowest note.
+  110 Hz, mono under 300 Hz (round 3: D3 to D4 in the middle, the upper voices wide); D3 is the lowest note and G3
+  the root.
 - StabPump: a 2-bar preview of the stab on the kit's grid and swing, played on its files as written: a 3-3-4-3-3 /
   3-3-2-3-3-2 rhythm that pushes against the four on the floor, under a sidechain pump keyed to every beat (9 dB
   down in 3 ms, held 20 ms, back over 200 ms): the off-beat hits bounce, and a hit on the beat stays ducked (it is
@@ -23,7 +25,10 @@ from tools.sound.item import Item, Out
 from tools.sound.kits import fut03 as K
 
 SR = D.SR
-STAB_CHORD = (K.ROOT + 12, K.ROOT + 15, K.ROOT + 19, K.ROOT + 22, K.ROOT + 26)   # G3 Bb3 D4 F4 A4
+STAB_ROOT = K.ROOT + 12      # G3: the chord's root (the sample's root note)
+LOW_VOICE = 1.0              # the fifth under the root (D3, round 3): body at 147 Hz, a little under the other notes
+STAB_MONO_HZ = 300.0         # mono under this (round 2: 150 Hz): D3 to D4 in the middle, the upper voices wide
+STAB_CHORD = (K.ROOT + 7, K.ROOT + 12, K.ROOT + 15, K.ROOT + 19, K.ROOT + 22, K.ROOT + 26)   # D3 G3 Bb3 D4 F4 A4
 STAB_LAYERS = (0.5, 0.75, 1.0)
 DETUNE, MIX = 0.25, 0.5      # supersaw: detune curve value (about +-9 cents outer voices) and the side voices' mix
 HOLD = 0.176                 # seconds: a dotted 16th at 128 BPM is 0.176 s
@@ -73,7 +78,7 @@ def stab(take):
     for note in STAB_CHORD:
         spread = D.rng(take.kit, take.item.name, note, take.rr).uniform(0.02, 0.12, 3)
         x, fs = locked_supersaw(float(D.midi_hz(note)), n, spread)
-        y += x
+        y += x * (LOW_VOICE if note < STAB_ROOT else 1.0)
         f0s += fs
     rest, peak, fall = CUTOFF
     fc = rest + (P.lerp(peak, v) - rest) * np.exp(-t / P.lerp(fall, v))
@@ -81,7 +86,7 @@ def stab(take):
     u = np.clip((t - HOLD) / RELEASE, 0.0, 1.0)
     amp = P.raised(n, 0.002) * (0.5 + 0.5 * np.cos(np.pi * u))
     y = D.bfilt(y * amp[:, None], 110.0, 'highpass', order=4)
-    return Out(D.mono_below(y, 150.0) / len(STAB_CHORD) * P.vel_gain(v, 6.0, STAB_LAYERS[0]),
+    return Out(D.mono_below(y, STAB_MONO_HZ) / len(STAB_CHORD) * P.vel_gain(v, 6.0, STAB_LAYERS[0]),
                f0s=tuple(sorted(f0s)))
 
 
@@ -105,10 +110,10 @@ def stab_pump(take):
 
 
 ITEMS = [
-    Item('Stabs', 'StabGm9', 'stab', stab, layers=STAB_LAYERS, rr=2, root=STAB_CHORD[0], sets=('r2',),
-         about='supersaw stab, Gm9 in stacked thirds (G3 Bb3 D4 F4 A4): seven saws a note, a 4-pole low-pass '
-               'snapping shut, a dotted 16th long; high-passed at 110 Hz, mono under 150 Hz'),
-    Item('Loops', 'StabPump', 'loop', stab_pump, loop=True, sets=('r2',), tags=('preview',),
+    Item('Stabs', 'StabGm9', 'stab', stab, layers=STAB_LAYERS, rr=2, root=STAB_ROOT, sets=('r2', 'r3'),
+         about='supersaw stab, Gm9 (D3 G3 Bb3 D4 F4 A4: the thirds over the fifth below): seven saws a note, a 4-pole '
+               'low-pass snapping shut, a dotted 16th long; high-passed at 110 Hz, mono under 300 Hz'),
+    Item('Loops', 'StabPump', 'loop', stab_pump, loop=True, sets=('r2', 'r3'), tags=('preview',),
          qa={'mud': 'lowcut', 'why': 'a stab loop: the low cut, like the stab'},
          about='2-bar preview of the Gm9 stab at 128 BPM on the kit swing, a 3-3-4-3-3 push under a 9 dB '
                'sidechain pump keyed to every beat'),

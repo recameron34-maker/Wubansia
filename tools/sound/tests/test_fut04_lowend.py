@@ -1,9 +1,13 @@
 """FUT04 "Furnace Code": the low end as the context loop sums it (recipes/fut04/bass.py, context.py), rendered from
-the kit's files as written. What the per-file QA can't see:
+the kit's files as written, the kick out of the drum bus as in the low-end loops (round 3). What the per-file QA can't
+see:
 
 - the bass's sub pedal is in phase with the kick's tail, so on every note of the loop kick and bass add up (30-120 Hz
   never more than 3 dB under their power sum: no beating, no cancelling);
-- the rumble adds weight under its kick instead of taking it away (1 dB or more per beat in 30-120 Hz);
+- the kick leads its own sub (the fix pass, after the A&R review: the rumble and the bass's pedal had stacked in phase
+  on the kick's tail, so the low end peaked 140-200 ms after each kick, 3.6 dB over the kick's own peak);
+- the rumble carries the gap after the kick's tail, adds weight on every beat and takes little away in any window
+  (it sits in quadrature with the tail, whose phase it drifts against);
 - the warm low end passes the bass-body rule with room to spare, with the bass up to 5 ms early or late, the kick 1 dB
   up or down and the bass's phase turned (a first-order all-pass), and so does the clean one under the gate;
 - the low-end loops render without the vocal models (each lane renders its own files only).
@@ -44,10 +48,26 @@ def allpass(x, fc=60.0):
     return Ph.circular(lambda u: signal.lfilter([c, 1.0], [1.0, c], u, axis=0), x)
 
 
+class TestAcidAB(unittest.TestCase):
+    def test_each_a_b_line_plays_at_one_loudness(self):
+        """The listening page's acid A/B (the ride, line 1, line 2), as the renderer writes them: A and B within 0.2 LU
+        of each other, neither true peak over -1.02 dBTP. Each file at its own peak, the ride's A read 0.96 LU over
+        its B and line 1's 1.18. Renders the six loops (a few seconds)."""
+        from tools.sound import kits
+        for line in ('AcidLine1Ride', 'AcidLine1', 'AcidLine2'):
+            got = []
+            for char in ('Clean', 'Warm'):
+                x = R.render_item(kits.items(K, only=(f'{line}{char}',))[0], K.KIT).audio[0]
+                self.assertLessEqual(D.true_peak_db(x), D.TP_TARGET + 1e-6, (line, char))
+                got.append(qa.lufs(x))
+            self.assertLess(abs(got[0] - got[1]), 0.2, (line, got))
+
+
 class TestLowEnd(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.kick, cls.rumble = C.mixed('kick'), C.mixed('rumble')
+        cls.kick = C.drum_bus({'kick': C.mixed('kick')}, ('kick',))   # as the low-end loops play it (context.low)
+        cls.rumble = C.mixed('rumble')
         cls.bass = {char: C.mixed('bass', char) for char in (C.CLEAN, C.WARM)}
 
     def test_the_pedal_starts_on_the_kick_tail_phase(self):
@@ -79,18 +99,44 @@ class TestLowEnd(unittest.TestCase):
                     self.assertGreater(d.min(), -3.0)
                     self.assertLess(d.max(), 3.2)
 
-    def test_the_rumble_adds_weight_under_its_kick(self):
-        """The preview's 2 bars: every kick full, the rumble at the loop's faders; per beat, 30-120 Hz at least 1 dB over
-        the kick lane alone."""
+    def test_the_rumble_carries_the_gap(self):
+        """The preview's 2 bars: every kick full, the rumble at the loop's faders. Per beat in 30-120 Hz, kick and
+        rumble at least 0.3 dB over the kick lane alone (it never takes weight away over a beat), at least 3 dB over it
+        200-375 ms after each kick (it carries the gap the kick's tail leaves), and no 40 ms window more than 2 dB under
+        it. Round 3 first turned the rumble in phase with the tail (+3.2 dB per beat, a swell over the kick); in
+        quadrature the two drift against each other, and the slower swell keeps their crossing short."""
         G = Ph.Grid(K, B.LOOP_STEPS)
         kick = Ph.hits_lane(K, 'KickSplit', tuple((s, 1.0) for s in range(0, B.LOOP_STEPS, 4)), G)
         kick = kick * D.undb(C.fader_db('kick'))
         rumble = D.st(C.kit_file('Rumble').audio) * D.undb(C.fader_db('rumble'))
         bk, bs = band(kick), band(kick + rumble)
+        db = lambda a, b: 10 * np.log10(np.sum(bs[a:b] ** 2) / np.sum(bk[a:b] ** 2))  # noqa: E731
+        w, hop = int(0.040 * SR), int(0.005 * SR)
         for s in range(0, B.LOOP_STEPS, 4):
             a, e = G.at(s), (G.at(s + 4) if s + 4 < B.LOOP_STEPS else G.length)
             with self.subTest(beat=s // 4):
-                self.assertGreater(10 * np.log10(np.sum(bs[a:e] ** 2) / np.sum(bk[a:e] ** 2)), 1.0)
+                self.assertGreater(db(a, e), 0.3)
+                self.assertGreater(db(a + int(0.200 * SR), a + int(0.375 * SR)), 3.0)
+                self.assertGreater(min(db(i, i + w) for i in range(a, e - w, hop)), -2.0)
+
+    def test_the_kick_leads_its_own_sub(self):
+        """The fix pass (the A&R review): in both low-end loops as the renderer writes them (its circular 20 Hz
+        subsonic high-pass), 35-60 Hz and 30-120 Hz in 20 ms slices from each kick, median over the kicks: the loudest
+        slice lies in the kick's own 40-100 ms, at least 0.5 dB (35-60 Hz) and 1.5 dB (30-120 Hz) over every slice from
+        120 ms to the next kick. Round 3 first read 3.5 dB the other way, its loudest slice at 140-180 ms."""
+        kicks = [C.G.at(s) for s, _ in C.KICK]
+        w = int(0.020 * SR)
+        for char, bass in self.bass.items():
+            y = D.mono(R.subsonic(self.kick + bass + self.rumble, 20.0, True))
+            for lo, hi in ((35, 60), (30, 120)):
+                m = qa.band_zp(np.tile(y, 3), lo, hi)[len(y):2 * len(y)] ** 2
+                rows = [[10 * np.log10(np.mean(m[(np.arange(w) + k + j * w) % len(y)]) + 1e-30) for j in range(20)]
+                        for k in kicks]
+                prof = np.median(np.array(rows), 0)
+                with self.subTest(char=char, band=(lo, hi)):
+                    self.assertGreaterEqual(int(np.argmax(prof)), 2)
+                    self.assertLess(int(np.argmax(prof)), 5)
+                    self.assertGreaterEqual(prof[2:5].max() - prof[6:].max(), 0.5 if lo == 35 else 1.5)
 
     def test_the_low_end_holds_when_the_bass_moves(self):
         """ContextLoopLowWarm under bass-body (-2 dB) and ContextLoopLow under the gate (-20 dB), as built and with the
@@ -108,6 +154,17 @@ class TestLowEnd(unittest.TestCase):
                     self.assertLessEqual(vs_sub, limits[char] - 2.0)    # 2 dB of room, not a lucky phase
                     self.assertLessEqual(before, qa.LOOP_BEFORE_HIT_DB)
 
+    def test_the_low_end_loops_are_the_loops(self):
+        """ContextLoopLow and ContextLoopLowWarm are this sum: the kick out of the drum bus, the bass and the rumble as
+        the full loops mix them (without the bass's dip under the vocals). Each declares its full-velocity kicks, the
+        club master's (Out.top_hits): without them QA's crest floor per kick (loop_kick_crest) would read n/a."""
+        for char, bass in self.bass.items():
+            with self.subTest(char=char):
+                out = C.low(char)
+                self.assertTrue(np.allclose(out.audio, self.kick + bass + self.rumble, atol=1e-12))
+                self.assertEqual(C.club_hits()['kick'], list(out.top_hits))
+                self.assertEqual(15, len(out.top_hits))
+
     def test_the_low_end_loops_need_no_vocal_models(self):
         """ContextLoopLow, ContextLoopLowWarm and the previews' lanes ask for no vocal file."""
         asked = []
@@ -116,16 +173,17 @@ class TestLowEnd(unittest.TestCase):
         def spy(kit, name):
             asked.append(name)
             return real(kit, name)
-        for f in (C.raw_lane, C.chop_parts, C.fader_db, C.lanes, C.returns):
+        caches = (C.raw_lane, C.chop_parts, C.chop_parts_bus, C.fader_db, C.lanes, C.returns)
+        for f in caches:
             f.cache_clear()
         Ph.kit_files = spy
         try:
             C.low(C.CLEAN), C.low(C.WARM)
-            for lane in ('kick', 'snare', 'hat', 'rumble', 'fill', 'bass'):
+            for lane in ('kick', 'snare', 'hat', 'ride', 'rumble', 'fill', 'bass'):
                 C.fader_db(lane)
         finally:
             Ph.kit_files = real
-            for f in (C.raw_lane, C.chop_parts, C.fader_db, C.lanes, C.returns):
+            for f in caches:
                 f.cache_clear()
         vocal = {it.name for it in X.ITEMS}
         self.assertTrue(asked)

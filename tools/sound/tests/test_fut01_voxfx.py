@@ -1,6 +1,6 @@
-"""FUT01's round 2 vox and fx (recipes/fut01/vox.py, fx.py) and the drums it keeps (drums.py): what goes in the r2 set,
-the three sung lines, the chops' title checks, the softened glottal stop, and the glitch fill's grid and notes. None of
-these needs the vocal models."""
+"""FUT01's vox and fx (recipes/fut01/vox.py, fx.py) and the drums it keeps (drums.py) in rounds 2 and 3: what goes in
+the r2 and r3 sets, the three sung lines, the chops' title checks, the softened glottal stop, round 3's re-pitched
+hooks, and the glitch fill's grid and notes. None of these needs the vocal models."""
 import unittest
 
 import numpy as np
@@ -21,31 +21,50 @@ def in_key(midi):
     return midi % 12 in K.SCALE
 
 
-class TestR2Set(unittest.TestCase):
+class TestSets(unittest.TestCase):
     def setUp(self):
+        self.r3 = {it.name: it for it in kits.items(K, sets=('r3',))}
         self.r2 = {it.name: it for it in kits.items(K, sets=('r2',))}
         self.s1a = {it.name for it in kits.items(K, sets=('s1a',))}
 
     def test_round_1_items_kept_unchanged(self):
         for name in KEPT:
             with self.subTest(name=name):
+                self.assertIn(name, self.r3)
                 self.assertIn(name, self.r2)
                 self.assertIn(name, self.s1a)
 
-    def test_round_1_history_stays_out_of_r2(self):
+    def test_round_1_history_stays_out_of_r2_and_r3(self):
         """Kick B (Tight) lost round 1; the old line and its chops and the old fill are replaced."""
         for name in ROUND1_ONLY:
             with self.subTest(name=name):
                 self.assertNotIn(name, self.r2)
+                self.assertNotIn(name, self.r3)
                 self.assertIn(name, self.s1a)
 
-    def test_new_vox_and_fx_in_r2_only(self):
+    def test_round_2_vox_and_fx_come_back_in_r3(self):
         new = [ln.name for ln in vox.LINES] + [c[0] for c in vox.PICK_CHOPS] + ['GlitchFillLift']
         for name in new:
             with self.subTest(name=name):
                 self.assertIn(name, self.r2)
+                self.assertIn(name, self.r3)
                 self.assertNotIn(name, self.s1a)
         self.assertTrue(6 <= len(vox.PICK_CHOPS) <= 8)
+
+    def test_every_round_2_item_comes_back_in_r3_but_the_loops_it_rebuilt(self):
+        """Round 3 keeps round 2's sounds byte for byte (r2 and r3) and rebuilds only the context loops (r3 only)."""
+        rebuilt = {'ContextLoop', 'ContextLoopWarm', 'ContextLoopWet', 'ContextLoopLow', 'ContextLoopLowWarm'}
+        self.assertEqual(set(), set(self.r2) - set(self.r3))
+        self.assertEqual(set(), rebuilt & set(self.r2))
+        self.assertLessEqual(rebuilt, set(self.r3))
+
+    def test_round_3_adds(self):
+        added = {'KickPunch', 'SnareClap', 'Shaker', 'ChopMeE5', 'ChopFloorFs5', 'ContextLoopClub',
+                 'DrumGrooveSplit', 'DrumGroovePunch'}
+        for name in added:
+            with self.subTest(name=name):
+                self.assertIn(name, self.r3)
+                self.assertEqual(('r3',), self.r3[name].sets)
 
 
 class TestSungLines(unittest.TestCase):
@@ -105,6 +124,46 @@ class TestSungLines(unittest.TestCase):
         want = np.where((ev == 1) & (kind == 1), D.undb(vox.GLOTTAL_DB) ** 2, 1.0)
         self.assertTrue(np.allclose(out.sp, want[:, None]))
         self.assertTrue(np.array_equal(tr.sp, np.ones((n, 4))), 'the track it was given is left as it was')
+
+
+class TestHooks(unittest.TestCase):
+    def test_the_hooks_are_pick_chops_a_fifth_up_in_key(self):
+        """Each re-pitched hook is one of the pick's chops up a fifth, its formants raised a little with it (never to a
+        cartoon), on a root in the key, singing the chop's words."""
+        self.assertEqual(2, len(vox.HIGH_CHOPS))
+        for name, chop, semis, formant, _ in vox.HIGH_CHOPS:
+            with self.subTest(hook=name):
+                self.assertIn(chop, vox.PICK_CHOP_BY_NAME)
+                self.assertEqual(7, semis)
+                self.assertTrue(1.0 < formant <= 1.1)
+                item = kits.items(K, only=(name,))[0]
+                self.assertEqual(vox.PICK_CHOP_BY_NAME[chop][4] + semis, item.root)
+                self.assertTrue(in_key(item.root))
+                self.assertEqual(vox.PICK_CHOP_BY_NAME[chop][3], item.script)
+                self.assertIn('clean', item.tags)
+                self.assertIn('hf_synthetic', item.flags)
+
+    def test_the_hooks_are_single_words_and_spell_no_cut_title(self):
+        cut = [w for w, why in vox.CHOP_CHECKS.items() if why.startswith('cut')]
+        camel = lambda words: ''.join(w.capitalize() for w in words.split())
+        for name, chop, _, _, _ in vox.HIGH_CHOPS:
+            with self.subTest(hook=name):
+                self.assertNotIn(' ', vox.PICK_CHOP_BY_NAME[chop][3])
+                for c in cut:
+                    self.assertNotIn(camel(c), name)
+
+    def test_repitch_moves_f0_and_stretches_the_envelope(self):
+        n, bins = 6, 9
+        f0 = np.array([0.0, 220.0, 220.0, 330.0, 0.0, 440.0])
+        sp = np.tile(np.linspace(1.0, 2.0, bins), (n, 1))
+        tr = V.Track(f0, sp, np.zeros((n, bins)), np.ones(n, int), np.zeros(n, int), [{}])
+        out = vox.repitched(tr, 12, 1.0)
+        self.assertTrue(np.allclose(out.f0, 2 * f0))
+        self.assertTrue(np.array_equal(out.f0 == 0, f0 == 0), 'unvoiced frames stay unvoiced')
+        self.assertTrue(np.allclose(out.sp, sp))
+        wider = vox.repitched(tr, 7, 1.06)
+        self.assertTrue(np.all(wider.sp[:, 1:] <= sp[:, 1:] + 1e-12), 'the envelope moves up: each bin reads lower')
+        self.assertTrue(np.array_equal(tr.f0, f0), 'the track it was given is left as it was')
 
 
 class TestGlitchFill(unittest.TestCase):
