@@ -15,9 +15,12 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <map>
 #include <memory>
+#include <thread>
 #include <vector>
 
 using namespace p7;
@@ -659,4 +662,82 @@ TEST_CASE ("the engine prepares again at another rate, resets, and renders silen
         engine.reset();
     }
     CHECK (engine.telemetry().kitIndex.load() == -1);
+}
+
+TEST_CASE ("kits published from a service thread are adopted, faded and handed back, none lost or handed back twice", "[engine][kit][threads]")
+{
+    // 40 distinct kits, published one after another from a "service" thread that also collects what the
+    // engine retires; the audio thread renders meanwhile, stopped (each switch after its 20 ms fade) and
+    // then playing (switches on bar lines). At the end every kit is accounted for exactly once: handed
+    // back unadopted, retired, still pending, or the one playing.
+    constexpr int count = 40;
+    std::vector<std::unique_ptr<Kit>> kits;
+    for (int i = 0; i < count; ++i)
+        kits.push_back (std::make_unique<Kit> (synKit (i)));
+
+    for (const bool playing : { false, true })
+    {
+        CAPTURE (playing);
+        Engine engine;
+        engine.prepare (48000.0, 256, 2);
+        std::atomic<bool> done { false };
+        std::vector<const Kit*> unadopted, retired;
+        std::thread service ([&] {
+            for (int i = 0; i < count; ++i)
+            {
+                if (const Kit* back = engine.publish (kits[static_cast<std::size_t> (i)].get()))
+                    unadopted.push_back (back);
+                for (int wait = 0; wait < 20; ++wait)
+                {
+                    engine.collectRetired ([&retired] (const Kit* k) { retired.push_back (k); });
+                    std::this_thread::sleep_for (std::chrono::microseconds (100));
+                }
+            }
+            done.store (true);
+        });
+
+        std::vector<float> left (256), right (256);
+        float* out[2] { left.data(), right.data() };
+        TransportInfo t;
+        t.hasPosition = true;
+        t.playing = playing;
+        t.bpm = 480.0; // a bar every half second
+        double ppq = 0.0;
+        int blocks = 0;
+        while (! done.load() || blocks < 2000)
+        {
+            t.ppq = ppq;
+            engine.process (out, 2, 256, t, Controls {}, nullptr, 0);
+            if (playing)
+                ppq += 256.0 * 480.0 / (60.0 * 48000.0);
+            ++blocks;
+            if (blocks > 2000000)
+                break;
+        }
+        service.join();
+        engine.collectRetired ([&retired] (const Kit* k) { retired.push_back (k); });
+        const Kit* pending = engine.publish (nullptr);
+
+        std::vector<int> seen (count, 0);
+        auto mark = [&] (const Kit* k) {
+            for (int i = 0; i < count; ++i)
+                if (kits[static_cast<std::size_t> (i)].get() == k)
+                    ++seen[static_cast<std::size_t> (i)];
+        };
+        for (const Kit* k : unadopted)
+            mark (k);
+        for (const Kit* k : retired)
+            mark (k);
+        if (pending != nullptr)
+            mark (pending);
+        const int playingIndex = engine.telemetry().kitIndex.load();
+        REQUIRE (playingIndex >= 0);
+        ++seen[static_cast<std::size_t> (playingIndex)];
+        for (int i = 0; i < count; ++i)
+        {
+            CAPTURE (i);
+            CHECK (seen[static_cast<std::size_t> (i)] == 1);
+        }
+        CHECK (retired.size() >= 2u); // some were adopted in turn
+    }
 }

@@ -7,6 +7,7 @@
 #include "midi/reader.h"
 #include "midi/writer.h"
 #include "sched/timeline_builder.h"
+#include "testing/synthetic_kit.h"
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -729,4 +730,43 @@ TEST_CASE ("MIDI v2's FUT01 loop flags its bass line's dips: 16ths 6-7 and 21-22
             sixteenths.push_back (n.pos / kMilliticksPerSixteenth);
         }
     CHECK (sixteenths == std::vector<std::int64_t> { 6, 7, 21, 22, 38, 39, 53, 54 });
+}
+
+TEST_CASE ("P0's synthetic kit's four files build: sorted notes, lengths, sections, rides, the loop's wrap", "[timeline][synthetic]")
+{
+    const auto& content = wubansia::engine::testing::syntheticContent();
+    for (std::size_t i = 0; i < 4; ++i)
+    {
+        CAPTURE (i);
+        TimelineOptions options;
+        options.loopTicks = i < 2 ? wubansia::engine::testing::kSyntheticLoopTicks : 0;
+        const auto built = buildTimeline (content.smfs[i], content.kit, content.mix, options);
+        REQUIRE (built.ok());
+        const auto& t = built.value;
+        CHECK (t.loops == (i < 2));
+        CHECK (t.length == (i < 2 ? wubansia::engine::testing::kSyntheticLoopTicks : wubansia::engine::testing::kSyntheticSongTicks) * kMilliticksPerTick);
+        REQUIRE_FALSE (t.notes.empty());
+        CHECK (sortedByPosition (t));
+        for (const auto& n : t.notes)
+        {
+            CHECK (n.len >= kMilliticksPerTick);
+            if (t.loops)
+            {
+                CHECK (n.pos >= 0);
+                CHECK (n.pos < t.length);
+            }
+        }
+        const auto file = midi::readSmf (content.smfs[i]);
+        REQUIRE (file.ok());
+        const auto markers = midi::markersOf (file.value);
+        REQUIRE (t.sections.size() == markers.size());
+        for (std::size_t s = 0; s < markers.size(); ++s)
+            CHECK (t.sections[s] == Section { markers[s].tick * kMilliticksPerTick, markers[s].text });
+        if (! t.loops)
+            CHECK (t.sections.size() >= 3u); // Intro, Drop, Outro
+        CHECK (std::is_sorted (t.chase.begin(), t.chase.end()));
+        // The swung 16ths (written 29 ticks late) sit on the exact 28.8.
+        for (const auto& n : t.notes)
+            CHECK (((n.pos % 480000) + 480000) % 480000 != 240000 + 29000);
+    }
 }
