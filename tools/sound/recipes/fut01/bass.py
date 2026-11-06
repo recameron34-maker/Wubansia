@@ -454,15 +454,17 @@ REESE_ABOUT = ('reese, 5 driven saws (-18 to +18 cents) drifting a few cents per
                'breathes, an oh-ah vowel pair turning once a bar, an alloy tine on the attack, a mono sine sub that '
                'leads each onset; 2-bar loops')
 ITEMS = [
-    Item('Bass', 'ReeseClean', 'bass', reese_clean, layers=REESE_LAYERS, notes=REESE_NOTES, loop=True, sets=('r2',),
+    Item('Bass', 'ReeseClean', 'bass', reese_clean, layers=REESE_LAYERS, notes=REESE_NOTES, loop=True,
+         sets=('r2', 'r3'),
          level=REESE_LUFS, about=f'A, clean: {REESE_ABOUT}; the stack from 450 Hz (the strict mud gate)'),
-    Item('Bass', 'ReeseWarm', 'bass', reese_warm, layers=REESE_LAYERS, notes=REESE_NOTES, loop=True, sets=('r2',),
+    Item('Bass', 'ReeseWarm', 'bass', reese_warm, layers=REESE_LAYERS, notes=REESE_NOTES, loop=True,
+         sets=('r2', 'r3'),
          level=REESE_LUFS, qa=WARM,
          about=f"B, warm: {REESE_ABOUT}; A's stack plus its own 120-450 Hz body (bass-body)"),
-    Item('Bass', 'GrowlTalk', 'bass', growl_talk, notes=(GROWL_NOTE,), sets=('r2',), qa=SHOT_QA,
+    Item('Bass', 'GrowlTalk', 'bass', growl_talk, notes=(GROWL_NOTE,), sets=('r2', 'r3'), qa=SHOT_QA,
          about='growl move, talk: 2 beats of swung 16ths on F#1, a vowel per 16th, brighter step by step, accented '
                'on the beats, the last open; the resample chain in mono, mids from 450 Hz over a sine sub'),
-    Item('Bass', 'GrowlDive', 'bass', growl_dive, notes=(GROWL_NOTE,), sets=('r2',), qa=SHOT_QA,
+    Item('Bass', 'GrowlDive', 'bass', growl_dive, notes=(GROWL_NOTE,), sets=('r2', 'r3'), qa=SHOT_QA,
          about='growl move, dive: 2 beats of triplet 8ths, an octave dive F#2 to F#1 on the first, then yow-yow-yow '
                'darker each hit, the last lifting; the resample chain in mono, mids from 450 Hz over a sine sub'),
     S1A_REESE,

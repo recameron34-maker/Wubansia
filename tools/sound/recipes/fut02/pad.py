@@ -1,4 +1,4 @@
-"""FUT02's pad for round 2: the starfield pad, a wide Dm9 with a slow filter sweep over 4 bars.
+"""FUT02's pad for rounds 2 and 3: the starfield pad, a wide Dm9 with a slow filter sweep over 4 bars.
 
 Three layers on one chord, D3 A3 C4 F4 A4 E5 (root, 5, b7, b3, 5, 9):
 - the body: three detuned saws a side per chord tone (the root: one steady saw in the middle with a quieter detuned
@@ -9,10 +9,14 @@ Three layers on one chord, D3 A3 C4 F4 A4 E5 (root, 5, b7, b3, 5, 9):
 - the stars: the chord two octaves up on the wire's partials 1, 3, 5 and 7, 24 sines up to 19 kHz, each twinkling at
   its own slow rate and placed across the stereo field.
 
+Round 3: the chrome gets a side through an all-pass (CHROME_SIDE), the two sides' sweeps cross further apart, and
+the body's low mids, which round 2 dipped 4 dB, are lifted 2.5 dB (BODY_EQ), with the side mono up to 320 Hz
+(MONO_HZ): wide shimmer above, body in the middle where the strict bass rules leave the low mids thin.
+
 The loop is exactly periodic, like FUT01's air pad: every oscillator sits on a grid of whole cycles per loop (4 bars),
 the sweep and the twinkles repeat a whole number of times per loop, and the crossfaded loop points join cleanly. It is
 high-passed at 100 Hz (the root is D3, 146.8 Hz) and mono under 150 Hz, the root included: its side is high-passed at
-200 Hz (MONO_HZ), so the root's detuned pair, split left and right, and the two sides' sweeps don't widen it.
+MONO_HZ, so the root's detuned pair, split left and right, and the two sides' sweeps don't widen it.
 """
 import numpy as np
 
@@ -33,12 +37,22 @@ ROOT_PAIR = 0.4              # the root's detuned pair against its steady centre
                              # pair 0.8 at most, so the root dips 7.4 dB at worst instead of cancelling (a full stack
                              # of three random-phase saws a side lost D3 by up to 27 dB every few seconds)
 ROOT_NORM = 1.9              # the root's sum over this: about the level of a three-saw stack (3 random phases, / 3)
-SWEEP = (600.0, 2600.0, 1.3, 0.6)   # the low-pass: lowest and highest cutoff (Hz), q, the sides' phase offset (rad)
+SWEEP = (600.0, 2600.0, 1.3, 1.2)   # the low-pass: lowest and highest cutoff (Hz), q, the sides' phase offset (rad):
+                                    # round 3 doubles round 2's 0.6, so the two sides' sweeps cross further apart
 MIX = (1.0, 0.22, 0.10)      # body, chrome, stars
+BODY_EQ = (280.0, 2.5, 0.8)   # the body's low mids (Hz, dB, Q): round 2 dipped them 4 dB, and the loop's 250 Hz octave read
+                              # 6.6 dB under the line from the sub to 500 Hz (the standard's low-mid hole); round 3 lifts
+                              # them instead, so the pad carries the body the strict bass rules leave out (mono there,
+                              # MONO_HZ)
+CHROME_SIDE = (0.65, 89, 0.6, 1000.0)   # the chrome's width: its side is itself through an all-pass (delay in samples,
+                                        # about 1.9 ms, coefficient), high-passed: wide shimmer, and the mono sum is the
+                                        # chrome exactly (round 2's chrome was the same on both sides)
 STAR_PARTIALS = (0, 2, 4, 6)  # indices into RATIOS: partials 1, 3, 5, 7
 STAR_RATES = (2, 3, 4, 5, 6, 7)   # twinkles per loop
-MONO_HZ = 200.0              # the side is high-passed here (8th order), so the root D3 (146.8 Hz) is mono too: 21 dB
-                             # down on the side; at 150 Hz, just over the root, it was only 3.8 dB down
+MONO_HZ = 320.0              # the side is high-passed here (8th order): the root D3 (146.8 Hz) and the low mids are mono.
+                             # Round 2's 200 Hz left the root 21 dB down on the side, but with round 3's body (BODY_EQ)
+                             # and the wider sweep the loop's 250 Hz octave read -9.7 dB side over mid, over the -10 dB
+                             # a club mix keeps its low mids under; at 320 Hz the width starts above them
 
 
 def sweep_lp(x, L, phase):
@@ -73,9 +87,9 @@ def starfield_pad(take):
             body[:, c] += sum(g * voice[d] for d, g in steps[side]) / norm
     off = SWEEP[3]
     body = np.stack([sweep_lp(body[:, 0], L, -off), sweep_lp(body[:, 1], L, off)], 1)
-    body = D.peaking(body, 280.0, -4.0, 0.8) / len(CHORD)
+    body = D.peaking(body, *BODY_EQ) / len(CHORD)
 
-    # the chrome: every tone's partials on the wire ratios, each on the grid, the same on both sides
+    # the chrome: every tone's partials on the wire ratios, each on the grid; its side through an all-pass
     chrome = np.zeros(n)
     for note in CHORD:
         for k, rt in enumerate(RATIOS):
@@ -84,6 +98,9 @@ def starfield_pad(take):
                 chrome += np.sin(2 * np.pi * f * t / SR + r.uniform(0, 2 * np.pi)) / (1 + k) ** 1.3
                 f0s.append(f)
     chrome = D.bfilt(chrome, 4000.0, 'lowpass', order=2) / len(CHORD)
+    g, d, a, hp = CHROME_SIDE
+    side = g * D.bfilt(P.allpass(chrome, d, a), hp, 'highpass', order=2)
+    chrome = np.stack([chrome + side, chrome - side], 1)
 
     # the stars: the chord two octaves up on the wire's odd partials, twinkling, each at its own place in the field
     stars = np.zeros((n, 2))
@@ -101,7 +118,7 @@ def starfield_pad(take):
     stars /= len(CHORD)
 
     g_body, g_chrome, g_stars = MIX
-    y = g_body * body + g_chrome * D.st(chrome) + g_stars * stars
+    y = g_body * body + g_chrome * chrome + g_stars * stars
     y = D.bfilt(y, 100.0, 'highpass', order=4)
     y = D.mono_below(y, MONO_HZ) * (np.sin(0.5 * np.pi * np.clip(P.times(n) / FADE_IN_S, 0, 1)) ** 2)[:, None]
     y, loop = P.close_loop(y, A0, L, xfade=0.05)
@@ -109,7 +126,7 @@ def starfield_pad(take):
 
 
 ITEMS = [
-    Item('Pad', 'StarfieldPadDm9', 'pad', starfield_pad, root=CHORD[0], loop=True, sets=('r2',),
-         about='starfield pad, Dm9 (D3 A3 C4 F4 A4 E5): detuned saws under a 4-bar filter sweep, wire-ratio chrome and '
-               'twinkling stars; high-passed at 100 Hz, mono under 150 Hz and at its root D3; a 4-bar loop'),
+    Item('Pad', 'StarfieldPadDm9', 'pad', starfield_pad, root=CHORD[0], loop=True, sets=('r2', 'r3', 'r5'),
+         about='starfield pad, Dm9 (D3 A3 C4 F4 A4 E5): detuned saws under a 4-bar filter sweep, wide wire-ratio chrome '
+               'and twinkling stars; high-passed at 100 Hz, its body in the middle (mono under 320 Hz); a 4-bar loop'),
 ]

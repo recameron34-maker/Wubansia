@@ -1,4 +1,4 @@
-"""FUT02 "Orbit Relay" bass for listening round 2: the rolling offbeat synth bass as multisamples (D1, A1, D2), two
+"""FUT02 "Orbit Relay" bass for listening rounds 2 and 3: the rolling offbeat synth bass as multisamples (D1, A1, D2), two
 original 2-bar basslines played on it against four-on-the-floor kicks, and a drop glide for transitions. Every one
 comes twice, so you pick by ear (ADR 0011, round 2):
 
@@ -21,6 +21,12 @@ kick (the gate's before-hit rule, ADR 0009). The sub swells in over the 25 ms be
 the same beat, dips 12 dB instead of stopping, so the 16ths articulate without the sub ever dropping out under the low
 mids' onsets. Over the 2 bars the resting cutoff opens by half, so bar 2 answers bar 1 brighter. Every note sits on the
 kit's one swing (phrase.Grid, K.SWING 0.52).
+
+Round 3, a bigger, driving bass: the mid band gets a bite (BITE), saturated after its high-pass, so the spikes a
+high-passed saw keeps turn to density and grit: at its round 2 loudness the band holds more of its level between the
+attacks (the lines' PLR 0.4-3.1 dB lower), its balance about round 2's (2-8 kHz 0.5-1.5 dB darker against 1 kHz). A
+saturates its whole mid band, B only over 400 Hz, so B's 150-400 Hz passes as it was. B gets 0.9 dB more sub. The
+lines, the notes and the drop glide are round 2's (the glide is the same bytes).
 
 Provenance: new for FUT02. The loop-closing (whole cycles per loop, parts.loop_grid / close_loop) and the steep
 high-pass come from the shared parts; the line notation follows FUT01's bass phrases.
@@ -45,7 +51,9 @@ QA_WARM = {'mud': 'bass-body', 'why': WHY_WARM}
 SAW_MIX = 0.7                          # saw against square: the square's odd harmonics give the note its hollow push
 DRIVE = 2.0
 TOP_LP = 8000.0                        # after the drive, a gentle 2-pole low-pass: the fizz off the top
-SUB_GAIN = {CLEAN: 0.62, WARM: 0.80}   # the sine sub against the mids
+SUB_GAIN = {CLEAN: 0.62, WARM: 0.90}   # the sine sub against the mids. Round 3 gives B 0.9 dB more (round 2: 0.80):
+                                       # with the bite and the louder bass lane, B's F2 accents on beat 3 read -3.1 dB
+                                       # over the kick against the bass-body limit's -2; with it, -4.0
 REST = {CLEAN: 1.6, WARM: 1.0}         # the resting cutoff: A rests brighter, so its mids (from 520 Hz) carry the note
 MID_GAIN = {CLEAN: 1.35, WARM: 1.10}   # B's low mids reach a plain saw's level on the note (body_over_saw about 0)
 TINE_GAIN = 0.16
@@ -58,6 +66,16 @@ MID_ATTACK = 0.003
 MID_RELEASE = 0.012
 GLIDE_TAU = 0.018                      # a slide's glide, seconds (about 50 ms to land)
 STEP_S = 0.003                         # an unslid pitch change, under the sub's bed: a 3 ms raised-cosine step
+# the bite (round 3): the mid band saturated after its high-pass, 4x oversampled, then low-passed and high-passed
+# again (the drive makes difference tones under the band; the second high-pass takes them out). A high-passed saw
+# keeps its edges as spikes: round 2's mid bands read a PLR of 16-21 dB, the lines 12-15. A saturates all of its mids
+# (from 520 Hz). B saturates only its band over BITE_SPLIT and adds back what the drive changes there, so its
+# 150-400 Hz passes as it was and its bass-body readings don't move (with a 300 Hz split, the F2 on beat 3 put its 4th
+# harmonic, 349 Hz, through the drive and the low end over the kick read 0.7 dB nearer the limit). Each band keeps its
+# round 2 loudness (the make-up, measured over both lines): A's reads a PLR of about 11 dB, B's about 12.4 (a little
+# gentler, warm against clean). The lines read 0.4-3.1 dB denser (PLR); their tone balance stays about round 2's
+BITE = {CLEAN: (3.0, 1.22), WARM: (3.0, 1.45)}   # tanh drive, make-up
+BITE_SPLIT = 400.0
 
 
 def cutoff(n, vel, char, accent=1.0):
@@ -102,14 +120,27 @@ def tine_partials(f):
     return tuple(TINE_UP * f * ratio for ratio in K.RATIOS if TINE_UP * f * ratio < 18000)
 
 
+def bite(mids, char):
+    """The mid band after its high-pass, with its bite (BITE): A's whole band saturated and high-passed again at
+    520 Hz; B's band over BITE_SPLIT saturated, and only what the saturation changes there added back, high-passed
+    at the split, so B's low mids pass as they are (at 260 Hz within 0.1 dB)."""
+    k, g = BITE[char]
+    sat = lambda u: D.bfilt(D.oversampled(lambda w: D.tanh_adaa(w, k) / k, u, 4) * g, TOP_LP, 'lowpass', order=2)
+    if char == CLEAN:
+        hp = lambda u: P.hp_steep(u, MID_HP[CLEAN])
+        return hp(sat(hp(mids)))
+    mids = D.lr4(mids, MID_HP[WARM], 'highpass')
+    hi = D.lr4(mids, BITE_SPLIT, 'highpass')
+    return mids + D.lr4(sat(hi) - hi, BITE_SPLIT, 'highpass')
+
+
 def voice(m, sub_amp, mid_amp, fc, char, ph0, tines, r):
     """The mono synth on a pitch curve m (MIDI per sample), with its sub and mids gains and the low-pass cutoff per
     sample, and a tine at each (sample, Hz, velocity) of `tines`. Returns mono audio."""
     n = len(m)
     f = D.midi_hz(m)
     mids = D.oversampled(lambda u: D.tanh_adaa(u, DRIVE), lowpass4(osc(f, n, ph0), fc), 4)
-    mids = D.bfilt(mids, TOP_LP, 'lowpass', order=2) * mid_amp
-    mids = P.hp_steep(mids, MID_HP[CLEAN]) if char == CLEAN else D.lr4(mids, MID_HP[WARM], 'highpass')
+    mids = bite(D.bfilt(mids, TOP_LP, 'lowpass', order=2) * mid_amp, char)
     tn = np.zeros(n + TINE_N)
     for at, ft, v in tines:
         tn[at:at + TINE_N] += tine(ft, v, r)
@@ -351,29 +382,29 @@ def drop_warm(take):
 
 
 # ------------------------------------------------------------------ the items
-TONE = ('mono synth: saw and square through a 4-pole pluck filter, a soft drive, a chrome tine on the kit ratios, a '
-        'mono sine sub')
+TONE = ('mono synth: saw and square through a 4-pole pluck filter, a soft drive, a saturated bite on the mid band, a '
+        'chrome tine on the kit ratios, a mono sine sub')
 DROP_QA = {'tune_window': (0.55, 0.85), 'sustain': (0.55, 0.85),
            'why': 'a dive: tuned and alias-checked where it has landed on D1 (0.55-0.85 s)'}
 LINE_ABOUT = '2-bar bassline at 130 BPM in D minor against four-on-the-floor kicks (declared, not in the file)'
 LINE_GATE = {'mud': 'gate', 'why': 'a bass line: gated like the bass, in every gap between its kicks'}
 ITEMS = [
-    Item('Bass', 'RollBassClean', 'bass', roll_clean, layers=ROLL_LAYERS, notes=ROLL_NOTES, loop=True, sets=('r2',),
+    Item('Bass', 'RollBassClean', 'bass', roll_clean, layers=ROLL_LAYERS, notes=ROLL_NOTES, loop=True, sets=('r2', 'r3', 'r5'),
          about=f'A, clean: the rolling bass held, mids from 520 Hz; {TONE}; loops of 2 s'),
-    Item('Bass', 'RollBassWarm', 'bass', roll_warm, layers=ROLL_LAYERS, notes=ROLL_NOTES, loop=True, sets=('r2',),
+    Item('Bass', 'RollBassWarm', 'bass', roll_warm, layers=ROLL_LAYERS, notes=ROLL_NOTES, loop=True, sets=('r2', 'r3', 'r5'),
          qa=QA_WARM, about=f'B, warm: the rolling bass held, mids from 120 Hz; {TONE}; loops of 2 s'),
-    Item('Loops', 'OrbitLineClean', 'loop', orbit_clean, loop=True, sets=('r2',), qa=LINE_GATE,
+    Item('Loops', 'OrbitLineClean', 'loop', orbit_clean, loop=True, sets=('r2', 'r3', 'r5'), qa=LINE_GATE,
          about=f'A, clean: "Orbit", the pick, the rolling octave bounce; {LINE_ABOUT}'),
-    Item('Loops', 'OrbitLineWarm', 'loop', orbit_warm, loop=True, sets=('r2',), qa=QA_WARM,
+    Item('Loops', 'OrbitLineWarm', 'loop', orbit_warm, loop=True, sets=('r2', 'r3', 'r5'), qa=QA_WARM,
          about=f'B, warm: "Orbit", the pick, the rolling octave bounce; {LINE_ABOUT}'),
-    Item('Loops', 'RelayLineClean', 'loop', relay_clean, loop=True, sets=('r2',), qa=LINE_GATE,
+    Item('Loops', 'RelayLineClean', 'loop', relay_clean, loop=True, sets=('r2', 'r3', 'r5'), qa=LINE_GATE,
          about=f'A, clean: "Relay", the melodic line on D2; {LINE_ABOUT}'),
-    Item('Loops', 'RelayLineWarm', 'loop', relay_warm, loop=True, sets=('r2',), qa=QA_WARM,
+    Item('Loops', 'RelayLineWarm', 'loop', relay_warm, loop=True, sets=('r2', 'r3', 'r5'), qa=QA_WARM,
          about=f'B, warm: "Relay", the melodic line on D2; {LINE_ABOUT}'),
-    Item('Bass', 'DropGlideClean', 'bass', drop_clean, layers=DROP_LAYERS, root=DROP_ROOT, sets=('r2',), qa=DROP_QA,
+    Item('Bass', 'DropGlideClean', 'bass', drop_clean, layers=DROP_LAYERS, root=DROP_ROOT, sets=('r2', 'r3', 'r5'), qa=DROP_QA,
          about='A, clean: a transition hit, D2 diving to D1 over one beat, held a second; the mids lift above the '
                'low mids'),
-    Item('Bass', 'DropGlideWarm', 'bass', drop_warm, layers=DROP_LAYERS, root=DROP_ROOT, sets=('r2',),
+    Item('Bass', 'DropGlideWarm', 'bass', drop_warm, layers=DROP_LAYERS, root=DROP_ROOT, sets=('r2', 'r3', 'r5'),
          qa={**DROP_QA, 'mud': 'bass-body', 'why': f"{WHY_WARM}; {DROP_QA['why']}"},
          about='B, warm: a transition hit, D2 diving to D1 over one beat, held a second; warm mids that clear by the '
                'next kick'),

@@ -1,7 +1,9 @@
 """FUT02 "Orbit Relay", the rhythm and atmosphere recipes (recipes/fut02: drums, perc, pad, fx): what they promise the
 listener holds without rendering a whole item. Every written note is in D minor, the laser gesture lands exactly on
 its note, the fill and the riser are a bar and eight bars on the kit's grid and swing, ending on the downbeat, and the
-hat loop's open hats are choked by a closed one."""
+hat loop's open hats are choked by a closed one. Round 3: the hats' tick no longer stands as a needle over the metal,
+the open hat spreads wider than the closed one, every widening (hats, zap, pad chrome) keeps the mono sum, and the
+hats and the zap sit balanced between the speakers."""
 import unittest
 
 import numpy as np
@@ -116,6 +118,65 @@ class TestFut02Rhythm(unittest.TestCase):
         _, h = signal.sosfreqz(sos, worN=[float(D.midi_hz(pad.CHORD[0]))], fs=D.SR)
         self.assertLess(20 * np.log10(abs(h[0])), -20.0)
         self.assertGreaterEqual(pad.MONO_HZ, 150.0)
+
+    def test_the_hats_tick_is_spread_and_follows_the_velocity(self):
+        """Round 3's tick: spread over a few ms (round 2's 1 ms needle stood 11 dB over the metal), lower, and
+        growing faster than linearly with velocity, so each layer stays brighter than the one under it."""
+        decay, attack = drums.TICK_ENV
+        self.assertGreaterEqual(decay, 0.002)
+        self.assertLess(drums.TICK_RMS, 0.0087)
+        a, b, p = drums.TICK_VEL
+        self.assertGreaterEqual(p, 1.5)
+        self.assertAlmostEqual(1.0, a + b, places=12)                   # the hardest layer gets the whole tick
+        n = int(0.06 * D.SR)
+        env = D.env_exp(n, decay, attack)
+        self.assertLess(20 * np.log10(env[int(0.010 * D.SR)]), -15.0)    # gone within the hat's first 10 ms
+
+    def test_the_open_hat_spreads_and_every_hat_keeps_its_mono_sum(self):
+        """Both hats keep their mono sum whatever their width, the open one spreads, and each sits in the middle: its
+        left and right carry the same level (round 3's first side took the mid's noise out of the left and doubled it
+        on the right, 2.6 dB on the open hat)."""
+        self.assertGreater(drums.HAT_WIDTH['open'], drums.HAT_WIDTH['closed'])
+        for name, decay in (('OpenHat', lambda v: 0.085 + 0.035 * v), ('ClosedHat', lambda v: 0.008 + 0.006 * v)):
+            item = kits.items(K, only=(name,))[0]
+            take = [t for t in item.takes(K.KIT) if t.layer == len(item.layers) and t.rr == 1][0]
+            width = drums.HAT_WIDTH['open' if name == 'OpenHat' else 'closed']
+            wide = drums.hat(take, decay, drums.SHORT_FADE, width)
+            mono = drums.hat(take, decay, drums.SHORT_FADE, 0.0)
+            with self.subTest(hat=name):
+                np.testing.assert_allclose(D.mono(wide), D.mono(mono), atol=1e-12)
+                lr = 10 * np.log10(np.sum(wide[:, 0] ** 2) / np.sum(wide[:, 1] ** 2))
+                self.assertLess(abs(lr), 0.5, lr)
+            if name == 'OpenHat':
+                m, sd = 0.5 * (wide[:, 0] + wide[:, 1]), 0.5 * (wide[:, 0] - wide[:, 1])
+                self.assertGreater(10 * np.log10(np.sum(sd ** 2) / np.sum(m ** 2)), -8.0)
+
+    def test_the_zap_spreads_and_keeps_its_mono_sum(self):
+        """Round 2's width again, through a plain delay: the mono sum is the zap whole, and a side with no direct term
+        leans to neither channel (round 3's first all-pass side, its -0.6 at lag 0, leaned a zap 4-7 dB right above
+        1.6 kHz)."""
+        self.assertEqual((0.15, 0.25), perc.ZAP_WIDTH)                    # round 2's
+        r = D.rng('test', 'zap-width')
+        y = r.standard_normal(48000)
+        out = perc.widen(y, 0.7)
+        np.testing.assert_allclose(D.mono(out), y, atol=1e-12)
+        top = D.bfilt(out, 1600.0, 'highpass', order=4, zero_phase=True)
+        lr = 10 * np.log10(np.sum(top[:, 0] ** 2) / np.sum(top[:, 1] ** 2))
+        self.assertLess(abs(lr), 0.2, lr)
+
+    def test_the_pad_keeps_its_low_mids_central_and_its_chrome_wide(self):
+        """Round 3's pad: its body's low mids lifted a little (BODY_EQ, round 2 dipped them 4 dB), mono up to
+        MONO_HZ (the side is 8th-order high-passed from 320 Hz, near the 250 Hz octave's top), its chrome given a side
+        through an all-pass, high-passed at 1 kHz, so its mono sum is the chrome exactly."""
+        self.assertTrue(150.0 <= pad.BODY_EQ[0] <= 400.0 and 0.0 <= pad.BODY_EQ[1] <= 3.0)
+        self.assertGreaterEqual(pad.MONO_HZ, 300.0)
+        g, d, a, hp = pad.CHROME_SIDE
+        self.assertGreaterEqual(hp, 1000.0)
+        r = D.rng('test', 'chrome')
+        x = r.standard_normal(9600)
+        side = g * D.bfilt(P.allpass(x, d, a), hp, 'highpass', order=2)
+        np.testing.assert_allclose(0.5 * ((x + side) + (x - side)), x, atol=1e-12)
+        self.assertGreater(pad.SWEEP[3], 0.6)                           # the sides' sweeps further apart
 
     def test_drums_layers(self):
         for it in drums.ITEMS + perc.ITEMS:

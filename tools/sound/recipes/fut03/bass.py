@@ -1,7 +1,8 @@
-"""FUT03 "Glass Current" bass for listening round 2: the bouncy metallic house bass that dips in pitch on every note
-(multisamples, A clean and B warm), two original 2-bar basslines played on it against the four-on-the-floor kick
-(each in both characters), and the vowel bass, two tempo-synced shots that move between vowels (each in both
-characters too).
+"""FUT03 "Glass Current" bass: the bouncy metallic house bass that dips in pitch on every note (multisamples, A clean
+and B warm), two original 2-bar basslines played on it against the four-on-the-floor kick (each in both characters),
+and the vowel bass, two tempo-synced shots that move between vowels (each in both characters too). Round 3 (the
+modern-sound standard, docs/plans/S1-modern-sound.md) adds the bright top layer to the voice and more body to B's
+lines; the vowel shots are round 2's.
 
 **The voice ("dip bass").** Every note starts on its pitch, dips 2.2-3 semitones within 22 ms and springs back over the
 next 68 ms (raised-cosine both ways), so each note goes "bwop": the bounce of the brief. Under it, a mono sine sub on
@@ -14,14 +15,22 @@ harmonic, starting 5 ms after the sub:
   harmonics (a filter, so the note stays harmonic);
 - a resonant low-pass that snaps shut with the FM index on every note (brighter, higher and faster with velocity), a
   soft drive at 4x;
-- a glass tine on each attack: the kit's bell partials (K.RATIOS) 4 octaves over the note, gone in about 30 ms.
+- a glass tine on each attack: the kit's bell partials (K.RATIOS) 4 octaves over the note, gone in about 30 ms;
+- the top (round 3), the bright layer of a current future-house bass: a saw and an FM pair (modulator at 3x) on the
+  sub's phase through a formant band-pass at 2-2.8 kHz that falls an octave with the pitch dip and springs back with
+  it, so every note says "yow" up top, then a soft drive at 4x. It rides on the bite (from 480 Hz, the same in A and
+  B). Its level (TOP_LEVEL) is set by the mix it has to cut through: at first 6 dB lower, it sat 10.6 dB under the
+  context loop's 2-4 kHz band while the bass played (the pluck, the stab and the vocals own that band, and the music
+  bus's presence lift is on them, not on the bass), so the "yow" was hardly in the mix; now 5.9 dB under.
 
 Two low ends, the same sub and bite (ADR 0011, round 2):
 - A, clean (the strict mud gate, the category default): the bite starts at 480 Hz behind about 96 dB per octave, so
   150-400 Hz stays empty and the sine sub carries the note.
 - B, warm (the proposed bass-body rule): A plus the body, the voice at rest (no snap, and darker than the bite) from
   120 to 480 Hz on the sub's envelope, so the FM's own third and fifth harmonics give the note body on small speakers
-  and never flare on the attack; the sub carries a quiet second harmonic.
+  and never flare on the attack; the sub carries a quiet second harmonic. Round 3 plays the body 2.5 dB louder in the
+  lines (LINE_BODY_LEVEL: 2.5-3.1 dB over a saw, bass-body allows 5); the held notes keep round 2's (at the lines'
+  level D2 read 6.6 dB over a saw).
 
 The multisamples (G1, D2, G2: root, fifth and octave, two layers) loop over 1 s of the steady note: every partial is on
 the loop's grid of whole cycles, and every envelope (the index, the cutoff, the dip) reaches its resting value exactly,
@@ -116,7 +125,23 @@ RELEASE = 0.020                     # the mids' release
 SUB_LEVEL = 0.62
 BITE_LEVEL = 1.35                   # the bite: the mids from MID_HP, the same in both characters
 BODY_LEVEL = 0.75                   # B's body: the resting voice from 120 Hz to MID_HP, on the sub's envelope
+LINE_BODY_LEVEL = 1.0               # ...and in the lines (round 3: 2.5 dB more; a held note at this level reads
+                                    # 6.6 dB over a saw on D2, past bass-body's +5, the lines' short notes 2.5-3.1)
 WARM_H2 = 0.16                      # B's sub: a quiet mono second harmonic, 16 dB down
+# the top (round 3): the bright layer of a current future house bass, the same in A and B. A saw and a 2-op FM pair
+# (modulator at 3x: harmonics 1 2 4 5 7 8..., the metal colour) on the sub's own phase, through a formant band-pass
+# that falls TOP_SWEEP octaves with the pitch dip and springs back with it, so every note goes "yow" up top; a soft
+# drive at 4x, then nothing under TOP_HP
+TOP_FC = (2000.0, 2800.0)           # the formant at rest, soft to hard (it tracks the note a little, TOP_TRACK)
+TOP_TRACK = 0.25
+TOP_SWEEP = 1.0                     # octaves the formant falls at the bottom of the dip
+TOP_Q = 2.0
+TOP_IDX = (3.0, 5.0)                # the FM index, soft to hard
+TOP_DRIVE = 1.8
+TOP_HP = 1000.0
+TOP_LEVEL = 1.8                     # after the drive, so only its level moves: round 3's first 0.9 (6 dB down) left the
+                                    # line's 2 / 4 kHz octaves 21 / 24 dB under its sub, 10.6 dB under the loop's 2-4 kHz
+                                    # band while it played; 1.8 reads 16 / 18 dB, 5.9 dB under the loop's band
 
 
 def settle(t, tau, end=SETTLE):
@@ -160,6 +185,23 @@ def tine(note_hz, n, vel, r):
     return D.bfilt(ir, TINE_HP, 'highpass', order=2) * (0.03 + 0.07 * vel)
 
 
+def top(freq, n, vel, note_hz, ph, depth):
+    """The bright top: a saw and FM (modulator at 3x) on the sub's phase, through a formant band-pass (TOP_FC) that
+    falls TOP_SWEEP octaves with the dip (depth: 0 at rest, 1 at the dip's bottom, per sample), a soft drive at 4x, from
+    TOP_HP up."""
+    saw = D.down(D.polyblep_saw(freq, n, 0.25, k=4), 4)
+    fm = np.sin(2 * np.pi * ph + P.lerp(TOP_IDX, vel) * np.sin(6 * np.pi * ph))
+    fc = P.lerp(TOP_FC, vel) * (note_hz / F_KICK) ** TOP_TRACK * 2.0 ** (-TOP_SWEEP * depth)
+    x = D.svf_tpt(0.6 * saw + 0.4 * fm, fc, q=TOP_Q)[1] / TOP_Q
+    x = D.oversampled(lambda u: D.tanh_adaa(u, TOP_DRIVE), 2.0 * x, 4) / 2.0
+    return D.bfilt(x, TOP_HP, 'highpass', order=4)
+
+
+def dip_depth(freq, note_hz, vel):
+    """Where a note is in its dip, per sample: 0 on its pitch, 1 at the dip's bottom (DIP_ST down)."""
+    return np.clip(-12.0 * np.log2(freq / note_hz) / P.lerp(DIP_ST, vel), 0.0, 1.0)
+
+
 def voice(freq, n, vel, char, note_hz, r):
     """One held note, mono (the multisamples; a line plays its sub and its mids apart, see line_lane): freq is its pitch
     curve (Hz per sample, the dip in it); note_hz its written pitch (the comb, the cutoff's tracking and the tine follow
@@ -172,6 +214,7 @@ def voice(freq, n, vel, char, note_hz, r):
     lag = int(BITE_LAG * SR)
     bite_env = np.concatenate([np.zeros(lag), P.raised(n - lag, MID_ATTACK)])
     bite = (mids_source(freq, n, vel, note_hz, ph) + tine(note_hz, n, vel, r)) * bite_env
+    bite = bite + TOP_LEVEL * vel ** 0.5 * top(freq, n, vel, note_hz, ph, dip_depth(freq, note_hz, vel)) * bite_env
     y = SUB_LEVEL * vel ** 0.6 * low * sub_env + BITE_LEVEL * vel ** 1.5 * P.hp_steep(bite, MID_HP)
     if char == WARM:
         body = D.lr4(D.lr4(mids_source(freq, n, vel, note_hz, ph, snap=False), WARM_XO, 'highpass'), MID_HP, 'lowpass')
@@ -365,15 +408,17 @@ def mids_lane(name, char):
         gate = length * G.s16 / SR
         n = int((gate + SUB_RELEASE + 0.01) * SR)
         f = float(D.midi_hz(note))
-        freq = f * 2.0 ** ((line_dip(n, vel) + slide_curve(n, gate, note, slide)) / 12.0)
+        ld = line_dip(n, vel)
+        freq = f * 2.0 ** ((ld + slide_curve(n, gate, note, slide)) / 12.0)
         ph = D.phase(freq, n)
         env = np.concatenate([np.zeros(lag), P.raised(n - lag, MID_ATTACK)])
         x = (mids_source(freq, n, vel, f, ph) + tine(f, n, vel, D.rng(K.KIT, 'Line', name, i, 'tine'))) * env
+        x = x + TOP_LEVEL * vel ** 0.5 * top(freq, n, vel, f, ph, -ld / P.lerp(DIP_ST, vel)) * env
         Ph.place(bite, BITE_LEVEL * vel ** 1.5 * P.hp_steep(x, MID_HP) * D.taper(n, gate, RELEASE), G.at(step))
         if char == WARM:
             env = np.concatenate([np.zeros(blag), P.raised(n - blag, SUB_ATTACK)]) * D.taper(n, gate, SUB_RELEASE)
             b = D.lr4(D.lr4(mids_source(freq, n, vel, f, ph, snap=False), WARM_XO, 'highpass'), MID_HP, 'lowpass')
-            Ph.place(body, BODY_LEVEL * vel * b * env, G.at(step))
+            Ph.place(body, LINE_BODY_LEVEL * vel * b * env, G.at(step))
     return bite, body
 
 
@@ -628,17 +673,18 @@ SHOT_ABOUT = {
     'rise': 'vowel bass, rise: G1 opening oo-ah on beat 1, then after the kick eh-ee as the filter opens and the note '
             'slides up an octave to G2',
 }
-VOICE_ABOUT = ('bouncy metallic house bass: every note dips 2-3 semitones and springs back in 90 ms; phase-locked FM '
+VOICE_ABOUT = ('bouncy metallic house bass: every note dips 2-3 semitones and springs back in 90 ms, its bright top '
+               'saying "yow" with the dip; phase-locked FM '
                '(odd harmonics) and saw, a comb on the glass quint partial, a snapping low-pass, a glass tine on the '
                'attack, a mono sine sub; G1 D2 G2, 1 s loops')
 ITEMS = [
     Item('Bass', 'DipBassClean', 'bass', dip_bass_clean, layers=BASS_LAYERS, notes=BASS_NOTES, loop=True,
-         sets=('r2',), about=f'A, clean: {VOICE_ABOUT}; the mids from 480 Hz (the strict mud gate)'),
+         sets=('r2', 'r3'), about=f'A, clean: {VOICE_ABOUT}; the mids from 480 Hz (the strict mud gate)'),
     Item('Bass', 'DipBassWarm', 'bass', dip_bass_warm, layers=BASS_LAYERS, notes=BASS_NOTES, loop=True,
-         sets=('r2',), qa=WARM_QA, about=f'B, warm: {VOICE_ABOUT}; plus its body, the resting voice from 120 Hz '
+         sets=('r2', 'r3'), qa=WARM_QA, about=f'B, warm: {VOICE_ABOUT}; plus its body, the resting voice from 120 Hz '
                                        f'(bass-body)'),
 ] + [
-    Item('Loops', f'Line{name}{char.title()}', 'loop', fn, loop=True, sets=('r2',),
+    Item('Loops', f'Line{name}{char.title()}', 'loop', fn, loop=True, sets=('r2', 'r3'),
          qa=CLEAN_LINE_QA if char == CLEAN else WARM_LINE_QA,
          about=f'bassline {name}{" (the pick for the context loop)" if name == PICK else ""}, '
                f'{"A, clean" if char == CLEAN else "B, warm"}: 2 bars at 128 BPM against four-on-the-floor kicks '
@@ -646,7 +692,7 @@ ITEMS = [
     for name, char, fn in (('Bounce', CLEAN, line_bounce_clean), ('Bounce', WARM, line_bounce_warm),
                            ('Roll', CLEAN, line_roll_clean), ('Roll', WARM, line_roll_warm))
 ] + [
-    Item('Bass', f'VowelBass{move.title()}{char.title()}', 'bass', fn, notes=(VOWEL_NOTE,), sets=('r2',),
+    Item('Bass', f'VowelBass{move.title()}{char.title()}', 'bass', fn, notes=(VOWEL_NOTE,), sets=('r2', 'r3'),
          qa={**(SHOT_QA if char == CLEAN else WARM_SHOT_QA), 'tune_window': TUNE[move]},
          about=f'{SHOT_ABOUT[move]}; ' + ('A, clean: the vowels above a 1.5 kHz lift over a G1 sine pedal (the strict '
                                          'gate)' if char == CLEAN else

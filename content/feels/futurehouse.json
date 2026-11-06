@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "id": "futurehouse",
+  "about": "Hyper-clean house feel: a tight kick and clap, hats a touch swung, the shaker swung a little more, the bass nearly straight and locked to the kick, the snare layer 3-6 ticks ahead of the clap, which stays on the grid. Swing ranges are permille relative to the kit's swing; sd values are tenths of a tick (1/f), vsd tenths of a velocity step.",
+  "amount": 1000,
+  "anchorClamp": 2,
+  "lanes": {
+    "kick": { "swing": [0, 0], "sd": [6, 10], "clamp": 3, "anchor": 1, "vsd": [8, 12] },
+    "snare": {
+      "swing": [0, 0], "sd": [12, 18], "clamp": 8, "anchor": 1, "vsd": [14, 20],
+      "after": [ { "voice": "snare", "after": "clap", "by": [-6, -3] } ]
+    },
+    "hats": {
+      "swing": [15, 25], "sd": [20, 30], "clamp": 10, "anchor": 0, "vsd": [20, 30],
+      "offset": [0, 0, -1, 1,  0, 0, -1, 1,  0, 0, -1, 1,  0, 0, -1, 1],
+      "vel": [0, -2, 3, 1,  0, -2, 2, 1,  0, -2, 3, 1,  0, -2, 2, 2],
+      "dip": [4, 90]
+    },
+    "shaker": {
+      "swing": [25, 40], "sd": [20, 30], "clamp": 12, "anchor": 0, "vsd": [20, 30],
+      "vel": [0, -2, 4, 1,  0, -2, 4, 1,  0, -2, 4, 1,  0, -2, 3, 2],
+      "dip": [3, 80]
+    },
+    "perc": { "swing": [45, 60], "sd": [16, 24], "clamp": 10, "anchor": 0, "vsd": [20, 28] },
+    "bass": { "swing": [-20, -20], "sd": [8, 12], "clamp": 5, "anchor": 0, "lock": "kick", "vsd": [14, 20], "artic": 50 },
+    "chords": { "swing": [-5, 0], "sd": [8, 12], "clamp": 6, "anchor": 0, "spread": [0, 3], "vsd": [12, 18], "artic": 30 }
+  },
+  "rows": {
+    "intro": {},
+    "groove": {},
+    "build": { "hats": { "sd": [14, 20] } },
+    "drop": {},
+    "break": { "hats": { "sd": [26, 36] }, "perc": { "sd": [22, 30] }, "chords": { "spread": [2, 4] } },
+    "drop2": { "shaker": { "swing": [30, 45] } },
+    "outro": {}
+  }
+}

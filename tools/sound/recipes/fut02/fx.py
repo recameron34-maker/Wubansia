@@ -1,4 +1,4 @@
-"""FUT02 effects for round 2: the one-bar laser fill and the 8-bar laser riser. Both carry the kit's laser pitch-drop
+"""FUT02 effects for rounds 2 and 3: the one-bar laser fill and the 8-bar laser riser. Both carry the kit's laser pitch-drop
 gesture (perc.laser, the zap's), both sit on the kit's 16th grid and swing at 130 BPM, both are in D minor and both end
 exactly on the next downbeat (cut_end): they lead into the drop and stop where it lands.
 
@@ -210,11 +210,11 @@ def laser_riser(take):
 
 
 ITEMS = [
-    Item('FX', 'LaserFill', 'fx', laser_fill, root=NOTE['D5'], sets=('r2',), flags={'cut_end'}, tags=('fill',),
+    Item('FX', 'LaserFill', 'fx', laser_fill, root=NOTE['D5'], sets=('r2', 'r3', 'r5'), flags={'cut_end'}, tags=('fill',),
          qa={'why': 'it ends on the next downbeat: the dive lands on D5 there, where the drop takes over'},
          about='one-bar laser fill at 130 BPM in D minor: lasers D5 F5 A5 | C6 A5 F5 G5 on the swing, the kit hat and '
                'clap under them, a three-octave dive landing on D5 at the downbeat'),
-    Item('FX', 'LaserRiser', 'fx', laser_riser, root=NOTE['D6'], level=-14.0, sets=('r2',), flags={'cut_end'},
+    Item('FX', 'LaserRiser', 'fx', laser_riser, root=NOTE['D6'], level=-14.0, sets=('r2', 'r3', 'r5'), flags={'cut_end'},
          tags=('riser',),
          qa={'why': 'end-aligned: it stays loud to the downbeat, where the next section takes over'},
          about='8-bar laser riser at 130 BPM: a laser staircase up the Dm7 arpeggio (quarters, 8ths, 16ths), a laser '

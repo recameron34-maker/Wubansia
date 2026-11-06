@@ -1,20 +1,49 @@
-"""FUT01's written loop for the MIDI export (tools/sound/midi.py): the context loop's drums, the three basslines,
-the pluck phrase and the pad. Notes are (16th, MIDI note, length in 16ths, velocity 0-1, slide)."""
-from tools.sound.midi import hits, per_bar
-from tools.sound.recipes.fut01 import basslines as B, context as C, music as M
+"""FUT01's written loop for the MIDI export (tools/sound/midi.py): the round 4 context loop's drums (context4.py: the
+2-step kick, the garage clap, the swung closed hats, the open hats, the tambourine on every 16th, the rim ghosts and
+the alloy hit), the three warp-bass lines (the 2-step bounce, the organ bass's low line and the 4x4 speed garage
+line), the chrome pluck phrase, the organ stabs, and the five synth phrases: riffs.py's four and, from round 5, the
+vox synth riff (voxsynth.py) on the vox synth multisample. Notes are (16th, MIDI note, length in 16ths, velocity 0-1,
+slide); a pitch dip is written as two slides, down and back."""
+from tools.sound.midi import hits
+from tools.sound.recipes.fut01 import context4 as C, keys as Ky, music as M, riffs as R, voxsynth as V
 
-LINE_NAMES = {'A': 'Bounce', 'B': 'Walk', 'C': 'Deep'}
+TAMBOURINE = 54                     # GM's tambourine
+RIM = 37                            # GM's side stick
+LINE_NAMES = {'garage': 'Bounce', 'organ': 'Low', 'speed': 'Speed'}
+
+
+def line(notes):
+    """A context4 line, (16th, length, note, velocity, slide), as MIDI notes: a slide or a dip is a slide."""
+    return [(s, n, ln, v, bool(sl)) for s, ln, n, v, sl in notes]
+
 
 PARTS = dict(
-    drums=hits(C.KICK, 36) + hits(C.SNARE, 38) + per_bar(C.HAT_BAR, 42) + hits(C.PERC, 47),
-    drum_map={36: 'Kick Split', 38: 'Snare Metal', 42: 'Closed Hat FM', 47: 'Alloy Hit'},
-    drum_note='Snare Modal, Closed Hat Ring and Alloy Hit Short are the alternates.',
-    lines={LINE_NAMES[k]: [(s, n, ln, v, bool(sl)) for s, ln, n, v, sl in line] for k, line in B.LINES.items()},
-    pick=LINE_NAMES[B.PICK],
-    bass_samples='Reese Clean (A) or Reese Warm (B)',
+    drums=(hits(C.KICK, 36) + hits(C.CLAP, 38) + hits(C.HAT_C, 42) + hits(C.HAT_O, 46) + hits(C.TAMB, TAMBOURINE)
+           + hits(C.RIM, RIM) + hits(C.PERC, 47)),
+    drum_map={36: 'Kick Garage', RIM: 'Rim Shot', 38: 'Clap Garage', 42: 'Hat Closed', 46: 'Hat Open',
+              47: 'Alloy Hit', TAMBOURINE: 'Tambourine'},
+    drum_lanes={RIM: 'perc'},
+    drum_note=("Kick Split (kick A, round 1's pick) and the Shaker (for the tambourine) are the alternates. Choke Hat "
+               'Open with Hat Closed (one choke group), as the loop plays them.'),
+    lines={LINE_NAMES['garage']: line(C.WARP_LINE), LINE_NAMES['organ']: line(C.ORGAN_LINE),
+           LINE_NAMES['speed']: line(C.SPEED_LINE)},
+    pick=LINE_NAMES['garage'],
+    switch_line=LINE_NAMES['organ'],
+    drop2_line=LINE_NAMES['organ'],
+    bass_samples='Warp Clean (A) or Warp Warm (B), or Organ Bass for the Low line',
     bass_zones='F#1, A1, C#2',
     lead=dict(name='Chrome pluck phrase', sample='Chrome Pluck', zones='C4 to C6, every 3 semitones',
               notes=[(s, n, ln, v, False) for s, n, ln, v in M.PHRASE]),
-    chords=dict(name='Air pad F#m9, held', sample='Air Pad F#m9',
-                notes=[(0, n, 64, 0.7, False) for n in M.PAD_CHORD]),
+    chords=dict(name='Organ stabs, F#m9 and Bm9', sample='Organ Stab',
+                notes=[(s, z + d, 1, v, False) for s, z, v in C.STABS for d in Ky.SHAPE],
+                trigger=[(s, z, 1, v, False) for s, z, v in C.STABS], zones='F#3, B3'),   # a file per chord
+    phrases=[
+        dict(name='Organ riff', sample='Organ Lead', zones='C4 to C6, every 3 semitones', notes=list(R.ORGAN_RIFF),
+             bars=4),
+        dict(name='Warp riff', sample='Warp Clean', zones='F#1, A1, C#2', notes=line(R.WARP_RIFF), bars=2),
+        dict(name='Pluck riff', sample='Chrome Pluck', zones='C4 to C6, every 3 semitones', notes=list(R.PLUCK_RIFF),
+             bars=4),
+        dict(name='E-piano stab rhythm', sample='E Piano Stab', zones='F#3, B3', notes=R.stab_notes(), bars=2),
+        dict(name='Vox synth riff', sample='Vox Synth', zones='A4, C#5, F#5', notes=list(V.RIFF_NOTES), bars=2),
+    ],
 )

@@ -1,5 +1,15 @@
-"""FUT01 previews for listening round 2: a few files made only to hear a sound the way it is used, each on the kit's
-own files exactly as written (phrase.kit_files) and on the kit's grid. They are not kit sounds (tag preview).
+"""FUT01 previews for listening rounds 2 and 3: a few files made only to hear a sound the way it is used, each on the
+kit's own files exactly as written (phrase.kit_files) and on the kit's grid. They are not kit sounds (tag preview).
+
+- DrumGrooveSplit, DrumGroovePunch (round 3): the kick A/B in a groove. Each plays bars 1 and 2 of the context loop's
+  drums (the kick, snare C, hat A and the shaker, at the loop's balance) with kick A (Split) or kick B (Punch), each
+  kick lane through the loop's own kick clip (context.kick_clip, KICK_CLIP_DB under its peak: their files peak at the
+  same level, so both take the same clip) and both files at one loudness (DRUM_LUFS), so the A/B is the kick alone,
+  as the loops play it: Punch's shorter sub and its 100-150 Hz knock.
+- DrumGrooveSwing61 (round 3): the standard's optional shuffle A/B. DrumGroovePunch with every odd 16th on swing 0.61
+  instead of the kit's 0.57 (24.6 ms late instead of 15.7), at the same loudness. The drums alone: the vocals, the
+  pluck phrase and the basslines are rendered on the kit's swing, so a heavier pick would move the kit's DNA
+  (K.SWING) and re-render them.
 
 - HatPatternFM, HatPatternRing: the two closed hats are 0.12 and 0.45 s, too short to judge one hit at a time, so each
   plays the context loop's hat part for 2 bars (off-beats with ghosts, the extra ghost in bar 2), on the kit's swing,
@@ -32,6 +42,10 @@ HAT_LUFS = -25.0                    # both hat patterns at one loudness, so the 
 BAR = int(round(16 * K.STEP * SR))  # one bar, samples
 RISER_UNDER_DROP = 2.0              # the riser's last bar this many LU under the drop's 2 bars (LUFS-I), so it lands on
                                     # a drop
+DRUM_LUFS = -16.5                   # the drum grooves at one loudness, each under the ceiling (through the kick clip,
+                                    # A, Split, peaks 0.5 dB higher for its loudness)
+GROOVE_LANES = ('snare', 'hat', 'shaker')   # the context loop's drums besides the kick, at its faders and pans
+HEAVY_SWING = 0.61                  # the heavier shuffle to A/B (the standard: 0.60-0.62 against the kit's 0.57)
 
 
 def hat_pattern(name):
@@ -45,6 +59,40 @@ def hat_pattern_fm(take):
 
 def hat_pattern_ring(take):
     return hat_pattern('ClosedHatRing')
+
+
+def groove_grid(swing):
+    """The 2-bar grid with its odd 16ths on `swing` instead of the kit's."""
+    g = Ph.Grid(K, 32)
+    g.swing = swing
+    return g
+
+
+def drum_groove(kick, grid=G2):
+    """Bars 1 and 2 of the context loop's drums with this kick on the grid (the kit's swing unless given), its lane
+    through the loop's kick clip (context.kick_clip); the other drums at the loop's faders and pans, each against the
+    kick's fader there (kick B's)."""
+    two = lambda part: tuple((s, v) for s, v in part if s < 32)
+    buf = C.kick_clip(Ph.hits_lane(K, kick, two(C.KICK), grid))
+    crests = C.kick_crests(buf, C.full_kicks(grid))
+    parts = {'snare': C.SNARE, 'hat': C.HAT, 'shaker': C.SHAKER}
+    for k in GROOVE_LANES:
+        lane = Ph.hits_lane(K, C.LANES[k][0], two(parts[k]), grid)
+        buf = buf + Ph.pan(lane, C.LANES[k][2]) * D.undb(C.LANES[k][1] - C.LANES['kick'][1])
+    return Out(buf, meta={'steps': 32, 'bpm': K.BPM, 'swing': grid.swing, 'kick': kick, 'kick_clip_db': C.KICK_CLIP_DB,
+                          'kick_crest_db_full_kicks': crests, 'lanes': {k: C.LANES[k][0] for k in GROOVE_LANES}})
+
+
+def drum_groove_split(take):
+    return drum_groove('KickSplit')
+
+
+def drum_groove_punch(take):
+    return drum_groove('KickPunch')
+
+
+def drum_groove_swing61(take):
+    return drum_groove('KickPunch', groove_grid(HEAVY_SWING))
 
 
 def pad_hold(take):
@@ -69,15 +117,27 @@ def riser_drop(take):
 
 
 LOWCUT = {'mud': 'lowcut', 'why': 'a preview of a sound under the low cut: the low cut, like the sound'}
+DRUMS = {'mud': 'off', 'why': 'a preview: the drums as the loop plays them; the kicks pass the mud gate and the snare, '
+                              'hat and shaker the low cut, each on its own'}
 ITEMS = [
-    Item('Loops', 'HatPatternFM', 'loop', hat_pattern_fm, loop=True, level=HAT_LUFS, sets=('r2',), tags=('preview',),
-         qa=LOWCUT, about="preview: closed hat A (FM) on the context loop's hat part, 2 bars, 134 BPM, swing 0.57"),
-    Item('Loops', 'HatPatternRing', 'loop', hat_pattern_ring, loop=True, level=HAT_LUFS, sets=('r2',),
+    Item('Loops', 'DrumGrooveSplit', 'loop', drum_groove_split, loop=True, level=DRUM_LUFS, sets=('r3',),
+         tags=('preview', 'with_kick'), qa=DRUMS,
+         about="preview: kick A (Split) in bars 1-2 of the context loop's drums (snare C, hat A, shaker), 134 BPM"),
+    Item('Loops', 'DrumGroovePunch', 'loop', drum_groove_punch, loop=True, level=DRUM_LUFS, sets=('r3',),
+         tags=('preview', 'with_kick'), qa=DRUMS,
+         about="preview: kick B (Punch) in bars 1-2 of the context loop's drums (snare C, hat A, shaker), 134 BPM"),
+    Item('Loops', 'DrumGrooveSwing61', 'loop', drum_groove_swing61, loop=True, level=DRUM_LUFS, sets=('r3',),
+         tags=('preview', 'with_kick'), qa=DRUMS,
+         about="preview: DrumGroovePunch's drums with every odd 16th on swing 0.61 instead of the kit's 0.57, 134 BPM"),
+    Item('Loops', 'HatPatternFM', 'loop', hat_pattern_fm, loop=True, level=HAT_LUFS, sets=('r2', 'r3'),
+         tags=('preview',), qa=LOWCUT,
+         about="preview: closed hat A (FM) on the context loop's hat part, 2 bars, 134 BPM, swing 0.57"),
+    Item('Loops', 'HatPatternRing', 'loop', hat_pattern_ring, loop=True, level=HAT_LUFS, sets=('r2', 'r3'),
          tags=('preview',), qa=LOWCUT,
          about="preview: closed hat B (Ring) on the context loop's hat part, 2 bars, 134 BPM, swing 0.57"),
-    Item('Loops', 'AirPadHold', 'loop', pad_hold, loop=True, sets=('r2',), tags=('preview',), qa=LOWCUT,
+    Item('Loops', 'AirPadHold', 'loop', pad_hold, loop=True, sets=('r2', 'r3', 'r4', 'r5'), tags=('preview',), qa=LOWCUT,
          about='preview: the air pad (F#m9) held for 4 bars at 134 BPM, looping over its seam'),
-    Item('FX', 'ShiftRiserDrop', 'loop', riser_drop, sets=('r2',), tags=('preview',),
+    Item('FX', 'ShiftRiserDrop', 'loop', riser_drop, sets=('r2', 'r3'), tags=('preview',),
          qa={'mud': 'off', 'why': 'a preview: the riser into the drop; the riser and the bassline loop pass their own '
                                   'low-end rules'},
          about="preview: the 8-bar riser landing on the drop, bassline B (the Walk) with kick A and hat A for 2 bars"),

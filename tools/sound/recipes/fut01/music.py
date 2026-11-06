@@ -127,12 +127,13 @@ def pluck_phrase(take):
 
 
 ITEMS = [
-    Item('Pad', 'AirPadFsm9', 'pad', air_pad, root=54, loop=True, sets=('s1a', 'r2'),
+    Item('Pad', 'AirPadFsm9', 'pad', air_pad, root=54, loop=True, sets=('s1a', 'r2', 'r3', 'r4', 'r5'),
          about='air pad, F#m9 (F#3 E4 A4 C#5 G#5): detuned saws with a breathing 6-13 kHz air band, high-passed at '
                '100 Hz, mono under 150 Hz; a 4 s loop'),
-    Item('Lead', 'ChromePluck', 'lead', chrome_pluck, layers=PLUCK_LAYERS, notes=PLUCK_NOTES, sets=('s1a', 'r2'),
+    Item('Lead', 'ChromePluck', 'lead', chrome_pluck, layers=PLUCK_LAYERS, notes=PLUCK_NOTES,
+         sets=('s1a', 'r2', 'r3', 'r4', 'r5'),
          about='chrome pluck: a stiff Karplus-Strong string with an alloy-ratio tine, C4-C6 every 3 semitones'),
-    Item('Loops', 'ChromePluckPhrase', 'loop', pluck_phrase, loop=True, sets=('s1a', 'r2'),
+    Item('Loops', 'ChromePluckPhrase', 'loop', pluck_phrase, loop=True, sets=('s1a', 'r2', 'r3', 'r4', 'r5'),
          qa={'mud': 'lowcut', 'why': 'a lead loop: the low cut, like the lead'},
          about='2-bar chrome pluck phrase in F# minor at 134 BPM'),
 ]

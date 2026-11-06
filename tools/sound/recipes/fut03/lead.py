@@ -96,10 +96,10 @@ def pluck_phrase(take):
 
 
 ITEMS = [
-    Item('Lead', 'GlassPluck', 'lead', glass_pluck, layers=PLUCK_LAYERS, notes=PLUCK_NOTES, sets=('r2',),
+    Item('Lead', 'GlassPluck', 'lead', glass_pluck, layers=PLUCK_LAYERS, notes=PLUCK_NOTES, sets=('r2', 'r3'),
          about='glass pluck: a band-limited saw through a snapping low-pass, octave and double-octave sine partials '
                'and a glint on the kit bell partials, phase-locked; D4 to Bb5, high-passed at 150 Hz'),
-    Item('Loops', 'GlassPluckPhrase', 'loop', pluck_phrase, loop=True, sets=('r2',),
+    Item('Loops', 'GlassPluckPhrase', 'loop', pluck_phrase, loop=True, sets=('r2', 'r3'),
          qa={'mud': 'lowcut', 'why': 'a lead loop: the low cut, like the lead'},
          about='the signature phrase: 2 bars of the glass pluck in G minor at 128 BPM on the kit swing; D5 up to F5, '
                'down to Bb4 and G4, then the answer reaching G5 and falling through Eb5 to an open A4'),

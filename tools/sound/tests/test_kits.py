@@ -120,9 +120,14 @@ def kick(take):
 
 class TestKitDna(unittest.TestCase):
     def test_four_kits_one_per_direction(self):
+        """Four kits, each in one of the known directions and no two in the same one. A direction may have no kit:
+        round 4 moved FUT03 from hyper-clean future house to garage-house, and the old direction's club targets and
+        extended-mix form stay valid (and tested) for a kit that takes it up again."""
         mods = modules()
         self.assertEqual(['FUT01', 'FUT02', 'FUT03', 'FUT04'], kits.names())
-        self.assertEqual(sorted(kits.DIRECTIONS), sorted(m.DIRECTION for m in mods.values()))
+        directions = [m.DIRECTION for m in mods.values()]
+        self.assertEqual(len(directions), len(set(directions)))
+        self.assertLessEqual(set(directions), set(kits.DIRECTIONS))
         self.assertEqual({'FUT01': 134.0, 'FUT02': 130.0, 'FUT03': 128.0, 'FUT04': 136.0},
                          {k: m.BPM for k, m in mods.items()})
 

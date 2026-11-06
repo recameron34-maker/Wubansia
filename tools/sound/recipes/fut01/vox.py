@@ -1,5 +1,5 @@
-"""FUT01 vocals: round 2's three sung candidate lines and the six chops cut from the pick, the round 1 sung phrase
-and its chops (set s1a only), and a robot phrase on the 16th grid (both rounds).
+"""FUT01 vocals: round 2's three sung candidate lines and the six chops cut from the pick, round 3's two re-pitched
+hooks, the round 1 sung phrase and its chops (set s1a only), and a robot phrase on the 16th grid (every round).
 
 Every line is original and clean, written for this kit, 2 bars at 134 BPM in F# minor:
 - round 2, three candidates, each title-checked (web search, the exact phrase with "song" and with "lyrics",
@@ -20,6 +20,12 @@ Every line is original and clean, written for this kit, 2 bars at 134 BPM in F# 
   kit (the round 2 loop plays PICK_CHOPS), so these chops and the phrase render in set s1a only, as history;
   chop_onset() gives any chop's note offset, old or new
 - robot: "Boost the signal", one syllable per slice on steps 0, 3, 4 and 6 of a bar, monotone F#3
+
+- round 3, set r3: the r2 lines and chops, byte for byte, and two hooks re-pitched from the pick's chops (HIGH_CHOPS):
+  "me" and "floor" a fifth up, their formants raised a little with them, for the context loop's answer in bar 3 and the
+  double on the throw into the fill. Single words, so no title check, as for the r2 chops; named by their new pitch
+  (ChopMeE5, ChopFloorFs5) rather than "high", since a search (2026-11-04) found "Me High" in titles and "High Me" as
+  a 2026 single
 
 Every file is a WORLD resynthesis at 48 kHz from the features of a 24 kHz Kokoro take in the kit's voice blend (ADR
 0005, D4: hf_synthetic). The chops are cut in the frame domain (vocals.chop): each keeps its onset consonant whole and
@@ -238,11 +244,46 @@ def pick_chop(take):
     return Out(V.polish(V.synth(tr), hp=HP, levels=line_sung(PICK)[1]), splices=(int(np.floor(junction * SR + 0.5)),))
 
 
+# ------------------------------------------------------------------ round 3: re-pitched hooks of the picked line
+# Current garage pitches its chops up for the hook. Each one is a chop of the pick re-pitched in the WORLD frame domain
+# (the f0 track times a ratio, the spectral envelope stretched a little with it, so the voice brightens without going
+# to a cartoon), then polished with the whole line's levels like every chop: a WORLD resynthesis at 48 kHz, never a
+# resample (ADR 0005, D4). (name, the chop it re-pitches, semitones, formant ratio, about)
+HIGH_CHOPS = (
+    ('ChopMeE5', 'ChopMe', 7, 1.06, '"me" a fifth up, E5, held a dotted 8th: the answer in bar 3'),
+    ('ChopFloorFs5', 'ChopFloor', 7, 1.06, '"floor" a fifth up, F#5 falling to E5: the double on the throw'),
+)
+HIGH_BY_NAME = {c[0]: c for c in HIGH_CHOPS}
+
+
+def repitched(track, semitones, formant):
+    """The track sung `semitones` higher: f0 times the ratio (unvoiced frames stay 0) and each frame's spectral
+    envelope stretched by `formant` (as vocals.Sing's formant shift), so its formants rise with the voice."""
+    k = np.arange(track.sp.shape[1], dtype=float)
+    sp = np.stack([np.interp(k / formant, k, row) for row in track.sp])
+    return replace(track, f0=track.f0 * 2.0 ** (semitones / 12.0), sp=sp)
+
+
+def high_cut(name):
+    """A re-pitched chop's frames: (track, junction seconds), the junction where its breath tail starts."""
+    _, chop_name, semis, formant, _ = HIGH_BY_NAME[name]
+    tr, junction = pick_cut(chop_name)
+    return repitched(tr, semis, formant), junction
+
+
+def high_chop(take):
+    """A re-pitched chop of the picked line, polished with the whole line's levels; its tail's junction logged."""
+    tr, junction = high_cut(take.item.name)
+    return Out(V.polish(V.synth(tr), hp=HP, levels=line_sung(PICK)[1]), splices=(int(np.floor(junction * SR + 0.5)),))
+
+
 def chop_onset(name):
     """Seconds from the start of a chop's file to its note (where the beat falls, after the onset consonant), for any
     chop here: round 1's (CHOPS) or the pick's (PICK_CHOPS). Needs the vocal models."""
     if name in PICK_CHOP_BY_NAME:
         return float(pick_cut(name)[0].events[0]['t_on'])
+    if name in HIGH_BY_NAME:
+        return float(high_cut(name)[0].events[0]['t_on'])
     _, first, last, _, _ = CHOP_BY_NAME[name]
     return float(V.chop(sung_track(), first, last)[0].events[0]['t_on'])
 
@@ -334,19 +375,24 @@ ITEMS = [
     for name, first, last, word, about in CHOPS
 ] + [
     Item('Vox', ln.name, 'vox', sung_whole, root=ln.notes[0][2], level=-18.0, flags=VOX, qa=WHY,
-         tags=('clean', 'dry', 'sung'), sets=('r2',), script=ln.text,
+         tags=('clean', 'dry', 'sung'), sets=('r2', 'r3', 'r4'), script=ln.text,
          about=f'candidate line {ln.name[-1]}{" (the pick: the chops come from it)" if ln.name == PICK else ""}, '
                f'dry: "{ln.text}", F# minor, on the kit swing: {ln.about}')
     for ln in LINES
 ] + [
     Item('Vox', name, 'vox', pick_chop, root=root, level=-18.0, flags=VOX, qa=WHY, tags=('clean', 'chop', 'sung'),
-         sets=('r2',), script=words, about=f'sung chop {about}, cut from "{LINE_BY_NAME[PICK].text}"')
+         sets=('r2', 'r3', 'r4'), script=words, about=f'sung chop {about}, cut from "{LINE_BY_NAME[PICK].text}"')
     for name, first, last, words, root, about in PICK_CHOPS
 ] + [
+    Item('Vox', name, 'vox', high_chop, root=PICK_CHOP_BY_NAME[chop][4] + semis, level=-18.0, flags=VOX, qa=WHY,
+         tags=('clean', 'chop', 'sung'), sets=('r3', 'r4'), script=PICK_CHOP_BY_NAME[chop][3],
+         about=f'sung chop {about}, re-pitched in WORLD from {chop} of "{LINE_BY_NAME[PICK].text}"')
+    for name, chop, semis, formant, about in HIGH_CHOPS
+] + [
     Item('Vox', 'RobotBoost', 'vox', robot_dry, root=ROBOT_NOTE, level=-18.0, flags=VOX, qa=WHY,
-         tags=('clean', 'dry', 'robot'), sets=('s1a', 'r2'), script=ROBOT,
+         tags=('clean', 'dry', 'robot'), sets=('s1a', 'r2', 'r3', 'r4'), script=ROBOT,
          about=f'robot phrase "{ROBOT}" on the 16th grid at 134 BPM, dry; {SLICE_NOTE}'),
     Item('Vox', 'RobotBoostWet', 'vox', robot_wet, root=ROBOT_NOTE, level=-16.0, flags=VOX, qa=WHY,
-         tags=('clean', 'wet', 'robot'), sets=('s1a', 'r2'), script=ROBOT,
+         tags=('clean', 'wet', 'robot'), sets=('s1a', 'r2', 'r3', 'r4'), script=ROBOT,
          about=f'robot phrase "{ROBOT}", wet: the kit space and a barber-pole echo; {SLICE_NOTE}'),
 ]

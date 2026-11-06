@@ -67,7 +67,7 @@ def pling(take):
 
 
 ITEMS = [
-    Item('Perc', 'MetalPling', 'perc', pling, layers=PLING_LAYERS, rr=2, notes=PLING_NOTES, sets=('r2',),
+    Item('Perc', 'MetalPling', 'perc', pling, layers=PLING_LAYERS, rr=2, notes=PLING_NOTES, sets=('r2', 'r3'),
          about='metal pling: a struck glass bell on the kit ratios (its low modes a minor triad), an FM "pl" and a '
                'tick; zones G4 C5 D5 G5, each ringing a chord in G minor'),
 ]

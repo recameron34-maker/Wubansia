@@ -42,7 +42,8 @@ class Todo:
 TODO = Todo()
 DNA = ('KIT', 'TITLE', 'DIRECTION', 'BPM', 'KEY', 'CAMELOT', 'SCALE', 'ROOT', 'KICK_NOTE', 'RATIOS', 'VOICE',
        'SPACE_SEED', 'SWING', 'GROOVE', 'RECIPES')
-DIRECTIONS = ('sci-fi club', 'future garage / 2-step', 'hyper-clean future house', 'dark industrial / techno')
+DIRECTIONS = ('sci-fi club', 'future garage / 2-step', 'hyper-clean future house', 'dark industrial / techno',
+              'garage-house / deep tech house')
 BPM_RANGE = (128.0, 140.0)
 SWING_RANGE = (0.5, 0.75)
 KICK_RANGE = (24, 40)        # C1 (32.7 Hz) to E2 (82.4 Hz)

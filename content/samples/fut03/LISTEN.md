@@ -1,153 +1,143 @@
-# FUT03 "Glass Current": round 2 first listen
+# FUT03 "Glass Current": round 5, a wordless vox synth and the accents in the loops
 
-Glass Current is a hyper-clean future house kit at 128 BPM in G minor (6A): a split kick, a bouncy metallic bass that dips in pitch on every note, a supersaw Gm9 stab pumped by the kick, and a bright glass pluck up front. Every metallic sound rings on one tuned glass bell whose lowest partials form a minor chord, so the plings, the hats, the clap's tone, the kick's click and the fill's toms all sit in the key.
+Written for the kit's render folder (`build/fut03-r5`, from `render.py --kit FUT03 --set r5`), which holds the FLAC masters, `qa/`, `sheets/`, `qa_report.md`, `qa_report.json` and `listen.json` this page names; its copy in `content/samples/fut03/` sits beside the WAVs alone.
 
-Nobody has listened to these yet. Every number below is a measurement, not a judgement of the sound.
+Round 5 answers what you said after round 4: "sounds are very good, vocals suck, either ditch or rethink, need those cool accent synths". So:
+- **every round 4 sound that is not a vocal is kept byte for byte**: 40 items, 160 files, each with the same SHA-256 as in `build/fut03-r4`;
+- **the text-to-speech vocals are gone**: the vocal hook, the three ear-candy chops, and round 4's four context loops that played them;
+- **a wordless vox synth (sound 9) and its riff (sound 10) take their place**: synthesis only, no words, no speech engine, no models;
+- **the round 4 accent synths play in the loops**, as ear candy;
+- **two club loops to compare**: with the vox synth, and without it.
 
-## What's here
+The kit's DNA is round 4's: 128 BPM, G minor (6A), swing 0.56, garage-house / deep tech house. `--set r4` still renders round 4 exactly; round 5's new behaviour lives in new items with new names.
 
-| Folder | What |
-|---|---|
-| `Drums/`, `Bass/`, `Music/`, `Vox/`, `FX/`, `Loops/` | WAV copies to listen to: 153 files, 48 kHz / 24-bit, the same samples as the masters. `v1` is the softest velocity layer, `rr` the round robin |
-| `FUT03_*.flac` | The 153 masters, named as the kit will ship them |
-| `qa/` | The four-on-the-floor loops the kick and the vowel-bass mud checks ran on |
-| `sheets/` | One spectrogram sheet per instrument |
-| `qa_report.md`, `qa_report.json` | Every QA check with its number, every exception with its reason, the render environment, and the wet loop's send settings |
-| `listen.json` | The clips for the round 2 listening page |
+**Nobody has listened to round 5.** Every number below is a measurement made in this session. None of it says how the kit sounds.
 
-Start with `Loops/Context Loop.wav` and `Loops/Context Loop Warm.wav`, on loop. Then go through the sounds one by one.
+## Start here
 
-## The 12 sounds
+Play the A/B first:
+- `Loops/Context Loop Vox Club.wav`: the loop with the vox synth riff, through the club master;
+- `Loops/Context Loop No Vox Club.wav`: the same loop instrumental, the accents carrying the top.
 
-| # | Sound | Files | A/B |
+Then the vox synth's chops and multisample (`Vox/`), the riff (`Loops/Phrase Vox Riff.wav`), the wet and dry loops, and the low end.
+
+| Club master | Vox synth | No vox | Target (garage-house / deep tech house) |
 |---|---|---|---|
-| 1 | Kick, split, on G1 | `Drums/Kick Split` (5 layers × 2 round robins); `Loops/Drum Loop` (with the clap and hats); `qa/FUT03_Drums_KickSplit_4x4.flac` (alone, the QA groove: beats 2 and 4 a layer softer) | |
-| 2 | Clap | `Drums/Clap` (5 × 2); `Loops/Drum Loop` (with the kick and hats, 2 bars) | |
-| 3 | Hats | `Drums/Closed Hat`, `Drums/Open Hat` (5 × 3 each); `Loops/Hat Loop` (2 bars on the swing) | |
-| 4 | Metal pling | `Drums/Metal Pling G4`, `C5`, `D5`, `G5` (5 × 2 each) | |
-| 5 | Dip bass and its bassline | `Loops/Line Bounce Clean` / `Warm` (the pick), `Loops/Line Roll Clean` / `Warm`; `Bass/Dip Bass Clean` / `Warm` `G1`, `D2`, `G2` (2 layers, 1 s loops) | **A Clean / B Warm** |
-| 6 | Vowel bass | `Bass/Vowel Bass Talk Clean G1` / `Warm G1`, `Bass/Vowel Bass Rise Clean G1` / `Warm G1` (2 beats each) | **A Clean / B Warm** |
-| 7 | Chord stab, Gm9 | `Music/Stab Gm9` (3 × 2); `Loops/Stab Pump` (2 bars, pumped) | |
-| 8 | Glass pluck and its phrase | `Loops/Glass Pluck Phrase` (2 bars); `Music/Glass Pluck D4` … `A#5` (2 layers) | |
-| 9 | Sung chops | `Vox/Sung Line 1` ("Ride the current with me", the pick) and its 7 chops (`Vox/Chop …`); `Vox/Sung Line 2`, `Vox/Sung Line 3`, the other candidates | |
-| 10 | Vocoder phrase | `Vox/Vocoder Drop` ("Let the glass drop", dry), `Vox/Vocoder Drop Wet` | dry / wet |
-| 11 | Build fill | `FX/Build Fill` (1 bar, ends on the downbeat); `Loops/Fill Preview` (a bar of groove, then the fill) | |
-| 12 | Riser and impact | `FX/Riser` (8 bars, ends on the downbeat), `FX/Impact` (the hit on that downbeat) | |
+| Loudness, LUFS-I (round the loop) | -9.23 | -9.18 | -8.5 ± 1 |
+| True peak | -1.02 dBTP | -1.02 dBTP | ≤ -1.0 |
+| PLR / PSR | 8.21 / 7.84 dB | 8.16 / 8.01 dB | ≥ 7.0 |
+| Octaves re 1 kHz: sub, 125, 250, 500, 2k, 4k, 8k, 16k | +10.2, +1.7, +2.3, +1.7, -2.5, -4.8, -5.4, -10.2 | +11.3, +2.8, +3.5, +2.4, -2.8, -4.7, -4.1, -9.0 | every one inside its window; the closest 0.17 dB (vox) and 0.07 dB (no vox) inside |
+| Side over mid at 125 / 250 Hz | -41.5 / -12.0 dB | -41.6 / -12.1 dB | ≤ -10 |
+| Side under 120 Hz | -54.7 dB | -55.7 dB | ≤ -20 |
+| Peak reduction (clipper + limiter) | 4.5 dB (3.3 / 1.2) | 4.5 dB (3.3 / 1.2) | round 4's declared cap, 4.5 |
+| Crest per kick in the club loop | lowest 5.38, median 6.15 dB | lowest 5.31, median 5.86 dB | ≥ 4.0 |
+| What the master costs the hits (median crest loss) | kicks 0.79, claps 1.07 dB | kicks 1.03, claps 1.25 dB | ≤ 1.5 |
 
-## What changed after the first build's review
+The cap is round 4's, declared on both club loops with round 4's reason (`club_max_reduction_db`). Both loops now have room under the crest-loss limit (round 4's claps sat exactly on it, 1.50).
 
-- **The basslines sit on their notes.** The sub used to dip with the voice, 1-3 semitones flat for most of every short note. Now, in each gap between two kicks, one sine holds the written notes, gliding 15 ms into each. Only the metallic bite (and B's body) dips, for 38 ms, and not at all on the ghosts. Every held note now has 73-100% of its sub within 30 cents of its pitch; before it was 0-59%.
-- **A and B play the same bassline.** A used to play every note above Bb1 an octave down in the sub. The A/B is now the low mids only.
-- **Each bar of a line holds one note** from the "e" to just before the next kick (270 ms).
-- **The vowel bass comes as A and B too.** A is the old design, with the vowels lifted above 1.5 kHz, so it loses their first formants. B keeps them from 370 Hz, over a sub that sings the syllables' notes. Both now speak around the kick on beat 2 instead of over it.
-- **The stab is voiced in thirds** (G3 Bb3 D4 F4 A4). The ninth no longer sits a semitone under the third.
-- **The fill's toms ring only partials in the key.** The Bb and F toms rang a Db and an Ab.
-- **The hats are tuned to G7**, so their carriers ring Bb, D and G.
-- **The vocoder sings in the kit's one voice blend**, a new take chosen with Whisper.
+## The sounds
 
-## The context loop
+| # | Sound | Round 5 | Files |
+|---|---|---|---|
+| 1 | Deep kick on G1 | unchanged | `Drums/Kick Deep` |
+| 2 | Clap and snare | unchanged | `Drums/Clap Snare` |
+| 3 | Hats and shaker | unchanged | `Drums/Closed Hat Deep`, `Drums/Open Hat Deep`, `Drums/Shaker Deep`, `Loops/Drum Loop` |
+| 4 | Congas, bongos and rim | unchanged | `Drums/Conga …`, `Drums/Bongo …`, `Drums/Rimshot`, `Loops/Perc Loop` |
+| 5 | Rubber bass and its lines (A/B) | unchanged | `Bass/Rubber Bass …`, `Loops/Line Rubber …`, `Loops/Line Deep …` |
+| 6 | Deep sub | unchanged | `Bass/Sub Deep G1`, `D2`, `G2` |
+| 7 | Dub stab, Gm9 | unchanged | `Music/Dub Stab Gm9`, `Loops/Dub Chord Loop` |
+| 8 | Warm pad bed | unchanged | `Music/Pad Warm` |
+| 9 | **Vox synth** | **new**, replaces the vocal hook | `Vox/Vox Synth …`, `Vox/Vox Chop …` |
+| 10 | **Vox synth riff** | **new**, replaces the ear-candy chops | `Loops/Phrase Vox Riff` |
+| 11 | Build fill | unchanged | `FX/Build Fill`, `Loops/Fill Preview` |
+| 12 | Riser and impact | unchanged | `FX/Riser`, `FX/Impact` |
+| 13 | Synth accents | unchanged, now in the loops | `Music/Accent …`, `Drums/Accent …`, `Bass/Accent Rubber Stab G1`, `FX/Accent …` |
+| 14 | Synth phrases | unchanged | `Loops/Phrase …`, `Music/Keys EP …` |
 
-`Loops/`, 4 bars, 7.5 s, loops seamlessly. It is original, written for this kit:
-- **Rhythm:**
-  - the kick on every beat, every hit the same full layer (it was strong-weak);
-  - the clap on 2 and 4;
-  - open hats on the offbeats, choked by closed 16ths.
-- **Bass and chords:** the bounce bassline rests on every kick and answers in the gaps. The Gm9 stab pushes on the off-beats only, pumped 9 dB by each kick; its hits on the kick were swallowed by the pump.
-- **Lead and voice:** the pluck plays its phrase up front in bars 1–2. In bars 3–4 the voice and the pluck trade half bars: the chop "ride the current", then the pluck; the robot "let the glass drop", then the pluck leading back to the top.
-- **Extras:**
-  - the vowel bass answers once (bar 2, beats 3–4);
-  - the pling rings on the "and" of 3 in every bar;
-  - the build fill's second half (its 16ths and 32nds) takes bar 4 into the downbeat, after the robot's first three words.
-- **Swing:** every lane swings its odd 16ths by the same 7 ms (swing 0.53).
+"Unchanged" means the same bytes as round 4. The round 4 vocals (`Vox Hook`, `Candy …`) and loops (`Context Loop`, `Context Loop Club`, `Warm`, `Wet`) stay in the `r4` set, not in this folder.
 
-The files:
-- `Context Loop`: dry, both basses A (Clean).
-- `Context Loop Warm`: dry, both basses B (Warm). The A and B lanes are level-matched, so the A/B is fair.
-- `Context Loop Wet`: B, plus the three sends:
-  - Space, a reverb with a little shimmer, ducked under the vocals;
-  - Echo, a tape ping-pong on a dotted 8th;
-  - the resonator stand-in, ringing Gm9's own notes on the kit's bell partials.
+## What is new
 
-  The Space and Echo returns pump with the kick. **This is the target the engine's sends must match** (S1e); its settings are in `qa_report.json`.
-- `Context Loop Low`: the kick and both A basses alone, the mud-gated low end. `Context Loop Low Warm` is the same with both B basses, checked under the bass-body rule.
+**9. Vox synth (`VoxSynth`, `VoxChop…`)**
+- A formant voice built from synthesis alone (`recipes/fut03/voxsynth.py`):
+  - the source is glottal-like, every harmonic of the sung pitch up to 16 kHz (band-limited at any pitch), with a breathy spectral tilt that velocity brightens;
+  - five formants glide from "ooh" (330, 800, 2350 Hz) to "aah" (760, 1150, 2550 Hz), set a little under an average adult's for depth;
+  - a breath layer, noise pulsed with the glottal cycle, runs through the same formants;
+  - a soft consonant onset: a breath puff 25 ms before the note and the lips opening from a "w" over 50 ms, so it speaks "hw-ooh";
+  - a 40-cent scoop up into each note, gentle delayed vibrato (5 Hz), slow drift, jitter and a little shimmer;
+  - a slight double: two voices 8 cents either side, each with its own vibrato, panned apart;
+  - a vocal chain's presence (+8 dB at 3.3 kHz) and air, and a high-pass at 280 Hz, so it sits above the low mids.
+- **The multisample** (`Vox Synth G3 / D4 / G4 / D5`, two layers): each note opens from "ooh" to "aah" over half a second, holds with vibrato and closes a little as it fades. It is dry. Every zone plays at one loudness; the soft layer is 6 dB down, breathier and darker. Tuning is within 2.3 cents on every file.
+- **Four chops**, each through a low-pass that opens over the chop and the kit's dotted-8th dub echo:
+  - `Vox Chop Ooh Ah G4`: a beat long;
+  - `Vox Chop Ooh Ah C5`: an 8th;
+  - `Vox Chop Ah D5`: an open "aah", a dotted 8th, the brightest;
+  - `Vox Chop Stack Gm7`: G4 Bb4 D5 F5 at once.
+  The single chops read within 3 cents of their roots.
 
-## The bass A/B
+**10. Vox synth riff (`PhraseVoxRiff`)**
+- Two bars of off-beat chops on the kit's swing, every chop on an "and" or a swung 16th, none on a kick:
+  - bar 1, over Gm9: D5, Bb4, D5, F5 (the F on the swung "e" of 4);
+  - bar 2, over Cm9: Eb5, Bb4, C5, then G4 on the "and" of 4, thrown into the dub echo.
+- Each chop's low-pass opens as it plays, and the whole riff rides from closed (1.2-3.5 kHz) to open (3-9 kHz) and back over the two bars.
+- A light dotted-8th echo on every chop; the throw on the last gives seven repeats, darkening, that run into bar 1.
+- It is also MIDI: `FUT03_Phrase_VoxSynth_2bars.mid`, on channel 4.
 
-The dip bass is a mono sine sub under a bright metallic bite from 480 Hz. A held note (the `Bass/` multisamples) dips 2.2–3 semitones and springs back within 90 ms. In the lines the sub holds each note's pitch and only the bite (and B's body) dips, for 38 ms. A and B share the sub, the bite and the notes:
-- **A, Clean** keeps 150–400 Hz empty: the strict mud gate.
-- **B, Warm** adds a steady body from 120 Hz, the voice at rest, starting 10 ms after the sub. It is held to the proposed bass-body rule (ADR 0011).
+**The loops (`recipes/fut03/context5.py`)**
+- Every round 4 lane plays exactly as it did: the drums, the perc, the bass, the stab, the pad, their faders, pans, sends, buses and pumps.
+- **Vox synth** (`Context Loop Vox …`):
+  - the riff answers in bars 3-4, where round 4's hook was, through the vocal bus's compressor;
+  - its throw echoes into bar 1 as the loop comes round;
+  - the vocal bus EQ is round 4's, with 1.5 dB more cut at 950 Hz and 1 dB more lift at 2.8 kHz (the "aah" sits on 1 kHz);
+  - the plate ducks under the riff, as it did under the hook.
+- **Accents**, on one lane, high-passed at 300 Hz with +4 dB at 3.5 kHz. The lane reads -23.3 LUFS, 9 dB under the kick's and 2.3 dB under round 4's ear candy:
+  - the glass ping on the "and" of 4 in bar 1;
+  - the Cm9 dub chord on the "and" of 4 in bar 2, its echoes leading into the riff;
+  - vox synth loop: the reversed Gm9 swelling into bar 1;
+  - no vox loop: the Gm7 organ hit on the "and" of 4 in bar 3, where the riff would be, and the noise sweep into the loop's end instead of the reversed chord.
+- **No vox** (`Context Loop No Vox …`): the same loop with no vox lane at all.
+- The low end (kick and bass) is round 4's, so `Context Loop Low` and `Context Loop Low Warm` are round 4's files.
 
-**What B changes.** At the same loudness, B has 8.6 dB more in 120–480 Hz and its bite is 0.7 dB quieter. So B is fuller and darker, but not louder on small speakers. Through a phone-like 200 Hz high-pass its bass reads 0.1 LU over A's, and through a laptop-like 150 Hz one 0.4 LU. The full loops differ by under 0.1 LU.
+## The A/Bs left for you
 
-The context loop uses the designer's pick of line, **Bounce**:
-- G1 on the offbeats with an octave pop;
-- the fifth held from the "e" of beat 3;
-- the seventh and back;
-- the motif back varied in bar 2, with a held F2 that slides to D2.
-
-The wet loop uses **B, Warm**, my pick for its body in the low mids. It's a pick, not a verdict: the dry pair is there for you to decide.
+1. **Vox synth or no vox.** Both club loops are mastered the same way and sit within 0.05 LU of each other.
+2. **Bass A (clean) or B (warm)**, in the dry loops (`Context Loop Vox` A, `Context Loop Vox Warm` B; the same for No Vox).
+   - They play at one loudness. This time B reads louder at its own peak, so B comes down to A: -12.38 LUFS-I (vox synth), -12.75 (no vox).
+   - The wet loops and the club masters play B, round 4's pick.
+3. **The master's cap:** 4.5 dB (round 4's), or the standard's 4.
 
 ## What to listen for
 
-- **Kick:** tight and clean, not "slamming the limiter". Its hardest layer's crest is 6.02–6.36 dB, in round 1's Split range (5.8–6.4) and well under Tight's 7.9. Soft layers should be darker, not just quieter.
-- **Bass:** does A or B make you want to dance?
-  - Do the notes and the octave pops sound in tune, with a bounce on each note?
-  - Listen on small speakers too: B should sound fuller there, not louder.
-  - Check B against the kick in `Context Loop Low Warm`: no boom, no mud.
-- **Vowel bass:** clear vowels and a gesture, not a texture. Does B's fuller "oo" and "ah" read better than A's?
-- **Pluck and phrase:** the signature element. Is it as good as round 1's chrome pluck, and does the phrase stick?
-- **Chops and robot:** is "Ride the current with me" a natural club line? Are "let the glass drop" and its slices clear?
-  - Every vocal is Kokoro speech resynthesised with WORLD at 48 kHz, so its top band above 12 kHz is synthetic.
-  - The lines are original and clean; a web search found no song or lyric with these exact phrases.
-- **Mud:** the low end should stay clean in mono and at about 80 dB SPL. Try `Context Loop Low`.
-- **Fill and riser:** each should be a clear gesture that lands on the downbeat.
-- **Wet loop:** is it too wet, too dry, or too much shimmer? Does the resonator help the hats and plings sit in the chord, or does it ring?
-- **One kit?** Do all of these sound like one family?
+- **The vox synth.** Does it sound like a cool vocal-synth chop or a fake singer? Is it deep and breathy enough, and does the "hw" onset help or sound like a click?
+- **The riff.** Is it hypnotic? Does the throw at the end of bar 4 lead back into the loop, or smear the downbeat?
+- **The accents.** Do they sit like a record's ear candy, or poke out over the drums? Would you want more of them, or other ones?
+- **Vox synth or no vox.** Which loop would you rather build on?
+- **Mud.** The vox synth is high-passed at 280 Hz; listen once in mono at a moderate level.
 
-## The round 2 gate
+## QA
 
-Per kit, as in S1a. A sound is **kept** only with **Cool ≥ 4** (1–5). The kit passes with all three:
-- at least **8 of the 12 sounds kept** after one fix round;
-- a **median Cool ≥ 4**;
-- **"one kit?" yes** on at least 10.
+- **The render:** 54 items and 181 files, **0 failed checks** (`qa_report.md`).
+- **Reproducible:** every item rendered a second time in a fresh process (`--repro`) gave the same SHA-256, all 54.
+- **The same bytes as round 4:** all 160 files of the 40 continuing items.
+- **Exceptions**, each declared with its reason in `qa_report.md`:
+  - round 4's, unchanged;
+  - the club master's 4.5 dB cap on both new club loops;
+  - the vox synth multisample's alias check is off: its breath and its double sit between the harmonics by design. Its tuning check stays on (±3 cents).
+- **No models:** no item in the set is text-to-speech, sings a script or carries the TTS flag, and the vox synth renders with every model loader blocked (`test_fut03_round5`).
+- **Tests:** `tools/sound/tests/test_fut03_round5.py`, 16 tests:
+  - the set: round 4 without the TTS vocals, plus the new items; round 4's set unchanged;
+  - no TTS item, and nothing that needs the models;
+  - the vox synth is wordless;
+  - the multisample, the chops and the riff are in G minor on their stated roots, the riff on chord tones off the beat, and the MIDI phrase carries the riff's notes;
+  - the instrumental loop has no vox lane, and both club loops have 2-4 accents;
+  - the club master's cap, the dry A/B loudness, round 4's lanes kept, no artist names.
 
-## Numbers that matter
+## MIDI
 
-All 42 items and 153 files pass every check (`qa_report.md`). The figures below are the worst file of each item, against its limit.
-
-| Check | Result | Limit |
-|---|---|---|
-| Kick crest, top layer (rr1 / rr2) | 6.02 / 6.36 dB | ≥ 4.0 (Split read 5.8–6.4, Tight 7.9–8.9) |
-| Kick mud gate: 150–400 Hz fall, vs the sub after 80 ms, share, 400 Hz–1 kHz fall | 29 ms, −90 dB, −14.8 dB, 18 ms | 120 ms, −20, −12, 150 ms |
-| Kick, four on the floor: gaps vs sub / before each hit | −51.3 / −56.0 dB | −20 / −30 |
-| Bass A lines, Bounce / Roll: gaps vs sub; before each kick | −22.7 / −22.8; −48.8 / −39.8 dB | −20; −30 |
-| Bass B lines, Bounce / Roll: gaps vs sub; over a saw; share; under the kick | −8.4 / −8.7; +0.4 / +0.7; −12.5 / −12.7; −88 / −91 dB (the bass rests) | −2; +5; −5; −4 |
-| Every line again after one more 20 Hz high-pass (a DAW's or the engine's): worst gap, A / B | −22.5 / −8.3 dB | −20 / −2 |
-| Bass lines: each held note's sub within 30 cents of its written pitch | 73–100 % of its energy (it was 0–59 %) | ≥ 70 % (a kit test) |
-| Bass B notes (G1 D2 G2): vs sub, over a saw, share | −5.6, +3.8, −9.9 dB | −2, +5, −5 |
-| Vowel bass A, Talk / Rise: groove loop before each hit | −31.4 / −31.4 dB | −30 (a thin margin) |
-| Vowel bass B, Talk / Rise: vs sub; over a saw; share; groove gaps; before each hit | −10.6 / −3.9; −1.8 / −19.3; −20.3 / −13.1; −13.2 / −7.1; −35.7 / −37.3 dB | −2; +5; −5; −2; −30 |
-| Context loop low end, A (strict gate): gaps vs sub, before each kick, share | −22.7, −55.6, −16.6 dB | −20, −30, −12 |
-| Context loop low end, B (bass-body): gaps vs sub, before each kick, share, over a saw | −7.7, −44.5, −14.1, −3.8 dB | −2, −30, −5, +5 |
-
-- **Same bytes:**
-  - Every item rendered a second time in a fresh process (`--repro`) matched, all 42.
-  - A second full render matched on all 153 masters and the 5 `qa/` loops, vocals included, on this machine. Both hash lists are kept with the fix's notes.
-  - The 98 masters this fix didn't touch are byte-identical to the first build: the kick, clap, pling, pluck and its phrase, the sung lines and chops, the bass multisamples, the riser and the impact.
-- **Exceptions, each with its reason in `qa_report.md`:**
-  - the B basses, the B vowel shots and `Context Loop Low Warm` use bass-body;
-  - the full context loops and the two drum previews switch the mud rule off: the clap, vocals, stab and fill belong in the low mids, and their low end is gated as `Context Loop Low` and `Context Loop Low Warm`;
-  - the fill and the riser are end-aligned (`cut_end`);
-  - the vowel shots skip the alias check (`tonal` off);
-  - the vocals are `hf_synthetic`.
+`content/midi/fut03/` is re-exported. The one new file is `FUT03_Phrase_VoxSynth_2bars.mid`, the riff on channel 4 (play it on the Vox Synth multisample, zones G3 D4 G4 D5); the README lists it. The extended mix's README points its Vox cues at the vox synth now; every other file is unchanged. Nothing has been opened in a DAW.
 
 ## Not verified
 
-- How any of it sounds: nobody has heard it.
-- The balance in the loops was set from measured loudness, not by ear:
-  - the bass and the vowel bass about 2 LU under the kick;
-  - the pluck as loud as the bass;
-  - the chop and the robot about 1 LU under the kick;
-  - the hats 11 LU down.
-- Whisper is only a proxy for the words in the loop. It hears "let the glass drop" word for word in 6 of 9 windows of the A loop and 9 of 9 of the B loop; before the fix it was 1 of 9. "Ride the current" is heard whole alone, but in the loop mostly as "right the current", in either character.
-- The vocal masters' bytes depend on this machine's onnxruntime kernels (ADR 0007). They are hashed per render environment.
+- **How any of it sounds.** Nobody has listened to round 5: not the vox synth, the riff, the accents in the loops, or the A/B.
+- **The judgement calls behind the numbers:** the formant values, the vibrato and breath levels, the accent levels and places, the vocal bus EQ, and the genre's octave windows (conventions, not measured club records).
+- **The no vox club loop's octave balance** is 0.07 dB inside its window at its closest. It passes, with little to spare.

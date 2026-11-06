@@ -1,5 +1,6 @@
-"""FUT03 "Glass Current": its DNA as briefed (docs/plans/S1-four-kits.md), and the fields kits.problems() can't check
-(the derivation of RATIOS, the voice pool, one voice blend)."""
+"""FUT03 "Glass Current": its DNA as briefed (docs/plans/S1-four-kits.md; round 4 moved it to garage-house and deep tech
+house at swing 0.56), and the fields kits.problems() can't check (the derivation of RATIOS, the voice pool, one voice
+blend)."""
 import math
 import unittest
 
@@ -23,7 +24,8 @@ class TestFut03Dna(unittest.TestCase):
         self.assertEqual(('G minor', '6A', 128.0, '4x4'), (k.KEY, k.CAMELOT, k.BPM, k.GROOVE))
         self.assertEqual((43, 31), (k.ROOT, k.KICK_NOTE))           # G2 and G1: the kick on the tonic
         self.assertAlmostEqual(49.0, 440 * 2 ** ((k.KICK_NOTE - 69) / 12), places=1)
-        self.assertEqual(0.53, k.SWING)
+        self.assertEqual(0.56, k.SWING)                          # round 4's garage-house shuffle (rounds 1-3: 0.53)
+        self.assertEqual('garage-house / deep tech house', k.DIRECTION)
         self.assertEqual([], kits.problems(k))
 
     def test_ratios_are_a_tuned_glass_bell(self):

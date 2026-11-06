@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "id": "FUT03",
+  "name": "Glass Current",
+  "direction": "hyper-clean future house",
+  "bpm": 128,
+  "key": { "tonic": 7, "mode": "minor", "name": "G minor", "camelot": "6A" },
+  "swing": 530,
+  "style": "futurehouse",
+  "feel": "futurehouse",
+  "lanes": {
+    "kick": { "track": "Kick", "channel": 9, "notes": { "kick": 36 } },
+    "snare": { "track": "Clap + Snare", "channel": 9, "notes": { "clap": 39, "snare": 38, "ghost": 39 } },
+    "hats": { "track": "Hats", "channel": 9, "notes": { "closed": 42, "open": 46 } },
+    "shaker": { "track": "Shaker", "channel": 9, "notes": { "shaker": 54 } },
+    "perc": { "track": "Metal Pling", "channel": 9, "notes": { "pling": 47, "pling2": 48 } },
+    "bass": { "track": "Bass Bounce", "channel": 1, "range": [29, 55], "root": 31 },
+    "chords": { "track": "Stabs + Pad", "channel": 2, "range": [43, 86] }
+  }
+}

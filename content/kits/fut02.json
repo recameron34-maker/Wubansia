@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "id": "FUT02",
+  "name": "Orbit Relay",
+  "direction": "sci-fi club",
+  "bpm": 130,
+  "key": { "tonic": 2, "mode": "minor", "name": "D minor", "camelot": "7A" },
+  "swing": 520,
+  "style": "sciclub",
+  "feel": "sciclub",
+  "lanes": {
+    "kick": { "track": "Kick", "channel": 9, "notes": { "kick": 36 } },
+    "snare": { "track": "Clap + Snare", "channel": 9, "notes": { "clap": 39, "snare": 38, "ghost": 39 } },
+    "hats": { "track": "Hats", "channel": 9, "notes": { "closed": 42, "open": 46 } },
+    "perc": { "track": "Laser Zap", "channel": 9, "notes": { "zap": 47, "zaplow": 45 } },
+    "bass": { "track": "Bass Roll", "channel": 1, "range": [26, 50], "root": 26 },
+    "chords": { "track": "Pad Starfield", "channel": 2, "range": [48, 86] },
+    "arp": { "track": "Arp Chrome", "channel": 3, "range": [62, 86] }
+  }
+}

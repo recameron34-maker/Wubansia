@@ -1,0 +1,33 @@
+{
+  "format": 1,
+  "id": "sciclub",
+  "about": "Sci-fi club feel: a tight four-on-the-floor kick and clap, the snare layer 1-3 ticks ahead of the clap, the rolling bass straight (0-1 ticks) and locked to the kick, the arp a touch swung (6-8) with its own 1/f drift, hats swung more (13-15, 14-17 in the second drop), laser perc most (16-20), the pad almost straight (2-5). The bass, arp and hats sit in tiers at least 5 ticks apart, so the drift never merges their swings. Swing ranges are permille relative to the kit's swing; sd values are tenths of a tick (1/f), vsd tenths of a velocity step.",
+  "amount": 1000,
+  "anchorClamp": 2,
+  "lanes": {
+    "kick": { "swing": [0, 0], "sd": [6, 10], "clamp": 3, "anchor": 1, "vsd": [8, 12] },
+    "snare": {
+      "swing": [0, 0], "sd": [12, 18], "clamp": 8, "anchor": 1, "vsd": [14, 20],
+      "after": [ { "voice": "snare", "after": "clap", "by": [-3, -1] } ]
+    },
+    "hats": {
+      "swing": [33, 44], "sd": [20, 30], "clamp": 10, "anchor": 0, "vsd": [20, 30],
+      "offset": [0, 0, -1, 1,  0, 0, -1, 1,  0, 0, -1, 1,  0, 0, -1, 2],
+      "vel": [1, -3, 2, 2,  0, -3, 2, 2,  1, -3, 2, 2,  0, -3, 2, 3],
+      "dip": [4, 92]
+    },
+    "perc": { "swing": [48, 62], "sd": [16, 24], "clamp": 10, "anchor": 0, "vsd": [20, 28] },
+    "bass": { "swing": [-20, -14], "sd": [8, 12], "clamp": 5, "anchor": 0, "lock": "kick", "vsd": [14, 20], "artic": 40 },
+    "chords": { "swing": [-10, 0], "sd": [8, 12], "clamp": 6, "anchor": 0, "spread": [0, 3], "vsd": [12, 18], "artic": 30 },
+    "arp": { "swing": [3, 15], "sd": [10, 16], "clamp": 6, "anchor": 0, "vsd": [14, 20], "artic": 60 }
+  },
+  "rows": {
+    "intro": {},
+    "groove": {},
+    "build": { "hats": { "sd": [14, 20] } },
+    "drop": {},
+    "break": { "hats": { "sd": [26, 36] }, "perc": { "sd": [22, 30] }, "chords": { "spread": [2, 4] }, "arp": { "sd": [14, 20] } },
+    "drop2": { "hats": { "swing": [40, 52] } },
+    "outro": {}
+  }
+}

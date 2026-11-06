@@ -24,6 +24,7 @@ import json
 import multiprocessing
 import os
 import platform
+import statistics
 import sys
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
@@ -216,7 +217,8 @@ def qa_item(done, out_dir, kit_mod, repro=None):
     if not it.loop and it.qa.get('loop_check', qa.CATEGORY_RULES[it.category]['loop_check']):
         first = done.takes[0].note
         layers = {t.vel: r['x'] for t, r in zip(done.takes, rows) if t.rr == 1 and t.note == first}
-        loop_checks, loop = qa.check_loop(layers, kit_mod.BPM, qa.GROOVES[kit_mod.GROOVE], mud_mode(it))
+        loop_checks, loop = qa.check_loop(layers, kit_mod.BPM, qa.GROOVES[kit_mod.GROOVE], mud_mode(it),
+                                          choke=bool(it.qa.get('loop_choke')))
         checks += loop_checks
         (out_dir / 'qa').mkdir(exist_ok=True)
         loop_file = f'qa/{kit_mod.KIT}_{it.group}_{it.name}_{kit_mod.GROOVE}.flac'
@@ -295,6 +297,7 @@ def write_reports(out_dir, report):
                 _worst(n, pool) for n in ('mud_150_400_fall', 'mud_vs_sub_after_80ms', 'mud_share', 'box_400_1k_fall',
                                          'loop_mud_vs_sub', 'loop_mud_before_hit')) + ' |')
     md += _rule_tables(report['items'])
+    md += _club_table(report['items'])
     special = [e for e in report['items'] if e['flags'] or e['qa_overrides']]
     if special:
         md += ['', '## Exceptions', '', 'Every flag and every override of a category rule, with its reason.', '',
@@ -343,6 +346,47 @@ def _rule_tables(entries):
         for e in body:
             md.append(f"| {e['group']}/{e['name']} | " + ' | '.join(_worst(n, pools[e['name']]) for n in names) + ' |')
     return md
+
+
+def _club_table(entries):
+    """What each club loop's master did (its report, in the file's metadata): loudness, the cap and the reduction it
+    used, and the crest of the loop's hits, in its input and in the club loop (ADR 0014)."""
+    rows = []
+    for e in entries:
+        for f in e['files'] if 'club' in e['tags'] else ():
+            m = (f.get('meta') or {}).get('master')
+            if not m or m.get('silent'):
+                continue
+            p = m.get('punch') or {}
+            k, c = p.get('kick'), p.get('clap')
+            cap = f"{m['settings']['max_reduction_db']:g}" + (' (declared)' if 'club_max_reduction_db' in
+                                                              e['qa_overrides'] else '')
+            kick = (f"{statistics.median(k['in_db']):.2f} -> {statistics.median(k['out_db']):.2f} "
+                    f"({-k['median_loss_db']:+.2f}; lowest {k['min_out_db']:.2f})" if k else 'not given')
+            clap = (f"{-c['median_loss_db']:+.2f} (in {c['band_hz'][0] / 1000:g}-{c['band_hz'][1] / 1000:g} kHz "
+                    f"{-c['band_median_loss_db']:+.2f})" if c else 'not given')
+            pk = m.get('peaks') or {}
+            away = pk.get('away_from_hits') or []
+            over = 'not given'
+            if pk.get('kick'):
+                over = f"kicks {pk['kick']['max_db']:+.1f}"
+                if away:
+                    over += f", elsewhere {away[0]['db']:+.1f} at {away[0]['s']:.2f} s"
+            out, reduction = m['output'], f"{m['peak_reduction_db']:.2f}"
+            parts = f"{m['clip']['reduction_db']:.2f} / {m['limit']['gr_max_db']:.2f}"
+            rows.append(f"| {e['group']}/{e['name']} | {out['lufs_i']:.2f} | {out['plr']:.2f} | {cap} | "
+                        f"{reduction} ({parts}) | {over} | {kick} | {clap} | {m['latency']['samples']} |")
+    if not rows:
+        return []
+    about = ("What each club loop's master did (ADR 0014, its report in the file's metadata). The cap: "
+             f"{qa.CLUB_MAX_REDUCTION_DB:g} dB unless the item declares its own. Over the knee: how far the driven "
+             "loop goes over the clipper's knee in the kicks' first 30 ms, and at its loudest moment away from every "
+             "hit. "
+             "Crest: ADR 0011's, per hit as the loop plays it: the median over its full-velocity kicks in the master's "
+             'input and the club loop, and the median change of each kick and clap, in to out.')
+    head = ('| Item | LUFS-I | PLR (dB) | Cap (dB) | Peak reduction: clip / limit (dB) '
+            '| Deepest over the clip knee (dB) | Kick crest (dB) | Clap crest change (dB) | Latency (samples) |')
+    return ['', '## Club master', '', about, '', head, '|---|---|---|---|---|---|---|---|---|'] + rows
 
 
 def _env_line(env):

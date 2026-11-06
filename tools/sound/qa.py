@@ -4,7 +4,9 @@ Every check returns a Check: a name, ok (True, False, or None when it doesn't ap
 a short detail. check_take() runs the per-file checks on one sound; check_layers(), check_loop(), check_gains(),
 check_content() and check_transcript() run the per-instrument ones. A sound declares its category (and overrides) in a
 Spec; the category picks the rules: CATEGORY_RULES below. ADR 0011 (proposed) adds two: the kick crest floor and the
-bass-body mode of the low-end rule.
+bass-body mode of the low-end rule. ADR 0014 (proposed) adds the checks of a mastered loop, tag 'club', against its
+genre's targets (CLUB) and against what its master did (the cap, the hits' crest), and the crest floor on every
+full-velocity kick a loop declares (top_hits).
 
 Provenance: lufs, dc_db, click_at, stereo and harmonic_asr are ported from the S1 research prototype (qa.py), the mud
 measures from the kick mud meter (mud.py) and the 2-step loop from the kick judge (judge_loops.py, loopcheck.py), all
@@ -12,7 +14,7 @@ written during planning on 2026-10-29. Method of the mud measures, as in docs/li
 Butterworth band-pass, zero-phase; 5 ms RMS envelope; a fall is counted from the band's own peak, until it stays down.
 """
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import soundfile as sf
@@ -72,6 +74,42 @@ MUD_MODES = ('gate', 'bass-body', 'lowcut', 'off')
 STRICT = ('kick', 'tom')     # these keep the strict gate: 'bass-body', 'lowcut' and 'off' are refused (item.py)
 BODY_CATEGORIES = ('bass', 'loop')   # the categories bass-body may be declared on, with a reason (item.py)
 LOUDNESS = {'texture': (-20.0, 1.0), 'riser': (-14.0, 2.0), 'wet': (-16.0, 1.0), 'dry': (-18.0, 1.0)}  # LUFS-I, +-
+# The mastered 'club' loop's targets per genre (a kit's DIRECTION), from the modern-sound standard
+# (docs/plans/S1-modern-sound.md sections 1.1, 1.2 and 1.4; ADR 0014, proposed), every one read round the loop:
+# - lufs: LUFS-I, (target, +- LU);
+# - plr_min: true peak minus LUFS-I at least this (the target and the -1 dBTP ceiling leave 0.5 dB over it);
+# - bands: each octave's window, dB re the 1 kHz octave. 'sub' is the louder of the 31.5 and 63 Hz octaves, read
+#   together because the kick's key decides which one holds it (E1, 41 Hz, sits in the 31.5 Hz octave), in the 63 Hz
+#   window.
+# The loudness targets rest on measured medians of released records; the bands and widths are conventions built on a
+# measured chart average (the standard's section 0): S4 replaces them with measured references.
+CLUB = {
+    'future garage / 2-step': dict(lufs=(-9.0, 1.0), plr_min=7.5, bands={
+        'sub': (6.0, 12.0), '125': (2.0, 6.0), '250': (1.0, 4.0), '500': (0.0, 3.0), '2k': (-3.0, 0.0),
+        '4k': (-5.0, -2.0), '8k': (-8.0, -4.0), '16k': (-14.0, -8.0)}),
+    'sci-fi club': dict(lufs=(-8.5, 1.0), plr_min=7.0, bands={
+        'sub': (6.0, 12.0), '125': (1.0, 6.0), '250': (0.0, 4.0), '500': (0.0, 3.0), '2k': (-3.0, 0.0),
+        '4k': (-5.0, -2.0), '8k': (-8.0, -4.0), '16k': (-14.0, -8.0)}),
+    'hyper-clean future house': dict(lufs=(-8.0, 1.0), plr_min=6.5, bands={
+        'sub': (6.0, 12.0), '125': (1.0, 5.0), '250': (0.0, 3.0), '500': (0.0, 3.0), '2k': (-2.0, 1.0),
+        '4k': (-4.0, -1.0), '8k': (-7.0, -3.0), '16k': (-12.0, -7.0)}),
+    'dark industrial / techno': dict(lufs=(-8.0, 1.0), plr_min=6.5, bands={
+        'sub': (4.0, 12.0), '125': (1.0, 6.0), '250': (0.0, 4.0), '500': (0.0, 3.0), '2k': (-3.0, 0.0),
+        '4k': (-6.0, -2.0), '8k': (-10.0, -5.0), '16k': (-17.0, -10.0)}),
+    # round 4 (FUT03's move to garage-house and rolling deep tech house): warmer and less bright than future house,
+    # a little quieter, fuller low mids; conventions, like the others, until measured references replace them
+    'garage-house / deep tech house': dict(lufs=(-8.5, 1.0), plr_min=7.0, bands={
+        'sub': (6.0, 12.0), '125': (1.0, 6.0), '250': (0.0, 4.0), '500': (0.0, 3.0), '2k': (-3.0, 0.0),
+        '4k': (-5.0, -2.0), '8k': (-8.0, -4.0), '16k': (-14.0, -8.0)}),
+}
+CLUB_LOW_WIDTH_MAX_DB = -10.0  # side over mid in the 125 and 250 Hz octaves (under 120 Hz is the low_side check)
+CLUB_MAX_REDUCTION_DB = 4.0    # the master's peak reduction, clipper and limiter together (the standard's cap, C): a
+                               # club loop mastered with more declares its cap (qa club_max_reduction_db, with a why)
+CLUB_CREST_LOSS_MAX_DB = 1.5   # what the master may cost the loop's hits: the median loss of ADR 0011's crest, hit by
+                               # hit, from the master's input to the club loop, the worse of the kicks and the claps
+                               # (the A&R review's proposal, to be calibrated by ear); more is declared (qa
+                               # club_crest_loss_db, with a why)
+CLUB_BANDS = ('sub', '125', '250', '500', '2k', '4k', '8k', '16k')   # every genre's windowed octaves
 
 CATEGORIES = ('kick', 'tom', 'snare', 'hat', 'perc', 'bass', 'pad', 'stab', 'lead', 'vox', 'fx', 'texture', 'loop')
 FLAGS = ('deliberate_alias', 'explicit', 'hf_synthetic', 'cut_end')
@@ -122,6 +160,13 @@ class Spec:
     hits: tuple = ()                  # kick onsets in a loop that loops from sample 0: the mud gate runs per gap too;
                                       # in a bass-body phrase, the kicks it plays against (tag 'with_kick' when the
                                       # kicks are in the file)
+    genre: str = None                 # a 'club' loop's genre, the kit's DIRECTION: its targets in CLUB
+    club_bands: object = None         # a 'club' loop's octave windows: None (all), False (off) or the names of the
+                                      # bands exempted (an override, with its why); the rest stay gated
+    club_max_reduction_db: float = None   # a 'club' loop's declared cap on peak reduction (CLUB_MAX_REDUCTION_DB)
+    club_crest_loss_db: float = None      # a 'club' loop's declared crest loss (CLUB_CREST_LOSS_MAX_DB)
+    master: dict = field(default=None, compare=False)   # a 'club' loop's master report (master.master)
+    top_hits: tuple = ()              # the onsets of a loop's full-velocity kicks: the crest floor reads each one
 
     def rule(self, key):
         own = getattr(self, key)
@@ -350,13 +395,15 @@ def mud(x):
     }
 
 
-def kick_crest_db(x):
+def kick_crest_db(x, peak_db=None):
     """The kick crest: true peak (4x) over the RMS level of the loudest 50 ms of the mono sum, dB. A limiter or a
-    clipper pulls the peak down onto the body; a sine (whole cycles in the window) reads 3.01 dB."""
+    clipper pulls the peak down onto the body; a sine (whole cycles in the window) reads 3.01 dB. peak_db: x's true
+    peak read by the caller, for a span cut from a loop (mixmeter.hit_crest_db reads it with the loop round it)."""
     m = D.mono(x)
     w = min(len(m), int(KICK_CREST_WINDOW * SR))
     c = np.concatenate([[0.0], np.cumsum(m ** 2)])
-    return float(D.true_peak_db(x) - 10 * np.log10((c[w:] - c[:-w]).max() / w + 1e-30))
+    tp = D.true_peak_db(x) if peak_db is None else float(peak_db)
+    return float(tp - 10 * np.log10((c[w:] - c[:-w]).max() / w + 1e-30))
 
 
 def over_saw_db(x, floor_db=-60.0):
@@ -404,17 +451,29 @@ def centroid_hz(x):
     return float(np.sum(f * P) / (np.sum(P) + 1e-30))
 
 
-def two_step_loop(layers, bpm, hits, bars=2):
+CHOKE_FADE_S = 0.005         # two_step_loop(choke=True): each hit fades out over this, ending on the next hit
+
+
+def two_step_loop(layers, bpm, hits, bars=2, choke=False):
     """The 2-bar groove loop the mud gate also runs on, at the kit's BPM in its groove (hits: GROOVES[kit.GROOVE]): each
-    hit takes the layer nearest its velocity, all hits sum (no choke) and tails wrap to the start, as a looping clip
-    plays. layers: {velocity: audio}. Returns (loop, onsets)."""
+    hit takes the layer nearest its velocity, all hits sum and tails wrap to the start, as a looping clip plays.
+    choke: each hit ends where the next one starts (a 5 ms fade into it), as a mono voice plays a bass shot: a move
+    longer than the gap is cut, not summed with the next copy of itself. layers: {velocity: audio}. Returns (loop,
+    onsets)."""
     s16 = 60.0 / bpm / 4 * SR
     L = int(round(16 * bars * s16))
     loop = np.zeros((L, 2))
+    starts = [int(round(step * s16)) for step, _ in hits]
     onsets = []
-    for step, v in hits:
+    for i, (step, v) in enumerate(hits):
         y = D.st(layers[min(layers, key=lambda k: (abs(k - v), -k))])
-        p = int(round(step * s16))
+        p = starts[i]
+        if choke:
+            gap = (starts[(i + 1) % len(starts)] - p) % L or L
+            y = y[:gap].copy()
+            f = min(int(CHOKE_FADE_S * SR), len(y))
+            if len(y) == gap and f:
+                y[-f:] *= np.linspace(1.0, 0.0, f)[:, None]
         np.add.at(loop, (p + np.arange(len(y))) % L, y)
         onsets.append(p)
     return loop, onsets
@@ -572,6 +631,19 @@ def _check_crest(x, spec):
                  'true peak over the loudest 50 ms (RMS), the top layer')
 
 
+def _check_loop_crest(x, spec):
+    """The kick crest floor on every full-velocity kick a loop declares (Spec.top_hits), as the loop plays it: ADR
+    0011's measure over 200 ms from each onset (mixmeter.hit_crest_db), so a kick lane clipped flat in the mix fails
+    even when the kick's own file passes."""
+    if not spec.top_hits:
+        return na('loop_kick_crest', 'no full-velocity kicks declared (Out.top_hits)')
+    from tools.sound import mixmeter as MM
+    v = MM.hit_crest_db(x, sorted(spec.top_hits))
+    return Check('loop_kick_crest', bool(min(v) >= KICK_CREST_MIN_DB), min(v), f'>= {KICK_CREST_MIN_DB:g} dB',
+                 f'the lowest of {len(v)} full-velocity kicks (median {float(np.median(v)):.2f}): true peak over the '
+                 'loudest 50 ms in the 200 ms from each')
+
+
 def _check_loudness(x, spec):
     key = 'texture' if spec.category == 'texture' else None
     if spec.category == 'fx' and 'riser' in spec.tags:
@@ -598,6 +670,7 @@ def check_take(x, spec, fmt=None):
     out = _check_format(x, fmt) if fmt else []
     out.append(_le('true_peak', D.true_peak_db(x), CEILING_DBTP, 'dBTP', '4x oversampled'))
     out.append(_check_crest(x, spec))
+    out.append(_check_loop_crest(x, spec))
     loop = spec.loop or (None if spec.oneshot else (0, len(x)))
     out.append(_le('dc', dc_db(x, loop), DC_MAX_DB, 'dBFS', '5 Hz zero-phase low-pass, max'))
     if loop and loop[0] == 0:
@@ -624,6 +697,103 @@ def check_take(x, spec, fmt=None):
     out.append(_check_hf_band(x, spec))
     out += _check_low_end(x, spec)
     out += _check_loudness(x, spec)
+    out += _check_club(x, spec)
+    return out
+
+
+def _check_club(x, spec):
+    """A mastered loop's checks, tag 'club' (ADR 0014, proposed), against its genre's targets (CLUB), every one read
+    round the loop as it plays (mixmeter, which builds on this module's measures): LUFS-I in the genre's window, PLR
+    over its floor, the true peak at the ceiling round the seam too, every octave in its window, and the low mids'
+    width; and from its master's report (Spec.master): the peak reduction within the cap, every full-velocity kick
+    over the crest floor, and the crest the master cost the hits. Other items get none of them."""
+    if 'club' not in spec.tags:
+        return []
+    from tools.sound import mixmeter as MM
+    t = CLUB.get(spec.genre)
+    if t is None:
+        return [Check('club_genre', False, spec.genre, f'one of {tuple(CLUB)}',
+                      "a club loop is checked against its genre: the kit's DIRECTION")]
+    lo = MM.loudness(x)
+    target, tol = t['lufs']
+    b = MM.bands(x)
+    return [Check('club_loudness', bool(abs(lo['lufs_i'] - target) <= tol), lo['lufs_i'], f'{target:g} +-{tol:g} LUFS',
+                  f'{spec.genre}: LUFS-I round the loop'),
+            Check('club_plr', bool(lo['plr'] >= t['plr_min']), lo['plr'], f">= {t['plr_min']:g} dB",
+                  'true peak minus LUFS-I, round the loop'),
+            _le('club_true_peak', lo['true_peak'], CEILING_DBTP, 'dBTP', '4x, round the loop: the seam too'),
+            na('club_bands', 'off (an override)') if spec.club_bands is False else
+            _club_bands(b, t['bands'], spec.club_bands or ()),
+            _le('club_low_width', max(b['125']['width'], b['250']['width']), CLUB_LOW_WIDTH_MAX_DB, 'dB',
+                f"side over mid, the worse of 125 Hz ({b['125']['width']:.1f}) and 250 Hz ({b['250']['width']:.1f})")
+            ] + check_master(spec.master, spec.club_max_reduction_db, spec.club_crest_loss_db)
+
+
+def _club_bands(b, windows, exempt=()):
+    """Every octave in its window, but the bands an override exempts: the value is the worst distance outside one, dB
+    (negative: the smallest margin inside); the detail lists them all, the exempted ones as such. 'sub' reads the
+    louder of the 31.5 and 63 Hz octaves."""
+    worst, rows = -np.inf, []
+    for name, (lo, hi) in windows.items():
+        if name == 'sub':
+            band = '31.5' if b['31.5']['level'] > b['63']['level'] else '63'
+            label = f'sub ({band})'
+        else:
+            band = label = name
+        v = b[band]['level']
+        d = max(lo - v, v - hi)
+        if name in exempt:
+            rows.append(f'{label} {v:+.1f} in {lo:+g}..{hi:+g}' + (' (exempt, out)' if d > 0 else ' (exempt)'))
+            continue
+        worst = max(worst, d)
+        rows.append(f'{label} {v:+.1f} in {lo:+g}..{hi:+g}' + (' OUT' if d > 0 else ''))
+    if worst == -np.inf:
+        return na('club_bands', 'every band exempted (an override)')
+    return Check('club_bands', bool(worst <= 0), float(worst), '<= 0 dB outside its window, every octave' +
+                 (f" but {', '.join(exempt)} (an override)" if exempt else ''),
+                 'octaves re 1 kHz: ' + ', '.join(rows))
+
+
+def check_master(report, cap_db=None, crest_loss_db=None):
+    """What a club loop's master did, from its report (master.master, in the loop's metadata):
+    - club_reduction: the cap the master ran with is the standard's CLUB_MAX_REDUCTION_DB, or the cap the item
+      declares (qa club_max_reduction_db, an exception listed with its why), and the peak reduction stayed within it;
+    - club_kick_crest: every full-velocity kick (its 'kick' hits) keeps ADR 0011's floor in the club loop;
+    - club_crest_loss: the median crest the master cost the kicks, and the claps, against its input, at most
+      CLUB_CREST_LOSS_MAX_DB or the declared crest_loss_db; the value is the worse of the two.
+    The two crest checks need the report's punch section: the master given the loop's hits."""
+    if not report:
+        return [Check(n, False, None, '', "no master report: a club loop puts master.master()'s report in its "
+                                         "metadata ('master')") for n in ('club_reduction', 'club_kick_crest',
+                                                                          'club_crest_loss')]
+    allowed = CLUB_MAX_REDUCTION_DB if cap_db is None else float(cap_db)
+    ran = float(report['settings']['max_reduction_db'])
+    pr = float(report['peak_reduction_db'])
+    how = 'the standard\'s cap' if cap_db is None else 'the cap the item declares (an override)'
+    out = [Check('club_reduction', bool(abs(ran - allowed) < 1e-9 and pr <= allowed + 1e-6), pr,
+                 f'<= {allowed:g} dB, {how}',
+                 f'the clipper and limiter together; the master ran with a cap of {ran:g} dB' +
+                 ('' if abs(ran - allowed) < 1e-9 else f', not the {allowed:g} dB declared: declare the cap it runs '
+                                                       'with (qa club_max_reduction_db, with a why)'))]
+    punch = report.get('punch') or {}
+    kick, clap = punch.get('kick'), punch.get('clap')
+    if not kick:
+        return out + [Check(n, False, None, '', "the master was given no kicks: master(x, s, hits={'kick': ..., "
+                                                "'clap': ...})") for n in ('club_kick_crest', 'club_crest_loss')]
+    out.append(Check('club_kick_crest', bool(kick['min_out_db'] >= KICK_CREST_MIN_DB), kick['min_out_db'],
+                     f'>= {KICK_CREST_MIN_DB:g} dB',
+                     f"the lowest of {len(kick['onsets'])} full-velocity kicks in the club loop (in the master's input "
+                     f"{min(kick['in_db']):.2f}): true peak over the loudest 50 ms in the 200 ms from each"))
+    limit = CLUB_CREST_LOSS_MAX_DB if crest_loss_db is None else float(crest_loss_db)
+    losses = {'kicks': kick['median_loss_db']}
+    if clap:
+        losses['claps'] = clap['median_loss_db']
+    worst = max(losses.values())
+    detail = 'median loss of crest, input to club loop: ' + ', '.join(f'{k} {v:.2f}' for k, v in losses.items())
+    if clap:
+        detail += f" (the claps in {clap['band_hz'][0]:g}-{clap['band_hz'][1]:g} Hz: {clap['band_median_loss_db']:.2f})"
+    out.append(Check('club_crest_loss', bool(worst <= limit), worst,
+                     f"<= {limit:g} dB" + ('' if crest_loss_db is None else ', declared (an override)'), detail))
     return out
 
 
@@ -669,11 +839,11 @@ def check_layers(rows):
     return out
 
 
-def check_loop(layers, bpm, hits, mode='gate'):
+def check_loop(layers, bpm, hits, mode='gate', choke=False):
     """The mud gate on the 2-bar groove loop at the kit's BPM in its groove (hits: GROOVES[kit.GROOVE]). mode
-    'bass-body': its gap limit instead of the gate's (a bass shot). layers: {velocity: audio}. Returns (checks, loop
-    audio)."""
-    loop, onsets = two_step_loop(layers, bpm, hits)
+    'bass-body': its gap limit instead of the gate's (a bass shot). choke: each hit ends on the next (two_step_loop),
+    for a bass shot a mono voice plays (qa loop_choke). layers: {velocity: audio}. Returns (checks, loop audio)."""
+    loop, onsets = two_step_loop(layers, bpm, hits, choke=choke)
     rows = loop_mud(loop, onsets)
     worst_sub = max(r['vs_sub_db'] for r in rows)
     worst_pre = max(r['before_hit_db'] for r in rows)

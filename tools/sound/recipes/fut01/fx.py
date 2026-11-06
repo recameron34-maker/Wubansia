@@ -278,13 +278,15 @@ ITEMS = [
     Item('FX', 'GlitchFill', 'fx', glitch_fill, sets=('s1a',), flags={'deliberate_alias'}, tags=('fill',),
          qa={'why': 'the sample-and-hold crush aliases on purpose (run at 4x, so only its own images fold back)'},
          about='one-beat glitch fill: hit, 32nd stutter shifted down, crushed 64ths rising, 128ths shifted to +900 Hz'),
-    Item('FX', 'GlitchFillLift', 'fx', glitch_lift, root=F_S4, sets=('r2',), flags={'cut_end'}, tags=('fill',),
+    Item('FX', 'GlitchFillLift', 'fx', glitch_lift, root=F_S4, sets=('r2', 'r3', 'r4', 'r5'), flags={'cut_end'},
+         tags=('fill',),
          qa={'why': 'it ends on the next downbeat: the reversed alloy hit swells to its strike there, where the drop '
                     'takes over'},
          about='half-bar glitch fill on the kit\'s own kick, snare, hat, pluck and alloy hit, on the swing: the pluck '
                'motif F#4 C#5 A4 on a 3-3-2 in 32nds, then a roll from 32nds to 128ths up E5 F#5 A5 C#6, a reversed '
                'alloy swell into the downbeat'),
-    Item('FX', 'ShiftRiser', 'fx', shift_riser, level=-14.0, sets=('s1a', 'r2'), flags={'cut_end'}, tags=('riser',),
+    Item('FX', 'ShiftRiser', 'fx', shift_riser, level=-14.0, sets=('s1a', 'r2', 'r3', 'r4', 'r5'), flags={'cut_end'},
+         tags=('riser',),
          qa={'why': 'end-aligned: it stays loud to the downbeat, where the next section takes over'},
          about='8-bar barber-pole frequency-shifted riser on an alloy chord, end-aligned: it ends on the downbeat'),
 ]

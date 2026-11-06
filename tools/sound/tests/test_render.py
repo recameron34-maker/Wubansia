@@ -70,6 +70,21 @@ def warm(take):
     return Out(FX.warm_bass(30), loop=(0, int(FX.BASS_S * SR)))
 
 
+def club(take):
+    """test_master's club loop through the master, a 6 dB cap, with its kicks and claps given: a club loop as a kit's
+    context module makes one."""
+    from tools.sound import master as MS
+    from tools.sound.tests import test_master as TMa
+    hits = {'kick': list(TMa.KICKS), 'clap': list(TMa.CLAPS)}
+    z, rep = MS.master(TMa.club_mix(), MS.settings(genre='future garage / 2-step', max_reduction_db=6.0), hits=hits)
+    return Out(z, top_hits=hits['kick'], meta={'master': rep})
+
+
+def long_shot(take):
+    """A bass shot longer than the groove's gaps: a 1.2 s F#1 sine."""
+    return D.finish(0.5 * np.sin(2 * np.pi * 46.25 * np.arange(int(1.2 * SR)) / SR))
+
+
 def main(*argv):
     """render.main, quiet."""
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
@@ -146,7 +161,7 @@ class TestItems(unittest.TestCase):
         self.assertEqual((1.0, 1.483, 1.932, 2.546, 3.011, 3.715, 4.468), fut01.ALLOY)
         self.assertEqual(fut01.ALLOY, fut01.RATIOS)
         self.assertAlmostEqual(1.0, sum(w for _, w in fut01.VOICE))
-        self.assertEqual(('FUT01', 134.0, 'F# minor', '11A', 'FUT01/space', 0.57, '2step'),
+        self.assertEqual(('FUT01', 134.0, 'F# minor', '11A', 'FUT01/space', 0.59, '2step'),
                          (fut01.KIT, fut01.BPM, fut01.KEY, fut01.CAMELOT, fut01.SPACE_SEED, fut01.SWING, fut01.GROOVE))
         self.assertEqual('tools.sound.recipes.fut01', fut01.RECIPES)
 
@@ -241,6 +256,54 @@ class TestRender(unittest.TestCase):
             self.assertIn(f"| Drums/TestKick | {crest[1]['value']:g} |", md)
             self.assertIn('## Bass body', md)
             self.assertIn('| Bass/Warm |', md)
+
+    def test_a_club_loop_s_master_is_checked_and_tabled(self):
+        """A club loop's QA reads its master's report: the cap it ran with against the declared one, the crest floor
+        on every kick, the crest the master cost the hits; the report tables what the master did and lists the
+        declared cap, the exempted bands and the crest loss under Exceptions. The table's row is pinned whole: every
+        column holds a value no other column does (test_master's fixture through the master at a 6 dB cap; the same
+        under Python 3.12 and 3.13), so a sign, a swapped column or a wrong field fails. The fixture isn't balanced
+        for the genre: its gated bands fail, which this test doesn't read."""
+        with tempfile.TemporaryDirectory() as tmp:
+            qa = {'mud': 'off', 'club_bands': ('125', '250'), 'club_max_reduction_db': 6.0, 'club_crest_loss_db': 3.0,
+                  'why': 'a test loop'}
+            entry = R.qa_item(R.render_item(Item('Loops', 'TestClub', 'loop', club, loop=True, hp_hz=None,
+                                                 tags=('club',), qa=qa), 'FUT01'), Path(tmp), fut01)
+            got = {c['name']: c for c in entry['files'][0]['checks']}
+            for name in ('club_reduction', 'club_kick_crest', 'club_crest_loss', 'loop_kick_crest'):
+                self.assertEqual('pass', got[name]['status'], (name, got[name]))
+            self.assertIn('cap the item declares', got['club_reduction']['limit'])
+            self.assertIn('but 125, 250 (an override)', got['club_bands']['limit'])
+            self.assertIn('125 -1.5 in +2..+6 (exempt, out)', got['club_bands']['detail'])
+            undeclared = R.qa_item(R.render_item(Item('Loops', 'TestClub', 'loop', club, loop=True, hp_hz=None,
+                                                      tags=('club',), qa={'mud': 'off', 'club_bands': False,
+                                                                          'why': 'a test loop'}),
+                                                 'FUT01'), Path(tmp), fut01)
+            got = {c['name']: c for c in undeclared['files'][0]['checks']}
+            self.assertEqual('fail', got['club_reduction']['status'], 'a raised cap is never a silent pass')
+            report = {'kit': 'FUT01', 'title': fut01.TITLE, 'set': None, 'environment': R.environment(),
+                      'items': [entry], 'summary': {'items': 1, 'files': 1, 'failed_checks': 0, 'failed_items': []}}
+            R.write_reports(Path(tmp), report)
+            md = (Path(tmp) / 'qa_report.md').read_text()
+            self.assertIn('## Club master', md)
+            self.assertIn('| Loops/TestClub | -8.99 | 7.97 | 6 (declared) | 3.35 (2.49 / 0.86) | kicks +4.3, elsewhere '
+                          '+4.3 at 3.40 s | 8.58 -> 6.82 (-2.08; lowest 5.70) | -2.16 (in 1-5 kHz +0.25) | 3145 |\n',
+                          md)
+            self.assertIn("| Loops/TestClub |  | mud=off, club_bands=('125', '250'), club_max_reduction_db=6.0, "
+                          "club_crest_loss_db=3.0 | a test loop |\n", md)
+
+    def test_a_choked_bass_shot_s_groove_loop(self):
+        """qa loop_choke: the groove loop ends each copy of a long bass shot on the next hit."""
+        with tempfile.TemporaryDirectory() as tmp:
+            loose = R.qa_item(R.render_item(Item('Bass', 'Long', 'bass', long_shot, root=30), 'FUT01'),
+                              Path(tmp), fut01)
+            a, _ = sf.read(Path(tmp) / loose['loop_file'])
+            tight = R.qa_item(R.render_item(Item('Bass', 'Long', 'bass', long_shot, root=30,
+                                                 qa={'loop_choke': True, 'why': 'a mono voice'}), 'FUT01'),
+                              Path(tmp), fut01)
+            b, _ = sf.read(Path(tmp) / tight['loop_file'])
+            self.assertEqual(a.shape, b.shape)
+            self.assertFalse(np.array_equal(a, b))
 
     def test_report_carries_loop_points_and_meta(self):
         with tempfile.TemporaryDirectory() as tmp:

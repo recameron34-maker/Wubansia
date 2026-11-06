@@ -4,8 +4,9 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
-# Golden files are compared byte for byte: never convert them.
+# Golden files and the generator snapshots are compared byte for byte: never convert them.
 content/golden/** -text
+core/tests/snapshots/** -text
 
 *.mid binary
 *.wav binary

@@ -1,0 +1,945 @@
+{
+ "about": "Known answers for the fixture files, worked out by hand in make_fixtures.js. Integers and strings only.",
+ "reader": {
+  "format": 1,
+  "ppq": 480,
+  "tracks": 2,
+  "track_end_ticks": [
+   3840,
+   1920
+  ],
+  "track1_name": "Bass",
+  "notes": [
+   {
+    "tick": 0,
+    "length": 120,
+    "channel": 0,
+    "key": 36,
+    "velocity": 100
+   },
+   {
+    "tick": 0,
+    "length": 960,
+    "channel": 0,
+    "key": 38,
+    "velocity": 80
+   },
+   {
+    "tick": 240,
+    "length": 240,
+    "channel": 0,
+    "key": 36,
+    "velocity": 112
+   },
+   {
+    "tick": 360,
+    "length": 240,
+    "channel": 0,
+    "key": 36,
+    "velocity": 113
+   },
+   {
+    "tick": 720,
+    "length": 1200,
+    "channel": 1,
+    "key": 48,
+    "velocity": 96
+   }
+  ],
+  "markers": [
+   {
+    "tick": 0,
+    "text": "drop"
+   },
+   {
+    "tick": 1920,
+    "text": "break"
+   }
+  ],
+  "key_signatures": [
+   {
+    "tick": 0,
+    "sharps": -3,
+    "minor": 1
+   }
+  ]
+ },
+ "g1": {
+  "files": [
+   "harmony_a.mid",
+   "harmony_b.mid",
+   "harmony_c.mid"
+  ],
+  "shapes": {
+   "harmony_a.mid": {
+    "break": "891.891.891.891.244.244.244.244.a44.a44.a44.a44.8d4.8d4.8d4.8d4",
+    "drop": "089.089.109.109.121.121.884.884.089.089.109.109.121.121.884.884"
+   },
+   "harmony_b.mid": {
+    "break": "891.891.891.891.244.244.244.244.a44.a44.a44.a44.8d4.8d4.8d4.8d4",
+    "drop": "089.089.089.089.109.109.109.109.089.089.089.089.109.109.109.109"
+   },
+   "harmony_c.mid": {
+    "break": "089.089.089.089.089.089.089.089.109.109.109.109.109.109.109.109",
+    "drop": "089.089.089.488.109.109.424.424.089.089.089.488.109.109.424.424"
+   }
+  },
+  "break": {
+   "seeds": 3,
+   "measured": 3,
+   "distinct": 2,
+   "top": 2,
+   "distinct_pm": 667,
+   "top_pm": 667,
+   "pass": 0
+  },
+  "drop": {
+   "seeds": 3,
+   "measured": 3,
+   "distinct": 3,
+   "top": 1,
+   "distinct_pm": 1000,
+   "top_pm": 333,
+   "pass": 0
+  },
+  "pass": 0
+ },
+ "g2": {
+  "files": [
+   "harmony_a.mid",
+   "harmony_b.mid",
+   "harmony_c.mid"
+  ],
+  "patterns": {
+   "harmony_a.mid": "2,2,2,2",
+   "harmony_b.mid": "4,4",
+   "harmony_c.mid": "3,1,2,2"
+  },
+  "seeds": 3,
+  "measured": 3,
+  "four_by_one_bar": 1,
+  "four_by_one_bar_pm": 333,
+  "patterns_count": 3,
+  "changes_on_bar_lines_only": 2,
+  "pass": 0
+ },
+ "g3": {
+  "file": "repetition.mid",
+  "drum_windows": 6,
+  "drum_repeated": 3,
+  "kick_4x4_exempt": 2,
+  "bass_windows": 2,
+  "bass_repeated": 1,
+  "drum_repeated_pm": 500,
+  "bass_repeated_pm": 500,
+  "pass": 0
+ },
+ "g4": {
+  "file": "macro.mid",
+  "bass": {
+   "changes": 2,
+   "on_phrase": 1,
+   "on_phrase_pm": 500
+  },
+  "chords": {
+   "changes": 1,
+   "on_phrase": 1,
+   "on_phrase_pm": 1000
+  },
+  "lead": {
+   "changes": 2,
+   "on_phrase": 1,
+   "on_phrase_pm": 500
+  },
+  "change_bars": {
+   "bass": [
+    13,
+    15
+   ],
+   "chords": [
+    16
+   ],
+   "lead": [
+    8,
+    20
+   ]
+  },
+  "pass": 1
+ },
+ "g10_intervals": {
+  "file": "macro.mid",
+  "interval_values": 5
+ },
+ "g4_loop8": {
+  "file": "macro8.mid",
+  "lead": {
+   "changes": 1,
+   "on_phrase": 0
+  },
+  "lead_change_bars": [
+   21
+  ]
+ },
+ "g5": {
+  "file": "velocity.mid",
+  "hats": {
+   "windows": 1,
+   "median_distinct": 10,
+   "median_sd_milli": 5745
+  },
+  "perc": {
+   "windows": 1,
+   "median_distinct": 2,
+   "median_sd_milli": 10000
+  },
+  "ghosts": {
+   "windows": 1,
+   "median_distinct": 16,
+   "median_sd_milli": 4610
+  },
+  "bass": {
+   "windows": 1,
+   "median_distinct": 4,
+   "median_sd_milli": 11180
+  },
+  "lead": {
+   "windows": 0,
+   "median_distinct": -1,
+   "median_sd_milli": -1
+  },
+  "pass": 0
+ },
+ "g6": {
+  "file": "stacks.mid",
+  "stacks": 5,
+  "two_velocities": 3,
+  "two_velocities_pm": 600,
+  "max_spread_ticks": 10,
+  "spread_histogram": [
+   {
+    "value": 0,
+    "count": 3
+   },
+   {
+    "value": 3,
+    "count": 1
+   },
+   {
+    "value": 10,
+    "count": 1
+   }
+  ],
+  "pass": 0
+ },
+ "g7": {
+  "file": "microtiming.mid",
+  "hats": {
+   "n": 64,
+   "sd_milli": 1000,
+   "lag1_pm": -984,
+   "alpha_milli": 76
+  },
+  "perc": {
+   "n": 32,
+   "sd_milli": 0,
+   "lag1_pm": -9999,
+   "alpha_milli": -9999
+  },
+  "pass": 0
+ },
+ "g7_mean": {
+  "file": "microtiming2.mid",
+  "hats": {
+   "n": 64,
+   "sd_milli": 1000,
+   "lag1_pm": -984,
+   "alpha_milli": 76
+  }
+ },
+ "g8": {
+  "file": "swing.mid",
+  "lanes": "snare=19 hats=24 perc=31 bass:2=10 chords:3=11 vox:5=-25",
+  "distinct": 5,
+  "pass": 1
+ },
+ "g9": {
+  "file": "fills.mid",
+  "boundaries": 6,
+  "with_gesture": 5,
+  "with_gesture_pm": 833,
+  "missing_gesture_bars": "40",
+  "fills": 4,
+  "fill_positions": "7,3,7,7",
+  "position_histogram": [
+   {
+    "value": 3,
+    "count": 1
+   },
+   {
+    "value": 7,
+    "count": 3
+   }
+  ],
+  "top_position": 7,
+  "top_position_pm": 750,
+  "songs_with_2_fills": 1,
+  "median_distinct_pm": 1000,
+  "pass": 0
+ },
+ "g10": {
+  "files": [
+   "forms_a1.mid",
+   "forms_a2.mid",
+   "forms_b.mid"
+  ],
+  "forms": {
+   "forms_a1.mid": "intro16 drop16 break8 drop16 outro16",
+   "forms_a2.mid": "intro16 drop16 break8 drop16 outro16",
+   "forms_b.mid": "intro16 drop16 outro16"
+  },
+  "interval_values": {
+   "forms_a1.mid": 2,
+   "forms_a2.mid": 2,
+   "forms_b.mid": 1
+  },
+  "distinct_forms": 2,
+  "top_form_count": 2,
+  "top_form_pm": 667,
+  "every_song_two_interval_values": 0,
+  "pass": 0
+ },
+ "r3": {
+  "file": "accent.mid",
+  "bars": 4,
+  "period_4_or_less": 2,
+  "period_4_or_less_pm": 500,
+  "period_histogram": [
+   {
+    "value": 1,
+    "count": 1
+   },
+   {
+    "value": 2,
+    "count": 1
+   },
+   {
+    "value": 8,
+    "count": 1
+   },
+   {
+    "value": 16,
+    "count": 1
+   }
+  ]
+ },
+ "r4": {
+  "file": "gate.mid",
+  "notes": 6,
+  "gate_rule": 4,
+  "gate_rule_pm": 667
+ },
+ "r5": {
+  "file": "melodic.mid",
+  "lead": {
+   "strong": 4,
+   "strong_chord_tones": 4,
+   "weak": 4,
+   "weak_chord_tones": 1
+  },
+  "bass": {
+   "strong": 2,
+   "strong_chord_tones": 2,
+   "weak": 2,
+   "weak_chord_tones": 1
+  }
+ },
+ "i1": {
+  "file": "melodic.mid",
+  "lead": {
+   "notes": 8,
+   "in_key": 7
+  },
+  "bass": {
+   "notes": 4,
+   "in_key": 4
+  },
+  "chords": {
+   "notes": 6,
+   "in_key": 6
+  }
+ },
+ "r5_wrap": {
+  "file": "wrap.mid",
+  "lead": {
+   "strong": 2,
+   "strong_chord_tones": 1,
+   "weak": 0,
+   "weak_chord_tones": 0
+  }
+ },
+ "r7": {
+  "file": "lead.mid",
+  "intervals": 8,
+  "steps": 6,
+  "step_pm": 750,
+  "repeats_pm": 0,
+  "windows": 1,
+  "bar1_eq_bar3": 1,
+  "bar1_eq_bar3_pm": 1000
+ },
+ "r8": {
+  "file": "voicing.mid",
+  "stacks": 7,
+  "types": 5,
+  "four_plus_pm": 143,
+  "recurring": 2,
+  "revoiced": 1,
+  "revoiced_pm": 500,
+  "type_histogram": [
+   {
+    "type": "dyad",
+    "count": 2
+   },
+   {
+    "type": "four_plus",
+    "count": 1
+   },
+   {
+    "type": "octave",
+    "count": 1
+   },
+   {
+    "type": "quartal",
+    "count": 1
+   },
+   {
+    "type": "triad",
+    "count": 2
+   }
+  ]
+ },
+ "r9": {
+  "file": "polymeter.mid",
+  "lane_windows": 4,
+  "odd_cycles": 2,
+  "odd_cycles_pm": 500
+ },
+ "r10": {
+  "files": [
+   "dup_a.mid",
+   "dup_b.mid"
+  ],
+  "windows": 4,
+  "duplicated": 2,
+  "duplicated_pm": 500
+ },
+ "r11": {
+  "cases": [
+   {
+    "onsets": "0,4,8,12",
+    "value": 0
+   },
+   {
+    "onsets": "2",
+    "value": 3
+   },
+   {
+    "onsets": "0,6",
+    "value": 2
+   },
+   {
+    "onsets": "3,7,11,15",
+    "value": 11
+   }
+  ]
+ },
+ "i2": {
+  "file": "riser.mid",
+  "riser": {
+   "notes": 16,
+   "swung": 8,
+   "straight_only": 8
+  },
+  "build_snare": {
+   "notes": 8,
+   "swung": 4,
+   "straight_only": 4
+  }
+ },
+ "i3": {
+  "file": "lock.mid",
+  "pairs": 4,
+  "within_2_ticks": 2
+ },
+ "i5": {
+  "file": "lock.mid",
+  "kicks_near_beats": 5,
+  "within_2_ticks": 4
+ },
+ "i4": {
+  "file": "offline.mid",
+  "sections": 2,
+  "on_8_bar_lines": 1
+ },
+ "names": {
+  "section_kinds": [
+   {
+    "text": "drop",
+    "kind": "drop"
+   },
+   {
+    "text": "drop2 (four to the floor)",
+    "kind": "drop2"
+   },
+   {
+    "text": "break",
+    "kind": "break"
+   },
+   {
+    "text": "Intro 2",
+    "kind": "groove"
+   },
+   {
+    "text": "Intro (DJ)",
+    "kind": "intro"
+   },
+   {
+    "text": "Drop 2",
+    "kind": "drop"
+   },
+   {
+    "text": "Breakdown",
+    "kind": "break"
+   },
+   {
+    "text": "Piano intro",
+    "kind": "groove"
+   },
+   {
+    "text": "Drop",
+    "kind": "drop"
+   },
+   {
+    "text": "mystery",
+    "kind": "unknown"
+   }
+  ],
+  "roles": [
+   {
+    "name": "Bass",
+    "channel9": 0,
+    "slot": "",
+    "role": "bass"
+   },
+   {
+    "name": "Sub",
+    "channel9": 0,
+    "slot": "",
+    "role": "bass"
+   },
+   {
+    "name": "Stabs",
+    "channel9": 0,
+    "slot": "",
+    "role": "chords"
+   },
+   {
+    "name": "Pad (breakdown)",
+    "channel9": 0,
+    "slot": "",
+    "role": "chords"
+   },
+   {
+    "name": "Lead",
+    "channel9": 0,
+    "slot": "",
+    "role": "lead"
+   },
+   {
+    "name": "Melody",
+    "channel9": 0,
+    "slot": "",
+    "role": "lead"
+   },
+   {
+    "name": "Vox",
+    "channel9": 0,
+    "slot": "",
+    "role": "vox"
+   },
+   {
+    "name": "FX",
+    "channel9": 0,
+    "slot": "",
+    "role": "fx"
+   },
+   {
+    "name": "Riser (builds)",
+    "channel9": 0,
+    "slot": "",
+    "role": "fx"
+   },
+   {
+    "name": "Kick",
+    "channel9": 1,
+    "slot": "",
+    "role": "drums"
+   },
+   {
+    "name": "Sidechain Trigger (ghost kick, note 35)",
+    "channel9": 1,
+    "slot": "",
+    "role": "ignore"
+   },
+   {
+    "name": "Break Slices (note 36 = slice 1, one 16th each)",
+    "channel9": 0,
+    "slot": "",
+    "role": "other"
+   },
+   {
+    "name": "Pirate Signal Bass A (F minor, 134 BPM)",
+    "channel9": 0,
+    "slot": "Bass-A",
+    "role": "bass"
+   },
+   {
+    "name": "Pirate Signal Melody B (F minor, 134 BPM)",
+    "channel9": 0,
+    "slot": "Melody-B",
+    "role": "lead"
+   },
+   {
+    "name": "Pirate Signal Drums Fill (F minor, 134 BPM)",
+    "channel9": 1,
+    "slot": "Drums-Fill",
+    "role": "drums"
+   },
+   {
+    "name": "Bass",
+    "channel9": 0,
+    "slot": "FullSong",
+    "role": "bass"
+   }
+  ],
+  "drum_groups": [
+   {
+    "key": 35,
+    "group": "kick"
+   },
+   {
+    "key": 36,
+    "group": "kick"
+   },
+   {
+    "key": 37,
+    "group": "rim"
+   },
+   {
+    "key": 38,
+    "group": "snare"
+   },
+   {
+    "key": 39,
+    "group": "clap"
+   },
+   {
+    "key": 40,
+    "group": "snare"
+   },
+   {
+    "key": 42,
+    "group": "hats"
+   },
+   {
+    "key": 46,
+    "group": "hats"
+   },
+   {
+    "key": 49,
+    "group": "cymbal"
+   },
+   {
+    "key": 50,
+    "group": "tom"
+   },
+   {
+    "key": 51,
+    "group": "hats"
+   },
+   {
+    "key": 54,
+    "group": "hats"
+   },
+   {
+    "key": 56,
+    "group": "perc"
+   },
+   {
+    "key": 63,
+    "group": "perc"
+   },
+   {
+    "key": 70,
+    "group": "hats"
+   },
+   {
+    "key": 76,
+    "group": "perc"
+   }
+  ]
+ },
+ "bands": {
+  "g3": [
+   {
+    "drum_windows": 10,
+    "drum_repeated": 4,
+    "bass_windows": 10,
+    "bass_repeated": 3,
+    "pass": 1
+   },
+   {
+    "drum_windows": 10,
+    "drum_repeated": 5,
+    "bass_windows": 10,
+    "bass_repeated": 3,
+    "pass": 0
+   },
+   {
+    "drum_windows": 10,
+    "drum_repeated": 4,
+    "bass_windows": 10,
+    "bass_repeated": 4,
+    "pass": 0
+   },
+   {
+    "drum_windows": 1000,
+    "drum_repeated": 400,
+    "bass_windows": 1000,
+    "bass_repeated": 300,
+    "pass": 1
+   },
+   {
+    "drum_windows": 1000,
+    "drum_repeated": 401,
+    "bass_windows": 1000,
+    "bass_repeated": 300,
+    "pass": 0
+   },
+   {
+    "drum_windows": 1000,
+    "drum_repeated": 400,
+    "bass_windows": 1000,
+    "bass_repeated": 301,
+    "pass": 0
+   },
+   {
+    "drum_windows": 10,
+    "drum_repeated": 0,
+    "bass_windows": 10,
+    "bass_repeated": 0,
+    "pass": 1
+   },
+   {
+    "drum_windows": 0,
+    "drum_repeated": 0,
+    "bass_windows": 10,
+    "bass_repeated": 0,
+    "pass": 0
+   },
+   {
+    "drum_windows": 10,
+    "drum_repeated": 0,
+    "bass_windows": 0,
+    "bass_repeated": 0,
+    "pass": 0
+   }
+  ],
+  "g5_drums": [
+   {
+    "windows": 1,
+    "median_distinct": 10,
+    "median_sd_milli": 6000,
+    "pass": 1
+   },
+   {
+    "windows": 1,
+    "median_distinct": 10,
+    "median_sd_milli": 22000,
+    "pass": 1
+   },
+   {
+    "windows": 1,
+    "median_distinct": 9,
+    "median_sd_milli": 10000,
+    "pass": 0
+   },
+   {
+    "windows": 1,
+    "median_distinct": 10,
+    "median_sd_milli": 5999,
+    "pass": 0
+   },
+   {
+    "windows": 1,
+    "median_distinct": 10,
+    "median_sd_milli": 22001,
+    "pass": 0
+   },
+   {
+    "windows": 0,
+    "median_distinct": 10,
+    "median_sd_milli": 10000,
+    "pass": 0
+   }
+  ],
+  "g5_melodic": [
+   {
+    "windows": 1,
+    "median_distinct": 6,
+    "median_sd_milli": 8000,
+    "pass": 1
+   },
+   {
+    "windows": 1,
+    "median_distinct": 5,
+    "median_sd_milli": 8000,
+    "pass": 0
+   },
+   {
+    "windows": 1,
+    "median_distinct": 6,
+    "median_sd_milli": 7999,
+    "pass": 0
+   },
+   {
+    "windows": 1,
+    "median_distinct": 6,
+    "median_sd_milli": 99999,
+    "pass": 1
+   },
+   {
+    "windows": 0,
+    "median_distinct": 6,
+    "median_sd_milli": 8000,
+    "pass": 0
+   }
+  ],
+  "g6": [
+   {
+    "stacks": 10,
+    "two_velocities": 7,
+    "max_spread_ticks": 4,
+    "pass": 1
+   },
+   {
+    "stacks": 10,
+    "two_velocities": 6,
+    "max_spread_ticks": 4,
+    "pass": 0
+   },
+   {
+    "stacks": 10,
+    "two_velocities": 7,
+    "max_spread_ticks": 5,
+    "pass": 0
+   },
+   {
+    "stacks": 1000,
+    "two_velocities": 700,
+    "max_spread_ticks": 0,
+    "pass": 1
+   },
+   {
+    "stacks": 1000,
+    "two_velocities": 699,
+    "max_spread_ticks": 0,
+    "pass": 0
+   },
+   {
+    "stacks": 10,
+    "two_velocities": 10,
+    "max_spread_ticks": 0,
+    "pass": 1
+   },
+   {
+    "stacks": 0,
+    "two_velocities": 0,
+    "max_spread_ticks": 0,
+    "pass": 0
+   }
+  ],
+  "g7": [
+   {
+    "files": 1,
+    "median_sd_milli": 1500,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 650,
+    "pass": 1
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 6000,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 1100,
+    "pass": 1
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 1499,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 650,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 6001,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 650,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 1500,
+    "median_lag1_pm": 199,
+    "median_alpha_milli": 650,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 1500,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 649,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 1500,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 1101,
+    "pass": 0
+   },
+   {
+    "files": 0,
+    "median_sd_milli": 1500,
+    "median_lag1_pm": 200,
+    "median_alpha_milli": 650,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 3000,
+    "median_lag1_pm": -9999,
+    "median_alpha_milli": 800,
+    "pass": 0
+   },
+   {
+    "files": 1,
+    "median_sd_milli": 3000,
+    "median_lag1_pm": 400,
+    "median_alpha_milli": -9999,
+    "pass": 0
+   }
+  ]
+ }
+}

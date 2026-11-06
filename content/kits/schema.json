@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wubansia.local/content/kits/schema.json",
+  "title": "Wubansia kit",
+  "description": "A kit for the groove core's generator (core/gen/content.cpp reads it, with the same rules and more: every lane of the kit's style needs an entry here, every drum voice of the style a note, and so on). Integers and strings only: the generator has no floating point (docs/plans/S1-futuristic-slice.md 4.2). Write integers without a fraction or exponent: the C++ reader refuses 134.0, but JSON Schema counts 134.0 as the integer 134, so this schema alone cannot. The file name is the id lowercased: FUT01 is content/kits/fut01.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "id", "name", "direction", "bpm", "key", "swing", "style", "feel", "lanes"],
+  "properties": {
+    "format": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[A-Z]{3}[0-9]{2}$", "description": "e.g. FUT01" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 64, "description": "A plain-words working name: no artist names (CLAUDE.md)." },
+    "direction": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "bpm": { "type": "integer", "minimum": 128, "maximum": 140, "description": "Every kit is 128-140 BPM (CLAUDE.md)." },
+    "key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tonic", "mode", "name", "camelot"],
+      "properties": {
+        "tonic": { "type": "integer", "minimum": 0, "maximum": 11, "description": "The tonic's pitch class, C = 0." },
+        "mode": { "const": "minor", "description": "The generator writes minor keys, in their natural-minor key signature." },
+        "name": { "type": "string", "pattern": "^(C|C#|D|Eb|E|F|F#|G|G#|A|Bb|B) minor$", "description": "Must match the tonic, spelled as the legacy pack spells keys." },
+        "camelot": { "type": "string", "pattern": "^(1[0-2]|[1-9])A$", "description": "Must match the key: F# minor is 11A." }
+      }
+    },
+    "swing": { "type": "integer", "minimum": 500, "maximum": 750, "description": "The groove's base swing in permille: where the second 16th of each 8th lands, as a share of the 8th (500 straight). The feel's lane swings are relative to it." },
+    "style": { "type": "string", "pattern": "^[a-z0-9]+$", "description": "content/styles/<style>.json" },
+    "feel": { "type": "string", "pattern": "^[a-z0-9]+$", "description": "content/feels/<feel>.json" },
+    "lanes": {
+      "type": "object",
+      "description": "One entry per lane of the style, keyed by the lane's id. Drum lanes name a GM note for each of the style's voices; pitched lanes give their register.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["track", "channel"],
+        "properties": {
+          "track": { "type": "string", "minLength": 1, "maxLength": 64, "description": "The MIDI track name." },
+          "channel": { "type": "integer", "minimum": 0, "maximum": 15, "description": "Counted from 0: drum lanes are on 9 (GM channel 10)." },
+          "notes": {
+            "type": "object",
+            "description": "Drum lanes: voice id to GM note. Exported drums and perc stay inside 35-59 (plan 2.6), so a drag back onto Wubansia plays drums.",
+            "minProperties": 1,
+            "additionalProperties": { "type": "integer", "minimum": 35, "maximum": 59 }
+          },
+          "range": {
+            "type": "array",
+            "description": "Pitched lanes: the lowest and highest MIDI note, low to high, at least an octave apart.",
+            "prefixItems": [ { "type": "integer", "minimum": 0, "maximum": 127 }, { "type": "integer", "minimum": 0, "maximum": 127 } ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "root": { "type": "integer", "minimum": 0, "maximum": 127, "description": "The bass lane: the tonic in the bass register (its lowest root), inside the range." }
+        },
+        "oneOf": [
+          { "required": ["notes"], "not": { "anyOf": [ { "required": ["range"] }, { "required": ["root"] } ] } },
+          { "required": ["range"], "not": { "required": ["notes"] } }
+        ]
+      }
+    }
+  }
+}

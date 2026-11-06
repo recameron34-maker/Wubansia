@@ -1,70 +1,120 @@
-# FUT02 "Orbit Relay": round 2 first listen
+# FUT02 "Orbit Relay": round 5, the vox synth and the accents
 
-A sci-fi club kit at 130 BPM in D minor (7A): a split kick, an electro clap, choked hats and a rolling offbeat bass under a chrome arp. Every sound shares one shimmering stretched-wire tone (the kit's ratios) and a laser pitch drop, from the zap to the fill and the riser.
+Written for the kit's render folder (`build/fut02-r5`, from `render.py --kit FUT02 --set r5`), which holds the FLAC masters, `qa/`, `qa_report.md`, `qa_report.json` and `listen.json` this page names; its copy in `content/samples/fut02/` sits beside the WAVs alone.
 
-Nobody has listened to these yet. The numbers below are measurements, not judgements of the sound.
+A sci-fi club kit at 130 BPM in D minor (7A): a split kick, an electro clap, choked hats and a rolling offbeat bass under a chrome arp, every sound on one shimmering stretched-wire tone and a laser pitch drop. After round 3 you said: "sounds are very good, vocals suck, either ditch or rethink, need those cool accent synths". So round 5 keeps every non-vocal sound byte for byte, drops the text-to-speech vocals, puts a wordless vox synth in their place, and adds synth accents and phrases, featured in the loops.
 
-## What's here
+**Nobody has listened to round 5.** Every number below is a measurement made in this session; none of it says how it sounds.
 
-| Folder or file | What |
-|---|---|
-| `Drums/`, `Bass/`, `Music/`, `Vox/`, `FX/`, `Loops/` | WAV copies to listen to: 120 files, 48 kHz / 24-bit, the same samples as the masters. `v1` is the softest velocity layer, `rr` the round robin |
-| `FUT02_*.flac` | The 120 masters (28 MB) |
-| `qa/` | The four-on-the-floor loops the kick and bass-shot mud checks ran on |
-| `sheets/` | One spectrogram sheet per instrument |
-| `qa_report.md`, `qa_report.json` | Every QA check with its number, every exception with its reason, the render environment, the loop points, the robot's slices and the wet loop's send settings |
-| `listen.json` | The round 2 listening page's entry for this kit |
+## Start here
 
-Start with `Loops/Context Loop.wav` and `Loops/Context Loop Warm.wav` on loop, then go through the 12 sounds.
+The A/B: `Loops/Context Vox Synth Club.wav` (the vox synth riff in bars 2-3, where the old vocals were) against `Loops/Context No Vox Club.wav` (the same loop instrumental, the arp and the accents on top). Then the vox synth itself (`Vox/`), the riff (`Loops/Vox Synth Riff.wav`), the accents and the phrases.
 
-## The 12 sounds
-
-| # | Sound | Files | A/B |
+| Club master | Vox synth | No vox | Sci-fi club target |
 |---|---|---|---|
-| 1 | Split kick on A1 | `Drums/Kick Split` (5 layers × 2); `qa/FUT02_Drums_KickSplit_4x4.flac` (2 bars; QA's groove, softer on 2 and 4) | |
-| 2 | Electro clap | `Drums/Electro Clap` (5 × 2) | |
-| 3 | Closed and open hats | `Drums/Closed Hat`, `Drums/Open Hat` (5 × 3 each); `Loops/Hat Loop` (2 bars, the choke) | |
-| 4 | Laser zap on D5 | `Drums/Zap` (5 × 2) | |
-| 5 | Rolling bass | `Loops/Orbit Groove Clean`, `Orbit Groove Warm` (the pick), `Relay Groove Clean`, `Relay Groove Warm` (2 bars each: the line with the kit kick on every beat and the hats, at the context loop's levels); `Loops/Orbit Line …`, `Relay Line …` (the lines alone); `Bass/Roll Bass Clean`, `Roll Bass Warm` D1, A1, D2 (2 layers, 2 s loops) | **A clean / B warm** |
-| 6 | Drop glide | `Bass/Drop Glide Clean`, `Drop Glide Warm` (2 layers) | **A / B** |
-| 7 | Starfield pad, Dm9 | `Music/Starfield Pad Dm9` (attack, then a 4-bar loop); `Loops/Starfield Pad Loop` (the loop alone) | |
-| 8 | Chrome arp | `Loops/Chrome Arp Phrase` (2 bars); `Music/Chrome Arp` D4 G4 C5 F5 A#5 (B♭5) (2 layers) | |
-| 9 | Sung chops | `Vox/Sung Line 1` ("Pull me into orbit", the pick) and its 8 chops (`Chop Pull` … `Chop Pull Me Into`); `Sung Line 2` ("Your light keeps calling me") and `Sung Line 3` ("Send your signal to me") to compare | |
-| 10 | Vocoder phrase | `Vox/Vocoder Relay` ("Relay online", dry), `Vocoder Relay Wet` | dry / wet |
-| 11 | Laser fill | `FX/Laser Fill` (1 bar, ends on the downbeat); `Loops/Laser Fill Preview` (a groove bar, then the fill) | |
-| 12 | Laser riser | `FX/Laser Riser` (8 bars, ends on the downbeat); `Loops/Laser Riser Preview` (the riser, then a bar of groove) | |
+| Loudness, LUFS-I (round the loop) | -9.26 | -9.43 | -8.5 ± 1 |
+| True peak | -1.02 dBTP | -1.02 dBTP | ≤ -1.0 |
+| PLR / PSR | 8.24 / 7.80 dB | 8.41 / 8.09 dB | ≥ 7.0 / ≥ 6 |
+| Peak reduction (clipper + limiter) | 4.25 dB (clipper 2.84, limiter 1.41) | 4.25 dB (clipper 2.89, limiter 1.36) | round 3's declared cap, 4.25 |
+| Kick crest in the loop, each full-velocity kick | median 6.17 dB, every kick 4.22 or more | median 6.19 dB, every kick 4.19 or more | the floor 4.0 |
+| Crest the master costs (median per hit) | kicks 0.84, claps 0.92 dB | kicks 0.91, claps 0.84 dB | declared 1.6 (round 3: 1.47 / 1.53) |
+| Octaves re 1 kHz: sub, 125, 250, 500, 2k, 4k, 8k | +10.4, +1.8, +0.7, +1.0, -0.6, -2.8, -4.8 dB | +10.5, +1.9, +0.8, +1.1, -1.4, -3.5, -5.0 dB | every one inside its window |
+| Side over mid at 125 / 250 Hz | -49.8 / -14.4 dB | -50.8 / -14.1 dB | ≤ -10 |
 
-**The context loop** (`Loops/`, 4 bars, 7.38 s, loops seamlessly). Original, written for this kit. Four on the floor, every beat on the hard layer (out on beat 4 of bar 4 for the fill's dive), the clap on 2 and 4 under it with ghosts, rolling hats with the open hat choked. The Orbit bassline rests on every kick and answers it; bar 4 opens with the drop glide, then the line comes back on D1 and B♭1 and climbs A1-C2-D2 into the loop. The chrome arp plays up front over the Dm9 pad. The robot calls "Relay online" in bar 2, the zap answers, and the sung line replies: "pull me" (bar 2), "into orbit" (bar 3). Under the words the arp steps back (4 dB, its top 1.2-6.5 kHz carved a further 6-10 dB, so its melody stays and the words come through), and it rests in bar 4 while the laser fill plays. Every lane swings its odd 16ths by the kit's one amount (4.6 ms).
-- `Context Loop`: dry, bass A (clean). `Context Loop Warm`: dry, bass B (warm), level-matched to A, so the two differ only in the bass.
-- `Context Loop Wet`: bass B (my pick for the wet, see below), plus Space (an FDN with a little shimmer, ducked under the vocals), Echo (tape ping-pong on a dotted 8th) and the resonator stand-in on the pad's chord times the kit's ratios; "into orbit" is thrown into the fill bar. This is **the target the engine's sends must match** (S1e); its settings are in `qa_report.json`.
-- `Context Loop Low`: the kick and bass A alone, as they sit in the loop, mud-gated in every gap. `Context Loop Low Warm` is the same with bass B under the bass-body rule.
+## What changed, and why
 
-## The bass A/B
+**1. The vocals are gone.** The three sung lines, the eight chops, and the vocoder phrase dry and wet are out of the set (they stay in set r3, which still renders round 3 exactly). Nothing in r5 needs the speech models.
 
-Round 1's reese was "the most work of all" and didn't make you dance, so every kit's bass comes twice, and you pick by ear (ADR 0011):
-- **A, clean**: the strict mud gate. Its mids start at 520 Hz behind a steep high-pass, so 150-400 Hz stays empty: tight and punchy, a little hollow.
-- **B, warm**: the proposed bass-body rule. The same voice keeps its own harmonics down to 120 Hz, up to a plain saw's level, over the same sine sub: body on small speakers.
+**2. The vox synth (sound 9).** A wordless vocal synth made by synthesis alone (`recipes/fut02/voxsynth.py`), a robotic but musical vocoder choir:
+- a band-limited, glottal-like buzz (additive, every partial a harmonic, a saw's tilt with a pulse's ripple);
+- five formant band-passes per vowel, applied frame by frame, so vowels glide: 'ee', 'ah', 'oh';
+- a short 'd'-like onset: a 7 ms noise burst, the formants opening from a closed position in 35 ms, the pitch scooping up 35 cents;
+- vibrato from 0.25 s into a note (±13 cents at 5.4 Hz), a slow jitter of about 1 cent, breath through the same formants;
+- the choir: a double 8 cents sharp on the left and 8 cents flat on the right, its formants 2% higher, above the note's fundamental;
+- the sparkle: its top above 3.5 kHz frequency-shifted 9 Hz up on the left and down on the right, 18 dB under.
 
-Both play the same two lines, heard first over the kit's own kick (the groove loops). **Orbit** (the designers' pick, in the context loop) bounces D1-D2 on the offbeats with a pickup that changes every beat; **Relay** is more melodic, around D2 with a slide and a climb. Over the kick, B reads -3.8 dB (Orbit) and -5.6 dB (Relay) against the bass-body limit of -2 dB, A -29.2 and -24.5 dB against the gate's -20. For the wet loop I picked **B**: it is the answer to round 1's hollow reese, and the bass takes no sends, so the wet version doesn't change the comparison. If A wins, the wet loop is re-rendered with A.
+The multisample `Vox Synth` sits on D4 F4 A4 C5 F5 A5, and **the velocity picks the vowel**: soft 'oh' (v1), medium 'ah' (v2), hard 'ee' (v3), each layer brighter and louder. Every zone and layer reads its root within 2 cents. Five single chops: 'ah' D5, 'ee' F5, 'oh' A4, 'ee' opening to 'ah' C5, and 'ah' closing to 'oh' A5 (a beat, with vibrato).
+
+**3. The vox synth riff (sound 10).** Two bars that lock with the chrome arp. Each bar opens on the arp's 3-3-2 accents a third under its motif (D5 F5 E5 under F5 A5 G5), answers in the arp's held notes (D5 C5; A5 C5), and ends on a throw: A4 held a beat into a dotted-8th ping-pong whose repeats fall away in pitch. Its vowels follow the velocities ('ah', 'ee' on the accents, 'oh'), so `content/midi/fut02/FUT02_Phrase_VoxSynth_2bars.mid` plays it back on the multisample.
+
+**4. Synth accents (sound 13).** Nine, each on a stated root in D minor:
+- laser chord stab (D4 Dm9, B♭3 B♭maj9): the arp's chrome voice as a chord, a laser falling onto it;
+- starfield sweep (D): the pad's stars and a whoosh rising over 1 bar into the downbeat;
+- glass ping (D6), with a ping-pong;
+- resonant zap (A5);
+- arp stab (D6): D5 F5 A5 D6 in 32nds;
+- reverse chord (D4): two beats of swell into the beat;
+- vox synth stab (D4, Dm7 'ah');
+- noise uplifter (D, 2 bars);
+- sub drop (D2, two octaves down).
+
+**5. Synth phrases (sound 14).** Each a loop and a MIDI file on channel 4 (`content/midi/fut02/FUT02_Phrase_*`), four with the vox riff:
+- a 2-bar laser stab riff: Dm9 on the 3-3-2 accents, then B♭maj9;
+- a 4-bar glass melody;
+- 4 bars of vox choir chords: Dm7 'oh', Dm9 'ah', B♭maj7 'ee', Am7 'ah'.
+
+**6. The two loops** (`recipes/fut02/context5.py`), both through round 3's buses, sends and club master:
+- Vox synth: the riff from bar 2's downbeat, where round 3's robot called. Its throw goes fully into the hall and the echo and falls into the fill bar. The arp keeps a light pocket under it (2 dB down, 1.2-6.5 kHz 5 dB further), not round 3's word pocket.
+- No vox: no pocket on the arp, and four accents carrying the top.
+- Accents in both, as ear candy: each one's loudest 400 ms reads -22.5 to -23.5 LUFS (momentary), 5.3-7.1 LU under the drums and the fill where it plays:
+  - vox synth: the laser chord stab on the and of 4 in bar 1 (a pickup into the riff), the glass ping on the and of 4 in bar 2 (in the riff's rest), the starfield sweep into the loop's end;
+  - no vox: the stab on the and of 4 in bar 1, the reverse chord swelling into bar 3, the arp stab on the and of 2 in bar 3, the sweep into the loop's end.
+
+**7. Three mix moves the master needed.** Without round 3's two compressed vocal lanes, the loop is sparser between its kicks. At the 4.25 dB cap it stopped under the genre's window, and the peaks were the music's, not the kick's: the vox synth's bright 'ee' notes (0.8 dB over the kicks on their own) and the zaps (round 3's loudest peak too). Measured on the club master's output, at the 4.25 dB cap:
+
+| Step | Vox synth, LUFS-I | No vox, LUFS-I |
+|---|---|---|
+| Round 3's mix, the vox riff in place of the vocals | -10.86 | -10.15 |
+| The vox lane through a soft clip, 6 dB under its peak (a vocal synth driven, its level kept) | -9.96 | (no vox lane) |
+| The zaps 4.5 dB under round 3's fader (their sends unchanged), the bass 1.5 dB over it (it rests on every kick, so it adds loudness and no peaks) | **-9.26** | **-9.43** |
+
+Raising the cap instead would have needed about 5.1 dB for the instrumental (5.0 dB reaches -9.57), near the 5.6 dB the A&R review found flattened the kicks. Raising the music, the pad or the hats made it quieter (more peaks); compressing the vox lane made it quieter too. The low end changes with the bass. `ContextLow5` and `ContextLow5Warm` are the kick and bass as round 5 plays them, and replace round 3's `ContextLoopLow` and `ContextLoopLowWarm` in this set.
+
+## The sounds
+
+| # | Sound | Round 5 | Files |
+|---|---|---|---|
+| 1 | Split kick on A1 | **unchanged** (the same bytes) | `Drums/Kick Split` |
+| 2 | Electro clap | **unchanged** | `Drums/Electro Clap` |
+| 3 | Closed and open hats | **unchanged** | `Drums/Closed Hat`, `Drums/Open Hat`, `Loops/Hat Loop` |
+| 4 | Laser zap on D5 | **unchanged** (4.5 dB lower in the round 5 loops) | `Drums/Zap` |
+| 5 | Rolling bass | **unchanged** (1.5 dB higher in the round 5 loops) | `Loops/Orbit Groove …`, `Relay Groove …`, `Orbit Line …`, `Relay Line …`, `Bass/Roll Bass …` |
+| 6 | Drop glide | **unchanged** | `Bass/Drop Glide Clean`, `Drop Glide Warm` |
+| 7 | Starfield pad, Dm9 | **unchanged** | `Music/Starfield Pad Dm9`, `Loops/Starfield Pad Loop` |
+| 8 | Chrome arp | **unchanged** | `Loops/Chrome Arp Phrase`, `Music/Chrome Arp` |
+| 9 | Vox synth | **new**, in place of the sung chops | `Vox/Vox Synth …`, `Vox/Vox Chop …` |
+| 10 | Vox synth riff | **new**, in place of the vocoder phrase | `Loops/Vox Synth Riff` |
+| 11 | Laser fill | **unchanged** | `FX/Laser Fill`, `Loops/Laser Fill Preview` |
+| 12 | Laser riser | **unchanged** | `FX/Laser Riser`, `Loops/Laser Riser Preview` |
+| 13 | Synth accents | **new** | `Music/Laser Chord Stab …`, `FX/Starfield Sweep`, `Drums/Glass Ping …`, `Drums/Resonant Zap …`, `Music/Arp Stab …`, `FX/Reverse Chord …`, `Music/Vox Synth Stab …`, `FX/Noise Uplifter`, `Bass/Sub Drop` |
+| 14 | Synth phrases | **new** | `Loops/Laser Stab Riff`, `Loops/Glass Melody`, `Loops/Vox Choir Chords` |
+
+All 102 files of the 26 continuing items are byte-identical to round 3's render (SHA-256), as is the kick's 4x4 groove loop in `qa/`.
 
 ## What to listen for
 
-- **Does the context loop make you want to dance?** Is the bass musical now? Does the arp stand out the way the high plucks did in round 1, and do the words come through over it?
-- **Kick.** Split's range, never driven on the body: top-layer crest 5.92 (rr2) and 6.32 (rr1) dB (Split 5.82-6.44, Tight 7.93-8.87). It is short on purpose: the sub holds about 60 ms and is 15-18 dB down by the e, where the bass plays the first note of each beat, so the two don't fight (a quiet tail, 30-40 dB down, runs to 0.40 s). Does it punch without "slamming the limiter", and is it long enough for a club kick?
-- **Bass A or B**, in the groove loops and the dry context loops first (same level), then on small speakers. Do the lines groove against the kick?
-- **Drop glide.** Does the dive land on D1 in time, and does it feel like a transition? B keeps its body through the dive and clears it before the next kick.
-- **Vocals.** Is "Pull me into orbit" a line you'd use? Do the chops keep whole consonants and natural breath tails? Is "Relay online" clear in the loop? All vocals are Kokoro speech resynthesised with WORLD at 48 kHz; the top band above 12 kHz is synthetic.
-- **Gestures.** Zap, fill and riser all use the laser drop: is it a clear, musical shape, in key, and does each land on the 1? The zap is now mostly its fall (75-95 ms onto D5).
-- **Mud.** Listen once in mono at a moderate level: anything boomy or boxy between 150 and 400 Hz?
-- **One kit?** Do all 12 sound like one family?
+- **The A/B.** Vox synth or no vox: does the riff make the loop, or is the instrumental with the accents on top the stronger record?
+- **The vox synth.** Does it sound like a cool modern vocal synth (robotic, shimmering, musical) and not a fake singer? Which vowel do you reach for: 'oh', 'ah' or 'ee'? Is the 'd' onset too clicky or too soft?
+- **The riff with the arp.** Does it lock with the arp's accents, or do the two crowd each other in bars 2-3? Does the throw lead into the fill?
+- **The accents.** Do they read as ear candy, under the drums and not over them? Which would you drop into a track, and which are missing?
+- **The mix moves.** Are the zaps still clear enough 4.5 dB lower? Is the bass, 1.5 dB up, too big?
+- **Mud.** Once in mono: anything boomy or boxy between 150 and 400 Hz?
 
-## The round 2 gate
+## QA
 
-Per kit, the S1a gate:
-- at least **8 of the 12 sounds kept with Cool ≥ 4** after one fix round
-- a **median Cool ≥ 4**
-- "one kit?" **yes on at least 10**
+- **The render:** 55 items, 158 files, **0 failed checks** (`qa_report.md`).
+- **Reproducible:** every item was rendered a second time in a fresh process (`--repro`), with the same SHA-256.
+- **Both club loops** pass every club check: loudness, PLR, true peak round the loop, every octave window (the closest 0.64 dB inside its edge), low width, the declared cap and crest loss, and the kick crest floor.
+- **The low end over the kit's kick:**
+  - A (the gate): `ContextLow5` -29.1 dB (limit -20).
+  - B (bass-body): `ContextLow5Warm` -3.88 dB (limit -2).
+- **Tuning:** the vox synth reads its root within 2 cents on every zone, layer and chop; the pitched accents within 1.3 cents, the resonant zap 2.6 (its filter's fall; QA's limit is 3).
+- **The written loop as MIDI** (`content/midi/fut02`): the four synth phrases are new files on channel 4 and the README lists them. The extended mix's README points its Vox cues at the vox synth now; every other file is unchanged.
 
 ## Not verified
 
-How anything sounds: nobody has listened. The mix levels in the context loop were set by loudness measurements, not by ear, and the arp's room under the vocals was set by band measurements (the arp at or under the vocals in 1.4-5.6 kHz over every vocal phrase), not by ear.
+- **How any of it sounds:** nobody has listened to round 5.
+- **The judgement calls behind the numbers:**
+  - the vox synth's formants, onset, vibrato and sparkle depth;
+  - the accents' levels (set by momentary loudness, not by ear);
+  - the three mix moves, made to fit the master at round 3's cap.
