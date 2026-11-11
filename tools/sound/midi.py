@@ -240,7 +240,9 @@ def line(lanes, **opt):
       first bar), 'answer' (its second bar); throw=True adds the riff's last note on the line's last 'and' of 4,
       thrown (CC91/CC94);
     - phrases: names of PARTS['phrases'] that play over the line, each on its instrument's channel in place of that
-      channel's part (a phrase on the vox synth's channel plays in the vox mix only, in place of the line's vox mode);
+      channel's part (a phrase on the vox synth's channel plays in the vox mix only, in place of the line's vox mode;
+      a phrase on Chords writes its 'voicing', if it has one, on Chord voicing, and the variant's accents take its
+      stabs on PARTS['loop']['stab_drop']'s 16ths, as they take the chord sample's);
       phrases_rest=True: on a line that ends on a fill, its phrases rest from the kit's fill start, a note held over
       it cut there (else they play on under the fill, as FUT01's lead and bass play under its glitch fill);
     - accents: 'loop' (the variant's loop accents in every 4-bar block), 'alternate' (in the line's second block),
@@ -252,7 +254,10 @@ def line(lanes, **opt):
       bar up to the fill's start, its velocity rising hit by hit from `from` to `to` times its loudest written
       velocity; rest='all' (the default): every drum rests from the fill's start; rest='lane': the rolled lane alone,
       the others playing the kit's fill bar under the fill (FUT03's one-bar Build Fill);
-    - rise: (lane, from, to): the lane's velocities scaled bar by bar from `from` to `to`;
+    - rise: (lane, from, to): the lane's velocities scaled bar by bar from `from` to `to`: a lane name takes its tracks
+      ('chords' the chord sample and its voicing, 'pad' the pad, 'bass' every bass-lane track), a track's name that
+      track ('Chords' with its voicing); refused on the vox where its velocity picks the vowel, and on a name that is
+      neither;
     - fill: on a line that ends on a fill, a sound (channel 6 or 7) end-aligned on the line's end in place of the
       kit's fill: every drum lane (busy hats and a roll included) rests from its start (FUT01's build: the whole glitch
       fill from beat 3, where the loop plays its beat 4 only);
@@ -516,6 +521,10 @@ class Kit:
             if name not in self.extras:
                 raise ValueError(f'{kit}: PARTS names an extra {name!r} that channels.EXTRAS does not give it')
         self.phrases = [dict(ph) for ph in P.get('phrases', ())]
+        for ph in self.phrases:
+            if ph.get('voicing') and phrase_track(self, ph) != 'Chords':
+                raise ValueError(f"{kit}: the phrase {ph['name']!r} has a voicing but plays on "
+                                 f'{phrase_track(self, ph)}, not on Chords')
         self.rides = list(P.get('rides', ()))
         self._throwing = None           # throw_channels(), found once
         self._seen = None               # the channels that throw, while throw_channels() looks for them
@@ -954,6 +963,7 @@ class Kit:
                 out[pad['on']] |= {n.key for n in as_notes(notes)}
         for ph in self.phrases:
             out[phrase_track(self, ph)] |= {n.key for n in as_notes(ph['notes'])}
+            out['Chord voicing'] |= {n.key for n in as_notes(ph.get('voicing', ()))}
         return out
 
 
@@ -1400,14 +1410,19 @@ def line_notes(k, ln, ctx, variant):
         # accents: the variant's loop pattern
         if b in acc_blocks:
             add('Accents', shifted(k.loop_accents(variant), off))
-    # phrases (a vox phrase plays in the vox mix only, in place of the line's vox mode)
+    # phrases (a vox phrase plays in the vox mix only, in place of the line's vox mode; a phrase on Chords writes its
+    # voicing on Chord voicing, and gives the variant's accents their stabs as the chord sample does)
     for track, ph in phrase_on.items():
         period = ph.get('bars', 2) * BAR
-        notes = as_notes(ph['notes'])
-        notes = [n for r in range(LINE * BAR // period) for n in shifted(notes, r * period)]
-        if fill and ln.get('phrases_rest'):
-            notes = rest_from(k, notes, (LINE - 1) * BAR + fill_start(k, ln))   # the fill alone from its start
-        add(track, notes)
+        for on, rows in ((track, ph['notes']), ('Chord voicing', ph.get('voicing', ()))):
+            notes = [n for r in range(LINE * BAR // period) for n in shifted(as_notes(rows), r * period)]
+            if fill and ln.get('phrases_rest'):
+                notes = rest_from(k, notes, (LINE - 1) * BAR + fill_start(k, ln))   # the fill alone from its start
+            if track == 'Chords' and stab_drop:
+                notes = [n for n in notes if int(n.step // (BLOCK * BAR)) not in acc_blocks
+                         or n.step % (BLOCK * BAR) not in stab_drop]
+            if notes:
+                add(on, notes)
     # vox
     if ('vox' in lanes or ln.get('vox', 'off') != 'off') and 'Vox' not in phrase_on:
         add('Vox', vox_notes(k, ln.get('vox', 'off'), variant))
@@ -1469,7 +1484,7 @@ def line_notes(k, ln, ctx, variant):
                 out[t] = turnaround(k, part, out[t], last_bar, pickup, ln.get('turn'))
     if 'rise' in ln:
         lane, a, z = ln['rise']
-        for t in ([k.part_track(lane)] if lane in DRUM_PARTS else [lane]):
+        for t in rise_tracks(k, lane):
             if t in out:
                 out[t] = [n._replace(vel=n.vel * (a + (z - a) * int(n.step // BAR) / (LINE - 1))) for n in out[t]]
     if ln.get('end') == 'drop':
@@ -1534,6 +1549,25 @@ def ride_mode(k, mode):
     if kind not in ('hold', 'ramp') or not all(isinstance(v, int) and 0 <= v <= 127 for v in rest):
         raise ValueError(f'{k.kit}: ride mode {mode!r}')
     return [kind, *rest]
+
+
+def rise_tracks(k, name):
+    """The tracks a rise=(name, ...) scales: a drum lane's track; 'chords' (or 'Chords') the chord sample and its
+    voicing; 'pad' the pad's track; another lane ('bass', 'lead', 'accents', 'fx') every track on it; else the track
+    of that name. A rise on the vox is refused where its velocity picks the vowel (PARTS['vox']['vowels'])."""
+    if name in DRUM_PARTS:
+        return [k.part_track(name)]
+    if name in ('vox', 'Vox') and k.P.get('vox', {}).get('vowels'):
+        raise ValueError(f'{k.kit}: a rise on the vox would change its vowels (its velocity picks them)')
+    if name in ('chords', 'Chords'):
+        return ['Chords', 'Chord voicing']
+    if name == 'pad' and k.P.get('pad'):
+        return [k.P['pad']['on']]
+    if name in CH.LANES:
+        return [t for t in k.tracks() if CH.track_lane(k.kit, t) == name]
+    if name in k.tracks():
+        return [name]
+    raise ValueError(f'{k.kit}: a rise on {name!r}, which is neither a lane nor a track')
 
 
 def track_of_role(role):
