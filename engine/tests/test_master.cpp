@@ -3,6 +3,7 @@
 
 #include "fx_vectors.h"
 
+#include "fx/club_clip.h"
 #include "fx/glue.h"
 #include "fx/limiter.h"
 #include "fx/oversampler_exact.h"
@@ -307,4 +308,100 @@ TEST_CASE ("master: the club master can hold two-sided, master.py's way, at mast
         master.process (l.data() + s, r.data() + s, 256, Controls {});
     const auto at = static_cast<int> (std::max_element (l.begin(), l.end()) - l.begin());
     CHECK (at == 100 + master.latency());
+}
+
+TEST_CASE ("master: the club master takes the same gain reduction and leaves the same level at 48, 96 and 192 kHz", "[master]")
+{
+    // P12's fidelity pass: at 96 kHz the club loops read up to 0.19 LU louder than at 48 kHz, their true peak 0.55 dB
+    // higher resampled to 48 kHz. The clip at a plain 4x of the rate was the cause (fx/club_clip.h): its ADAA lag and
+    // its band shrank with the rate, and the limiter took about 0.13 dB less on this fixture (0.15 dB higher RMS).
+    // On a fixed internal rate the master is the same in absolute time. The same continuous signal at each rate:
+    // a 110 Hz saw to 20 kHz, a falling kick and a 3 kHz burst every 0.5 s, glued, driven 6 dB into the clip and the
+    // limiter. Blocks of 256, 512 and 1024 samples end at the same moments; both figures are over 1-5 s, eight periods.
+    struct Run
+    {
+        double gr;
+        double rmsDb;
+    };
+    const auto run = [] (double fs) {
+        const auto n = static_cast<std::size_t> (5.0 * fs);
+        std::vector<float> l (n), r (n);
+        const double pi = 3.141592653589793;
+        for (std::size_t i = 0; i < n; ++i)
+        {
+            const double t = static_cast<double> (i) / fs;
+            double s = 0.0;
+            for (int h = 1; h * 110.0 < 20000.0; ++h)
+                s += std::sin (2.0 * pi * 110.0 * h * t + 0.3 * h) / h;
+            s *= 0.15;
+            const double tk = std::fmod (t, 0.5);
+            s += 0.6 * std::sin (2.0 * pi * (50.0 * tk + 3.0 * (1.0 - std::exp (-tk / 0.03)))) * std::exp (-tk / 0.15);
+            const double tc = std::fmod (t + 0.25, 0.5);
+            s += 0.25 * std::sin (2.0 * pi * 3000.0 * tc) * std::exp (-tc / 0.02);
+            l[i] = static_cast<float> (s);
+            r[i] = static_cast<float> (0.9 * s);
+        }
+        MasterConfig m;
+        m.glueThresholdMdb = -16000;
+        m.driveMdb = 6000;
+        const auto block = static_cast<std::size_t> (std::lround (256.0 * fs / 48000.0));
+        mix::ClubMaster master;
+        master.prepare (fs, static_cast<int> (block));
+        Controls controls;
+        master.setup ({ m, m }, controls, 0);
+        const auto from = static_cast<std::size_t> (fs);
+        double gr = 0.0, power = 0.0;
+        int blocks = 0;
+        for (std::size_t s = 0; s < n; s += block)
+        {
+            master.process (l.data() + s, r.data() + s, static_cast<int> (std::min (block, n - s)), controls);
+            if (s >= from && s + block <= n)
+            {
+                gr += master.gainReductionDb();
+                ++blocks;
+            }
+        }
+        for (std::size_t i = from; i < n; ++i)
+            power += static_cast<double> (l[i]) * l[i] + static_cast<double> (r[i]) * r[i];
+        return Run { gr / blocks, 10.0 * std::log10 (power / static_cast<double> (2 * (n - from))) };
+    };
+    const Run base = run (48000.0);
+    CHECK (base.gr > 2.0); // the clip and the limiter both at work
+    for (const double fs : { 96000.0, 192000.0 })
+    {
+        const Run got = run (fs);
+        INFO (fs << " Hz: GR " << got.gr << " dB against " << base.gr << ", RMS " << got.rmsDb << " dB against " << base.rmsDb);
+        CHECK (std::abs (got.gr - base.gr) <= 0.02);
+        CHECK (std::abs (got.rmsDb - base.rmsDb) <= 0.02);
+    }
+}
+
+TEST_CASE ("master: the club clip's internal rate and latency per rate", "[master]")
+{
+    // 4x at 44.1 and 48 kHz (master.soft_clip's os_fir(4) round trip), 2x at 88.2 and 96, 1x at 176.4 and 192: 1 ms
+    CHECK (ClubClip::latencyFor (44100.0) == MasterClip::kLatency);
+    CHECK (ClubClip::latencyFor (48000.0) == 48);
+    CHECK (ClubClip::latencyFor (88200.0) == 96);
+    CHECK (ClubClip::latencyFor (96000.0) == 96);
+    CHECK (ClubClip::latencyFor (176400.0) == 192);
+    CHECK (ClubClip::latencyFor (192000.0) == 192);
+    // a sine under the knee comes through whole at each rate, 1 ms late
+    for (const double fs : { 48000.0, 96000.0, 192000.0 })
+    {
+        CAPTURE (fs);
+        ClubClip clip;
+        clip.setup (fs);
+        clip.setCurve (-0.52, 1.5);
+        const int n = static_cast<int> (fs / 10.0), lat = clip.latency();
+        std::vector<float> l (static_cast<std::size_t> (n)), r;
+        for (int i = 0; i < n; ++i)
+            l[static_cast<std::size_t> (i)] = static_cast<float> (0.5 * std::sin (2.0 * 3.141592653589793 * 1000.0 * i / fs));
+        r = l;
+        const auto in = l;
+        clip.process (l.data(), r.data(), n);
+        double worst = 0.0;
+        for (int i = n / 2; i < n; ++i)
+            worst = std::max (worst, std::abs (static_cast<double> (l[static_cast<std::size_t> (i)]) - in[static_cast<std::size_t> (i - lat)]));
+        CHECK (worst < 1e-3);
+    }
 }

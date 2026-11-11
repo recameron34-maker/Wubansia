@@ -56,7 +56,7 @@ TEST_CASE ("latency: fixed per rate, whatever the kit: 64 + the club master's", 
         double rate;
         int total;
     };
-    for (const Row row : { Row { 44100.0, 404 }, Row { 48000.0, 424 }, Row { 96000.0, 664 } })
+    for (const Row row : { Row { 44100.0, 404 }, Row { 48000.0, 424 }, Row { 96000.0, 712 } })
     {
         CAPTURE (row.rate);
         Mixer mixer;
