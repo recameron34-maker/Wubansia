@@ -101,7 +101,7 @@ Your ratings, from the listening page (its store, read back on 2026-10-29):
 
 **Then:** you asked for four kits ("give me four kits"). The fix round for FUT01 runs together with three new first-listen kits, one per remaining direction (ADR 0010). They come back as round 2.
 
-## 2026-11-11 · v0.1 · build e48b3e0 (measured at f079d0b) · Listener: you · DAW: Ableton Live 12 and Logic Pro (formats not reported) · Mac: not reported · Monitoring: not reported · Mono check: not reported
+## 2026-11-11 · v0.1 · build e48b3e0 (measured at f079d0b) · Listener: you · DAW: Logic Pro (AU); Ableton Live 12 not checked yet · Mac: not reported · Monitoring: not reported · Mono check: not reported
 
 v0.1 has no listening round (ADR 0017): this entry holds the fidelity numbers measured before anyone listens, and the DAW checklist for you.
 
@@ -138,7 +138,7 @@ Known gaps:
 - FUT01's vox riff entering fresh carries the previous cycle's baked throw, 36 dB under the chops, over its first 0.6 s; FUT04's squelch ticks play the full acid sample for about 33 ms on the multisample path.
 
 ### B. In your DAW (the checklist; not a listening test)
-- [ ] Loads in VST3 / AU / CLAP
+- [ ] Loads in VST3 / AU / CLAP (the AU works in Logic Pro, 2026-11-11; Live 12 not checked yet)
 - [ ] Content found (status ready) after `install-macos.sh`
 - [ ] Loop in sync from bar 1, wraps without a click
 - [ ] Song from any bar (chased)
@@ -158,8 +158,8 @@ Known gaps:
 - [ ] FUT04: the anvil pulse in the 97-104 break; the no-vox mix's moved throws
 
 ### C. What you said
-2026-11-11, after installing the macOS build (e48b3e0) for Ableton Live 12 and Logic Pro: "Sounds great". No kit or
-part named for a fix.
+2026-11-11, after installing the macOS build (e48b3e0): "Sounds great". No kit or part named for a fix. Then: "plugin
+worked on Logic Pro"; Ableton Live 12 not checked yet.
 
 ### D. Action
 - None to the sounds, the MIDI or the mix from this note: every kit keeps its round 5 sounds and the reviewed
