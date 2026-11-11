@@ -12,10 +12,10 @@ KICK_AB = ('KickSplit', 'KickGarage')   # drum note 36's A and B: context4 plays
 MIX_CHANNELS = {'kick': 'kick', 'bass': 'bass', 'bass_organ': 'bass', 'clap': 'snare', 'rim': 'perc', 'hat_c': 'hats',
                 'hat_o': 'hats', 'tamb': 'perc', 'perc': 'perc', 'stab': 'chords', 'pad': 'chords', 'pluck': 'lead',
                 'fill': 'fx', 'vsynth': 'vox', 'acc_rev': 'accents', 'acc_up': 'accents', 'acc_hit': 'accents',
-                'acc_warp': 'accents'}
+                'acc_warp': 'accents', 'vsynth_ms': 'vox'}
 MIX = dict(drums={'KickGarage': 'kick', 'KickSplit': 'kick', 'ClapGarage': 'clap', 'RimShot': 'rim',
                   'HatClosed': 'hat_c', 'HatOpen': 'hat_o', 'Tambourine': 'tamb', 'AlloyHit': 'perc'},
-           channels={1: 'bass', 2: 'pluck', 4: 'stab', 5: 'vsynth', 11: 'bass_organ', 12: 'pluck', 13: 'pad'},
+           channels={1: 'bass', 2: 'pluck', 4: 'stab', 5: 'vsynth_ms', 11: 'bass_organ', 12: 'pluck', 13: 'pad'},
            accents={'ReverseStab': 'acc_rev', 'NoiseUplifter': 'acc_up', 'OrganHit': 'acc_hit', 'WarpStab': 'acc_warp',
                     None: 'acc_hit'},
            fx='fill', chops='vsynth')
@@ -40,8 +40,17 @@ def accent_gain_mdb(item, audio=None):
     return 0                               # each accent its own channel and fader (context5.LANES)
 
 
+# The multisample path (a phrase channel's notes off the kit's tempo, with phrases off, and from MIDI in) at its stem's
+# level: each multisample's own gain (mdB), measured with groovecore render, phrases off against phrases auto, pass 2 of
+# the loop (content/plugin/README.md). The vox synth plays on vsynth_ms, vsynth with P3's corrective EQ in front (+4 dB
+# at 400 Hz, -5.5 dB at 1.2 kHz): the riff's chops sit lower than its held "ah".
+MS_GAIN_MDB = {'ChromePluck': 600, 'VoxSynth': 7550}
+
+
 def play(kind, item, it, key, r):
     """FUT01's own playing rules, over plugin_kit's defaults."""
+    if kind in ('bass', 'lead', 'vox') and item in MS_GAIN_MDB:   # the multisample at its stem's level
+        r['gain_mdb'] = MS_GAIN_MDB[item]
     if kind == 'accents' and item == 'WarpStab':   # context5.accent: gated, a 15 ms fade (GATE_FADE_S)
         r.update(mode='gated', release_us=round(C5.GATE_FADE_S * 1e6))
     if kind == 'fx' and key is not None and key.start:   # context4.fill_lane: from its 16th 4, a 2 ms fade-in

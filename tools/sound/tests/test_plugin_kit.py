@@ -406,8 +406,8 @@ class TestKeymap(unittest.TestCase):
 
     def test_named_cases(self):
         """FUT03's F1 (29) plays the G1 zone pitched down; FUT01's Low line plays Organ Bass on channel 11; FUT02's
-        Drop Glide follows the bass switch; FUT04's rumble is drum note 35 on the kick lane, no duck key; FUT01's kick 36 is A Split, B
-        Garage; FUT03's congas and bongos play their zones unpitched on their drum notes."""
+        Drop Glide follows the bass switch; FUT04's rumble is drum note 35 on the kick lane, no duck key; FUT01's kick
+        36 is A Split, B Garage; FUT03's congas and bongos play their zones unpitched on their drum notes."""
         m = manifest('FUT03')
         ins, zone = resolve(m, 1, 29, 'a')
         self.assertEqual((31, 0), (zone['root'], zone['lo']))
@@ -520,8 +520,9 @@ MULTISAMPLES = {
     'FUT01': {'chrome_pluck': (600, 'pluck'), 'vox_synth': (7550, 'vsynth_ms')},
     'FUT02': {'roll_bass_clean': (-900, 'bass_ms'), 'roll_bass_warm': (4160, 'bass_ms'), 'chrome_arp': (130, 'arp'),
               'vox_synth': (1850, 'vox')},
-    'FUT03': {'rubber_bass_clean': (1730, 'bass_ms'), 'rubber_bass_warm': (2240, 'bass_ms'), 'vox_synth': (6120, 'vox_ms')},
-    'FUT04': {'acid_clean': (-1000, 'bass'), 'acid_warm': (-1000, 'bass'), 'mod_blip': (-470, 'lead')},
+    'FUT03': {'rubber_bass_clean': (1730, 'bass_ms'), 'rubber_bass_warm': (2240, 'bass_ms'),
+              'vox_synth': (6120, 'vox_ms')},
+    'FUT04': {'acid_clean': (0, 'bass'), 'acid_warm': (0, 'bass'), 'mod_blip': (-470, 'lead')},
 }
 
 
