@@ -62,7 +62,7 @@ TEST_CASE ("real time never waits", "[offline]")
     {
         const auto start = Clock::now();
         const auto out = test::process (*plugin, 512, test::midiAt (kick, 0));
-        CHECK (Clock::now() - start < std::chrono::milliseconds (20));
+        CHECK (Clock::now() - start < test::limit (std::chrono::milliseconds (20)));
         CHECK (test::silent (out)); // no kit yet
     }
     CHECK (plugin->kitService().loadInFlight());
@@ -80,7 +80,7 @@ TEST_CASE ("missing content never holds a render up", "[offline]")
     // The first block may wait while the service looks (a few file checks), never for a load.
     auto start = Clock::now();
     test::process (*plugin, 512);
-    CHECK (Clock::now() - start < std::chrono::milliseconds (1000));
+    CHECK (Clock::now() - start < test::limit (std::chrono::milliseconds (1000)));
     REQUIRE (test::waitForStatus (*plugin, ContentState::missing));
 
     // Once it knows, no block waits.
@@ -88,7 +88,7 @@ TEST_CASE ("missing content never holds a render up", "[offline]")
     {
         start = Clock::now();
         CHECK (test::silent (test::process (*plugin, 512, test::midiAt (kick, 0))));
-        CHECK (Clock::now() - start < std::chrono::milliseconds (20));
+        CHECK (Clock::now() - start < test::limit (std::chrono::milliseconds (20)));
     }
 }
 
@@ -104,12 +104,12 @@ TEST_CASE ("the wait gives up at its limit, once per load", "[offline]")
     CHECK (test::silent (test::process (*plugin, 512)));
     const auto first = Clock::now() - start;
     CHECK (first >= std::chrono::milliseconds (290));
-    CHECK (first < std::chrono::milliseconds (2000));
+    CHECK (first < test::limit (std::chrono::milliseconds (2000)));
 
     // The same load: its time is spent; no more waiting.
     start = Clock::now();
     test::process (*plugin, 512);
-    CHECK (Clock::now() - start < std::chrono::milliseconds (50));
+    CHECK (Clock::now() - start < test::limit (std::chrono::milliseconds (50)));
 
     // A new load gets its own time.
     plugin.content->release();

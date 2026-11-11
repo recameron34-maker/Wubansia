@@ -5,6 +5,7 @@
 
 #include "ParameterIds.h"
 #include "PluginProcessor.h"
+#include "helpers/allocation_counter.h" // WUBANSIA_SANITIZED
 #include "helpers/synthetic_content.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -18,6 +19,9 @@
 namespace wubansia::test
 {
     using namespace std::chrono_literals;
+
+    // A time limit for a test, ten times longer under a sanitizer (TSan slows everything 5-15 times).
+    inline constexpr std::chrono::milliseconds limit (std::chrono::milliseconds ms) { return WUBANSIA_SANITIZED ? ms * 10 : ms; }
 
     // A processor whose kits are the synthetic content's, playing its first kit, and that content.
     struct SyntheticPlugin
@@ -103,7 +107,7 @@ namespace wubansia::test
     // Polls until done () or the timeout; whether done () came true.
     inline bool waitFor (const std::function<bool()>& done, std::chrono::milliseconds timeout = 5000ms)
     {
-        const auto end = std::chrono::steady_clock::now() + timeout;
+        const auto end = std::chrono::steady_clock::now() + limit (timeout);
         while (! done())
         {
             if (std::chrono::steady_clock::now() > end)

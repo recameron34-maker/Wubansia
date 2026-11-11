@@ -198,7 +198,7 @@ TEST_CASE ("destroying the processor mid-load returns within 200 ms", "[service]
 
     const auto start = std::chrono::steady_clock::now();
     plugin.reset();
-    CHECK (std::chrono::steady_clock::now() - start < std::chrono::milliseconds (200));
+    CHECK (std::chrono::steady_clock::now() - start < test::limit (std::chrono::milliseconds (200)));
     CHECK (engine::KitCache::instance().find ("DST01", 1) == nullptr);
 }
 

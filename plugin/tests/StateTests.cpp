@@ -452,11 +452,11 @@ TEST_CASE ("setStateInformation returns at once, even when the kit changes under
     };
 
     // The first state: it queues the first load, and returns.
-    CHECK (timed (fut01) < std::chrono::milliseconds (5));
+    CHECK (timed (fut01) < test::limit (std::chrono::milliseconds (5)));
     REQUIRE (test::waitFor ([&] { return plugin.content->readsStarted.load() > 0; }));
 
     // Mid-load, another kit.
-    CHECK (timed (fut02) < std::chrono::milliseconds (5));
+    CHECK (timed (fut02) < test::limit (std::chrono::milliseconds (5)));
     CHECK (plugin->settings().kit == "FUT02");
     plugin.content->setReadDelay (std::chrono::milliseconds (0));
     CHECK (test::waitForStatus (*plugin, ContentState::ready));
@@ -519,7 +519,7 @@ TEST_CASE ("100 instances are created and destroyed in under 5 s", "[state][serv
         PluginProcessor plugin;
         CHECK (plugin.getParameters().size() == 30);
     }
-    CHECK (std::chrono::steady_clock::now() - start < std::chrono::seconds (5));
+    CHECK (std::chrono::steady_clock::now() - start < test::limit (std::chrono::seconds (5)));
 }
 
 TEST_CASE ("instances are independent", "[state]")
