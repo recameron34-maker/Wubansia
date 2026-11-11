@@ -29,7 +29,8 @@ Velocities are round(v x 127), moved to the nearest integer that plays the recip
 (written_velocity: the engine plays the layer whose round(layer x 127) is nearest, the louder on a tie). End-aligned
 sounds end on their target, starting the sample's length (PARTS['frames']) before it. Filter rides are CC74/CC71 every
 CC_STEP ticks while they move; a thrown note has CC91 and CC94 at 127 on its tick and back to 0 at its end, or sooner
-at the track's next note-on that isn't thrown.
+at the track's next note-on that isn't thrown; a track on a channel that throws anywhere in the kit's files starts with
+both at 0 on tick 0.
 
 The extended mix is built line by line (8 bars each) from the kit's material: each lane plays the loop's 4-bar block,
 its fill bar where a line ends on a fill and its groove block (by default bar 2 again in place of bar 4) elsewhere;
@@ -516,6 +517,8 @@ class Kit:
                 raise ValueError(f'{kit}: PARTS names an extra {name!r} that channels.EXTRAS does not give it')
         self.phrases = [dict(ph) for ph in P.get('phrases', ())]
         self.rides = list(P.get('rides', ()))
+        self._throwing = None           # throw_channels(), found once
+        self._seen = None               # the channels that throw, while throw_channels() looks for them
         self._check()
 
     # ---------------------------------------------------------- the instruments
@@ -708,17 +711,48 @@ class Kit:
         """(on, off, key, velocity 0-1) of notes on one track, gated (gated())."""
         return [(r[0], r[1], r[2], r[3]) for r in self.gated(notes, end, mono)]
 
-    def events(self, track, notes, ccs, end):
+    def throw_channels(self):
+        """The channels a throw plays on anywhere in the kit's files (its loops, parts, phrases and both extended
+        mixes): FUT02's and FUT04's vox, FUT04's no-vox accents. Found once: the kit's files made with no tick-0 resets,
+        and the extended mixes' plans."""
+        if self._throwing is None:
+            self._throwing, self._seen = frozenset(), set()
+            try:
+                files_of(self)
+                for v in VARIANTS:
+                    for sec in plan(self, v):
+                        self._seen.update(self.channel(t) for t, notes in sec['notes'].items()
+                                          if any(n.throw for n in notes))
+                self._throwing = frozenset(self._seen)
+            except BaseException:
+                self._throwing = None
+                raise
+            finally:
+                self._seen = None
+        return self._throwing
+
+    def reset(self, track):
+        """A track's tick-0 send reset: CC91 and CC94 at 0 before any note-on, on a channel that throws anywhere in the
+        kit's files, so a file, a region or a loop's first pass starts dry whatever played before it."""
+        ch = self.channel(track)
+        if ch not in self.throw_channels():
+            return []
+        return [(0, 1, bytes([CH.status(0xB0, ch), cc, 0])) for cc in (SPACE, ECHO)]
+
+    def events(self, track, notes, ccs, end, reset=True):
         """A track's MIDI events (tick, order, message): its gated notes, their throws, and its controllers ((tick,
         controller, value), on the 60-tick grid). A throw's CC91 and CC94 go to 127 on its note's tick and back to 0 at
         its note-off or at the track's next note-on that isn't thrown (on its tick, before it), whichever comes first:
         Wubansia latches the sends at each note-on, so a throw held over a later note would throw that note too (FUT04's
-        no-vox metal chord over the accents after it). A note on a thrown note's tick is thrown with it."""
+        no-vox metal chord over the accents after it). A note on a thrown note's tick is thrown with it. reset: the
+        tick-0 send reset (reset()) on a channel that throws anywhere in the kit's files."""
         ch = self.channel(track)
-        out = []
+        out = self.reset(track) if reset else []
         mono = CH.track_lane(self.kit, track) in ('bass', 'vox') and track != 'Vox chops'
         rows = self.gated(notes, end, mono)
         thrown = {r[0] for r in rows if r[7]}
+        if thrown and self._seen is not None:
+            self._seen.add(ch)
         plain = sorted({r[0] for r in rows if not r[7]} - thrown)       # the ticks of the notes that aren't thrown
         for on, off, key, v, _, _, _, throw in rows:
             vel = self.velocity(ch, key, v)
@@ -758,9 +792,9 @@ class Kit:
         tracks = []
         for name in names:
             notes, ccs = parts.get(name, ([], []))
-            ev = self.events(name, notes, ccs, end)
+            ev = self.events(name, notes, ccs, end, reset=False)
             if ev or keep_empty:
-                tracks.append((name, ev))
+                tracks.append((name, self.reset(name) + ev))
         return smf(self.conductor(title, marks), tracks, end)
 
     # ---------------------------------------------------------- the material
@@ -1847,7 +1881,8 @@ def kit_readme(k, names):
            if recorded else '- none: every lane plays its multisample.')
     throws = ('a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 '
               "at its note-off, or sooner at the next note-on on its track that isn't thrown, so no other note takes "
-              'the throw (the GS send controllers)')
+              'the throw; every track on a channel that throws anywhere in these files starts with both at 0 on tick '
+              '0 (the GS send controllers)')
     return f"""# {kit} "{K.TITLE}": the written music as MIDI
 
 {K.BPM:g} BPM, {K.KEY} ({K.CAMELOT}), swing {round(K.SWING * 100)}% written in: every odd 16th lands {k.late} ticks

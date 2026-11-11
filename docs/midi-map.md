@@ -91,8 +91,10 @@ instrument, and the sound on each key of channels 6, 7 and 8.
 - **Throws:** CC91 (Space) and CC94 (Echo) go to 127 on a thrown note's tick, before its note-on, and back to 0 at its
   note-off, or sooner at the next note-on on its track that isn't thrown (on that tick, before the note-on), so no
   other note takes the throw: FUT02's vox throw, FUT04's vox throws and thrown accents, and every vox note an extended
-  mix throws. Wubansia latches them per note (send = base + (1 - base) x value / 127). They are the GS send
-  controllers, so other samplers either use them or ignore them.
+  mix throws. Every track on a channel that throws anywhere in a kit's files (a loop, a phrase, a region or a whole
+  mix) starts with CC91 and CC94 at 0 on tick 0, before any note-on, so it starts dry whatever played before it.
+  Wubansia latches them per note (send = base + (1 - base) x value / 127). They are the GS send controllers, so other
+  samplers either use them or ignore them.
 
 ## Tracks
 One track per instrument, each resolving to one Wubansia lane (`channels.track_lane`): Kick and Rumble (kick), Snare,
