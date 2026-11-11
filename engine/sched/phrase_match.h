@@ -19,6 +19,10 @@
 //   that slice. After it, the notes its slice holds (PhraseSlice::holds, by key, in order) are the
 //   slice's own, each on the slice's own cell or a cell that is no slice's. Every other note stays on
 //   the multisample.
+// - The cycle plays the winner only when its matched and held notes are more than half the cycle's
+//   notes; otherwise every note of the cycle stays on the multisample, so a line that lands on a few of
+//   a stem's cells (FUT03's switch-up riff on the Deep line's) isn't a patchwork of stem and multisample.
+//   A subset of a phrase is all cells, so a call still plays its slices.
 // - Ride: a phrase with a ride (PhraseEntry::ride74, ride71) fits a cycle only where each of its values
 //   is within kRideSlack of the cycle's: on the kRideTicks grid from the cycle's start, the last CC on
 //   the channel at or before each point (Timeline::ccs), 0 before any. An empty array constrains
