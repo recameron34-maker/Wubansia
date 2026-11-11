@@ -11,9 +11,10 @@ LANE_LABELS = ('Kick', 'Clap', 'Hats', 'Zap', 'Roll Bass', 'Chrome Arp', 'Starfi
 KICK_AB = None
 MIX_CHANNELS = {'kick': 'kick', 'clap': 'snare', 'hat': 'hats', 'zap': 'perc', 'bass': 'bass', 'glide': 'bass',
                 'pad': 'chords', 'arp': 'lead', 'fill': 'fx', 'vox': 'vox', 'acc_laser': 'accents',
-                'acc_glass': 'accents', 'acc_sweep': 'accents', 'acc_revchord': 'accents', 'acc_arpstab': 'accents'}
+                'acc_glass': 'accents', 'acc_sweep': 'accents', 'acc_revchord': 'accents', 'acc_arpstab': 'accents',
+                'bass_ms': 'bass'}
 MIX = dict(drums={'KickSplit': 'kick', 'ElectroClap': 'clap', 'ClosedHat': 'hat', 'OpenHat': 'hat', 'Zap': 'zap'},
-           channels={1: 'bass', 2: 'arp', 4: 'pad', 5: 'vox', 11: 'glide', 12: 'pad', 13: 'acc_glass'},
+           channels={1: 'bass_ms', 2: 'arp', 4: 'pad', 5: 'vox', 11: 'glide', 12: 'pad', 13: 'acc_glass'},
            accents={'LaserChordStab': 'acc_laser', 'GlassPing': 'acc_glass', 'StarfieldSweep': 'acc_sweep',
                     'ReverseChord': 'acc_revchord', 'ArpStab': 'acc_arpstab', 'NoiseUplifter': 'acc_sweep',
                     None: 'acc_arpstab'},
@@ -42,8 +43,17 @@ def accent_gain_mdb(item, audio=None):
     return 0                                # each accent its own channel and gain (context5.ACCENTS, P3)
 
 
+# The multisample path (a phrase channel's notes off the kit's tempo, with phrases off, and from MIDI in) at its stem's
+# level: each multisample's own gain (mdB), measured with groovecore render, phrases off against phrases auto, pass 2 of
+# the loop (content/plugin/README.md). The Roll Basses play on bass_ms, bass with P3's corrective EQ in front (bass A
+# only: -8 dB at 160 Hz, where the clean Orbit line is thin).
+MS_GAIN_MDB = {'RollBassClean': -900, 'RollBassWarm': 4160, 'ChromeArp': 130, 'VoxSynth': 1850}
+
+
 def play(kind, item, it, key, r):
     """FUT02's own playing rules, over plugin_kit's defaults."""
+    if kind in ('bass', 'lead', 'vox') and item in MS_GAIN_MDB:   # the multisample at its stem's level
+        r['gain_mdb'] = MS_GAIN_MDB[item]
     if kind == 'drum' and item == 'Zap':    # context.ZAP_PAN: each laser its own side, by hit in the 4 bars
         r['pan_cycle_pm'] = [iround(p, 1000) for p in C.ZAP_PAN]
     if kind == 'drop_glide':                # context.glide_lane: struck, its key lifted, released over 20 ms

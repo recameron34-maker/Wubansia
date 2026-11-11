@@ -73,6 +73,13 @@ and these lanes are the heart of each loop.
     isn't a whole number of frames. Every cycle of the Loop files resolves to slices, and every cycle of the extended
     mixes but one note (FUT02's call line throws its last note on 16th 62, which no stem has).
 
+  - **The multisample path is calibrated to the stems.** Off the kit's tempo, with phrases off, from MIDI in and in
+    the Song cycles no table matches, a phrase channel plays its multisample. Each such instrument plays at its stem's
+    level (`gain_mdb`), and where the spectra differ, on a channel with a corrective EQ in front (P3's
+    `<channel>_ms`, a copy of the stem's channel; FUT04's `bass`, which only the acid multisamples play). FUT03's
+    Rubber Basses lose the Sub Deep layer. Measured with groovecore render, phrases off against auto; the per-lane
+    numbers and what can't be met within the contract are in `content/plugin/README.md`.
+
 ## Consequences
 - The plugin plays the round 5 loops' synthesized lanes as recorded at the kit's tempo, and P6's phrase voice and
   matcher have a Python model (`phrase_tables.play`, `resolve`) and these nulls to be proven against.

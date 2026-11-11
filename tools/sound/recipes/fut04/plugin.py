@@ -47,8 +47,18 @@ def accent_gain_mdb(item, audio=None):
     return iround(C5.ACCENT_LUFS[item] - qa.lufs(audio), 1000)
 
 
+# The multisample path (a phrase channel's notes off the kit's tempo, with phrases off, and from MIDI in) at its stem's
+# level: each multisample's own gain (mdB), measured with groovecore render, phrases off against phrases auto, pass 2 of
+# the loop (content/plugin/README.md). The acid basses play on bass (which only they play), where P3's corrective EQ
+# comes first: the line pedals and ducks its sub under the kicks (bass.play_line), the multisample sustains it, 13-18 dB
+# more at 60-125 Hz.
+MS_GAIN_MDB = {'AcidClean': 0, 'AcidWarm': 0, 'ModBlip': -470}
+
+
 def play(kind, item, it, key, r):
     """FUT04's own playing rules, over plugin_kit's defaults."""
+    if kind in ('bass', 'lead', 'vox') and item in MS_GAIN_MDB:   # the multisample at its stem's level
+        r['gain_mdb'] = MS_GAIN_MDB[item]
     if kind == 'drum' and item == 'Rumble':     # context.rumble_lane: 2 bars looped, muted over a 5 ms raised cosine
         r.update(mode='sustain_loop', release_us=iround(C.MUTE_EDGE, 1e6), restrike_continues=True, duck_key=False)
     return r

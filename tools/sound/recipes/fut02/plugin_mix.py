@@ -14,6 +14,9 @@ from tools.sound.mix_trace import Rule, nth
 
 VARIANTS = {'vox': 'vox synth', 'novox': 'no vox'}
 R5_LOOPS = {'vox': ('ContextVoxSynthWet', 'ContextVoxSynthClub'), 'novox': ('ContextNoVoxWet', 'ContextNoVoxClub')}
+# the multisample path (P2's calibration, plugin-p2 f519bbe): the bass multisample plays on a copy of bass, corrected
+# to the stem the loops play on bass
+MS_COPIES = {'bass_ms': ('bass', [PM.eq_measured('peak', 160, -8328, 2000, 'a')])}
 ACCENTS = {'LaserChordStab': 'acc_laser', 'GlassPing': 'acc_glass', 'StarfieldSweep': 'acc_sweep',
            'ReverseChord': 'acc_revchord', 'ArpStab': 'acc_arpstab'}
 ARP = (1600.0, 16000.0)             # the arp's CC74 map: context.ARP_RIDE
@@ -258,6 +261,7 @@ def build(caps):
     }
     groups = {'drums': {'inserts': [PM.clip(v[('clip', 'drums', 0, '')], C.DRUM_KNEE_DB)]},
               'music': {'inserts': music_eq}}
+    PM.add_copies(chans, returns, MS_COPIES)
     return chans, groups, returns, {'vox': [], 'novox': []}, MS.settings(K, max_reduction_db=C.MASTER_REDUCTION_DB)
 
 

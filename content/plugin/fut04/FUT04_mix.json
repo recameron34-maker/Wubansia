@@ -32,11 +32,110 @@
       "group": "none",
       "inserts": [
         {
+          "type": "peak",
+          "freq_hz": 62,
+          "gain_mdb": -18000,
+          "q_pm": 4300,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "b"
+          }
+        },
+        {
+          "type": "peak",
+          "freq_hz": 99,
+          "gain_mdb": -18000,
+          "q_pm": 4300,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "b"
+          }
+        },
+        {
+          "type": "peak",
+          "freq_hz": 125,
+          "gain_mdb": 4000,
+          "q_pm": 3000,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "b"
+          }
+        },
+        {
+          "type": "peak",
+          "freq_hz": 62,
+          "gain_mdb": -13742,
+          "q_pm": 4300,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        },
+        {
+          "type": "peak",
+          "freq_hz": 80,
+          "gain_mdb": -18000,
+          "q_pm": 4300,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        },
+        {
+          "type": "peak",
+          "freq_hz": 99,
+          "gain_mdb": -18000,
+          "q_pm": 4300,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        },
+        {
+          "type": "peak",
+          "freq_hz": 125,
+          "gain_mdb": -13093,
+          "q_pm": 4300,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        },
+        {
+          "type": "peak",
+          "freq_hz": 450,
+          "gain_mdb": 6102,
+          "q_pm": 1400,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        },
+        {
+          "type": "peak",
+          "freq_hz": 794,
+          "gain_mdb": -4328,
+          "q_pm": 2500,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        },
+        {
           "type": "cc_filter",
           "response": "lowpass",
           "cc74_lo_hz": 5400,
           "cc74_hi_hz": 14040,
-          "cc74_default": 0,
+          "cc74_default": 127,
           "cc71_lo_pm": 707,
           "cc71_hi_pm": 2500,
           "cc71_default": 0,
