@@ -48,6 +48,7 @@ These are used to build or test Wubansia, but nothing from them is linked into a
 | pluginval | v1.0.4 | GPL-3.0 | Downloaded and run by CI and `tools/ci/validate.sh`. |
 | clap-validator | 0.4.1 | MIT | Downloaded and run by CI and `tools/ci/validate.sh`. |
 | `actions/checkout` | v7 | MIT | GitHub Actions workflow. |
+| `actions/cache` | v5 | MIT | GitHub Actions workflow. |
 | `actions/upload-artifact` | v7 | MIT | GitHub Actions workflow. |
 | `mozilla-actions/sccache-action` | v0.0.11 | Apache-2.0 | GitHub Actions workflow; it downloads sccache (Apache-2.0). |
 | `ilammy/msvc-dev-cmd` | v1 | MIT | GitHub Actions workflow. |

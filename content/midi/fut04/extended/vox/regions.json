@@ -1,0 +1,1083 @@
+{
+  "kit": "FUT04",
+  "title": "Furnace Code",
+  "variant": "vox",
+  "bpm": 136,
+  "tempo_us": 441176,
+  "key": "E minor",
+  "camelot": "9A",
+  "swing_pm": 540,
+  "ppq": 960,
+  "bars": 224,
+  "length_ms": 395294,
+  "length": "6:35",
+  "file": "FUT04_ExtendedMix_Vox_224bars.mid",
+  "note_names": "C4 = 60, as the sample names",
+  "tracks": [
+    {
+      "track": "Kick",
+      "lane": "kick",
+      "channel": 10,
+      "notes": {
+        "36": "Kick Split"
+      }
+    },
+    {
+      "track": "Rumble",
+      "lane": "kick",
+      "channel": 10,
+      "notes": {
+        "35": "Rumble"
+      }
+    },
+    {
+      "track": "Snare",
+      "lane": "snare",
+      "channel": 10,
+      "notes": {
+        "38": "Snare Gated"
+      }
+    },
+    {
+      "track": "Hats",
+      "lane": "hats",
+      "channel": 10,
+      "notes": {
+        "42": "Closed Hat",
+        "46": "Open Hat",
+        "51": "Ride"
+      }
+    },
+    {
+      "track": "Perc",
+      "lane": "perc",
+      "channel": 10,
+      "notes": {
+        "47": "Anvil"
+      }
+    },
+    {
+      "track": "Bass",
+      "lane": "bass",
+      "channel": 1,
+      "notes": {
+        "28": "E1",
+        "31": "G1",
+        "33": "A1",
+        "35": "B1",
+        "36": "C2",
+        "38": "D2",
+        "40": "E2",
+        "43": "G2"
+      }
+    },
+    {
+      "track": "Lead",
+      "lane": "lead",
+      "channel": 2,
+      "notes": {
+        "71": "B4",
+        "74": "D5",
+        "76": "E5",
+        "78": "F#5",
+        "79": "G5",
+        "81": "A5",
+        "83": "B5",
+        "84": "C6"
+      }
+    },
+    {
+      "track": "Chords",
+      "lane": "chords",
+      "channel": 4,
+      "notes": {
+        "52": "E3"
+      }
+    },
+    {
+      "track": "Chord voicing",
+      "lane": "chords",
+      "channel": 3,
+      "notes": {
+        "52": "E3",
+        "59": "B3",
+        "64": "E4",
+        "67": "G4",
+        "78": "F#5"
+      }
+    },
+    {
+      "track": "Metal Chord",
+      "lane": "chords",
+      "channel": 12,
+      "notes": {
+        "64": "E4",
+        "69": "A4",
+        "71": "B4"
+      }
+    },
+    {
+      "track": "Vox",
+      "lane": "vox",
+      "channel": 5,
+      "notes": {
+        "52": "E3",
+        "55": "G3",
+        "59": "B3",
+        "62": "D4"
+      }
+    },
+    {
+      "track": "Accents",
+      "lane": "accents",
+      "channel": 6,
+      "notes": {
+        "48": "Accent Rave Stab Em",
+        "49": "Accent Noise Sweep E",
+        "50": "Accent Reverse Hit Em",
+        "52": "Accent Metal Chord Em",
+        "54": "Accent Dist Chord Em"
+      }
+    },
+    {
+      "track": "Acid Stab",
+      "lane": "accents",
+      "channel": 11,
+      "notes": {
+        "62": "D4",
+        "64": "E4",
+        "66": "F#4",
+        "67": "G4",
+        "69": "A4",
+        "71": "B4"
+      }
+    },
+    {
+      "track": "Rave Stab",
+      "lane": "accents",
+      "channel": 13,
+      "notes": {
+        "64": "E4",
+        "69": "A4",
+        "71": "B4"
+      }
+    },
+    {
+      "track": "FX",
+      "lane": "fx",
+      "channel": 7,
+      "notes": {
+        "48": "Stutter Fill",
+        "49": "Iron Riser",
+        "50": "Accent Sub Drop E2"
+      }
+    }
+  ],
+  "rides": [
+    {
+      "track": "Bass",
+      "channel": 1,
+      "cc": 74,
+      "law": "log",
+      "lo": 5400,
+      "hi": 14040,
+      "unit": "Hz",
+      "what": "the acid's ride: its cutoff x1 over bars 1-2, opening through bar 3, x2.6 on the fill bar's third beat, closed again by the downbeat"
+    },
+    {
+      "track": "Bass",
+      "channel": 1,
+      "cc": 71,
+      "law": "lin",
+      "lo": 900,
+      "hi": 960,
+      "unit": "permille",
+      "what": "the acid's resonance: at rest over bars 1-2, rising over bar 3 to its top on the fill bar"
+    }
+  ],
+  "sections": [
+    {
+      "index": 1,
+      "name": "Intro",
+      "kind": "intro",
+      "start_bar": 1,
+      "bars": 32,
+      "file": "01_Intro_32bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc"
+      ],
+      "lines": [
+        {
+          "start_bar": 1,
+          "bars": 8,
+          "lanes": [
+            "kick"
+          ],
+          "end": "turn",
+          "turn": "kick"
+        },
+        {
+          "start_bar": 9,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats"
+          ],
+          "hats": "thin",
+          "end": "turn",
+          "turn": "big"
+        },
+        {
+          "start_bar": 17,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats"
+          ],
+          "hats": "full",
+          "end": "turn"
+        },
+        {
+          "start_bar": 25,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc"
+          ],
+          "hats": "full",
+          "end": "turn",
+          "turn": "big"
+        }
+      ],
+      "cues": []
+    },
+    {
+      "index": 2,
+      "name": "Groove",
+      "kind": "groove",
+      "start_bar": 33,
+      "bars": 64,
+      "file": "02_Groove_64bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc",
+        "bass",
+        "lead",
+        "chords",
+        "vox",
+        "accents",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 33,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "end": "turn",
+          "ride": {
+            "Bass": [
+              "hold",
+              0
+            ]
+          }
+        },
+        {
+          "start_bar": 41,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "chords"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "end": "turn",
+          "turn": "big",
+          "ride": {
+            "Bass": [
+              "ramp",
+              0,
+              8
+            ]
+          }
+        },
+        {
+          "start_bar": 49,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "lead": "call",
+          "end": "turn",
+          "ride": {
+            "Bass": [
+              "ramp",
+              8,
+              20
+            ]
+          }
+        },
+        {
+          "start_bar": 57,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents",
+            "fx"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "lead": "phrase",
+          "end": "fill",
+          "ride": {
+            "Bass": [
+              "ramp",
+              20,
+              40
+            ]
+          }
+        },
+        {
+          "start_bar": 65,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "lead": "call",
+          "phrases": [
+            "Metal chords, Em Em Am Bm"
+          ],
+          "end": "turn",
+          "ride": {
+            "Bass": [
+              "ramp",
+              40,
+              46
+            ]
+          }
+        },
+        {
+          "start_bar": 73,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "lead": "skeleton",
+          "phrases": [
+            "Metal chords, Em Em Am Bm"
+          ],
+          "end": "turn",
+          "turn": "big",
+          "hits": [
+            [
+              78,
+              "AccentRaveStabEm"
+            ],
+            [
+              128,
+              "AccentNoiseSweepE"
+            ],
+            [
+              128,
+              "AccentReverseHitEm"
+            ]
+          ],
+          "ride": {
+            "Bass": [
+              "ramp",
+              46,
+              58
+            ]
+          }
+        },
+        {
+          "start_bar": 81,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "lead": "phrase",
+          "drums": "ride on 8ths",
+          "end": "turn",
+          "ride": {
+            "Bass": [
+              "ramp",
+              58,
+              72
+            ]
+          }
+        },
+        {
+          "start_bar": 89,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "vox",
+            "accents",
+            "fx"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "lead": "skeleton",
+          "throw": 1,
+          "phrases": [
+            "Metal chords, Em Em Am Bm"
+          ],
+          "drums": "ride on 8ths",
+          "end": "fill",
+          "ride": {
+            "Bass": [
+              "ramp",
+              72,
+              92
+            ]
+          }
+        }
+      ],
+      "cues": [
+        {
+          "bar": 64,
+          "cue": "Fill"
+        },
+        {
+          "bar": 96,
+          "cue": "Fill"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "name": "Break",
+      "kind": "break",
+      "start_bar": 97,
+      "bars": 16,
+      "file": "03_Break_16bars.mid",
+      "lanes": [
+        "hats",
+        "perc",
+        "bass",
+        "chords",
+        "vox",
+        "accents",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 97,
+          "bars": 8,
+          "lanes": [
+            "perc",
+            "chords",
+            "vox",
+            "accents",
+            "fx"
+          ],
+          "vox": "riff",
+          "phrases": [
+            "Metal chords, Em Em Am Bm"
+          ],
+          "drums": "break",
+          "end": "turn",
+          "turn": "break",
+          "hits": [
+            [
+              0,
+              "AccentMetalChordEm"
+            ],
+            [
+              64,
+              "AccentMetalChordEm"
+            ],
+            [
+              78,
+              "AccentRaveStabEm"
+            ],
+            [
+              128,
+              "AccentNoiseSweepE"
+            ],
+            [
+              128,
+              "AccentReverseHitEm"
+            ]
+          ]
+        },
+        {
+          "start_bar": 105,
+          "bars": 8,
+          "lanes": [
+            "hats",
+            "bass",
+            "chords",
+            "accents"
+          ],
+          "hats": "thin",
+          "bass": "AcidLine1",
+          "rise": {
+            "lane": "hats",
+            "from_pm": 400,
+            "to_pm": 1000
+          },
+          "accents": "lead-in",
+          "end": "turn",
+          "turn": "big",
+          "ride": {
+            "Bass": [
+              "ramp",
+              0,
+              24
+            ]
+          }
+        }
+      ],
+      "cues": [
+        {
+          "bar": 97,
+          "cue": "Vox"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "name": "Build",
+      "kind": "build",
+      "start_bar": 113,
+      "bars": 16,
+      "file": "04_Build_16bars.mid",
+      "lanes": [
+        "kick",
+        "hats",
+        "perc",
+        "bass",
+        "chords",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 113,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats",
+            "perc",
+            "bass",
+            "chords"
+          ],
+          "hats": "thin/full",
+          "bass": "AcidLine1",
+          "end": "turn",
+          "ride": {
+            "Bass": [
+              "ramp",
+              24,
+              80
+            ]
+          }
+        },
+        {
+          "start_bar": 121,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats",
+            "perc",
+            "bass",
+            "chords",
+            "fx"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "roll": "perc",
+          "roll_from": 127,
+          "roll_bars": 1,
+          "rise": {
+            "lane": "hats",
+            "from_pm": 500,
+            "to_pm": 1000
+          },
+          "drums": "build",
+          "end": "fill",
+          "ride": {
+            "Bass": [
+              "points",
+              [
+                [
+                  0,
+                  80
+                ],
+                [
+                  6,
+                  127
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "cues": [
+        {
+          "bar": 121,
+          "cue": "Riser"
+        },
+        {
+          "bar": 128,
+          "cue": "Fill"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "name": "Drop",
+      "kind": "drop",
+      "start_bar": 129,
+      "bars": 32,
+      "file": "05_Drop_32bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc",
+        "bass",
+        "lead",
+        "chords",
+        "vox",
+        "accents",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 129,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "vox",
+            "accents",
+            "fx"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "lead": "skeleton",
+          "vox": "loop",
+          "accents": "loop",
+          "end": "turn",
+          "ride": {
+            "Bass": "loop"
+          }
+        },
+        {
+          "start_bar": 137,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "chords",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "phrases": [
+            "Rave stab riff"
+          ],
+          "end": "drop",
+          "ride": {
+            "Bass": "loop"
+          }
+        },
+        {
+          "start_bar": 145,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "chords",
+            "vox",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "vox": "riff",
+          "phrases": [
+            "Metal chords, Em Em Am Bm"
+          ],
+          "end": "turn",
+          "hits": [
+            [
+              14,
+              "AccentRaveStabEm"
+            ],
+            [
+              64,
+              "AccentNoiseSweepE"
+            ],
+            [
+              64,
+              "AccentReverseHitEm"
+            ],
+            [
+              78,
+              "AccentRaveStabEm"
+            ],
+            [
+              128,
+              "AccentNoiseSweepE"
+            ],
+            [
+              128,
+              "AccentReverseHitEm"
+            ]
+          ],
+          "ride": {
+            "Bass": "loop"
+          }
+        },
+        {
+          "start_bar": 153,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents",
+            "fx"
+          ],
+          "hats": "full",
+          "bass": "AcidLine1",
+          "lead": "skeleton",
+          "phrases": [
+            "Rave stab riff"
+          ],
+          "drums": "ride on 8ths",
+          "end": "fill",
+          "ride": {
+            "Bass": "loop"
+          }
+        }
+      ],
+      "cues": [
+        {
+          "bar": 129,
+          "cue": "Vox"
+        },
+        {
+          "bar": 145,
+          "cue": "Vox"
+        },
+        {
+          "bar": 160,
+          "cue": "Fill"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "name": "Drop 2",
+      "kind": "drop2",
+      "start_bar": 161,
+      "bars": 32,
+      "file": "06_Drop2_32bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc",
+        "bass",
+        "lead",
+        "chords",
+        "vox",
+        "accents",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 161,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "chords",
+            "accents",
+            "fx"
+          ],
+          "hats": "full",
+          "bass": "AcidLine2",
+          "phrases": [
+            "Acid stab riff"
+          ],
+          "drums": "drop 2",
+          "end": "turn",
+          "ride": {
+            "Bass": [
+              "hold",
+              0
+            ]
+          }
+        },
+        {
+          "start_bar": 169,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "AcidLine2",
+          "lead": "skeleton",
+          "phrases": [
+            "Acid stab riff"
+          ],
+          "drums": "drop 2",
+          "end": "turn",
+          "turn": "big",
+          "ride": {
+            "Bass": [
+              "ramp",
+              0,
+              64
+            ]
+          }
+        },
+        {
+          "start_bar": 177,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "vox",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "AcidLine2",
+          "vox": "riff",
+          "accents": "loop",
+          "drums": "peak",
+          "end": "turn",
+          "ride": {
+            "Bass": [
+              "points",
+              [
+                [
+                  0,
+                  64
+                ],
+                [
+                  6,
+                  127
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "start_bar": 185,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "vox",
+            "fx"
+          ],
+          "hats": "full",
+          "bass": "AcidLine2",
+          "lead": "call",
+          "vox": "answer",
+          "end": "fill",
+          "ride": {
+            "Bass": [
+              "points",
+              [
+                [
+                  0,
+                  127
+                ],
+                [
+                  2,
+                  116
+                ],
+                [
+                  8,
+                  0
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "cues": [
+        {
+          "bar": 177,
+          "cue": "Vox"
+        },
+        {
+          "bar": 186,
+          "cue": "Vox"
+        },
+        {
+          "bar": 192,
+          "cue": "Fill"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "name": "Outro",
+      "kind": "outro",
+      "start_bar": 193,
+      "bars": 32,
+      "file": "07_Outro_32bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc"
+      ],
+      "lines": [
+        {
+          "start_bar": 193,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc"
+          ],
+          "hats": "full",
+          "drums": "drop 2",
+          "end": "turn"
+        },
+        {
+          "start_bar": 201,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats",
+            "perc"
+          ],
+          "hats": "full",
+          "drums": "ride on 8ths",
+          "end": "turn",
+          "turn": "big"
+        },
+        {
+          "start_bar": 209,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats",
+            "perc"
+          ],
+          "hats": "full",
+          "end": "turn"
+        },
+        {
+          "start_bar": 217,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats"
+          ],
+          "hats": "thin"
+        }
+      ],
+      "cues": []
+    }
+  ]
+}

@@ -36,6 +36,33 @@ target_compile_definitions(WubansiaPluginCode INTERFACE
     JUCE_USE_WEBP=0
     WUBANSIA_VERSION="${PROJECT_VERSION}")
 
+# Debug builds also look for samples in the checkout's content/samples (ADR 0022); never CI or Release.
+target_compile_definitions(WubansiaPluginCode INTERFACE
+    "$<$<CONFIG:Debug>:WUBANSIA_DEV_CONTENT_DIR=\"${PROJECT_SOURCE_DIR}/content/samples\">")
+
+# The kits the plugin carries (ADR 0017; plugin/source/content/EmbeddedContent.h): each kit's two
+# manifests, content/plugin/<kit>/<KIT>_kit.json and <KIT>_mix.json, and every kit-prefixed MIDI file
+# under content/midi/<kit>/ (the extended mixes' region files stay out), about 1.4 MB. The kit prefix
+# keeps the resource names unique. Sorted, so the generated sources don't depend on the file system.
+file(GLOB WUBANSIA_KIT_MANIFESTS CONFIGURE_DEPENDS
+    "${PROJECT_SOURCE_DIR}/content/plugin/*/*_kit.json"
+    "${PROJECT_SOURCE_DIR}/content/plugin/*/*_mix.json")
+set(WUBANSIA_CONTENT_FILES ${WUBANSIA_KIT_MANIFESTS})
+foreach(manifest IN LISTS WUBANSIA_KIT_MANIFESTS)
+    if(manifest MATCHES "/([a-z0-9]+)/([A-Z0-9]+)_kit\\.json$")
+        file(GLOB_RECURSE kit_midi CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/content/midi/${CMAKE_MATCH_1}/${CMAKE_MATCH_2}_*.mid")
+        list(APPEND WUBANSIA_CONTENT_FILES ${kit_midi})
+    endif()
+endforeach()
+list(SORT WUBANSIA_CONTENT_FILES)
+if(NOT WUBANSIA_KIT_MANIFESTS)
+    message(FATAL_ERROR "No kit manifests in ${PROJECT_SOURCE_DIR}/content/plugin: the plugin embeds them")
+endif()
+juce_add_binary_data(WubansiaContent
+    NAMESPACE WubansiaContentData
+    HEADER_NAME WubansiaContentData.h
+    SOURCES ${WUBANSIA_CONTENT_FILES})
+
 target_link_libraries(WubansiaPluginCode INTERFACE
     juce::juce_audio_utils
     juce::juce_audio_processors
@@ -43,7 +70,9 @@ target_link_libraries(WubansiaPluginCode INTERFACE
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags
-    wubansia_build_defaults)
+    wubansia_build_defaults
+    wubansia_engine # the engine and, through it, the groove core (ADR 0017); both are built PIC for the .so
+    WubansiaContent) # the embedded manifests and MIDI
 
 target_link_libraries(Wubansia PRIVATE WubansiaPluginCode)
 
@@ -57,9 +86,11 @@ if(WUBANSIA_BUILD_TESTS)
     target_compile_definitions(WubansiaPluginTests PRIVATE
         $<TARGET_PROPERTY:Wubansia,COMPILE_DEFINITIONS>
         JUCE_MODAL_LOOPS_PERMITTED=1
-        WUBANSIA_TEST_CLAP_ID="${WUBANSIA_CLAP_ID}")
+        WUBANSIA_TEST_CLAP_ID="${WUBANSIA_CLAP_ID}"
+        WUBANSIA_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
-    target_link_libraries(WubansiaPluginTests PRIVATE WubansiaPluginCode Catch2::Catch2)
+    # wubansia_engine_testing: the synthetic kit, SMF builder and fake host, shared with engine_tests.
+    target_link_libraries(WubansiaPluginTests PRIVATE WubansiaPluginCode wubansia_engine_testing Catch2::Catch2)
 
     # Universal macOS builds: the tests only run on the host's slice, so build just that one.
     if(APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES ";")

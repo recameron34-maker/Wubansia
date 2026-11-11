@@ -107,7 +107,7 @@ class TestInKey(unittest.TestCase):
         self.assertTrue(in_key([m for _, m, _, _ in A.ACID_RIFF]))
         self.assertTrue(in_key([m for _, m, _, _ in C5.VOX_NOTES]))
 
-    def test_the_phrases_are_midi_phrases_on_channel_4(self):
+    def test_the_phrases_are_midi_phrases(self):
         phrases = M.PARTS['phrases']
         self.assertLessEqual(len(phrases), 5)
         self.assertEqual(['Vox synth riff', 'Acid stab riff', 'Metal chords, Em Em Am Bm', 'Rave stab riff'],

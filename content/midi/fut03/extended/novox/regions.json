@@ -1,0 +1,1157 @@
+{
+  "kit": "FUT03",
+  "title": "Glass Current",
+  "variant": "novox",
+  "bpm": 128,
+  "tempo_us": 468750,
+  "key": "G minor",
+  "camelot": "6A",
+  "swing_pm": 560,
+  "ppq": 960,
+  "bars": 224,
+  "length_ms": 420000,
+  "length": "7:00",
+  "file": "FUT03_ExtendedMix_NoVox_224bars.mid",
+  "note_names": "C4 = 60, as the sample names",
+  "tracks": [
+    {
+      "track": "Kick",
+      "lane": "kick",
+      "channel": 10,
+      "notes": {
+        "36": "Kick Deep"
+      }
+    },
+    {
+      "track": "Clap",
+      "lane": "snare",
+      "channel": 10,
+      "notes": {
+        "38": "Clap Snare"
+      }
+    },
+    {
+      "track": "Hats",
+      "lane": "hats",
+      "channel": 10,
+      "notes": {
+        "42": "Closed Hat Deep",
+        "46": "Open Hat Deep"
+      }
+    },
+    {
+      "track": "Perc",
+      "lane": "perc",
+      "channel": 10,
+      "notes": {
+        "37": "Rimshot",
+        "41": "Conga",
+        "43": "Conga",
+        "45": "Conga",
+        "47": "Bongo",
+        "48": "Bongo",
+        "54": "Shaker Deep"
+      }
+    },
+    {
+      "track": "Bass",
+      "lane": "bass",
+      "channel": 1,
+      "notes": {
+        "29": "F1",
+        "31": "G1",
+        "33": "A1",
+        "34": "A#1",
+        "36": "C2",
+        "38": "D2",
+        "41": "F2",
+        "43": "G2"
+      }
+    },
+    {
+      "track": "Lead",
+      "lane": "lead",
+      "channel": 2,
+      "notes": {
+        "67": "G4",
+        "69": "A4",
+        "70": "A#4",
+        "72": "C5",
+        "74": "D5",
+        "75": "D#5",
+        "77": "F5",
+        "79": "G5",
+        "81": "A5",
+        "82": "A#5",
+        "86": "D6"
+      }
+    },
+    {
+      "track": "Chords",
+      "lane": "chords",
+      "channel": 4,
+      "notes": {
+        "55": "G3",
+        "60": "C4"
+      }
+    },
+    {
+      "track": "Chord voicing",
+      "lane": "chords",
+      "channel": 3,
+      "notes": {
+        "55": "G3",
+        "60": "C4",
+        "62": "D4",
+        "65": "F4",
+        "67": "G4",
+        "69": "A4",
+        "70": "A#4",
+        "74": "D5",
+        "75": "D#5"
+      }
+    },
+    {
+      "track": "Pad Warm",
+      "lane": "chords",
+      "channel": 11,
+      "notes": {
+        "55": "G3",
+        "60": "C4"
+      }
+    },
+    {
+      "track": "Accents",
+      "lane": "accents",
+      "channel": 6,
+      "notes": {
+        "48": "Accent Glass Ping D6",
+        "49": "Accent Dub Chord Cm9",
+        "50": "Accent Reverse Chord Gm9",
+        "51": "Accent Organ Hit Gm7",
+        "52": "Accent Noise Sweep Up"
+      }
+    },
+    {
+      "track": "FX",
+      "lane": "fx",
+      "channel": 7,
+      "notes": {
+        "48": "Build Fill",
+        "49": "Riser",
+        "50": "Impact"
+      }
+    }
+  ],
+  "rides": [
+    {
+      "track": "Chords",
+      "channel": 4,
+      "cc": 74,
+      "law": "log",
+      "lo": 900,
+      "hi": 5000,
+      "unit": "Hz",
+      "what": "the dub stab's low-pass: closed on the loop's downbeat, open at its middle"
+    }
+  ],
+  "sections": [
+    {
+      "index": 1,
+      "name": "Intro",
+      "kind": "intro",
+      "start_bar": 1,
+      "bars": 32,
+      "file": "01_Intro_32bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc"
+      ],
+      "lines": [
+        {
+          "start_bar": 1,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "perc"
+          ],
+          "drums": "shaker",
+          "end": "turn",
+          "turn": "run"
+        },
+        {
+          "start_bar": 9,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats",
+            "perc"
+          ],
+          "hats": "thin",
+          "rise": {
+            "lane": "hats",
+            "from_pm": 500,
+            "to_pm": 1000
+          },
+          "drums": "shaker",
+          "end": "turn",
+          "turn": "run"
+        },
+        {
+          "start_bar": 17,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc"
+          ],
+          "hats": "full",
+          "drums": "shaker",
+          "end": "turn",
+          "turn": "run"
+        },
+        {
+          "start_bar": 25,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc"
+          ],
+          "hats": "full",
+          "end": "turn"
+        }
+      ],
+      "cues": []
+    },
+    {
+      "index": 2,
+      "name": "Groove",
+      "kind": "groove",
+      "start_bar": 33,
+      "bars": 32,
+      "file": "02_Groove_32bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc",
+        "bass",
+        "lead",
+        "chords",
+        "accents"
+      ],
+      "lines": [
+        {
+          "start_bar": 33,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "Rubber",
+          "drums": "lite",
+          "end": "turn"
+        },
+        {
+          "start_bar": 41,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "chords",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "Rubber",
+          "accents": "alternate",
+          "end": "turn",
+          "ride": {
+            "Chords": [
+              "ramp",
+              0,
+              42
+            ]
+          }
+        },
+        {
+          "start_bar": 49,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "Rubber",
+          "lead": "phrase",
+          "accents": "alternate",
+          "drums": "lite",
+          "end": "turn",
+          "ride": {
+            "Chords": [
+              "ramp",
+              42,
+              85
+            ]
+          }
+        },
+        {
+          "start_bar": 57,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "Rubber",
+          "lead": "answer",
+          "accents": "alternate",
+          "end": "drop",
+          "ride": {
+            "Chords": [
+              "ramp",
+              85,
+              127
+            ]
+          }
+        }
+      ],
+      "cues": []
+    },
+    {
+      "index": 3,
+      "name": "Break",
+      "kind": "break",
+      "start_bar": 65,
+      "bars": 16,
+      "file": "03_Break_16bars.mid",
+      "lanes": [
+        "hats",
+        "lead",
+        "chords",
+        "accents",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 65,
+          "bars": 8,
+          "lanes": [
+            "chords",
+            "accents"
+          ],
+          "pad": "Gm9 Cm9",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              30,
+              "AccentDubChordCm9"
+            ],
+            [
+              46,
+              "AccentOrganHitGm7"
+            ],
+            [
+              64,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ],
+            [
+              94,
+              "AccentDubChordCm9"
+            ],
+            [
+              110,
+              "AccentOrganHitGm7"
+            ],
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ]
+          ]
+        },
+        {
+          "start_bar": 73,
+          "bars": 8,
+          "lanes": [
+            "hats",
+            "lead",
+            "chords",
+            "accents",
+            "fx"
+          ],
+          "hats": "thin",
+          "lead": "call",
+          "chords": "Gm9 Cm9",
+          "pad": "Gm9 Cm9",
+          "rise": {
+            "lane": "hats",
+            "from_pm": 400,
+            "to_pm": 1000
+          },
+          "end": "fill",
+          "hits": [
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              128,
+              "AccentReverseChordGm9"
+            ]
+          ]
+        }
+      ],
+      "cues": [
+        {
+          "bar": 80,
+          "cue": "Fill"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "name": "Build",
+      "kind": "build",
+      "start_bar": 81,
+      "bars": 16,
+      "file": "04_Build_16bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc",
+        "bass",
+        "chords",
+        "accents",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 81,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats",
+            "perc",
+            "bass",
+            "chords",
+            "accents"
+          ],
+          "hats": "thin",
+          "bass": "Rubber",
+          "chords": "Gm9 Cm9",
+          "pad": "Gm9 Cm9",
+          "rise": {
+            "lane": "perc",
+            "from_pm": 600,
+            "to_pm": 1000
+          },
+          "drums": "shaker",
+          "end": "turn",
+          "turn": "run",
+          "ride": {
+            "Chords": [
+              "ramp",
+              16,
+              96
+            ]
+          }
+        },
+        {
+          "start_bar": 89,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "chords",
+            "fx"
+          ],
+          "hats": "thin/16ths",
+          "chords": "Gm9 Cm9",
+          "pad": "Gm9 Cm9",
+          "roll": "snare",
+          "roll_from": 93,
+          "roll_bars": 3,
+          "drums": "shaker",
+          "end": "fill",
+          "ride": {
+            "Chords": [
+              "ramp",
+              96,
+              127
+            ]
+          }
+        }
+      ],
+      "cues": [
+        {
+          "bar": 89,
+          "cue": "Riser"
+        },
+        {
+          "bar": 96,
+          "cue": "Fill"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "name": "Drop",
+      "kind": "drop",
+      "start_bar": 97,
+      "bars": 32,
+      "file": "05_Drop_32bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc",
+        "bass",
+        "lead",
+        "chords",
+        "accents",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 97,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "chords",
+            "accents",
+            "fx"
+          ],
+          "hats": "full",
+          "bass": "Rubber",
+          "chords": "Gm9 Cm9",
+          "pad": "Gm9 Cm9",
+          "drums": "drop lite",
+          "end": "turn",
+          "turn": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              30,
+              "AccentDubChordCm9"
+            ],
+            [
+              46,
+              "AccentOrganHitGm7"
+            ],
+            [
+              64,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ],
+            [
+              94,
+              "AccentDubChordCm9"
+            ],
+            [
+              110,
+              "AccentOrganHitGm7"
+            ],
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              126,
+              "AccentDubChordCm9"
+            ]
+          ],
+          "ride": {
+            "Chords": [
+              "points",
+              [
+                [
+                  0,
+                  127
+                ],
+                [
+                  2,
+                  127
+                ],
+                [
+                  8,
+                  0
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "start_bar": 105,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "full",
+          "bass": "Rubber",
+          "lead": "call",
+          "chords": "Gm9 Cm9",
+          "pad": "Gm9 Cm9",
+          "drums": "drop",
+          "end": "turn",
+          "turn": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              30,
+              "AccentDubChordCm9"
+            ],
+            [
+              46,
+              "AccentOrganHitGm7"
+            ],
+            [
+              64,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ],
+            [
+              94,
+              "AccentDubChordCm9"
+            ],
+            [
+              110,
+              "AccentOrganHitGm7"
+            ],
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ]
+          ]
+        },
+        {
+          "start_bar": 113,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "busy",
+          "bass": "Rubber",
+          "lead": "phrase",
+          "chords": "Gm9 Gm9 Cm9 Gm9",
+          "pad": "Gm9 Gm9 Cm9 Gm9",
+          "accents": "loop",
+          "drums": "drop lite",
+          "end": "turn",
+          "turn": "drop"
+        },
+        {
+          "start_bar": 121,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "full/busy",
+          "bass": "Rubber",
+          "lead": "call",
+          "chords": "Gm9 Cm9",
+          "pad": "Gm9 Cm9",
+          "drums": "drop",
+          "end": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              30,
+              "AccentDubChordCm9"
+            ],
+            [
+              46,
+              "AccentOrganHitGm7"
+            ],
+            [
+              64,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ],
+            [
+              94,
+              "AccentDubChordCm9"
+            ],
+            [
+              110,
+              "AccentOrganHitGm7"
+            ],
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              128,
+              "AccentReverseChordGm9"
+            ]
+          ]
+        }
+      ],
+      "cues": []
+    },
+    {
+      "index": 6,
+      "name": "Switch-up",
+      "kind": "switch",
+      "start_bar": 129,
+      "bars": 16,
+      "file": "06_SwitchUp_16bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc",
+        "bass",
+        "lead",
+        "chords",
+        "accents",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 129,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "chords",
+            "accents"
+          ],
+          "hats": "busy",
+          "phrases": [
+            "Rubber riff"
+          ],
+          "drums": "lite",
+          "end": "turn",
+          "hits": [
+            [
+              62,
+              "AccentOrganHitGm7"
+            ],
+            [
+              126,
+              "AccentOrganHitGm7"
+            ]
+          ],
+          "ride": {
+            "Chords": [
+              "hold",
+              24
+            ]
+          }
+        },
+        {
+          "start_bar": 137,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents",
+            "fx"
+          ],
+          "hats": "busy",
+          "lead": "phrase",
+          "phrases": [
+            "Rubber riff"
+          ],
+          "end": "fill",
+          "hits": [
+            [
+              62,
+              "AccentOrganHitGm7"
+            ]
+          ],
+          "ride": {
+            "Chords": [
+              "ramp",
+              24,
+              110
+            ]
+          }
+        }
+      ],
+      "cues": [
+        {
+          "bar": 144,
+          "cue": "Fill"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "name": "Break 2",
+      "kind": "break",
+      "start_bar": 145,
+      "bars": 16,
+      "file": "07_Break2_16bars.mid",
+      "lanes": [
+        "hats",
+        "lead",
+        "chords",
+        "accents",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 145,
+          "bars": 8,
+          "lanes": [
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "pad": "Gm9 Cm9",
+          "phrases": [
+            "Keys arp"
+          ],
+          "accents": "loop"
+        },
+        {
+          "start_bar": 153,
+          "bars": 8,
+          "lanes": [
+            "hats",
+            "lead",
+            "chords",
+            "accents",
+            "fx"
+          ],
+          "hats": "thin",
+          "chords": "Gm9 Cm9",
+          "pad": "Gm9 Cm9",
+          "phrases": [
+            "Keys arp"
+          ],
+          "rise": {
+            "lane": "hats",
+            "from_pm": 400,
+            "to_pm": 1000
+          },
+          "accents": "lead-in",
+          "end": "fill"
+        }
+      ],
+      "cues": [
+        {
+          "bar": 153,
+          "cue": "Riser"
+        },
+        {
+          "bar": 160,
+          "cue": "Fill"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "name": "Drop 2",
+      "kind": "drop2",
+      "start_bar": 161,
+      "bars": 32,
+      "file": "08_Drop2_32bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc",
+        "bass",
+        "lead",
+        "chords",
+        "accents",
+        "fx"
+      ],
+      "lines": [
+        {
+          "start_bar": 161,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents",
+            "fx"
+          ],
+          "hats": "busy",
+          "bass": "Deep",
+          "chords": "Gm9 Cm9",
+          "pad": "Gm9 Cm9",
+          "phrases": [
+            "Keys arp"
+          ],
+          "accents": "loop",
+          "drums": "drop lite",
+          "end": "turn",
+          "turn": "drop"
+        },
+        {
+          "start_bar": 169,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "busy",
+          "bass": "Deep",
+          "lead": "call",
+          "chords": "Gm9 Cm9",
+          "pad": "Gm9 Cm9",
+          "drums": "drop",
+          "end": "turn",
+          "turn": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              30,
+              "AccentDubChordCm9"
+            ],
+            [
+              46,
+              "AccentOrganHitGm7"
+            ],
+            [
+              64,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ],
+            [
+              94,
+              "AccentDubChordCm9"
+            ],
+            [
+              110,
+              "AccentOrganHitGm7"
+            ],
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ]
+          ]
+        },
+        {
+          "start_bar": 177,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "accents"
+          ],
+          "hats": "busy/16ths",
+          "bass": "Deep",
+          "chords": "Gm9 Cm9",
+          "pad": "Gm9 Cm9",
+          "phrases": [
+            "Keys arp"
+          ],
+          "accents": "loop",
+          "drums": "drop lite",
+          "end": "turn",
+          "turn": "drop",
+          "ride": {
+            "Chords": [
+              "hold",
+              127
+            ]
+          }
+        },
+        {
+          "start_bar": 185,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "chords",
+            "accents"
+          ],
+          "hats": "busy",
+          "bass": "Deep",
+          "accents": "alternate",
+          "drums": "drop",
+          "end": "turn",
+          "turn": "drop",
+          "ride": {
+            "Chords": [
+              "ramp",
+              127,
+              0
+            ]
+          }
+        }
+      ],
+      "cues": []
+    },
+    {
+      "index": 9,
+      "name": "Outro",
+      "kind": "outro",
+      "start_bar": 193,
+      "bars": 32,
+      "file": "09_Outro_32bars.mid",
+      "lanes": [
+        "kick",
+        "snare",
+        "hats",
+        "perc"
+      ],
+      "lines": [
+        {
+          "start_bar": 193,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc"
+          ],
+          "hats": "busy",
+          "drums": "lite",
+          "end": "turn"
+        },
+        {
+          "start_bar": 201,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats",
+            "perc"
+          ],
+          "hats": "busy",
+          "end": "turn"
+        },
+        {
+          "start_bar": 209,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats",
+            "perc"
+          ],
+          "hats": "full",
+          "drums": "lite",
+          "end": "turn"
+        },
+        {
+          "start_bar": 217,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "hats",
+            "perc"
+          ],
+          "hats": "full",
+          "drums": "shaker",
+          "end": "turn",
+          "turn": "run"
+        }
+      ],
+      "cues": []
+    }
+  ]
+}

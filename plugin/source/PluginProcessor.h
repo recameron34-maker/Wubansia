@@ -1,20 +1,52 @@
 #pragma once
 
-#include "SineVoices.h"
+// The plugin (P9): the engine (ADR 0017) behind a JUCE AudioProcessor, with the parameters (P10's
+// layout, ADR 0018), state version 2, the kit service, the internal transport and the editor's
+// Controller.
+//
+// Threads:
+// - message thread: the constructor (no file I/O, no thread), prepareToPlay, the editor, the Controller;
+// - any thread but the audio thread: getStateInformation and setStateInformation (some hosts call them
+//   off the message thread);
+// - the kit service's thread: kit loads (services/KitService.h);
+// - audio thread: processBlock, which in order (the design's): stops denormals and clears the buffer;
+//   acts on a reset; in an offline render only, waits for a kit load in flight (ADR 0005 D5: 1 ms
+//   steps, 30 s per load at most; never in real time, never when content is missing); reads the
+//   controls; resolves the transport (the host's, or the internal one); copies the MIDI into a fixed
+//   array of 3-byte messages (no SysEx); runs the engine in pieces no longer than the prepared block;
+//   applies master_gain through its 20 ms smoother; and leaves the transport for the editor.
+//
+// The first prepareToPlay or setStateInformation queues the first kit load; nothing before.
+
+#include "ControllerImpl.h"
+#include "Parameters.h"
+#include "State.h"
+#include "content/ContentSource.h"
+#include "services/KitService.h"
+#include "transport/InternalTransport.h"
+
+#include "engine.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <array>
 #include <atomic>
+#include <chrono>
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <mutex>
 
 namespace wubansia
 {
     class PluginProcessor : public juce::AudioProcessor
     {
     public:
-        PluginProcessor();
-        ~PluginProcessor() override = default;
+        static constexpr auto kOfflineWaitLimit = std::chrono::seconds (30); // ADR 0005 D5, per load
+        static constexpr int kMaxMidiEvents = 2048; // a block's MIDI messages; more are dropped
 
-        static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+        PluginProcessor();
+        ~PluginProcessor() override;
 
         void prepareToPlay (double sampleRate, int samplesPerBlock) override;
         void releaseResources() override;
@@ -27,11 +59,9 @@ namespace wubansia
         using AudioProcessor::processBlockBypassed;
         void processBlockBypassed (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
-        // Hosts call this to stop all sound, possibly from a non-audio thread, so it only
-        // raises a flag that the next block acts on.
+        // Hosts call this to stop all sound, possibly from a non-audio thread, so it only raises a flag
+        // that the next block acts on.
         void reset() override;
-
-        int getNumActiveVoices() const noexcept { return voices.getNumActiveVoices(); }
 
         juce::AudioProcessorEditor* createEditor() override;
         bool hasEditor() const override { return true; }
@@ -40,7 +70,10 @@ namespace wubansia
         bool acceptsMidi() const override { return true; }
         bool producesMidi() const override { return false; }
         bool isMidiEffect() const override { return false; }
-        double getTailLengthSeconds() const override { return 0.0; }
+
+        // The engine's: the Space and Echo returns' tails (6 s). The latency (the mix's fixed delay,
+        // 424 samples at 48 kHz) is reported in prepareToPlay.
+        double getTailLengthSeconds() const override;
 
         // One named program: Steinberg's VST3 validator fails plugins whose program has no name.
         int getNumPrograms() override { return 1; }
@@ -49,20 +82,81 @@ namespace wubansia
         const juce::String getProgramName (int) override { return "Default"; }
         void changeProgramName (int, const juce::String&) override {}
 
-        // State is the parameter tree plus a version number that future migrations key off.
+        // State version 2 (State.h, ADR 0018).
         void getStateInformation (juce::MemoryBlock& destData) override;
         void setStateInformation (const void* data, int sizeInBytes) override;
 
-        static constexpr const char* stateType = "WubansiaState"; // PERMANENT
-        static constexpr int stateVersion = 1;
+        // The editor's API.
+        Controller& controller() noexcept { return controllerImpl; }
+
+        // Replaces where the kits come from (the synthetic kit in tests), and the kit a new instance
+        // plays (FUT01) when kit isn't empty. Only before the first prepareToPlay or setStateInformation.
+        void setContentForTesting (std::unique_ptr<ContentSourceFactory> content, const juce::String& kit = {});
+
+        // Shortens the offline wait's 30 s, for tests.
+        void setOfflineWaitLimitForTesting (std::chrono::milliseconds limit) noexcept { waitLimitMs.store (limit.count()); }
+
+        // For the Controller and the tests.
+        const KitService& kitService() const noexcept { return *service; }
+        const engine::Telemetry& telemetry() const noexcept { return player.telemetry(); }
+        StateOnly settings() const;
 
         juce::AudioProcessorValueTreeState apvts;
 
     private:
-        std::atomic<float>* masterGainDb = nullptr; // owned by apvts; read lock-free on the audio thread
+        friend class ControllerImpl;
+
+        void queueFirstLoad();
+        int contentVersionOf (const juce::String& kit) const;
+        void mirrorSettings (const StateOnly& s) noexcept;
+        // Changes the state-only settings under the lock and, when that changed them, tells the host the
+        // project changed. Whether it did.
+        bool changeSettings (const std::function<void (StateOnly&)>& change);
+        void waitForKitOffline() noexcept;
+
+        Parameters::RawParameters raw;
+        std::unique_ptr<ContentSourceFactory> content;
+        engine::Engine player;
+        std::unique_ptr<KitService> service; // after the engine and content: it uses both, so it goes first
+        ControllerImpl controllerImpl;
+        InternalTransport transport;
+
+        // The state-only settings and what a state kept: stateMutex, never on the audio thread.
+        mutable std::mutex stateMutex;
+        StateOnly stateOnly;
+        int stateVersionRead = State::version;
+        juce::NamedValueSet otherAttributes;
+        bool loadQueued = false;
+
+        // getStateInformation and setStateInformation one at a time (the APVTS's tree isn't safe to
+        // replace while it is copied). Recursive: a host may ask for the state from inside a parameter
+        // callback that setStateInformation set off.
+        std::recursive_mutex stateIoMutex;
+
+        // The audio thread's copies of the state-only settings it uses.
+        std::atomic<std::uint8_t> phrasesMirror { 0 };
+        std::atomic<std::uint8_t> midiInMirror { 0 };
+        std::atomic<std::uint8_t> midiInLaneMirror { 0 };
+
+        // The audio side.
+        std::atomic<bool> prepared { false };
         std::atomic<bool> resetPending { false };
+        bool bypassed = false;
+        int preparedBlock = 512;
+        double preparedRate = 48000.0;
         juce::LinearSmoothedValue<float> masterGain;
-        SineVoices voices;
+        engine::Controls controls;
+        std::array<engine::MidiEvent, kMaxMidiEvents> midiEvents {};
+
+        // The offline wait's account: the load it waited for, and how long.
+        std::uint64_t waitGeneration = 0;
+        std::chrono::steady_clock::duration waited {};
+        std::atomic<std::int64_t> waitLimitMs { std::chrono::milliseconds (kOfflineWaitLimit).count() };
+
+        // What the last block played, for the Controller.
+        std::atomic<bool> lastPlaying { false };
+        std::atomic<bool> lastInternal { false };
+        std::atomic<double> lastBpm { 0.0 };
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
     };

@@ -278,13 +278,14 @@ class TestPhrases(unittest.TestCase):
 
     def test_the_stab_samples_play_one_note_per_stab_on_its_chords_file(self):
         """The organ and e-piano stab samples are one file per chord, each the whole chord (F#3 plays F#m9, B3 Bm9).
-        Their MIDI, the chords' sample trigger and the e-piano stab phrase, plays one note per stab on its chord's
-        file, where the loop and the riff play it; the chords' voicing file keeps every chord tone, for a synth."""
+        Their MIDI, the chords' trigger (channel 4, at the roots) and the e-piano stab phrase, plays one note per stab
+        on its chord's file, where the loop and the riff play it; the voicing (channel 3) keeps every chord tone, for a
+        synth."""
         ch = Mi.PARTS['chords']
         self.assertEqual(sorted((s, z, 1, v, False) for s, z, v in C.STABS), sorted(ch['trigger']))
         self.assertEqual(set(Ky.ZONES), {n for _, n, *_ in ch['trigger']})
-        self.assertEqual('F#3, B3', ch['zones'])
-        self.assertEqual(len(C.STABS) * len(Ky.SHAPE), len(ch['notes']))
+        self.assertEqual(('OrganStab', 'EPianoStab'), ch['items'])
+        self.assertEqual(len(C.STABS) * len(Ky.SHAPE), len(ch['voicing']))
         stab = {p['name']: p for p in Mi.PARTS['phrases']}['E-piano stab rhythm']
         self.assertEqual([(s, z, R.STAB_LEN, v, False) for s, z, v in R.STAB_RHYTHM], stab['notes'])
         self.assertEqual(set(Ky.ZONES), {n for _, n, *_ in stab['notes']})

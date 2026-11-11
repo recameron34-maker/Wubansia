@@ -1,57 +1,104 @@
-# FUT03 "Glass Current": the written loop as MIDI
+# FUT03 "Glass Current": the written music as MIDI
 
-128 BPM, G minor (6A), swing 56% written in. Made by `tools/sound/midi.py` from the
-kit's recipes (`tools/sound/recipes/fut03/midi.py`); a test keeps these files equal to a fresh export.
+128 BPM, G minor (6A), swing 56% written in: every odd 16th lands 29 ticks
+late. Made by `tools/sound/midi.py` from the kit's recipes (`tools/sound/recipes/fut03/midi.py`) on the channel
+map in `docs/midi-map.md`; a test keeps these files equal to a fresh export.
 
-- `FUT03_Bassline_Deep_2bars.mid`
-- `FUT03_Bassline_Rubber_InTheLoop_2bars.mid`
-- `FUT03_Chords_DubStabGm9_SampleTrigger_4bars.mid`
-- `FUT03_Chords_DubStabGm9_Voicing_4bars.mid`
-- `FUT03_Drums_4bars.mid`
-- `FUT03_FullLoop_4bars.mid`
-- `FUT03_Lead_KeysEP_2bars.mid`
-- `FUT03_Phrase_DubStabGm9_4bars.mid`
-- `FUT03_Phrase_KeysEP_4bars.mid`
-- `FUT03_Phrase_RubberBassClean_2bars.mid`
-- `FUT03_Phrase_VoxSynth_2bars.mid`
+Every file is format 1 at 960 ticks a quarter, in 4/4, with the tempo (468750 microseconds a quarter, the
+integer nearest 128 BPM) and the key signature (FF 59: 2 flats, minor) on its first track.
 
-**Drums** (channel 10): a drum rack with the kit's samples on these notes (C1 = 36).
+## The files
 
-| Note | Sample |
-|---|---|
-| 36 (C1) | Kick Deep |
-| 37 (C#1) | Rimshot |
-| 38 (D1) | Clap Snare |
-| 41 (F1) | Conga G3 |
-| 42 (F#1) | Closed Hat Deep |
-| 43 (G1) | Conga C4 |
-| 45 (A1) | Conga D4 |
-| 46 (A#1) | Open Hat Deep |
-| 47 (B1) | Bongo G4 |
-| 48 (C2) | Bongo D5 |
-| 54 (F#2) | Shaker Deep |
+| File | What it plays | Channels |
+|---|---|---|
+| `FUT03_Accents_NoVox_4bars.mid` | the loop's accents, no vox | channel 6 |
+| `FUT03_Accents_Vox_4bars.mid` | the loop's accents, with the vox synth | channel 6 |
+| `FUT03_Bassline_Deep_2bars.mid` | the Deep line on Bass | channel 1 |
+| `FUT03_Bassline_Rubber_InTheLoop_2bars.mid` | the Rubber line (the loop's) on Bass | channel 1 |
+| `FUT03_Chords_DubStabGm9_4bars.mid` | the chord sample, one note per chord at its root, on Dub Stab Gm9 | channel 4 |
+| `FUT03_Chords_DubStabGm9_Voicing_4bars.mid` | the chord voicing, single notes for your own synth | channel 3 |
+| `FUT03_Drums_4bars.mid` | the loop's drums and percussion (the loop has no fill bar; the extended mix writes one at each fill) | channel 10 |
+| `FUT03_Lead_KeysEP_2bars.mid` | the lead phrase, on Keys EP | channel 2 |
+| `FUT03_Loop_NoVox_4bars.mid` | the context loop as its club master plays it, lane by lane: no vox, the accents carry the top | channels 1, 3, 4, 6, 10, 11 |
+| `FUT03_Loop_Vox_4bars.mid` | the context loop as its club master plays it, lane by lane: with the vox synth | channels 1, 3, 4, 5, 6, 10, 11 |
+| `FUT03_Phrase_DubChords_4bars.mid` | Dub chords, Gm9 Gm9 Cm9 Gm9, on Dub Stab Gm9 | channel 4 |
+| `FUT03_Phrase_KeysArp_4bars.mid` | Keys arp, on Keys EP | channel 2 |
+| `FUT03_Phrase_RubberRiff_2bars.mid` | Rubber riff, on Rubber Bass Clean | channel 1 |
+| `FUT03_Phrase_VoxSynthRiff_2bars.mid` | Vox synth riff, Gm9 to Cm9, on Vox Synth | channel 5 |
+
+The extended mix: `extended/vox/` (with the vox synth) and `extended/novox/` (without), each a 224-bar mix in the kit's
+own form, one region file per section, `regions.json` and a README.
+
+## Drums (channel 10)
+
+A drum rack with the kit's samples on these notes (C1 = 36): 120-tick triggers, so play them as one-shots.
+
+| Note | Sample | Track |
+|---|---|---|
+| 36 (C1) | Kick Deep | Kick |
+| 37 (C#1) | Rimshot | Perc |
+| 38 (D1) | Clap Snare | Clap |
+| 41 (F1) | Conga | Perc |
+| 42 (F#1) | Closed Hat Deep | Hats |
+| 43 (G1) | Conga | Perc |
+| 45 (A1) | Conga | Perc |
+| 46 (A#1) | Open Hat Deep | Hats |
+| 47 (B1) | Bongo | Perc |
+| 48 (C2) | Bongo | Perc |
+| 54 (F#2) | Shaker Deep | Perc |
 
 Put the closed and open hats in one choke group: the closed hat cuts the open one. The congas and bongos are zoned samples (Conga G3 C4 D4, Bongo G4 D5): map each drum note to its zone.
 
-**Basslines** (2 bars; `InTheLoop` is the one the context loop plays): load Rubber Bass Clean (A) or Rubber Bass Warm (B), with Sub Deep under either into a sampler as a
-multisample, each file rooted at its note: G1, D2, G2 (MIDI 31, 38, 43). The sample names count C4 = 60, the note
-Ableton and Logic call C3, so root each file by its MIDI number. A is clean, B is warm. Where a line glides into a note, the note before is held 12 ticks into it, so a synth set to legato glide slides there. 2 more slides glide inside one note, which a MIDI note can't carry: they play as written.
+## Pitched instruments
 
-**Lead** (2 bars): Keys EP, rooted at G3, D4, G4, D5, G5 (MIDI 55, 62, 67, 74, 79).
+Root each sample file at its MIDI number: the sample names count C4 = 60, the note Ableton and Logic call C3. A note
+plays its zone's file repitched by the distance to its root.
 
-**Chords:** the voicing file is for your own synth. The Dub Stab Gm9 sample is the whole chord, so play it
-with the sample trigger file: one note on C3 (MIDI 60), where Ableton's Simpler and most samplers
-play a sample at its own pitch.
+| Channel | Track | Instrument | Zones: name (MIDI number) | Velocity |
+|---|---|---|---|---|
+| 1 | Bass | Rubber Bass Clean (A) or Rubber Bass Warm (B) | G1 (31), D2 (38), G2 (43) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 2 | Lead | Keys EP | G3 (55), D4 (62), G4 (67), D5 (74), G5 (79) | layers at velocity 64, 127 (a velocity plays the nearest, the louder on a tie) |
+| 4 | Chords | Dub Stab Gm9 | G3 (55) | layers at velocity 64, 95, 127 (a velocity plays the nearest, the louder on a tie) |
+| 5 | Vox | Vox Synth | G3 (55), D4 (62), G4 (67), D5 (74) | layers at velocity 76, 127 (a velocity plays the nearest, the louder on a tie) |
+| 11 | Pad Warm | Pad Warm | G3 (55) | one layer |
 
-**Full loop** (4 bars): all of the above in one file, the bassline and lead played twice.
+On channel 3, Chord voicing is the chords as single notes for your own synth; Wubansia ignores channel 3.
+Sub Deep layers under either bass (the manifest layers it, no notes). F1 (29) plays the G1 zone pitched down. A glide inside a note is written as the note, then its target slid into from it.
 
-**Synth phrases** (channel 4): the kit's synth riffs as MIDI, each on its own sample:
+## One-key sounds (channels 6, 7 and 8)
 
-- `FUT03_Phrase_RubberBassClean_2bars.mid`: Rubber riff (2 bars), on Rubber Bass Clean, rooted at G1, D2, G2 (MIDI 31, 38, 43)
-- `FUT03_Phrase_DubStabGm9_4bars.mid`: Dub chords, Gm9 Gm9 Cm9 Gm9 (4 bars), on Dub Stab Gm9, rooted at G3 (C4 plays it a fourth up: Cm9) (MIDI 55, 60)
-- `FUT03_Phrase_KeysEP_4bars.mid`: Keys arp (4 bars), on Keys EP, rooted at G3, D4, G4, D5, G5 (MIDI 55, 62, 67, 74, 79)
-- `FUT03_Phrase_VoxSynth_2bars.mid`: Vox synth riff, Gm9 to Cm9 (2 bars), on Vox Synth, rooted at G3, D4, G4, D5 (MIDI 55, 62, 67, 74)
+Each key plays one sound at its own pitch, from 48 up. A note lasts its sample's length (or the gate the loop gives
+it), so a gated pad plays the whole file; an end-aligned sound's note ends on the beat it lands on.
 
-**Extended mix** (`extended/`): these parts arranged as a DJ-friendly extended mix, 224 bars
-(7:00 at 128 BPM), as one file and one region per section, with `regions.json` and a README on
-laying the regions out on a timeline.
+| Key | Channel | Sound | File (in `content/samples/fut03/`) | How it plays |
+|---|---|---|---|---|
+| 48 | 6 | Accent Glass Ping D6 | `Drums/Accent Glass Ping D6.wav` | starts on its note; one layer |
+| 49 | 6 | Accent Dub Chord Cm9 | `Music/Accent Dub Chord Cm9.wav` | starts on its note; one layer |
+| 50 | 6 | Accent Reverse Chord Gm9 | `FX/Accent Reverse Chord Gm9.wav` | end-aligned: ends on its beat; one layer |
+| 51 | 6 | Accent Organ Hit Gm7 | `Music/Accent Organ Hit Gm7.wav` | starts on its note; one layer |
+| 52 | 6 | Accent Noise Sweep Up | `FX/Accent Noise Sweep Up.wav` | end-aligned: ends on its beat; one layer |
+| 53 | 6 | Accent Pluck Chord Dm7 | `Music/Accent Pluck Chord Dm7.wav` | starts on its note; one layer |
+| 54 | 6 | Accent Zap G4 | `Drums/Accent Zap G4.wav` | starts on its note; one layer |
+| 55 | 6 | Accent Vox Synth Gm | `Music/Accent Vox Synth Gm.wav` | starts on its note; one layer |
+| 56 | 6 | Accent Rubber Stab G1 | `Bass/Accent Rubber Stab G1.wav` | starts on its note; one layer |
+| 48 | 7 | Build Fill | `FX/Build Fill.wav` | end-aligned: ends on its beat; one layer |
+| 49 | 7 | Riser | `FX/Riser.wav` | end-aligned: ends on its beat; one layer |
+| 50 | 7 | Impact | `FX/Impact.wav` | starts on its note; one layer |
+| 48 | 8 | Vox Chop Ooh Ah G4 | `Vox/Vox Chop Ooh Ah G4.wav` | starts on its note; one layer |
+| 49 | 8 | Vox Chop Ooh Ah C5 | `Vox/Vox Chop Ooh Ah C5.wav` | starts on its note; one layer |
+| 50 | 8 | Vox Chop Ah D5 | `Vox/Vox Chop Ah D5.wav` | starts on its note; one layer |
+| 51 | 8 | Vox Chop Stack Gm7 | `Vox/Vox Chop Stack Gm7.wav` | starts on its note; one layer |
+
+## Controllers
+
+Filter rides, every 60 ticks while they move (CC74 cutoff, CC71 resonance):
+- CC74 on channel 4 (Chords): the dub stab's low-pass: closed on the loop's downbeat, open at its middle; logarithmic, 0 = 900 Hz to 127 = 5000 Hz.
+
+Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 at its note-off, or sooner at the next note-on on its track that isn't thrown, so no other note takes the throw; every track on a channel that throws anywhere in these files starts with both at 0 on tick 0 (the GS send controllers).
+
+## Lanes Wubansia plays from recorded phrases
+
+Near the kit's tempo (within 2 %), Wubansia plays these lanes from the kit's recorded lines and phrases, sliced at
+these files' notes; away from it, and always from MIDI in, they play the multisample above:
+- **bass**: the Rubber and Deep lines (`Loops/Line Rubber Clean.wav` and the rest), as the loop plays them
+- **vox**: the vox synth riff as the context loop sings it, its dub throw baked in: stems derived from the recipe (`Stems/Context Vox Riff.wav`, and `Stems/Context Vox Riff Twice.wav` for the extended mix's riff every 2 bars), not the Loops/ phrase, which wraps its echoes over its start
