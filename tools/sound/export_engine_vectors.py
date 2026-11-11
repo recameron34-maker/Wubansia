@@ -3,6 +3,7 @@ test_master.cpp hold each C++ block to, at 48 kHz, and the two tap tables engine
 
     python3 tools/sound/export_engine_vectors.py            # writes engine/tests/vectors/fx/ and the headers
     python3 tools/sound/export_engine_vectors.py --check    # regenerates in memory; fails on any difference
+                                                            # (a header's taps may sit 1 ulp apart: same_header)
 
 Every vector comes from the Python the C++ ports: dsp48 (filters, os_fir(4), tanh_adaa, svf_tpt, mono_below),
 master.py (soft_clip, the glue's detector and envelopes at a fixed threshold, the two-sided limiter), sends.py (space,
@@ -528,6 +529,29 @@ def files():
     return out
 
 
+def same_header(have, want):
+    """Whether a generated header (bytes) matches the committed one: the same lines, each identical or both a tap
+    line whose doubles are within 1 ulp. numpy's vectorized sin and exp can round a tap one ulp apart with the arrays'
+    memory alignment (run as a script and with -m, halfband.h's kHalfband1[18] came out 0.05453258828118877 and
+    0.054532588281188774), so --check allows that much and keeps the committed bytes."""
+    a, b = have.decode('utf-8').split('\n'), want.decode('utf-8').split('\n')
+    if len(a) != len(b):
+        return False
+    for x, y in zip(a, b):
+        if x == y:
+            continue
+        tx, ty = x.strip(), y.strip()
+        if not (tx.endswith(',') and ty.endswith(',') and x[:len(x) - len(x.lstrip())] == y[:len(y) - len(y.lstrip())]):
+            return False
+        try:
+            u, v = float(tx[:-1]), float(ty[:-1])
+        except ValueError:
+            return False
+        if not (math.isfinite(u) and math.isfinite(v)) or abs(u - v) > math.ulp(max(abs(u), abs(v))):
+            return False
+    return True
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--check', action='store_true', help='regenerate in memory and compare with the files')
@@ -535,7 +559,8 @@ def main(argv=None):
     out = files()
     print(cross_check())
     if args.check:
-        bad = [str(p.relative_to(ROOT)) for p, data in out.items() if not p.exists() or p.read_bytes() != data]
+        bad = [str(p.relative_to(ROOT)) for p, data in out.items() if not p.exists()
+               or not (p.read_bytes() == data or (p.parent == GENERATED and same_header(p.read_bytes(), data)))]
         extra = sorted(str(p.relative_to(ROOT)) for p in OUT.glob('*') if p not in out)
         if bad or extra:
             print('export_engine_vectors: out of date:', ', '.join(bad + extra), file=sys.stderr)
