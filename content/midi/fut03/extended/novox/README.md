@@ -50,7 +50,7 @@ Line by line (bars of the whole mix):
 - 89-96: kick, clap, off-beat hats, 16ths in its second half, perc, chords (Gm9 Cm9), pad (Gm9 Cm9), fx; the drums' shaker variant; the Chords filter ride from 96 to 127; the clap rolls over the line's last 4 bars up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 97-128)
-- 97-104: kick, clap, hats, perc, bass (Rubber), chords (Gm9 Cm9), pad (Gm9 Cm9), accents, fx; the drums' drop lite variant; a turnaround (drop) in its last bar
+- 97-104: kick, clap, hats, perc, bass (Rubber), chords (Gm9 Cm9), pad (Gm9 Cm9), accents, fx; the drums' drop lite variant; the Chords filter ride 127 at bar 0 then 127 at bar 2 then 0 at bar 8; a turnaround (drop) in its last bar
 - 105-112: kick, clap, hats, perc, bass (Rubber), the lead's call, chords (Gm9 Cm9), pad (Gm9 Cm9), accents; the drums' drop variant; a turnaround (drop) in its last bar
 - 113-120: kick, clap, busy hats, perc, bass (Rubber), lead, chords (Gm9 Gm9 Cm9 Gm9), pad (Gm9 Gm9 Cm9 Gm9), accents; the drums' drop lite variant; a turnaround (drop) in its last bar
 - 121-128: kick, clap, hats, busy in its second half, perc, bass (Rubber), the lead's call, chords (Gm9 Cm9), pad (Gm9 Cm9), accents; the drums' drop variant; the drums out in its last bar
@@ -83,6 +83,7 @@ Line by line (bars of the whole mix):
 - bar 89: Riser
 - bar 96: Fill
 - bar 97: Vox
+- bar 121: Vox
 - bar 144: Fill
 - bar 153: Riser
 - bar 160: Fill

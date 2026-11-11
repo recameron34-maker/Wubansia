@@ -389,7 +389,16 @@
           ],
           "vox": "riff",
           "pad": "Gm9 Cm9",
-          "accents": "loop"
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ]
+          ]
         },
         {
           "start_bar": 73,
@@ -399,7 +408,6 @@
             "lead",
             "chords",
             "vox",
-            "accents",
             "fx"
           ],
           "hats": "thin",
@@ -412,7 +420,6 @@
             "from_pm": 400,
             "to_pm": 1000
           },
-          "accents": "lead-in",
           "end": "fill"
         }
       ],
@@ -553,10 +560,38 @@
           "vox": "riff",
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
-          "accents": "loop",
           "drums": "drop lite",
           "end": "turn",
-          "turn": "drop"
+          "turn": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ]
+          ],
+          "ride": {
+            "Chords": [
+              "points",
+              [
+                [
+                  0,
+                  127
+                ],
+                [
+                  2,
+                  127
+                ],
+                [
+                  8,
+                  0
+                ]
+              ]
+            ]
+          }
         },
         {
           "start_bar": 105,
@@ -578,10 +613,19 @@
           "vox": "answer",
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
-          "accents": "loop",
           "drums": "drop",
           "end": "turn",
-          "turn": "drop"
+          "turn": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ]
+          ]
         },
         {
           "start_bar": 113,
@@ -626,14 +670,27 @@
           "vox": "riff",
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
-          "accents": "loop",
           "drums": "drop",
-          "end": "drop"
+          "end": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ]
+          ]
         }
       ],
       "cues": [
         {
           "bar": 97,
+          "cue": "Vox"
+        },
+        {
+          "bar": 121,
           "cue": "Vox"
         }
       ]
@@ -865,10 +922,19 @@
           "vox": "riff",
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
-          "accents": "loop",
           "drums": "drop",
           "end": "turn",
-          "turn": "drop"
+          "turn": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ]
+          ]
         },
         {
           "start_bar": 177,
