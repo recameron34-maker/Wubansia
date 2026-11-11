@@ -27,7 +27,7 @@ ADR 0014 §5 left the real-time master's hold and DC clean open, and asked that 
 The club master follows at a fixed latency. In all:
 - 424 samples at 48 kHz (8.8 ms);
 - 404 at 44.1 kHz (9.2 ms);
-- 664 at 96 kHz (6.9 ms).
+- 712 at 96 kHz (7.4 ms).
 
 The latency is reported in prepare, stays the same with the club master off (its bypass waits as long), and the tail is 6 s.
 - The four round 5 mixes need 54, 54, 50 and 54 samples (FUT01-FUT04).
@@ -39,11 +39,12 @@ The latency is reported in prepare, stays the same with the club master off (its
 - A filter's band is a crossover (rest + f(band)). A duck's band is additive, x + (g - 1)·band(x), so the channel is untouched at rest.
 - Block-based stages count their blocks from where aligned time 0 reaches them in the graph, as engine_ref's streams do: the glue's 16 samples and the level duck's 64. So do absolute-time ones: the echo's wow and flutter, the shimmer's taps.
 
-**4. Lane clips and drives run on a 4x half-band cascade; the club master's clip keeps os_fir(4)'s taps.**
+**4. Lane clips and drives run on a 4x half-band cascade; the club master's clip keeps os_fir(4)'s taps, at a fixed internal rate.**
 - The cascade is rt_ref's `halfband(47, 7.0)` for 1x↔2x and `halfband(15, 7.0)` for 2x↔4x, with 27 samples of latency.
 - On a 5 kHz sine 6 dB over the knee, the loudest alias under 20 kHz reads -93.3 dB (the gate is -60 dB).
 - Against master.soft_clip on drum material, the residual under 16 kHz is -69 dB. In stereo it costs 41 ns a sample, against 118 ns for the same clip on os_fir(4): about 2.9 times cheaper.
-- The master's clip keeps os_fir(4)'s exact taps, with 48 samples of latency.
+- The master's clip keeps os_fir(4)'s exact taps, at 176.4 or 192 kHz whatever the rate: 4x at 44.1 and 48 kHz, 2x at 88.2 and 96, 1x at 176.4 and 192, with 1 ms of latency (48 samples at 48 kHz).
+- At a plain 4x of the rate, 96 kHz differed from 48 kHz. The clip's ADAA applies its excess half an oversampled sample late (2.6 µs at 48 kHz, 1.3 at 96 kHz), and os_fir(4) kept the clip's harmonics up to 44 kHz. The limiter took about 0.13 dB less: P12 read the club loops up to 0.19 LU louder, and their true peak up to 0.55 dB higher resampled to 48 kHz. On the fixed rate, a driven test signal reads within 0.005 dB of gain reduction and 0.003 LU at 96 and 192 kHz (`engine_tests "[master]"`).
 
 **5. The limiter's hold looks back, over twice the hold, and reaches 24 samples past its lookahead.**
 - Its minimum runs over need[k - 2h .. k + w + 24]: h is the 60 ms hold and w the 5 ms lookahead. Latency: 2·round(0.0025·fs) + 49 samples, 289 at 48 kHz, against master.py's 3145.

@@ -29,7 +29,7 @@ namespace wubansia::engine::mix
 
     int ClubMaster::latencyFor (double sampleRate, fx::Limiter::Hold hold) noexcept
     {
-        return fx::Glue::kLatency + fx::MasterClip::kLatency + limiterBudget (sampleRate, hold);
+        return fx::Glue::kLatency + fx::ClubClip::latencyFor (sampleRate) + limiterBudget (sampleRate, hold);
     }
 
     void ClubMaster::prepare (double sampleRate, int maxBlock, fx::Limiter::Hold hold)
@@ -47,6 +47,7 @@ namespace wubansia::engine::mix
         dryR.assign (static_cast<std::size_t> (std::max (maxBlock, 1)), 0.0f);
         drive.setup (fs);
         wet.setup (fs);
+        clip.setup (fs);
         setup (cfg, Controls {}, origin);
     }
 

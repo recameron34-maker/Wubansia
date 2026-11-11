@@ -5,7 +5,8 @@
 //  2. mono under 150 Hz (the side high-passed, 8th order);
 //  3. the glue at the variant's solved threshold (2:1, 6 dB knee, 30 ms attack, auto release; 23 samples late);
 //  4. the variant's solved drive;
-//  5. the soft clip at 4x on os_fir(4)'s taps (48 samples late);
+//  5. the soft clip on os_fir(4)'s taps at 176.4 or 192 kHz: 4x at 44.1 and 48 kHz, 2x at 88.2 and 96, 1x at 176.4
+//     and 192 (fx::ClubClip; 1 ms late: 48 samples at 48 kHz);
 //  6. a causal 5 Hz DC blocker, in place of master.py's zero-phase clean;
 //  7. the true-peak limiter at -1.02 dBTP, its 60 ms hold looking back (2 round (0.0025 fs) + 49 samples late).
 // Its latency is fixed per rate whatever the kit: a limiter lookahead shorter than 5 ms is padded, a longer one
@@ -15,6 +16,7 @@
 
 #include "engine.h"
 #include "fx/biquad.h"
+#include "fx/club_clip.h"
 #include "fx/dc_blocker.h"
 #include "fx/delay_line.h"
 #include "fx/glue.h"
@@ -64,7 +66,7 @@ namespace wubansia::engine::mix
         fx::SideFilter mono;
         fx::Glue glue;
         Ramp drive;
-        fx::MasterClip clip;
+        fx::ClubClip clip;
         fx::DcBlocker dc;
         fx::Limiter limiter;
         fx::DelayLine<float> padL, padR, bypassL, bypassR;
