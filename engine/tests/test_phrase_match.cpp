@@ -11,6 +11,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <vector>
@@ -509,16 +510,68 @@ TEST_CASE ("phrase match: a last slice that doesn't end where slice 0 starts doe
         CHECK (continues (*n) == (n->slice != 7));
 }
 
-TEST_CASE ("phrase match: the four kits' Loop files resolve as the Python model does", "[phrase][match][vectors]")
+TEST_CASE ("phrase match: a cycle plays its phrase only where its cells and the notes they hold are more than half its notes", "[phrase][match]")
 {
-    for (const char* kitName : { "fut01", "fut02", "fut03", "fut04" })
+    // Notes on no cell of the lead: key 60, on 16ths none of its notes start on.
+    const std::vector<std::pair<int, int>> off { { 0, 60 }, { 1, 60 }, { 3, 60 }, { 5, 60 }, { 6, 60 }, { 7, 60 }, { 9, 60 }, { 10, 60 }, { 11, 60 } };
+    const auto m = testing::syntheticKitManifest();
+    const auto offPlan = [&] (std::size_t n) {
+        LeadPlan plan;
+        plan.cycles = { 0 };
+        plan.extra.assign (off.begin(), off.begin() + static_cast<std::ptrdiff_t> (n));
+        return plan;
+    };
+
+    SECTION ("the lead's 8 cells and the retrigger they hold beside 8 notes off the lead (9 of 17): its slices")
     {
-        CAPTURE (kitName);
-        const auto v = readJson (std::string ("match_") + kitName + ".json");
+        auto t = loopOf (leadSmf (offPlan (8)));
+        annotatePhrases (t, m);
+        CHECK (sliceNotes (t).size() == 8u);
+        const Note* h = noteAt (t, snap (tick (13), kSwingPm), kLeadChannel, 74);
+        REQUIRE (h != nullptr);
+        CHECK ((h->phrase == 0 && held (*h)));
+        for (const Note* n : notesOn (t, kLeadChannel))
+            if (n->key == 60)
+                CHECK ((n->phrase == -1 && ! held (*n)));
+    }
+
+    SECTION ("beside 9 (9 of 18): every note on the multisample")
+    {
+        auto t = loopOf (leadSmf (offPlan (9)));
+        annotatePhrases (t, m);
+        CHECK (sliceNotes (t).empty());
+        for (const Note* n : notesOn (t, kLeadChannel))
+            CHECK ((n->phrase == -1 && ! held (*n)));
+    }
+
+    SECTION ("3 of the lead's notes beside 4 others, then the whole lead: only the second cycle plays slices")
+    {
+        LeadPlan plan;
+        plan.cycles = { 0, 1 };
+        plan.keep = [] (int c, int i) { return c == 1 || i < 3; };
+        plan.extra.assign (off.begin(), off.begin() + 4);
+        auto t = loopOf (leadSmf (plan));
+        annotatePhrases (t, m);
+        const auto slices = sliceNotes (t);
+        CHECK (slices.size() == 8u);
+        for (const Note* n : slices)
+            CHECK (cycleOf (*n) == 1);
+        for (const Note* n : notesOn (t, kLeadChannel))
+            if (n->slice < 0 && cycleOf (*n) == 0)
+                CHECK ((n->phrase == -1 && ! held (*n)));
+    }
+}
+
+namespace
+{
+    // A kit's phrases as a match vector holds them (match_<kit>.json): its BPM, swing and phrase tables, each stem a
+    // file of its frames. firstSlice: each phrase's first index into Kit::slices.
+    KitManifest manifestOf (const json::Value& v, std::vector<int>& firstSlice)
+    {
         KitManifest m;
         m.kit.bpm = static_cast<std::int32_t> (integer (v, "bpm"));
         m.kit.swingPm = static_cast<std::int32_t> (integer (v, "swing_pm"));
-        std::vector<int> firstSlice;
+        firstSlice.clear();
         int slicesSoFar = 0;
         for (const auto& p : at (v, "phrases").items)
         {
@@ -555,6 +608,45 @@ TEST_CASE ("phrase match: the four kits' Loop files resolve as the Python model 
             slicesSoFar += static_cast<int> (e.slices.size());
             m.phrases.push_back (std::move (e));
         }
+        return m;
+    }
+}
+
+TEST_CASE ("phrase match: MIDI v2's phrase files of lines no stem plays play the multisample", "[phrase][match][vectors]")
+{
+    // FUT03's Rubber riff: 7 of its 19 notes on the Deep line's cells. FUT01's pluck riff: 2 of bar 3-4's 13 notes on
+    // the pluck's. The Python model (test_phrase_tables.TestPhraseFiles) gives the same.
+    struct File
+    {
+        const char* kit;
+        const char* name;
+        int channel;
+        std::size_t notes;
+    };
+    for (const File& f : { File { "fut03", "FUT03_Phrase_RubberRiff_2bars.mid", 0, 19 }, File { "fut01", "FUT01_Phrase_PluckRiff_4bars.mid", 1, 26 } })
+    {
+        CAPTURE (f.name);
+        std::vector<int> firstSlice;
+        const auto m = manifestOf (readJson (std::string ("match_") + f.kit + ".json"), firstSlice);
+        const auto smf = wubansia::util::readBinaryFile (std::string (WUBANSIA_SOURCE_DIR) + "/content/midi/" + f.kit + "/" + f.name);
+        REQUIRE (smf.ok());
+        auto t = timelineOf (smf.value, m.kit.swingPm, 0);
+        annotatePhrases (t, m);
+        const auto notes = notesOn (t, f.channel);
+        CHECK (notes.size() == f.notes);
+        for (const Note* n : notes)
+            CHECK ((n->slice < 0 && n->phrase == -1 && ! held (*n)));
+    }
+}
+
+TEST_CASE ("phrase match: the four kits' Loop files resolve as the Python model does", "[phrase][match][vectors]")
+{
+    for (const char* kitName : { "fut01", "fut02", "fut03", "fut04" })
+    {
+        CAPTURE (kitName);
+        const auto v = readJson (std::string ("match_") + kitName + ".json");
+        std::vector<int> firstSlice;
+        const auto m = manifestOf (v, firstSlice);
 
         for (const auto& file : at (v, "files").items)
         {

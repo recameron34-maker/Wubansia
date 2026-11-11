@@ -97,7 +97,9 @@ namespace wubansia::engine
             std::int64_t onset = 0;
         };
 
-        // The cycle's matches and holds on one channel: resolve ()'s loop over a cycle's notes, in onset order.
+        // The cycle's matches and holds on one channel: resolve ()'s loop over a cycle's notes, in onset order. The
+        // cycle plays the phrase only when its matched and held notes are more than half its notes; otherwise every
+        // note of the cycle stays on the multisample.
         void matchCycle (Timeline& timeline, const std::vector<PhraseEntry>& phrases, const std::vector<int>& on,
             const Points& cc74, const Points& cc71, std::int64_t c, std::int64_t cycle, const Item* begin,
             const Item* end, std::vector<Match>& matches)
@@ -133,6 +135,8 @@ namespace wubansia::engine
                 return -1;
             };
             std::vector<bool> used (entry.slices.size(), false);
+            std::vector<std::size_t> holds; // the held notes (indices into timeline.notes)
+            const auto firstMatch = matches.size();
             std::array<int, kMaxHolds> pending {};
             int pendingCount = 0, pendingAt = 0;
             std::int64_t ownStep = -1;
@@ -146,16 +150,13 @@ namespace wubansia::engine
                     && ((step == ownStep && it->key == ownKey) || j < 0))
                 {
                     ++pendingAt;
-                    auto& held = timeline.notes[it->index];
-                    held.phrase = static_cast<std::int16_t> (best);
-                    held.flags = static_cast<std::uint8_t> (held.flags | NoteFlag::held);
+                    holds.push_back (it->index);
                     continue;
                 }
                 if (j < 0 || used[static_cast<std::size_t> (j)])
                     continue; // the multisample
                 used[static_cast<std::size_t> (j)] = true;
                 matches.push_back ({ it->index, best, j, c, it->onset });
-                timeline.notes[it->index].phrase = static_cast<std::int16_t> (best);
                 const auto& s = entry.slices[static_cast<std::size_t> (j)];
                 pendingCount = std::clamp (s.holdCount, 0, kMaxHolds);
                 for (int h = 0; h < pendingCount; ++h)
@@ -163,6 +164,23 @@ namespace wubansia::engine
                 pendingAt = 0;
                 ownStep = step;
                 ownKey = it->key;
+            }
+
+            // Matched and held: more than half the cycle's notes, or the whole cycle plays the multisample (a line
+            // that lands on a few of a stem's cells isn't a patchwork of stem and multisample).
+            const auto played = matches.size() - firstMatch + holds.size();
+            if (2 * played <= static_cast<std::size_t> (end - begin))
+            {
+                matches.erase (matches.begin() + static_cast<std::ptrdiff_t> (firstMatch), matches.end());
+                return;
+            }
+            for (auto m = firstMatch; m < matches.size(); ++m)
+                timeline.notes[matches[m].index].phrase = static_cast<std::int16_t> (best);
+            for (const auto i : holds)
+            {
+                auto& held = timeline.notes[i];
+                held.phrase = static_cast<std::int16_t> (best);
+                held.flags = static_cast<std::uint8_t> (held.flags | NoteFlag::held);
             }
         }
 
