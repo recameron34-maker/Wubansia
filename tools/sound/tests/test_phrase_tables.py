@@ -18,13 +18,17 @@ The contract is docs/plugin/manifest.md section 2.6. What these tests hold:
 - the derived stems re-render byte for byte;
 - FUT04's acid phrases carry the controller rides their stems were rendered with, and the Loop files' rides equal
   the Ride stem's;
-- the matcher (the Python model of engine/sched/phrase_match) resolves every cycle of the Loop files.
+- the matcher (the Python model of engine/sched/phrase_match) resolves every cycle of the Loop files, plays a cycle's
+  table only where the table's cells and the notes they hold are more than half the cycle's notes (MIDI v2's phrase
+  files of lines no stem plays play the multisample), and splits each line of the extended mixes as pinned here.
 
 The audio tests need the real WAVs: $WUBANSIA_CONTENT_DIR (a folder of <kit>/ folders) or the checkout's
 content/samples with git lfs pulled. They skip without them.
 """
 import functools
 import hashlib
+import json
+import math
 import os
 import tempfile
 import unittest
@@ -645,6 +649,251 @@ class TestMatcher(unittest.TestCase):
         self.assertEqual(len(line), len(got))
         got, unmatched = PT.resolve(K, line + [(12, 31)], [t])
         self.assertEqual([(12, 31)], unmatched)
+
+    def test_a_cycle_plays_slices_only_where_most_of_its_notes_are_the_tables(self):
+        """A cycle plays a table only when the table's cells (and the notes they hold) are more than half the cycle's
+        notes; otherwise every note of the cycle plays the multisample, so a line that lands on a few of a stem's cells
+        isn't a patchwork of stem and multisample (FUT03's switch-up riff on the Deep line's cells). Each cycle on its
+        own."""
+        K, t = self.table('FUT01', 'pluck')
+        cells = [(s['step'], s['key']) for s in t['slices']]
+        off = [(s['step'] + 1, 60) for s in t['slices']]                  # on no cell: no slice has key 60
+        self.assertFalse({k for _, k in off} & {k for _, k in cells})
+        for n_cells, n_off, plays in ((3, 2, True), (3, 3, False), (2, 3, False), (7, 6, True), (6, 6, False)):
+            with self.subTest(cells=n_cells, off=n_off):
+                got, unmatched = PT.resolve(K, cells[:n_cells] + off[:n_off], [t])
+                self.assertEqual(n_cells if plays else 0, len(got))
+                self.assertEqual(sorted(off[:n_off] + ([] if plays else cells[:n_cells])), unmatched)
+        cyc = t['cycle_16ths']
+        got, unmatched = PT.resolve(K, cells[:2] + off[:3] + [(p + cyc, k) for p, k in cells], [t])
+        self.assertEqual(({1}, len(cells)), ({math.floor(p) // cyc for p, _, _ in got}, len(got)))
+        self.assertEqual(sorted(cells[:2] + off[:3]), unmatched)
+
+    def test_held_notes_count_with_their_cells(self):
+        """FUT04's ratchets: the blip's 2 cells and the 3 retriggers they hold are 5 of the cycle's notes, so beside 4
+        notes off the table (9 in all) the cycle plays its slices, and beside 5 (10) the multisample. The 2 cells alone
+        would be under half even of the 5 the blip writes."""
+        K, t = self.table('FUT04', 'blip')
+        blip = [(10, 74), (10.5, 74), (26, 84), (26 + 1 / 3, 84), (26 + 2 / 3, 84)]
+        off = [(s, 60) for s in (1, 2, 5, 8, 9)]
+        self.assertFalse({k for _, k in off} & {s['key'] for s in t['slices']})
+        got, unmatched = PT.resolve(K, blip + off[:4], [t])
+        self.assertEqual(([(10, 0, 5), (26, 0, 14)], off[:4]), (got, unmatched))
+        got, unmatched = PT.resolve(K, blip + off, [t])
+        self.assertEqual(([], sorted(blip + off)), (got, unmatched))
+
+
+# ------------------------------------------------------------------ the committed phrase files and extended mixes
+def resolve_file(kit, path):
+    """resolve () on each phrase channel of a committed MIDI file: {ch: (the channel's specs, its notes, got,
+    unmatched)}."""
+    K = kits.module(kit)
+    notes, ccs = PT.file_notes(K, path), PT.file_ccs(path)
+    out = {}
+    for ch in sorted({s.ch for s in PT.specs(kit)}):
+        sp = [s for s in PT.specs(kit) if s.ch == ch]
+        got, unmatched = PT.resolve(K, notes.get(ch, []), [table_of(K, s) for s in sp], ccs.get(ch, {}))
+        out[ch] = (sp, notes.get(ch, []), got, unmatched)
+    return out
+
+
+def extended_mix(kit, variant):
+    """A kit's whole extended mix and its regions.json, or (None, None) where it isn't here."""
+    d = REPO / 'content' / 'midi' / kit.lower() / 'extended' / variant
+    p = d / f"{kit}_ExtendedMix_{'Vox' if variant == 'vox' else 'NoVox'}_224bars.mid"
+    return (p, json.loads((d / 'regions.json').read_text(encoding='utf-8'))) if p.exists() else (None, None)
+
+
+def split_rows(kit, variant):
+    """What resolve () makes of each phrase channel of a kit's extended mix, line by line of its arrangement (the
+    lines of regions.json's sections), as rows '<line's first bar> ch<ch>: <table line> <slices>, ..., held <n>,
+    multisample <n>' (what isn't there left out), for each line and channel with notes."""
+    path, regions = extended_mix(kit, variant)
+    starts = sorted(ln['start_bar'] for sec in regions['sections'] for ln in sec['lines'])
+    rows = {}
+    for ch, (sp, notes, got, unmatched) in resolve_file(kit, path).items():
+        def row(pos):
+            bar = math.floor(pos) // 16 + 1
+            return rows.setdefault((max(b for b in starts if b <= bar), ch), {'notes': 0})
+        for pos, _ in notes:
+            row(pos)['notes'] += 1
+        for pos, ti, _ in got:
+            r = row(pos)
+            r[sp[ti].line] = r.get(sp[ti].line, 0) + 1
+        for pos, _ in unmatched:
+            r = row(pos)
+            r['multisample'] = r.get('multisample', 0) + 1
+    out = []
+    for (bar, ch), r in sorted(rows.items()):
+        n = r.pop('notes')
+        held = n - sum(r.values())
+        ms = r.pop('multisample', 0)
+        parts = [f'{line} {k}' for line, k in r.items()] + [f'held {held}'] * (held > 0) + [f'multisample {ms}'] * (ms > 0)
+        out.append(f'{bar} ch{ch}: ' + ', '.join(parts))
+    return out
+
+
+# What each line of the extended mixes plays on each phrase channel (Vox; NoVox is the same without the vox lane's
+# channel), as split_rows () writes it. When the arrangement changes, these change with it: print split_rows () and
+# check each changed line against the kit's README before pinning it here.
+EXTENDED_SPLIT = {
+    'FUT01': """
+        49 ch2: pluck 24
+        57 ch2: pluck 24
+        57 ch5: riff 16
+        65 ch5: riff 32
+        73 ch2: pluck 24
+        73 ch5: riff 32
+        81 ch5: riff 16
+        89 ch5: riff 32
+        97 ch2: pluck 24
+        97 ch5: riff 32
+        105 ch2: pluck 48
+        113 ch2: pluck 24
+        113 ch5: riff 16
+        153 ch5: riff 16
+        161 ch2: pluck 24
+        161 ch5: riff 32
+        177 ch2: pluck 24
+        177 ch5: riff 16""",
+    'FUT02': """
+        33 ch1: orbit 88
+        41 ch1: orbit 82
+        41 ch2: arp 42
+        49 ch1: orbit 88
+        49 ch2: arp 48
+        57 ch1: orbit 82
+        57 ch2: arp 42
+        57 ch5: multisample 1
+        65 ch2: arp 60
+        65 ch5: multisample 32
+        73 ch2: arp 60
+        73 ch5: multisample 28
+        81 ch1: orbit 88
+        81 ch2: arp 120
+        89 ch2: arp 105
+        97 ch1: orbit 88
+        97 ch2: arp 120
+        97 ch5: vox 22
+        105 ch1: orbit 82
+        105 ch2: arp 105
+        105 ch5: vox 22
+        113 ch1: orbit 88
+        113 ch2: arp 120
+        121 ch1: orbit 88
+        121 ch2: arp 48
+        121 ch5: vox_twice 20, multisample 1
+        129 ch1: orbit 88
+        137 ch1: orbit 88
+        137 ch2: arp 48
+        145 ch2: arp 60
+        145 ch5: multisample 32
+        153 ch5: vox_twice 20
+        161 ch1: relay 72
+        161 ch5: vox_twice 20
+        169 ch1: relay 72
+        169 ch2: arp 42
+        169 ch5: vox_twice 20
+        177 ch1: relay 72
+        177 ch2: arp 60
+        177 ch5: vox_twice 24
+        185 ch1: relay 72""",
+    'FUT03': """
+        33 ch1: rubber 60, held 12
+        41 ch1: rubber 60, held 12
+        49 ch1: rubber 60, held 12
+        57 ch1: rubber 60, held 12
+        57 ch5: vox_twice 16
+        65 ch5: vox_twice 32
+        73 ch5: vox_twice 32
+        81 ch1: rubber 60, held 12
+        97 ch1: rubber 60, held 12
+        97 ch5: vox_twice 32
+        105 ch1: rubber 60, held 12
+        105 ch5: vox_twice 16
+        113 ch1: rubber 60, held 12
+        121 ch1: rubber 60, held 12
+        121 ch5: vox_twice 32
+        129 ch1: multisample 76
+        137 ch1: multisample 67
+        161 ch1: deep 84, held 12
+        169 ch1: deep 84, held 12
+        169 ch5: vox_twice 32
+        177 ch1: deep 84, held 12
+        185 ch1: deep 84, held 12""",
+    'FUT04': """
+        33 ch1: line1 76
+        41 ch1: multisample 76
+        49 ch1: multisample 76
+        49 ch2: blip 36, held 4
+        57 ch1: multisample 76
+        57 ch2: blip 72, held 12
+        65 ch1: multisample 76
+        65 ch2: blip 36, held 4
+        73 ch1: multisample 76
+        73 ch2: blip 24
+        81 ch1: multisample 76
+        81 ch2: blip 72, held 12
+        89 ch1: multisample 76
+        89 ch2: blip 24
+        105 ch1: multisample 76
+        113 ch1: multisample 76
+        121 ch1: multisample 76
+        129 ch1: acid 76
+        129 ch2: blip 24
+        137 ch1: acid 76
+        145 ch1: acid 76
+        153 ch1: acid 76
+        153 ch2: blip 24
+        161 ch1: line2 72
+        169 ch1: multisample 72
+        169 ch2: blip 24
+        177 ch1: multisample 72
+        185 ch1: multisample 72
+        185 ch2: blip 36, held 4""",
+}
+
+
+class TestPhraseFiles(unittest.TestCase):
+    def test_a_line_on_a_few_of_a_stems_cells_plays_the_multisample(self):
+        """MIDI v2's phrase files of lines no stem plays: FUT03's Rubber riff (7 of its 19 notes on the Deep line's
+        cells) and FUT01's pluck riff (bars 3-4: 2 of 13 notes on the pluck's) play every note on the multisample."""
+        for kit, name, ch, n in (('FUT03', 'FUT03_Phrase_RubberRiff_2bars.mid', 1, 19),
+                                 ('FUT01', 'FUT01_Phrase_PluckRiff_4bars.mid', 2, 26)):
+            path = REPO / 'content' / 'midi' / kit.lower() / name
+            if not path.exists():
+                self.skipTest(f'waiting on P1: {name}')
+            _, notes, got, unmatched = resolve_file(kit, path)[ch]
+            with self.subTest(file=name):
+                self.assertEqual(([], n), (got, len(unmatched)))
+
+
+class TestExtendedMixes(unittest.TestCase):
+    def test_each_line_of_the_extended_mixes_plays_as_pinned(self):
+        """Per line of each kit's extended mixes and phrase channel: the notes that play each table's slices, the
+        notes a slice holds and the notes on the multisample, as EXTENDED_SPLIT pins them."""
+        for kit in KITS:
+            pinned = [r.strip() for r in EXTENDED_SPLIT[kit].strip().splitlines()]
+            vox = {s.ch for s in PT.specs(kit) if s.lane == 'vox'}
+            for variant in ('vox', 'novox'):
+                if extended_mix(kit, variant)[0] is None:
+                    self.skipTest(f'waiting on the {kit} extended mixes')
+                want = [r for r in pinned if variant == 'vox' or int(r.split(':')[0].split('ch')[1]) not in vox]
+                with self.subTest(kit=kit, variant=variant):
+                    self.assertEqual(want, split_rows(kit, variant))
+
+    def test_the_fut03_switch_up_riff_plays_the_multisample(self):
+        """FUT03's switch-up (bars 129-144) plays the Rubber riff, which no stem plays: though 7 of each cycle's 19
+        notes land on the Deep line's cells, none plays a slice."""
+        for variant in ('vox', 'novox'):
+            path, _ = extended_mix('FUT03', variant)
+            if path is None:
+                self.skipTest('waiting on the FUT03 extended mixes')
+            _, notes, got, unmatched = resolve_file('FUT03', path)[1]
+            inside = lambda pos: 128 * 16 <= pos < 144 * 16  # noqa: E731
+            with self.subTest(variant=variant):
+                self.assertEqual([], [g for g in got if inside(g[0])])
+                self.assertEqual(143, sum(1 for pos, _ in unmatched if inside(pos)))
 
 
 # ------------------------------------------------------------------ the committed Loop files (MIDI v2)

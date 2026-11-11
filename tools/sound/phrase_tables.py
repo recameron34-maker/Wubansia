@@ -230,8 +230,10 @@ def resolve(K, notes, tables, ccs=None):
     71: [...]} (None: ignore them). Cycle by cycle, from 16th 0, among the tables whose ride fits the cycle's
     controllers (rides_match), the one with the most (16th in the cycle, key) matches wins. Its matched notes get their
     slice; after one, the notes its slice holds (by key, in order, each on a cell that is the slice's own or no
-    slice's) are the slice's; every other note stays on the multisample. Returns ([(16th, table, slice)], [unmatched
-    (16th, key)])."""
+    slice's) are the slice's; every other note stays on the multisample. The cycle plays the table only when its
+    matched and held notes are more than half its notes; otherwise every note of the cycle stays on the multisample, so
+    a line that lands on a few of a stem's cells isn't a patchwork of the two (FUT03's switch-up riff on the Deep
+    line's cells). Returns ([(16th, table, slice)], [unmatched (16th, key)])."""
     cycles = {t['cycle_16ths'] for t in tables}
     if len(cycles) > 1:
         raise ValueError(f'one channel, one cycle length: {sorted(cycles)}')
@@ -250,17 +252,23 @@ def resolve(K, notes, tables, ccs=None):
         best = max(range(len(tables)), key=lambda i: (score[i], -i))
         pat, sl = pattern[best], tables[best]['slices']
         used, pending, own = set(), [], None
+        cycle_got, cycle_unmatched = [], []
         for (pos, key), cell in zip(ns, cells):
             if score[best] > 0 and pending and key == pending[0] and (cell == own or cell not in pat):
                 pending.pop(0)
                 continue
             j = pat.get(cell) if score[best] > 0 else None
             if j is None or cell in used:
-                unmatched.append((pos, key))
+                cycle_unmatched.append((pos, key))
                 continue
             used.add(cell)
-            got.append((pos, best, j))
+            cycle_got.append((pos, best, j))
             pending, own = list(sl[j]['holds']), cell
+        if 2 * (len(ns) - len(cycle_unmatched)) > len(ns):    # matched and held: more than half the cycle's notes
+            got += cycle_got
+            unmatched += cycle_unmatched
+        else:
+            unmatched += ns
     return got, unmatched
 
 
