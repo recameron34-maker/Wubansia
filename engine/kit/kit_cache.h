@@ -46,7 +46,9 @@ namespace wubansia::engine
         // A failed build isn't kept: the next acquire builds again. Threads that waited for it get the same error,
         // unless it was a cancellation ("cancelled: ..."), which only concerns its own caller: then one of them builds.
         // cancel, if given, ends a wait at once with "cancelled: ..." (it is checked every few milliseconds); pass
-        // the same flag to the build, so a cancelled request never waits long.
+        // the same flag to the build, so a cancelled request never waits long. Without it, a request for a kit waits
+        // behind that kit's running build with no deadline: on slow storage (a network folder, an evicted cloud
+        // file) that is as long as the other instance's load takes.
         KitResult acquire (std::string_view id, std::int32_t version, FunctionRef<KitResult()> build,
             const std::atomic<bool>* cancel = nullptr);
 
@@ -62,6 +64,7 @@ namespace wubansia::engine
             std::string id;
             std::int32_t version = 0;
             std::weak_ptr<const Kit> kit;
+            std::shared_ptr<const Kit> handoff; // a finished build's Kit, held until that build's waiters have woken
             bool building = false;
             int waiters = 0;
             std::uint64_t builds = 0; // finished builds, so a waiter sees that one ended

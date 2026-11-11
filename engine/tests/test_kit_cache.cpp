@@ -356,6 +356,40 @@ TEST_CASE ("KitCache with buildKit: two instances loading one kit decode its fil
     CHECK (sourceB.reads.size() == kit.value.files.size());
 }
 
+TEST_CASE ("KitCache: a waiter shares a finished build even when its builder drops the Kit at once", "[kit_cache]")
+{
+    // The builder's caller lets go of its Kit the moment acquire returns (its own request was replaced meanwhile).
+    // The build's hand-off reference keeps the Kit for the thread waiting on it, which never decodes it again.
+    for (int round = 0; round < 20; ++round)
+    {
+        CAPTURE (round);
+        KitCache cache;
+        std::atomic<int> freed { 0 };
+        GatedBuild first;
+        first.freed = &freed;
+        KitResult b;
+        int secondBuilds = 0;
+        std::thread one ([&] { (void) cache.acquire ("FUT01", 1, std::ref (first)); });
+        REQUIRE (eventually ([&] { return first.started.load(); }));
+        std::thread two ([&] {
+            b = cache.acquire ("FUT01", 1, [&] {
+                ++secondBuilds;
+                return KitResult::success (trackedKit ("FUT01", freed));
+            });
+        });
+        REQUIRE (eventually ([&] { return cache.waiting ("FUT01", 1) == 1; }));
+        first.release = true;
+        one.join();
+        two.join();
+        REQUIRE (b.ok());
+        CHECK (secondBuilds == 0);
+        CHECK (freed == 0);
+        b.value.reset(); // the last holder: the hand-off is gone, so the Kit is freed
+        CHECK (freed == 1);
+        CHECK (cache.find ("FUT01", 1) == nullptr);
+    }
+}
+
 TEST_CASE ("KitCache::instance is one cache for the process", "[kit_cache]")
 {
     CHECK (&KitCache::instance() == &KitCache::instance());

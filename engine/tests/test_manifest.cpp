@@ -461,7 +461,12 @@ TEST_CASE ("parseKitManifest refuses what the contract doesn't allow, naming the
         { "kit id length", [] (Doc& d) { d.set ("kit.id", str ("FUT001")); }, "kit.json: kit.id: " },
         { "an empty title", [] (Doc& d) { d.set ("kit.title", str ("")); }, "kit.json: kit.title: ", "1 to 64" },
         { "a long title", [] (Doc& d) { d.set ("kit.title", str (std::string (65, 'x'))); }, "kit.json: kit.title: ", "65" },
-        { "a control character", [] (Doc& d) { d.set ("kit.direction", str ("future\tgarage")); }, "kit.json: kit.direction: ", "control" },
+        { "a control character", [] (Doc& d) { d.set ("kit.direction", str ("future\tgarage")); }, "kit.json: kit.direction: \"future\\u0009garage\" holds a control character" },
+        { "a C1 control in a name", [] (Doc& d) { d.set ("kit.title", str ("Signal\xC2\x85")); }, "kit.json: kit.title: \"Signal\\u0085\" holds a control character" },
+        { "a duplicated key with a newline in it", [] (Doc& d) {
+             d.add ("kit", "a\nb", integer (1));
+             d.add ("kit", "a\nb", integer (2));
+         }, "kit.json: kit: line ", "\"a\\u000ab\" twice" },
         { "bpm low", [] (Doc& d) { d.set ("kit.bpm", integer (127)); }, "kit.json: kit.bpm: 127 is out of range (128 to 140)" },
         { "bpm high", [] (Doc& d) { d.set ("kit.bpm", integer (141)); }, "kit.json: kit.bpm: 141 is out of range (128 to 140)" },
         { "key", [] (Doc& d) { d.set ("kit.key", str ("H minor")); }, "kit.json: kit.key: \"H minor\"" },
@@ -483,6 +488,7 @@ TEST_CASE ("parseKitManifest refuses what the contract doesn't allow, naming the
         { "an absolute path", [] (Doc& d) { d.set ("files[3].path", str ("/Drums/Kick.wav")); }, "kit.json: files[3].path: " },
         { "an empty part", [] (Doc& d) { d.set ("files[3].path", str ("Drums//Kick.wav")); }, "kit.json: files[3].path: " },
         { "a dot part", [] (Doc& d) { d.set ("files[3].path", str ("./Drums/Kick.wav")); }, "kit.json: files[3].path: " },
+        { "a C1 control in a path", [] (Doc& d) { d.set ("files[3].path", str ("Drums/Kick\xC2\x85" "B.wav")); }, "kit.json: files[3].path: \"Drums/Kick\\u0085B.wav\" holds a control character" },
         { "a backslash", [] (Doc& d) { d.set ("files[3].path", str ("Drums\\Kick.wav")); }, "kit.json: files[3].path: ", "\\" },
         { "a drive letter", [] (Doc& d) { d.set ("files[3].path", str ("C:/Drums/Kick.wav")); }, "kit.json: files[3].path: ", ":" },
         { "not .wav", [] (Doc& d) { d.set ("files[3].path", str ("Drums/Kick.flac")); }, "kit.json: files[3].path: ", ".wav" },
@@ -630,6 +636,17 @@ TEST_CASE ("parseKitManifest refuses what the contract doesn't allow, naming the
          }, "kit.json: phrases[0].slices[3].end: 258001 is out of range (66001 to 258000)" },
         { "a slice in the middle longer than its stem", [] (Doc& d) { d.set ("phrases[0].slices[2].end", integer (44000 + 190000 + 1)); },
             "kit.json: phrases[0].slices[2].end: 234001 is out of range (44001 to 234000)" },
+        // A wrap needs a looped stem: the last slice ends where the next cycle's slice 0 starts, modulo the frames.
+        { "a wrapping last slice that misses slice 0", [] (Doc& d) {
+             d.set ("phrases[0].slices[0].start", integer (5000));
+             d.set ("phrases[0].slices[3].end", integer (194000));
+         }, "kit.json: phrases[0].slices[3].end: 194000 is past the stem's 190000 frames, but the phrase isn't looped" },
+        { "a wrapping slice 0 whose last slice ends at the stem's end", [] (Doc& d) {
+             d.set ("phrases[0].slices[0].start", integer (187600));
+             d.set ("phrases[0].slices[0].end", integer (204437));
+             d.set ("phrases[0].slices[0].fade", integer (204000));
+             d.set ("phrases[0].slices[3].end", integer (190000));
+         }, "kit.json: phrases[0].slices[0].end: 204437 is past the stem's 190000 frames, but the phrase isn't looped" },
         { "a fade past a wrapping end", [] (Doc& d) {
              d.set ("phrases[0].slices[3].end", integer (195000));
              d.set ("phrases[0].slices[3].fade", integer (195001));
@@ -739,6 +756,7 @@ TEST_CASE ("parseKitManifest: slices wrap through a looped stem's end; throw and
         doc.set ("phrases[0].slices[0].start", integer (190000 - 2400));
         doc.set ("phrases[0].slices[0].end", integer (190000 - 2400 + 16837)); // through the stem's end, 14437 frames on
         doc.set ("phrases[0].slices[0].fade", integer (190000 - 2400 + 16000));
+        doc.set ("phrases[0].slices[3].end", integer (190000 - 2400)); // the last slice ends where the next cycle's slice 0 starts
         const auto parsed = parseKitManifest (doc.text());
         REQUIRE (parsed.error.empty());
         const auto& s0 = parsed.value.phrases[0].slices[0];
@@ -751,6 +769,7 @@ TEST_CASE ("parseKitManifest: slices wrap through a looped stem's end; throw and
     {
         Doc doc (test::kKitJson);
         doc.set ("phrases[0].slices[2].end", integer (44000 + 190000));
+        doc.set ("phrases[0].slices[3].end", integer (190000)); // looped: the last slice ends at slice 0's start, 0
         REQUIRE (parseKitManifest (doc.text()).error.empty());
 
         Doc one (test::kKitJson);

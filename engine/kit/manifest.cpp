@@ -11,6 +11,7 @@
 #include "kit/file_sample_source.h"
 
 #include "gen/json.h"
+#include "util/ints.h"
 
 #include <algorithm>
 #include <array>
@@ -75,31 +76,23 @@ namespace wubansia::engine
         // message stays one readable line.
         std::string quote (std::string_view s)
         {
-            std::string out = "\"";
-            std::size_t n = 0;
-            for (const char ch : s)
+            // Cut after 60 characters (code points).
+            std::size_t n = 0, cut = 0;
+            while (cut < s.size())
             {
-                const auto c = static_cast<unsigned char> (ch);
-                if (n >= 60 && (c & 0xC0u) != 0x80u)
-                {
-                    out += "...";
+                if ((static_cast<unsigned char> (s[cut]) & 0xC0u) != 0x80u && n++ == 60)
                     break;
-                }
-                if (c < 0x20 || c == 0x7F)
-                {
-                    static constexpr char hex[] = "0123456789abcdef";
-                    out += "\\u00";
-                    out += hex[c >> 4];
-                    out += hex[c & 15];
-                }
-                else if (c == '"' || c == '\\')
-                    (out += '\\') += ch;
-                else
-                    out += ch;
-                if ((c & 0xC0u) != 0x80u)
-                    ++n;
+                ++cut;
             }
-            return out + "\"";
+            std::string escaped;
+            for (const char ch : s.substr (0, cut))
+            {
+                if (ch == '"' || ch == '\\')
+                    escaped += '\\';
+                escaped += ch;
+            }
+            // Control characters (C0, DEL and C1) as \uXXXX: the message stays one line.
+            return "\"" + escapeControlCharacters (escaped) + (cut < s.size() ? "..." : "") + "\"";
         }
 
         template <std::size_t N>
@@ -239,7 +232,8 @@ namespace wubansia::engine
                     parsed = std::from_chars (l.ptr + 9, end, column).ec == std::errc {};
             }
             const auto path = parsed ? pathAt (text, line, column) : std::string();
-            return std::string (kind) + ": " + (path.empty() ? "" : path + ": ") + error;
+            // The reader's message may hold a decoded key with control characters: escape them, so it stays one line.
+            return std::string (kind) + ": " + (path.empty() ? "" : escapeControlCharacters (path) + ": ") + escapeControlCharacters (error);
         }
 
         // ------------------------------------------------------------------ string rules
@@ -250,20 +244,6 @@ namespace wubansia::engine
             for (const char c : s)
                 n += (static_cast<unsigned char> (c) & 0xC0u) != 0x80u ? 1u : 0u;
             return n;
-        }
-
-        // C0 controls, DEL, and C1 controls (U+0080-U+009F, which UTF-8 writes as C2 80 to C2 9F).
-        bool hasControl (std::string_view s)
-        {
-            for (std::size_t i = 0; i < s.size(); ++i)
-            {
-                const auto c = static_cast<unsigned char> (s[i]);
-                if (c < 0x20 || c == 0x7F)
-                    return true;
-                if (c == 0xC2 && i + 1 < s.size() && static_cast<unsigned char> (s[i + 1]) <= 0x9F)
-                    return true;
-            }
-            return false;
         }
 
         bool isId (std::string_view s)
@@ -402,7 +382,7 @@ namespace wubansia::engine
                     return s;
                 if (const auto n = characters (s); n < 1 || n > 64)
                     fail (quote (s) + " is " + plural (n, "characters") + ": a name is 1 to 64");
-                else if (hasControl (s))
+                else if (hasControlCharacter (s))
                     fail (quote (s) + " holds a control character");
                 return s;
             }
@@ -1124,6 +1104,22 @@ namespace wubansia::engine
                         }
                     p.slices.push_back (e);
                 }
+                if (errors.any())
+                    return;
+
+                // A slice may wrap through the stem's end only in a looped stem: the engine's own test, the last slice
+                // ending where the next cycle's slice 0 starts, modulo the stem's frames.
+                const auto span = p.slices.back().end - p.slices.front().start;
+                if (util::floorMod (span, shorter) != 0)
+                    for (std::size_t j = 0; j < p.slices.size(); ++j)
+                        if (p.slices[j].end > shorter)
+                        {
+                            errors.add (member (element (member (n.path(), "slices"), j), "end"),
+                                std::to_string (p.slices[j].end) + " is past the stem's " + std::to_string (shorter) + " frames, but the phrase isn't looped: its last slice ends at "
+                                    + std::to_string (p.slices.back().end) + ", not where the next cycle's slice 0 starts (" + std::to_string (p.slices.front().start)
+                                    + ", modulo the stem's frames)");
+                            return;
+                        }
             }
 
             void checkFilesPlayed()

@@ -123,6 +123,16 @@ namespace wubansia::engine
             if (std::memcmp (head.data() + 8, "WAVE", 4) != 0)
                 return fail ("format: a RIFF " + chunkName (head.data() + 8) + " file, not RIFF WAVE");
 
+            // Chunk headers and the fmt chunk inside the head come from it: a typical file costs one read.
+            const auto fetch = [&] (std::uint64_t offset, std::span<std::uint8_t> out) {
+                if (offset <= headSize && out.size() <= headSize - offset)
+                {
+                    std::memcpy (out.data(), head.data() + offset, out.size());
+                    return true;
+                }
+                return read (offset, out);
+            };
+
             WavInfo info;
             std::uint32_t blockAlign = 0;
             bool haveFmt = false;
@@ -132,7 +142,7 @@ namespace wubansia::engine
             while (pos + 8 <= fileSize && ! (haveFmt && haveData))
             {
                 std::array<std::uint8_t, 8> header {};
-                if (! read (pos, header))
+                if (! fetch (pos, header))
                     return unreadable (pos);
                 const std::uint64_t size = le32 (header.data() + 4);
                 const std::uint64_t payload = pos + 8;
@@ -145,7 +155,7 @@ namespace wubansia::engine
                     if (size < 16)
                         return fail ("format: the fmt chunk is " + plural (size, "byte", "bytes") + "; a WAV's has at least 16");
                     std::array<std::uint8_t, 40> fmt {};
-                    if (! read (payload, { fmt.data(), static_cast<std::size_t> (std::min<std::uint64_t> (size, fmt.size())) }))
+                    if (! fetch (payload, { fmt.data(), static_cast<std::size_t> (std::min<std::uint64_t> (size, fmt.size())) }))
                         return unreadable (payload);
                     auto tag = le16 (fmt.data());
                     const auto channels = le16 (fmt.data() + 2);

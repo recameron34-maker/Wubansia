@@ -347,11 +347,21 @@ namespace wubansia::engine
         return {};
     }
 
-    util::Result<int> checkKitFiles (const KitManifest& manifest, const FileSampleSource& source)
+    util::Result<int> checkKitFiles (const KitManifest& manifest, const FileSampleSource& source, const std::atomic<bool>* cancel)
     {
-        for (const auto& f : manifest.files)
+        return checkKitFiles (manifest, [&source] (std::string_view path) { return source.probe (path); }, cancel);
+    }
+
+    util::Result<int> checkKitFiles (const KitManifest& manifest, FunctionRef<util::Result<WavInfo> (std::string_view path)> probe,
+        const std::atomic<bool>* cancel)
+    {
+        for (std::size_t i = 0; i < manifest.files.size(); ++i)
         {
-            const auto info = source.probe (f.path);
+            if (cancel != nullptr && cancel->load (std::memory_order_acquire))
+                return util::Result<int>::failure ("cancelled: the check was cancelled after " + std::to_string (i) + " of "
+                                                   + std::to_string (manifest.files.size()) + " files");
+            const auto& f = manifest.files[i];
+            const auto info = probe (f.path);
             if (! info.ok())
                 return util::Result<int>::failure (info.error);
             if (auto mismatch = fileMismatch (f, info.value.frames, info.value.channels, info.value.sampleRate); ! mismatch.empty())
