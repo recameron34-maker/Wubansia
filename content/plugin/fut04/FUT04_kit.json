@@ -1,0 +1,4249 @@
+{
+  "kit": {
+    "id": "FUT04",
+    "title": "Furnace Code",
+    "direction": "dark industrial / techno",
+    "bpm": 136,
+    "key": "E minor",
+    "camelot": "9A",
+    "swing_pm": 540,
+    "content_version": 1,
+    "lanes": {
+      "kick": "Kick",
+      "snare": "Snare",
+      "hats": "Hats",
+      "perc": "Anvil",
+      "bass": "Acid",
+      "lead": "Mod Blip",
+      "chords": "Drone",
+      "vox": "Vox Synth",
+      "accents": "Accents",
+      "fx": "FX"
+    },
+    "ab": {
+      "kick": {
+        "a": "",
+        "b": ""
+      },
+      "bass": {
+        "a": "Acid Clean",
+        "b": "Acid Warm"
+      },
+      "stab": {
+        "a": "",
+        "b": ""
+      }
+    }
+  },
+  "files": [
+    {
+      "path": "Bass/Rumble.wav",
+      "frames": 169412,
+      "channels": 2,
+      "sha256": "c88cf9316ae5a27f4b02bccb938c19f65b20dca8a40e5c089f116a1a3f0498c1",
+      "loop_start": 0,
+      "loop_end": 169412,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Split v1 rr1.wav",
+      "frames": 21315,
+      "channels": 1,
+      "sha256": "2f887046e9a38413e683b45ff77a9a5b33b6f47c38bead1fe584f307e662f49e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Split v1 rr2.wav",
+      "frames": 21215,
+      "channels": 1,
+      "sha256": "7a84838ed755c4f9c1830466f6864aeda7592ffa74e6dc8ce9017498a522c0dc",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Split v2 rr1.wav",
+      "frames": 21283,
+      "channels": 1,
+      "sha256": "3e3bcdbba76baa17431455732837ee4f9b61c26acca7393912d7edf8de064b0d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Split v2 rr2.wav",
+      "frames": 21302,
+      "channels": 1,
+      "sha256": "d89bb5849582316528ff4bf22e64e3bc4fdb29f091f36bf3729e05a8691f156d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Split v3 rr1.wav",
+      "frames": 21510,
+      "channels": 1,
+      "sha256": "7c178a4468e4b76589cb1efc5fc0123868489c7791a0c1e43208126ed7667173",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Split v3 rr2.wav",
+      "frames": 21486,
+      "channels": 1,
+      "sha256": "5f33c1659315df3f9f76475f0bb2ad423cbd5c9b48d6d528b93ee0687d7f2f29",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Split v4 rr1.wav",
+      "frames": 21710,
+      "channels": 1,
+      "sha256": "d5b51967be3c7fe8f467cba9178f5ef6e87b53487f99530fa635fde6fe1b5548",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Split v4 rr2.wav",
+      "frames": 21497,
+      "channels": 1,
+      "sha256": "211e116e6cf4825ecd37ce650d13ba33ece58ad3292654b754fbe6de5f50494a",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Split v5 rr1.wav",
+      "frames": 21959,
+      "channels": 1,
+      "sha256": "1fb0fee21d94f786185375b5e5305ab3fbbe9e0b42b4541720476c150475d2d6",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Split v5 rr2.wav",
+      "frames": 21892,
+      "channels": 1,
+      "sha256": "8fb97de3914ca74e45fe608eeb31f734579bbe9819c66094d804b5bb2a8c8231",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Snare Gated v1 rr1.wav",
+      "frames": 8901,
+      "channels": 2,
+      "sha256": "bcc8f4de625510955df42806c407ecb4d5d7780eac3e33f73ce70d1a88997fb4",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Snare Gated v1 rr2.wav",
+      "frames": 8898,
+      "channels": 2,
+      "sha256": "b0d1c33d71eb5ffa4b841e2078763b8cf591db661b65e3e834fa03f1ae8b2986",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Snare Gated v2 rr1.wav",
+      "frames": 9284,
+      "channels": 2,
+      "sha256": "28b7c83da85b5c6a68a277762d62294c05250336f24729ddf258157768e94ef9",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Snare Gated v2 rr2.wav",
+      "frames": 9317,
+      "channels": 2,
+      "sha256": "332638a006c6db7645673f858efb1e692f10472a24d48e17a2845e11bc1c9a5e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Snare Gated v3 rr1.wav",
+      "frames": 9572,
+      "channels": 2,
+      "sha256": "c025b46e5ea166dd98fd29196977ad3baddcadbc09d4853320d0655a5a87434d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Snare Gated v3 rr2.wav",
+      "frames": 9572,
+      "channels": 2,
+      "sha256": "034580eaa9048fce522e9ecb5ec9e9730aed4a5c2517b88f47c5855391de1d44",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Snare Gated v4 rr1.wav",
+      "frames": 9865,
+      "channels": 2,
+      "sha256": "a780953c27a136ae81b114c0cf762f06e2a17c816b1ccf1878da4237122d9d78",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Snare Gated v4 rr2.wav",
+      "frames": 9866,
+      "channels": 2,
+      "sha256": "e3027de9a12bd8131677032c9e63a48b86e2f516c20bf6f8eace63cb3ba75117",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Snare Gated v5 rr1.wav",
+      "frames": 10237,
+      "channels": 2,
+      "sha256": "0641f6892da117e53eac300984d387919fde4d48ed48bb69ef138cc241b41ef4",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Snare Gated v5 rr2.wav",
+      "frames": 10232,
+      "channels": 2,
+      "sha256": "532f6dbe55f66b666d2e0cc030b5ec57cf68ae976d037899ba3499cbb0f640a5",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v1 rr1.wav",
+      "frames": 4982,
+      "channels": 2,
+      "sha256": "d3d7bbf160fbb16262ab8ecf82d61523d894893eecf82979c19bdaa647168968",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v1 rr2.wav",
+      "frames": 5022,
+      "channels": 2,
+      "sha256": "50d378dbfeaff8aa6ccebf328bf15a8e939f4a99ffc0955d599e49bd9e44bfb1",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v1 rr3.wav",
+      "frames": 5056,
+      "channels": 2,
+      "sha256": "42901e5a26e0b51121665bf220ff137e04d299d71e3c46e1d51d0dedad32267f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v2 rr1.wav",
+      "frames": 4835,
+      "channels": 2,
+      "sha256": "a38e19d11f02378d1d52b174eeec0b7dee0e8aabf7dffd62b259cce1dee3d845",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v2 rr2.wav",
+      "frames": 4980,
+      "channels": 2,
+      "sha256": "f8ef99a2caaf6df0ec8d53c24a34e0c6ab551c760a5cf2bfb473fe96fe3ab787",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v2 rr3.wav",
+      "frames": 4787,
+      "channels": 2,
+      "sha256": "f73ca245eea5179d45d242632fe686121e95d48cd15608f39033793da343d336",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v3 rr1.wav",
+      "frames": 4564,
+      "channels": 2,
+      "sha256": "e7f9166aff3cbcbdfa79c3780fa66ca76dab52ae3cab61b770991038e827733f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v3 rr2.wav",
+      "frames": 4564,
+      "channels": 2,
+      "sha256": "b66d709ac4991270298b8ff895893a84addb48cf62ea24e1e144ae2c335ce363",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v3 rr3.wav",
+      "frames": 4677,
+      "channels": 2,
+      "sha256": "5c0ab42df39eb8f8e546a2e7d255ea9078906dde68fd4b82ebb92fc0e7e8f2c0",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v4 rr1.wav",
+      "frames": 4468,
+      "channels": 2,
+      "sha256": "ec45faefceda909d29f185d7270d4e7e0315a33b6280157a363b146bd6b71557",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v4 rr2.wav",
+      "frames": 4514,
+      "channels": 2,
+      "sha256": "c707cf0f334175b853f19d1c1853ee28e9188566774adb6d800ff682a16af3d8",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v4 rr3.wav",
+      "frames": 4468,
+      "channels": 2,
+      "sha256": "01fb05de2607db6e62fcb93ba154dd6c7a4a6f7ac3426ead9d644195b2f1abe0",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v5 rr1.wav",
+      "frames": 4242,
+      "channels": 2,
+      "sha256": "d4e6bda660599f131255ad4940bbe8a49c3c5d122a885a1156e4b4e02cb6297a",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v5 rr2.wav",
+      "frames": 4244,
+      "channels": 2,
+      "sha256": "2740499bf916e7b2815a957292f103c93284ed33266e4d68e821b2b6bf2bd9a2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat v5 rr3.wav",
+      "frames": 4244,
+      "channels": 2,
+      "sha256": "a82ec40753f4706ff911054ce1dfcb9aaa345544503b7328b6b56ccfdbfb9bac",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v1 rr1.wav",
+      "frames": 22242,
+      "channels": 2,
+      "sha256": "f525e860512dab03590ec7836ce467310ed2b2e4a4e2cabc2a2f5719b93eb196",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v1 rr2.wav",
+      "frames": 22177,
+      "channels": 2,
+      "sha256": "669c21b95b50bd621cb81378a8c285de216f7b5f06f716ab15e8aa3a44992cf3",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v1 rr3.wav",
+      "frames": 22183,
+      "channels": 2,
+      "sha256": "11c56bd09e6a35788426109629b68387ee458a8af2bc991c50bf003888bdb0d3",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v2 rr1.wav",
+      "frames": 22061,
+      "channels": 2,
+      "sha256": "b3daf9c36f59a69554a76ec0a5481fa04fe9fc003709af2e245a3958fb563221",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v2 rr2.wav",
+      "frames": 22086,
+      "channels": 2,
+      "sha256": "a6a463302b8ab90d949faadfffd7fb6774223b417f9bc15ccf99a6bf786d12aa",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v2 rr3.wav",
+      "frames": 22086,
+      "channels": 2,
+      "sha256": "23daf6be48914ce2d774de678baeccd96f74920b0f47cb9772e21469f2f5fe45",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v3 rr1.wav",
+      "frames": 21607,
+      "channels": 2,
+      "sha256": "f2b0c2b4e6612c920eb5c5c0f402beda16bb5cb687bb6ebee6b567d0f6776233",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v3 rr2.wav",
+      "frames": 21584,
+      "channels": 2,
+      "sha256": "3334912c4cee77abf08c281e3036838c006c8e6fdfa22262698017a8550957c2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v3 rr3.wav",
+      "frames": 21584,
+      "channels": 2,
+      "sha256": "6d842039eba04a31de4a09b127faea7152945ab283615fbd1a8728f26152810b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v4 rr1.wav",
+      "frames": 20865,
+      "channels": 2,
+      "sha256": "c081e8e20c8d2a110b06c7bfdb859140ebedf6b9eb530c6322214adce3065fbb",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v4 rr2.wav",
+      "frames": 20819,
+      "channels": 2,
+      "sha256": "cdfa790cfa37e7e3f33bed321998205aa7c50ad6046f4626f135e37cf31a7d22",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v4 rr3.wav",
+      "frames": 20867,
+      "channels": 2,
+      "sha256": "8778a073f1f0d563748c20bc09d3043011682db717321ee1bd2a75d090a6aba2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v5 rr1.wav",
+      "frames": 19013,
+      "channels": 2,
+      "sha256": "0175317fc9c094f261ca120ac8625356cc7c2cba916246c6572b82bd94126ca3",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v5 rr2.wav",
+      "frames": 18921,
+      "channels": 2,
+      "sha256": "97b7e21e468cc68604a48c0375548283c39eefa7389f1fbd2f1f49eccea8b8f7",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat v5 rr3.wav",
+      "frames": 18782,
+      "channels": 2,
+      "sha256": "573f432d5af05ebc8acef8354cdb0b36d5c7be2e6e5609f39d9c5aad8a7eb32e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Anvil v1 rr1.wav",
+      "frames": 75179,
+      "channels": 2,
+      "sha256": "3ebc09cbd7077217263cdadbfc7efcd2d82a3230139742297d28c0480fabe8bf",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Anvil v1 rr2.wav",
+      "frames": 75203,
+      "channels": 2,
+      "sha256": "4282fcfd346881a98153cc1979f78353adb0d8218865d8ee4ad3f1818e77904d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Anvil v2 rr1.wav",
+      "frames": 75222,
+      "channels": 2,
+      "sha256": "693c72a8c4d934a4cc7659a0a2a95d0f8630e85564d7b61c37b137a4d2e3d613",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Anvil v2 rr2.wav",
+      "frames": 75284,
+      "channels": 2,
+      "sha256": "a8cbdffaaf4e6ffb5a04d626928bfc578d32416a65f9f53806e99e196ee7238d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Anvil v3 rr1.wav",
+      "frames": 75327,
+      "channels": 2,
+      "sha256": "8fbc1e82b71f8ae184e5ee8c8a3bfb1c6bdf7b46a05898bce40ba3a1acea2c31",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Anvil v3 rr2.wav",
+      "frames": 75346,
+      "channels": 2,
+      "sha256": "bca31fba464ab5a992047f0bb8d4ca04cffcb791fb8709e3c111a57fa034084f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Anvil v4 rr1.wav",
+      "frames": 75347,
+      "channels": 2,
+      "sha256": "1e7eadf1e62d631f21f9af1cd1993f7689b769710234518711c515b92c9cd20d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Anvil v4 rr2.wav",
+      "frames": 75324,
+      "channels": 2,
+      "sha256": "5493c13aad0e7c282f81c788c12286119330834561408c052dcc7f215d715d87",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Anvil v5 rr1.wav",
+      "frames": 75350,
+      "channels": 2,
+      "sha256": "671b136ac22ecf3ad71ca70aa1590e32ff68c9a3d9dfefc5bda37572e1775426",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Anvil v5 rr2.wav",
+      "frames": 75422,
+      "channels": 2,
+      "sha256": "0f7ada76816bf14d534204817b45b55d14f148853342f5b1e742534b69ba61df",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Ride v1 rr1.wav",
+      "frames": 36833,
+      "channels": 2,
+      "sha256": "dd8342e1e02041ab5c420e31dcca7c0fd2c291399f4280768bb6de58718a0d9b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Ride v1 rr2.wav",
+      "frames": 36933,
+      "channels": 2,
+      "sha256": "44d98142e628b13c5e1b88afbf27f3de3d62467fbcdfca7ddab0fc4f9c7c4a1f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Ride v2 rr1.wav",
+      "frames": 37239,
+      "channels": 2,
+      "sha256": "847955050642079dd19ce19f20fbb497a4e00cd58385a43c1439b68b72c05e0f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Ride v2 rr2.wav",
+      "frames": 37273,
+      "channels": 2,
+      "sha256": "468a8709516a4dc6ede4635f0b3c2fbce5e48021c6925c55ace7302cad89343f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Ride v3 rr1.wav",
+      "frames": 37371,
+      "channels": 2,
+      "sha256": "259246f90fa1d19c2c983758093eec3628f92113f4ad0422515a73c2ed5bcd62",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Ride v3 rr2.wav",
+      "frames": 37256,
+      "channels": 2,
+      "sha256": "ffae78bccb80979e6531dc8dd1fecd3a79a4281c8a2e3cbc3c5428dd3f00bfc5",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Ride v4 rr1.wav",
+      "frames": 37488,
+      "channels": 2,
+      "sha256": "f3e08dd36417299547a862fdbcad0aac0c595b8e8429969930b914e0c76ece8b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Ride v4 rr2.wav",
+      "frames": 37499,
+      "channels": 2,
+      "sha256": "5f834d72f227900689e18490353ae4df4b1d9ac7521b5c0e97337251c847c24f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Ride v5 rr1.wav",
+      "frames": 37677,
+      "channels": 2,
+      "sha256": "64c88cf1fdb41fad97b53be69a6fc18c44e1240f11f17e470761e2f472f281a0",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Ride v5 rr2.wav",
+      "frames": 37558,
+      "channels": 2,
+      "sha256": "292000ea5b419db9aef0eaa179ecda307fd964abee762a9e2d0cdb74c4d6c48a",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Clean E1 v1.wav",
+      "frames": 109494,
+      "channels": 1,
+      "sha256": "c87806e54f4040bcb6faa65a05c415f23c979de6d8ea57aa29562b4bad463371",
+      "loop_start": 24453,
+      "loop_end": 109494,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Clean E1 v2.wav",
+      "frames": 109419,
+      "channels": 1,
+      "sha256": "438ba09618fc85e3c8a3452c8bb38e3e6a4f2de001493c8d1d33a80cb18517be",
+      "loop_start": 24378,
+      "loop_end": 109419,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Clean A1 v1.wav",
+      "frames": 109078,
+      "channels": 1,
+      "sha256": "6e50e6611d16729e9bc18f9cc9e4c8f6f51590e0271a1e62b5ddffa1f90fd1f6",
+      "loop_start": 24423,
+      "loop_end": 109078,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Clean A1 v2.wav",
+      "frames": 109307,
+      "channels": 1,
+      "sha256": "0730674b501fae617e07d12f7e82eda10c351982d57ca7d0ad9ed94898a088c8",
+      "loop_start": 24652,
+      "loop_end": 109307,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Clean E2 v1.wav",
+      "frames": 108613,
+      "channels": 1,
+      "sha256": "8f4862797141d2c040ada01439487adf1608e3d6cc3785e8c64dcb33db8b110b",
+      "loop_start": 24154,
+      "loop_end": 108613,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Clean E2 v2.wav",
+      "frames": 108816,
+      "channels": 1,
+      "sha256": "6c2cfcc9ab0851ccef05d0d43a9f738a9111eab606fff1501e7654f1fb4de9b2",
+      "loop_start": 24357,
+      "loop_end": 108816,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Warm E1 v1.wav",
+      "frames": 109429,
+      "channels": 1,
+      "sha256": "2b63afbebfee9940bdc017f92be723853a78a1b64685e9963c28ce873b0cd58f",
+      "loop_start": 24388,
+      "loop_end": 109429,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Warm E1 v2.wav",
+      "frames": 109100,
+      "channels": 1,
+      "sha256": "7b8c7f74eb882d44a50728f95d09aa11950f21353704c9a991c95a039c9438aa",
+      "loop_start": 24059,
+      "loop_end": 109100,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Warm A1 v1.wav",
+      "frames": 109097,
+      "channels": 1,
+      "sha256": "d1a8b492fed2394c4a33e144292805476a3c659146177d9ed5914d7ffd24b9fa",
+      "loop_start": 24442,
+      "loop_end": 109097,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Warm A1 v2.wav",
+      "frames": 109067,
+      "channels": 1,
+      "sha256": "1cf78af4521edfe7c40a77707730945d7547b5511026d6879b8097d62a8329dc",
+      "loop_start": 24412,
+      "loop_end": 109067,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Warm E2 v1.wav",
+      "frames": 108750,
+      "channels": 1,
+      "sha256": "8fea8fa171b2dfa0d67cc6d1b1f5a7471a327a8fdb462f9fc91e7e4ce5f3d1fc",
+      "loop_start": 24291,
+      "loop_end": 108750,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Acid Warm E2 v2.wav",
+      "frames": 109259,
+      "channels": 1,
+      "sha256": "5b3574956ff4fbc13d1846bfd48e3a91e56d34cd8740287ed1fd1974329107af",
+      "loop_start": 24800,
+      "loop_end": 109259,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip A#4 v1.wav",
+      "frames": 36310,
+      "channels": 2,
+      "sha256": "2ba941b0bc81dd4aba218b2e37be6ad0532aa71d4f0832d00fd5fde17fc4253d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip A#4 v2.wav",
+      "frames": 52372,
+      "channels": 2,
+      "sha256": "513b1e3b32fa0aa2ddb320ad81c0108b485a860d2ff9b3d66dafa97cdbb6c13f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip C#5 v1.wav",
+      "frames": 36634,
+      "channels": 2,
+      "sha256": "6570237cc0aba02e263c095028d72c5d22c765e7db1ef80cb46c3b048c07bae1",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip C#5 v2.wav",
+      "frames": 52478,
+      "channels": 2,
+      "sha256": "2c1cf01fec23adefa62500a6d7ab81a0796d4cecde687d8f4862146e53eac1ec",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip E5 v1.wav",
+      "frames": 36924,
+      "channels": 2,
+      "sha256": "f56149769f661db60470c24e4a6664d69b2ce7f357101f1357b3a352b30e6dbf",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip E5 v2.wav",
+      "frames": 52578,
+      "channels": 2,
+      "sha256": "3b0b2cfd50e85547e9699bf25fc6bc982ff9bf883c89b380b2145cfb3c8ab9f9",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip G5 v1.wav",
+      "frames": 37059,
+      "channels": 2,
+      "sha256": "1b37ee53b662aafd60e8207d019c2c79db405886a6a52afc246f7d3a67d3b019",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip G5 v2.wav",
+      "frames": 52701,
+      "channels": 2,
+      "sha256": "1a5f4c0c4294b6c895e67e3f691dba3e1580a48bc030c5642211ad4b91559533",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip A#5 v1.wav",
+      "frames": 36965,
+      "channels": 2,
+      "sha256": "bd0798fc8aebd8eb57185b916e1c651c0b345d0c1e8ff72dce2a4664838e2126",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip A#5 v2.wav",
+      "frames": 51920,
+      "channels": 2,
+      "sha256": "fbc47511dc3b3b15175a7552f0e6ebab345d31d51a6cdcc97b80037b3a6a440b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip C#6 v1.wav",
+      "frames": 37443,
+      "channels": 2,
+      "sha256": "f9029f62351cf3d6c974d939d31e10711c96d86d77dbae5ba05b5bdadc79eff7",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Mod Blip C#6 v2.wav",
+      "frames": 53526,
+      "channels": 2,
+      "sha256": "9663ecf48a83059f5b895e741cc5e475f8c6190f16e9189ab530eaf6caafc19a",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Drone Em Add 9.wav",
+      "frames": 411173,
+      "channels": 2,
+      "sha256": "6f7ddd9577b82f322198666f06fc8c52b0a553c3b2f13ddac561459491c3e157",
+      "loop_start": 72349,
+      "loop_end": 411173,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth E3 v1.wav",
+      "frames": 64499,
+      "channels": 2,
+      "sha256": "501163e8b39dec517dfc87a99d7cdac47043816d63be19d79ea1a622b60f9790",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth E3 v2.wav",
+      "frames": 64431,
+      "channels": 2,
+      "sha256": "d184fa7e123451db7d09e5e77c13301ad49c6cea62305bf8f7a2672f556915d4",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth G3 v1.wav",
+      "frames": 64545,
+      "channels": 2,
+      "sha256": "0e74c0ee77c0c336a52c1ea2cd5d1f565144669296130bd4a8e8d81aec517629",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth G3 v2.wav",
+      "frames": 64486,
+      "channels": 2,
+      "sha256": "afaac66768220c11634f270a06287dbe490f8f2d765052e5ed8486ef860b5c46",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth B3 v1.wav",
+      "frames": 64486,
+      "channels": 2,
+      "sha256": "541aaeb58a99c451ee91fb32c81309be7fab27e1718b99f65cd60123b1fa7a0d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth B3 v2.wav",
+      "frames": 64387,
+      "channels": 2,
+      "sha256": "4deea657d21dc22be2f730923f4f2e51bab58d769e4faa90798cf9260361eb73",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth D4 v1.wav",
+      "frames": 64464,
+      "channels": 2,
+      "sha256": "43ca5801869ec3e12d059a25cc253197ce9357e3c820e34c4244eb7fb589a1b1",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth D4 v2.wav",
+      "frames": 64407,
+      "channels": 2,
+      "sha256": "dcce26367d284c975d1d88687c73f0a7895321b2f48894968c570d2661674d9e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth E4 v1.wav",
+      "frames": 64472,
+      "channels": 2,
+      "sha256": "5e83d962a06e6ec6ba86712c4a54b5837dbd5baed590295ada44c93c4ed0c5b6",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth E4 v2.wav",
+      "frames": 64429,
+      "channels": 2,
+      "sha256": "bfe8f729ede2bc8c9457b7a3c2481df5109e195eb58aa3594e9e708a6641a13b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth G4 v1.wav",
+      "frames": 64502,
+      "channels": 2,
+      "sha256": "4a73de2babe3c6218b1ed2777e1c7f18377d4936391fd178ac562fd92fb01a1e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth G4 v2.wav",
+      "frames": 64461,
+      "channels": 2,
+      "sha256": "6e8ea915d1b5fb5208775ef40002f0ee3bd00d822369b95da3d267aa3f0bf164",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth B4 v1.wav",
+      "frames": 64424,
+      "channels": 2,
+      "sha256": "ec13276de34ab7b783a4eac519d8ed672099156cf4ebf86186459aa2f15557ff",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth B4 v2.wav",
+      "frames": 64404,
+      "channels": 2,
+      "sha256": "e89c4ca6f69064df3288ec24dbdfacf27c5bc7997687729efe33a7c5ff2c4ef9",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Accent Acid Stab E4.wav",
+      "frames": 27114,
+      "channels": 2,
+      "sha256": "80a481567ffa2641f978dcccfbc1d9e3055923d56cb6cd6dfa41ec336fff039a",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Accent Metal Chord Em.wav",
+      "frames": 83323,
+      "channels": 2,
+      "sha256": "2dab2e81a236b5533a0fe0fd8dd5b3bb6789c79477a2c8517a63c84844158444",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Accent Rave Stab Em.wav",
+      "frames": 52874,
+      "channels": 2,
+      "sha256": "088063946ebda940ee00b84a195771e7ea13bf1c9bd19c42955bd38fabcd8004",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "FX/Accent Noise Sweep E.wav",
+      "frames": 84706,
+      "channels": 2,
+      "sha256": "51a2f86fdb4843785221e7b078887eb7a16c358c827e87c000b159235d91b3f9",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "FX/Accent Reverse Hit Em.wav",
+      "frames": 63529,
+      "channels": 2,
+      "sha256": "db875220d23fabf7b7233f7ad9d27cd68daa2a484b75b18da0bd1d48e9676d0b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Accent Zap E5.wav",
+      "frames": 51506,
+      "channels": 2,
+      "sha256": "acaa7c754477d31d9d97bb9792d6f83173ae090c4a0db7c7318667eea775109e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Accent Dist Chord Em.wav",
+      "frames": 62400,
+      "channels": 2,
+      "sha256": "cc31b77aa760a24c84b266df5ac580dba02bde899f743e999513e47233a18613",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Accent Vox Chord Em.wav",
+      "frames": 148343,
+      "channels": 2,
+      "sha256": "805ea87a3863548378d3251b4c9a6a1169089a388cfce08e147d3490a64e4078",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "FX/Stutter Fill.wav",
+      "frames": 84706,
+      "channels": 2,
+      "sha256": "6aef0a18ef04731f5aabbe77af1b67478501876d88aa65c215a12edf15fd46a2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "FX/Iron Riser.wav",
+      "frames": 677647,
+      "channels": 2,
+      "sha256": "9931796a4be2609253d2c30cccc384a99aa0e5d1f6ca936587adabec2d7c85be",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Accent Sub Drop E2.wav",
+      "frames": 78176,
+      "channels": 1,
+      "sha256": "cc9951efa00c205fa55f7540c3d8b6db8b2899784eba253fa3419705f3f85ec9",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Stab Oh E3.wav",
+      "frames": 146275,
+      "channels": 2,
+      "sha256": "57c3cb7e13778e1e6767b2b0583f5f8684134e152ffa2dd6724462dbb60cdd78",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Stab Oo B3.wav",
+      "frames": 144878,
+      "channels": 2,
+      "sha256": "7a8c09e561b697580fe74a5f62f8a8f49d9ce814c7bed6fdf3c7ba2eee702135",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Loops/Acid Line 1 Ride Clean.wav",
+      "frames": 338824,
+      "channels": 1,
+      "sha256": "920ea52769222f74acdd1a0712e7987a122c65e678cf314d5df0741dcedd101a",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Loops/Acid Line 1 Ride Warm.wav",
+      "frames": 338824,
+      "channels": 1,
+      "sha256": "39512d93dc092df2fd4e90a9558e45ca0826340f503c8c0f1625c32ad637e6fb",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Stems/Acid Line 1 Clean 4 Bars.wav",
+      "frames": 338824,
+      "channels": 1,
+      "sha256": "8af7875fa674e499cc21a6453b89080becd28e280156666034a81d43f3d9da37",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Stems/Acid Line 1 Warm 4 Bars.wav",
+      "frames": 338824,
+      "channels": 1,
+      "sha256": "ede2a7f6029bddfe3ea73d2054159b5d297c6c24cc878ab27cca399e44a7f572",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Stems/Acid Line 2 Clean 4 Bars.wav",
+      "frames": 338824,
+      "channels": 1,
+      "sha256": "db13e1bf8387bbdd130991c2b3cbbc865f2e7266fb9b3254da9084f78e81e4d8",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Stems/Acid Line 2 Warm 4 Bars.wav",
+      "frames": 338824,
+      "channels": 1,
+      "sha256": "54164c4aed79ab874f76d82d0591c9ee2ab1659363d38f37f676f6ca21f9c4c7",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Loops/Mod Blip Phrase.wav",
+      "frames": 169412,
+      "channels": 2,
+      "sha256": "9d942eba0768cec4b52095c0f436c0506fd7c029b38c01261d804773123139f6",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    }
+  ],
+  "instruments": [
+    {
+      "id": "rumble",
+      "name": "Rumble",
+      "lane": "kick",
+      "mix_channel": "rumble",
+      "mode": "sustain_loop",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 5000,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": true,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 35,
+          "lo": 35,
+          "hi": 35,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [0]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kick_split",
+      "name": "Kick Split",
+      "lane": "kick",
+      "mix_channel": "kick",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": true,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 36,
+          "lo": 36,
+          "hi": 36,
+          "layers": [
+            {
+              "vel": 25,
+              "rr": [1, 2]
+            },
+            {
+              "vel": 51,
+              "rr": [3, 4]
+            },
+            {
+              "vel": 76,
+              "rr": [5, 6]
+            },
+            {
+              "vel": 102,
+              "rr": [7, 8]
+            },
+            {
+              "vel": 127,
+              "rr": [9, 10]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "snare_gated",
+      "name": "Snare Gated",
+      "lane": "snare",
+      "mix_channel": "snare",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": true,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 38,
+          "lo": 38,
+          "hi": 38,
+          "layers": [
+            {
+              "vel": 25,
+              "rr": [11, 12]
+            },
+            {
+              "vel": 51,
+              "rr": [13, 14]
+            },
+            {
+              "vel": 76,
+              "rr": [15, 16]
+            },
+            {
+              "vel": 102,
+              "rr": [17, 18]
+            },
+            {
+              "vel": 127,
+              "rr": [19, 20]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "closed_hat",
+      "name": "Closed Hat",
+      "lane": "hats",
+      "mix_channel": "hat",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "hats",
+        "role": "chokes",
+        "fade_us": 4000,
+        "curve": "cos2"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 42,
+          "lo": 42,
+          "hi": 42,
+          "layers": [
+            {
+              "vel": 25,
+              "rr": [21, 22, 23]
+            },
+            {
+              "vel": 51,
+              "rr": [24, 25, 26]
+            },
+            {
+              "vel": 76,
+              "rr": [27, 28, 29]
+            },
+            {
+              "vel": 102,
+              "rr": [30, 31, 32]
+            },
+            {
+              "vel": 127,
+              "rr": [33, 34, 35]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "open_hat",
+      "name": "Open Hat",
+      "lane": "hats",
+      "mix_channel": "hat",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "hats",
+        "role": "choked",
+        "fade_us": 4000,
+        "curve": "cos2"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 46,
+          "lo": 46,
+          "hi": 46,
+          "layers": [
+            {
+              "vel": 25,
+              "rr": [36, 37, 38]
+            },
+            {
+              "vel": 51,
+              "rr": [39, 40, 41]
+            },
+            {
+              "vel": 76,
+              "rr": [42, 43, 44]
+            },
+            {
+              "vel": 102,
+              "rr": [45, 46, 47]
+            },
+            {
+              "vel": 127,
+              "rr": [48, 49, 50]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anvil",
+      "name": "Anvil",
+      "lane": "perc",
+      "mix_channel": "perc",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 47,
+          "lo": 47,
+          "hi": 47,
+          "layers": [
+            {
+              "vel": 25,
+              "rr": [51, 52]
+            },
+            {
+              "vel": 51,
+              "rr": [53, 54]
+            },
+            {
+              "vel": 76,
+              "rr": [55, 56]
+            },
+            {
+              "vel": 102,
+              "rr": [57, 58]
+            },
+            {
+              "vel": 127,
+              "rr": [59, 60]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ride",
+      "name": "Ride",
+      "lane": "hats",
+      "mix_channel": "ride",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 51,
+          "lo": 51,
+          "hi": 51,
+          "layers": [
+            {
+              "vel": 25,
+              "rr": [61, 62]
+            },
+            {
+              "vel": 51,
+              "rr": [63, 64]
+            },
+            {
+              "vel": 76,
+              "rr": [65, 66]
+            },
+            {
+              "vel": 102,
+              "rr": [67, 68]
+            },
+            {
+              "vel": 127,
+              "rr": [69, 70]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "acid_clean",
+      "name": "Acid Clean",
+      "lane": "bass",
+      "mix_channel": "bass",
+      "mode": "sustain_loop",
+      "align": "start",
+      "attack_us": 1000,
+      "release_us": 30000,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "pow15",
+      "interp": "sinc",
+      "mono": true,
+      "glide": {
+        "curve": "raised_cosine",
+        "us": 50000,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 28,
+          "lo": 0,
+          "hi": 32,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [71]
+            },
+            {
+              "vel": 127,
+              "rr": [72]
+            }
+          ]
+        },
+        {
+          "root": 33,
+          "lo": 33,
+          "hi": 39,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [73]
+            },
+            {
+              "vel": 127,
+              "rr": [74]
+            }
+          ]
+        },
+        {
+          "root": 40,
+          "lo": 40,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [75]
+            },
+            {
+              "vel": 127,
+              "rr": [76]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "acid_warm",
+      "name": "Acid Warm",
+      "lane": "bass",
+      "mix_channel": "bass",
+      "mode": "sustain_loop",
+      "align": "start",
+      "attack_us": 1000,
+      "release_us": 30000,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "pow15",
+      "interp": "sinc",
+      "mono": true,
+      "glide": {
+        "curve": "raised_cosine",
+        "us": 50000,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 28,
+          "lo": 0,
+          "hi": 32,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [77]
+            },
+            {
+              "vel": 127,
+              "rr": [78]
+            }
+          ]
+        },
+        {
+          "root": 33,
+          "lo": 33,
+          "hi": 39,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [79]
+            },
+            {
+              "vel": 127,
+              "rr": [80]
+            }
+          ]
+        },
+        {
+          "root": 40,
+          "lo": 40,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [81]
+            },
+            {
+              "vel": 127,
+              "rr": [82]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mod_blip",
+      "name": "Mod Blip",
+      "lane": "lead",
+      "mix_channel": "lead",
+      "mode": "gated",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 30000,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "pow15",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 70,
+          "lo": 0,
+          "hi": 72,
+          "layers": [
+            {
+              "vel": 70,
+              "rr": [83]
+            },
+            {
+              "vel": 127,
+              "rr": [84]
+            }
+          ]
+        },
+        {
+          "root": 73,
+          "lo": 73,
+          "hi": 75,
+          "layers": [
+            {
+              "vel": 70,
+              "rr": [85]
+            },
+            {
+              "vel": 127,
+              "rr": [86]
+            }
+          ]
+        },
+        {
+          "root": 76,
+          "lo": 76,
+          "hi": 78,
+          "layers": [
+            {
+              "vel": 70,
+              "rr": [87]
+            },
+            {
+              "vel": 127,
+              "rr": [88]
+            }
+          ]
+        },
+        {
+          "root": 79,
+          "lo": 79,
+          "hi": 81,
+          "layers": [
+            {
+              "vel": 70,
+              "rr": [89]
+            },
+            {
+              "vel": 127,
+              "rr": [90]
+            }
+          ]
+        },
+        {
+          "root": 82,
+          "lo": 82,
+          "hi": 84,
+          "layers": [
+            {
+              "vel": 70,
+              "rr": [91]
+            },
+            {
+              "vel": 127,
+              "rr": [92]
+            }
+          ]
+        },
+        {
+          "root": 85,
+          "lo": 85,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 70,
+              "rr": [93]
+            },
+            {
+              "vel": 127,
+              "rr": [94]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "drone_em_add_9",
+      "name": "Drone Em Add 9",
+      "lane": "chords",
+      "mix_channel": "pad",
+      "mode": "sustain_loop",
+      "align": "start",
+      "attack_us": 2000,
+      "release_us": 20000,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": true,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 52,
+          "lo": 0,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [95]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vox_synth",
+      "name": "Vox Synth",
+      "lane": "vox",
+      "mix_channel": "vox",
+      "mode": "gated",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 30000,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 52,
+          "lo": 0,
+          "hi": 54,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [96]
+            },
+            {
+              "vel": 127,
+              "rr": [97]
+            }
+          ]
+        },
+        {
+          "root": 55,
+          "lo": 55,
+          "hi": 58,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [98]
+            },
+            {
+              "vel": 127,
+              "rr": [99]
+            }
+          ]
+        },
+        {
+          "root": 59,
+          "lo": 59,
+          "hi": 61,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [100]
+            },
+            {
+              "vel": 127,
+              "rr": [101]
+            }
+          ]
+        },
+        {
+          "root": 62,
+          "lo": 62,
+          "hi": 63,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [102]
+            },
+            {
+              "vel": 127,
+              "rr": [103]
+            }
+          ]
+        },
+        {
+          "root": 64,
+          "lo": 64,
+          "hi": 66,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [104]
+            },
+            {
+              "vel": 127,
+              "rr": [105]
+            }
+          ]
+        },
+        {
+          "root": 67,
+          "lo": 67,
+          "hi": 70,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [106]
+            },
+            {
+              "vel": 127,
+              "rr": [107]
+            }
+          ]
+        },
+        {
+          "root": 71,
+          "lo": 71,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [108]
+            },
+            {
+              "vel": 127,
+              "rr": [109]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_acid_stab_e4",
+      "name": "Accent Acid Stab E4",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "pow15",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 64,
+          "lo": 0,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [110]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_metal_chord_em",
+      "name": "Accent Metal Chord Em",
+      "lane": "chords",
+      "mix_channel": "pad",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -6869,
+      "start_frames": 0,
+      "velocity_law": "pow15",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 64,
+          "lo": 0,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [111]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_rave_stab_em",
+      "name": "Accent Rave Stab Em",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -7682,
+      "start_frames": 0,
+      "velocity_law": "pow15",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 64,
+          "lo": 0,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [112]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_rave_stab_em_accents",
+      "name": "Accent Rave Stab Em",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -7682,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 48,
+          "lo": 48,
+          "hi": 48,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [112]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_noise_sweep_e",
+      "name": "Accent Noise Sweep E",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "end",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -11530,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 49,
+          "lo": 49,
+          "hi": 49,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [113]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_reverse_hit_em",
+      "name": "Accent Reverse Hit Em",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "end",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -12047,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 50,
+          "lo": 50,
+          "hi": 50,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [114]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_zap_e5",
+      "name": "Accent Zap E5",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -11161,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 51,
+          "lo": 51,
+          "hi": 51,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [115]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_metal_chord_em_accents",
+      "name": "Accent Metal Chord Em",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -6869,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 52,
+          "lo": 52,
+          "hi": 52,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [111]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_acid_stab_e4_accents",
+      "name": "Accent Acid Stab E4",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 53,
+          "lo": 53,
+          "hi": 53,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [110]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_dist_chord_em",
+      "name": "Accent Dist Chord Em",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 54,
+          "lo": 54,
+          "hi": 54,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [116]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_vox_chord_em",
+      "name": "Accent Vox Chord Em",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 55,
+          "lo": 55,
+          "hi": 55,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [117]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stutter_fill",
+      "name": "Stutter Fill",
+      "lane": "fx",
+      "mix_channel": "fill",
+      "mode": "one_shot",
+      "align": "end",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 48,
+          "lo": 48,
+          "hi": 48,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [118]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "iron_riser",
+      "name": "Iron Riser",
+      "lane": "fx",
+      "mix_channel": "fill",
+      "mode": "one_shot",
+      "align": "end",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 49,
+          "lo": 49,
+          "hi": 49,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [119]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_sub_drop_e2",
+      "name": "Accent Sub Drop E2",
+      "lane": "fx",
+      "mix_channel": "fill",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 50,
+          "lo": 50,
+          "hi": 50,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [120]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vox_stab_oh_e3",
+      "name": "Vox Stab Oh E3",
+      "lane": "vox",
+      "mix_channel": "vox",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 48,
+          "lo": 48,
+          "hi": 48,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [121]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vox_stab_oo_b3",
+      "name": "Vox Stab Oo B3",
+      "lane": "vox",
+      "mix_channel": "vox",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 49,
+          "lo": 49,
+          "hi": 49,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [122]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "keymap": [
+    {
+      "ch": 1,
+      "keys": [4, 64],
+      "a": "acid_clean",
+      "b": "acid_warm",
+      "ab": "bass"
+    },
+    {
+      "ch": 2,
+      "keys": [46, 109],
+      "a": "mod_blip",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 4,
+      "keys": [28, 76],
+      "a": "drone_em_add_9",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 5,
+      "keys": [28, 95],
+      "a": "vox_synth",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [48, 48],
+      "a": "accent_rave_stab_em_accents",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [49, 49],
+      "a": "accent_noise_sweep_e",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [50, 50],
+      "a": "accent_reverse_hit_em",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [51, 51],
+      "a": "accent_zap_e5",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [52, 52],
+      "a": "accent_metal_chord_em_accents",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [53, 53],
+      "a": "accent_acid_stab_e4_accents",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [54, 54],
+      "a": "accent_dist_chord_em",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [55, 55],
+      "a": "accent_vox_chord_em",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 7,
+      "keys": [48, 48],
+      "a": "stutter_fill",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 7,
+      "keys": [49, 49],
+      "a": "iron_riser",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 7,
+      "keys": [50, 50],
+      "a": "accent_sub_drop_e2",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 8,
+      "keys": [48, 48],
+      "a": "vox_stab_oh_e3",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 8,
+      "keys": [49, 49],
+      "a": "vox_stab_oo_b3",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [35, 35],
+      "a": "rumble",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [36, 36],
+      "a": "kick_split",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [38, 38],
+      "a": "snare_gated",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [42, 42],
+      "a": "closed_hat",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [46, 46],
+      "a": "open_hat",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [47, 47],
+      "a": "anvil",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [51, 51],
+      "a": "ride",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 11,
+      "keys": [40, 88],
+      "a": "accent_acid_stab_e4",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 12,
+      "keys": [40, 88],
+      "a": "accent_metal_chord_em",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 13,
+      "keys": [40, 88],
+      "a": "accent_rave_stab_em",
+      "b": "",
+      "ab": ""
+    }
+  ],
+  "extras": [
+    {
+      "ch": 11,
+      "name": "Acid Stab",
+      "lane": "accents"
+    },
+    {
+      "ch": 12,
+      "name": "Metal Chord",
+      "lane": "chords"
+    },
+    {
+      "ch": 13,
+      "name": "Rave Stab",
+      "lane": "accents"
+    }
+  ],
+  "phrases": [
+    {
+      "lane": "bass",
+      "ch": 1,
+      "ab": "bass",
+      "mix_channel": "bass_stem",
+      "gain_mdb": 0,
+      "throw": "live",
+      "stems": {
+        "a": 123,
+        "b": 124
+      },
+      "cycle_16ths": 64,
+      "tolerance_pm": 20,
+      "fade_us": 5000,
+      "fade_in_us": 500,
+      "ride": {
+        "cc74": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18, 20, 21, 22, 23, 24, 26, 27, 28, 29, 31, 32, 33, 34, 35, 37, 38, 39, 40, 42, 43, 44, 45, 46, 48, 49, 50, 51, 52, 54, 55, 56, 57, 59, 60, 61, 62, 63, 65, 66, 67, 68, 70, 71, 72, 73, 74, 76, 77, 78, 80, 81, 83, 84, 86, 87, 89, 90, 92, 93, 95, 96, 98, 100, 101, 103, 104, 106, 107, 109, 110, 112, 113, 115, 116, 118, 119, 121, 122, 124, 125, 127, 123, 119, 115, 111, 107, 103, 99, 95, 91, 87, 83, 79, 75, 71, 67, 63, 60, 56, 52, 48, 44, 40, 36, 32, 28, 24, 20, 16, 12, 8, 4],
+        "cc71": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 4, 5, 7, 8, 9, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22, 24, 25, 26, 28, 29, 30, 32, 33, 34, 36, 37, 38, 40, 41, 42, 44, 45, 46, 48, 49, 50, 52, 53, 54, 56, 57, 58, 60, 61, 62, 63, 65, 66, 67, 69, 70, 71, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89, 90, 91, 93, 94, 95, 97, 98, 99, 101, 102, 103, 105, 106, 107, 108, 110, 111, 112, 114, 115, 116, 118, 119, 120, 122, 123, 124, 126, 127, 123, 119, 115, 111, 107, 103, 99, 95, 91, 87, 83, 79, 75, 71, 67, 63, 60, 56, 52, 48, 44, 40, 36, 32, 28, 24, 20, 16, 12, 8, 4]
+      },
+      "slices": [
+        {
+          "step": 1,
+          "key": 28,
+          "start": 0,
+          "end": 10588,
+          "fade": 10348,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 2,
+          "key": 40,
+          "start": 10588,
+          "end": 21177,
+          "fade": 20937,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 5,
+          "key": 31,
+          "start": 21177,
+          "end": 31765,
+          "fade": 31525,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 6,
+          "key": 33,
+          "start": 31765,
+          "end": 42353,
+          "fade": 42113,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 8,
+          "key": 40,
+          "start": 42353,
+          "end": 48071,
+          "fade": 47831,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 9,
+          "key": 28,
+          "start": 48071,
+          "end": 52941,
+          "fade": 52701,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 10,
+          "key": 38,
+          "start": 52941,
+          "end": 63530,
+          "fade": 63290,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 13,
+          "key": 35,
+          "start": 63530,
+          "end": 84706,
+          "fade": 84466,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 17,
+          "key": 28,
+          "start": 84706,
+          "end": 95294,
+          "fade": 95054,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 18,
+          "key": 40,
+          "start": 95294,
+          "end": 101012,
+          "fade": 100772,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 19,
+          "key": 38,
+          "start": 101012,
+          "end": 105883,
+          "fade": 105643,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 21,
+          "key": 36,
+          "start": 105883,
+          "end": 127059,
+          "fade": 126819,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 24,
+          "key": 40,
+          "start": 127059,
+          "end": 132777,
+          "fade": 132537,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 25,
+          "key": 28,
+          "start": 132777,
+          "end": 137647,
+          "fade": 137407,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 26,
+          "key": 43,
+          "start": 137647,
+          "end": 143365,
+          "fade": 143125,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 27,
+          "key": 40,
+          "start": 143365,
+          "end": 148236,
+          "fade": 147996,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 29,
+          "key": 35,
+          "start": 148236,
+          "end": 158824,
+          "fade": 158584,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 30,
+          "key": 38,
+          "start": 158824,
+          "end": 164541,
+          "fade": 164301,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 31,
+          "key": 40,
+          "start": 164541,
+          "end": 169412,
+          "fade": 169172,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 33,
+          "key": 28,
+          "start": 169412,
+          "end": 180000,
+          "fade": 179760,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 34,
+          "key": 40,
+          "start": 180000,
+          "end": 190589,
+          "fade": 190349,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 37,
+          "key": 31,
+          "start": 190589,
+          "end": 201177,
+          "fade": 200937,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 38,
+          "key": 33,
+          "start": 201177,
+          "end": 211765,
+          "fade": 211525,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 40,
+          "key": 40,
+          "start": 211765,
+          "end": 217483,
+          "fade": 217243,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 41,
+          "key": 28,
+          "start": 217483,
+          "end": 222353,
+          "fade": 222113,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 42,
+          "key": 38,
+          "start": 222353,
+          "end": 232942,
+          "fade": 232702,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 45,
+          "key": 35,
+          "start": 232942,
+          "end": 254118,
+          "fade": 253878,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 49,
+          "key": 28,
+          "start": 254118,
+          "end": 264706,
+          "fade": 264466,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 50,
+          "key": 40,
+          "start": 264706,
+          "end": 270424,
+          "fade": 270184,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 51,
+          "key": 38,
+          "start": 270424,
+          "end": 275295,
+          "fade": 275055,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 53,
+          "key": 36,
+          "start": 275295,
+          "end": 296471,
+          "fade": 296231,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 56,
+          "key": 40,
+          "start": 296471,
+          "end": 302189,
+          "fade": 301949,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 57,
+          "key": 28,
+          "start": 302189,
+          "end": 307059,
+          "fade": 306819,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 58,
+          "key": 43,
+          "start": 307059,
+          "end": 312777,
+          "fade": 312537,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 59,
+          "key": 40,
+          "start": 312777,
+          "end": 317648,
+          "fade": 317408,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 61,
+          "key": 35,
+          "start": 317648,
+          "end": 328236,
+          "fade": 327996,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 62,
+          "key": 38,
+          "start": 328236,
+          "end": 333953,
+          "fade": 333713,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 63,
+          "key": 40,
+          "start": 333953,
+          "end": 338824,
+          "fade": 338584,
+          "lead": 0,
+          "holds": []
+        }
+      ]
+    },
+    {
+      "lane": "bass",
+      "ch": 1,
+      "ab": "bass",
+      "mix_channel": "bass_stem",
+      "gain_mdb": 0,
+      "throw": "live",
+      "stems": {
+        "a": 125,
+        "b": 126
+      },
+      "cycle_16ths": 64,
+      "tolerance_pm": 20,
+      "fade_us": 5000,
+      "fade_in_us": 500,
+      "ride": {
+        "cc74": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "cc71": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      },
+      "slices": [
+        {
+          "step": 1,
+          "key": 28,
+          "start": 0,
+          "end": 10588,
+          "fade": 10348,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 2,
+          "key": 40,
+          "start": 10588,
+          "end": 21177,
+          "fade": 20937,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 5,
+          "key": 31,
+          "start": 21177,
+          "end": 31765,
+          "fade": 31525,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 6,
+          "key": 33,
+          "start": 31765,
+          "end": 42353,
+          "fade": 42113,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 8,
+          "key": 40,
+          "start": 42353,
+          "end": 48071,
+          "fade": 47831,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 9,
+          "key": 28,
+          "start": 48071,
+          "end": 52941,
+          "fade": 52701,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 10,
+          "key": 38,
+          "start": 52941,
+          "end": 63530,
+          "fade": 63290,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 13,
+          "key": 35,
+          "start": 63530,
+          "end": 84706,
+          "fade": 84466,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 17,
+          "key": 28,
+          "start": 84706,
+          "end": 95294,
+          "fade": 95054,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 18,
+          "key": 40,
+          "start": 95294,
+          "end": 101012,
+          "fade": 100772,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 19,
+          "key": 38,
+          "start": 101012,
+          "end": 105883,
+          "fade": 105643,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 21,
+          "key": 36,
+          "start": 105883,
+          "end": 127059,
+          "fade": 126819,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 24,
+          "key": 40,
+          "start": 127059,
+          "end": 132777,
+          "fade": 132537,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 25,
+          "key": 28,
+          "start": 132777,
+          "end": 137647,
+          "fade": 137407,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 26,
+          "key": 43,
+          "start": 137647,
+          "end": 143365,
+          "fade": 143125,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 27,
+          "key": 40,
+          "start": 143365,
+          "end": 148236,
+          "fade": 147996,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 29,
+          "key": 35,
+          "start": 148236,
+          "end": 158824,
+          "fade": 158584,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 30,
+          "key": 38,
+          "start": 158824,
+          "end": 164541,
+          "fade": 164301,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 31,
+          "key": 40,
+          "start": 164541,
+          "end": 169412,
+          "fade": 169172,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 33,
+          "key": 28,
+          "start": 169412,
+          "end": 180000,
+          "fade": 179760,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 34,
+          "key": 40,
+          "start": 180000,
+          "end": 190589,
+          "fade": 190349,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 37,
+          "key": 31,
+          "start": 190589,
+          "end": 201177,
+          "fade": 200937,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 38,
+          "key": 33,
+          "start": 201177,
+          "end": 211765,
+          "fade": 211525,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 40,
+          "key": 40,
+          "start": 211765,
+          "end": 217483,
+          "fade": 217243,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 41,
+          "key": 28,
+          "start": 217483,
+          "end": 222353,
+          "fade": 222113,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 42,
+          "key": 38,
+          "start": 222353,
+          "end": 232942,
+          "fade": 232702,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 45,
+          "key": 35,
+          "start": 232942,
+          "end": 254118,
+          "fade": 253878,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 49,
+          "key": 28,
+          "start": 254118,
+          "end": 264706,
+          "fade": 264466,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 50,
+          "key": 40,
+          "start": 264706,
+          "end": 270424,
+          "fade": 270184,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 51,
+          "key": 38,
+          "start": 270424,
+          "end": 275295,
+          "fade": 275055,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 53,
+          "key": 36,
+          "start": 275295,
+          "end": 296471,
+          "fade": 296231,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 56,
+          "key": 40,
+          "start": 296471,
+          "end": 302189,
+          "fade": 301949,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 57,
+          "key": 28,
+          "start": 302189,
+          "end": 307059,
+          "fade": 306819,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 58,
+          "key": 43,
+          "start": 307059,
+          "end": 312777,
+          "fade": 312537,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 59,
+          "key": 40,
+          "start": 312777,
+          "end": 317648,
+          "fade": 317408,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 61,
+          "key": 35,
+          "start": 317648,
+          "end": 328236,
+          "fade": 327996,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 62,
+          "key": 38,
+          "start": 328236,
+          "end": 333953,
+          "fade": 333713,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 63,
+          "key": 40,
+          "start": 333953,
+          "end": 338824,
+          "fade": 338584,
+          "lead": 0,
+          "holds": []
+        }
+      ]
+    },
+    {
+      "lane": "bass",
+      "ch": 1,
+      "ab": "bass",
+      "mix_channel": "bass_stem",
+      "gain_mdb": 0,
+      "throw": "live",
+      "stems": {
+        "a": 127,
+        "b": 128
+      },
+      "cycle_16ths": 64,
+      "tolerance_pm": 20,
+      "fade_us": 5000,
+      "fade_in_us": 500,
+      "ride": {
+        "cc74": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "cc71": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      },
+      "slices": [
+        {
+          "step": 2,
+          "key": 28,
+          "start": 0,
+          "end": 21177,
+          "fade": 20937,
+          "lead": 10588,
+          "holds": []
+        },
+        {
+          "step": 6,
+          "key": 28,
+          "start": 21177,
+          "end": 37482,
+          "fade": 37242,
+          "lead": 10588,
+          "holds": []
+        },
+        {
+          "step": 7,
+          "key": 40,
+          "start": 37482,
+          "end": 42353,
+          "fade": 42113,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 10,
+          "key": 31,
+          "start": 42353,
+          "end": 63530,
+          "fade": 63290,
+          "lead": 10588,
+          "holds": []
+        },
+        {
+          "step": 13,
+          "key": 33,
+          "start": 63530,
+          "end": 74118,
+          "fade": 73878,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 14,
+          "key": 28,
+          "start": 74118,
+          "end": 79835,
+          "fade": 79595,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 15,
+          "key": 38,
+          "start": 79835,
+          "end": 84706,
+          "fade": 84466,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 17,
+          "key": 28,
+          "start": 84706,
+          "end": 95294,
+          "fade": 95054,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 18,
+          "key": 28,
+          "start": 95294,
+          "end": 101012,
+          "fade": 100772,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 19,
+          "key": 40,
+          "start": 101012,
+          "end": 105883,
+          "fade": 105643,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 21,
+          "key": 31,
+          "start": 105883,
+          "end": 116471,
+          "fade": 116231,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 22,
+          "key": 31,
+          "start": 116471,
+          "end": 122188,
+          "fade": 121948,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 23,
+          "key": 43,
+          "start": 122188,
+          "end": 127059,
+          "fade": 126819,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 25,
+          "key": 33,
+          "start": 127059,
+          "end": 137647,
+          "fade": 137407,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 26,
+          "key": 35,
+          "start": 137647,
+          "end": 148236,
+          "fade": 147996,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 29,
+          "key": 36,
+          "start": 148236,
+          "end": 158824,
+          "fade": 158584,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 30,
+          "key": 35,
+          "start": 158824,
+          "end": 164541,
+          "fade": 164301,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 31,
+          "key": 40,
+          "start": 164541,
+          "end": 169412,
+          "fade": 169172,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 34,
+          "key": 28,
+          "start": 169412,
+          "end": 190589,
+          "fade": 190349,
+          "lead": 10588,
+          "holds": []
+        },
+        {
+          "step": 38,
+          "key": 28,
+          "start": 190589,
+          "end": 206894,
+          "fade": 206654,
+          "lead": 10588,
+          "holds": []
+        },
+        {
+          "step": 39,
+          "key": 40,
+          "start": 206894,
+          "end": 211765,
+          "fade": 211525,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 42,
+          "key": 31,
+          "start": 211765,
+          "end": 232942,
+          "fade": 232702,
+          "lead": 10588,
+          "holds": []
+        },
+        {
+          "step": 45,
+          "key": 33,
+          "start": 232942,
+          "end": 243530,
+          "fade": 243290,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 46,
+          "key": 28,
+          "start": 243530,
+          "end": 249247,
+          "fade": 249007,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 47,
+          "key": 38,
+          "start": 249247,
+          "end": 254118,
+          "fade": 253878,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 49,
+          "key": 28,
+          "start": 254118,
+          "end": 264706,
+          "fade": 264466,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 50,
+          "key": 28,
+          "start": 264706,
+          "end": 270424,
+          "fade": 270184,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 51,
+          "key": 40,
+          "start": 270424,
+          "end": 275295,
+          "fade": 275055,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 53,
+          "key": 31,
+          "start": 275295,
+          "end": 285883,
+          "fade": 285643,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 54,
+          "key": 31,
+          "start": 285883,
+          "end": 291600,
+          "fade": 291360,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 55,
+          "key": 43,
+          "start": 291600,
+          "end": 296471,
+          "fade": 296231,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 57,
+          "key": 33,
+          "start": 296471,
+          "end": 307059,
+          "fade": 306819,
+          "lead": 5718,
+          "holds": []
+        },
+        {
+          "step": 58,
+          "key": 35,
+          "start": 307059,
+          "end": 317648,
+          "fade": 317408,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 61,
+          "key": 36,
+          "start": 317648,
+          "end": 328236,
+          "fade": 327996,
+          "lead": 5717,
+          "holds": []
+        },
+        {
+          "step": 62,
+          "key": 35,
+          "start": 328236,
+          "end": 333953,
+          "fade": 333713,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 63,
+          "key": 40,
+          "start": 333953,
+          "end": 338824,
+          "fade": 338584,
+          "lead": 0,
+          "holds": []
+        }
+      ]
+    },
+    {
+      "lane": "lead",
+      "ch": 2,
+      "ab": "",
+      "mix_channel": "lead",
+      "gain_mdb": 0,
+      "throw": "live",
+      "stems": {
+        "a": 129,
+        "b": -1
+      },
+      "cycle_16ths": 32,
+      "tolerance_pm": 20,
+      "fade_us": 5000,
+      "fade_in_us": 500,
+      "ride": {
+        "cc74": [],
+        "cc71": []
+      },
+      "slices": [
+        {
+          "step": 0,
+          "key": 76,
+          "start": 0,
+          "end": 16306,
+          "fade": 16066,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 3,
+          "key": 71,
+          "start": 16306,
+          "end": 21177,
+          "fade": 20937,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 4,
+          "key": 79,
+          "start": 21177,
+          "end": 31765,
+          "fade": 31525,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 6,
+          "key": 78,
+          "start": 31765,
+          "end": 37482,
+          "fade": 37242,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 7,
+          "key": 76,
+          "start": 37482,
+          "end": 52941,
+          "fade": 52701,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 10,
+          "key": 74,
+          "start": 52941,
+          "end": 58659,
+          "fade": 58419,
+          "lead": 0,
+          "holds": [74]
+        },
+        {
+          "step": 11,
+          "key": 76,
+          "start": 58659,
+          "end": 63530,
+          "fade": 63290,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 12,
+          "key": 83,
+          "start": 63530,
+          "end": 74118,
+          "fade": 73878,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 14,
+          "key": 81,
+          "start": 74118,
+          "end": 84706,
+          "fade": 84466,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 16,
+          "key": 76,
+          "start": 84706,
+          "end": 101012,
+          "fade": 100772,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 19,
+          "key": 71,
+          "start": 101012,
+          "end": 105883,
+          "fade": 105643,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 20,
+          "key": 79,
+          "start": 105883,
+          "end": 116471,
+          "fade": 116231,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 22,
+          "key": 78,
+          "start": 116471,
+          "end": 122188,
+          "fade": 121948,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 23,
+          "key": 74,
+          "start": 122188,
+          "end": 137647,
+          "fade": 137407,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 26,
+          "key": 84,
+          "start": 137647,
+          "end": 148236,
+          "fade": 147996,
+          "lead": 0,
+          "holds": [84, 84]
+        },
+        {
+          "step": 28,
+          "key": 83,
+          "start": 148236,
+          "end": 158824,
+          "fade": 158584,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 30,
+          "key": 79,
+          "start": 158824,
+          "end": 164541,
+          "fade": 164301,
+          "lead": 0,
+          "holds": []
+        },
+        {
+          "step": 31,
+          "key": 78,
+          "start": 164541,
+          "end": 169412,
+          "fade": 169172,
+          "lead": 0,
+          "holds": []
+        }
+      ]
+    }
+  ]
+}
