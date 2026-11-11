@@ -7,7 +7,7 @@ the same mix with the vox synth. A test keeps these files equal to a fresh
 export.
 
 - `FUT02_ExtendedMix_NoVox_224bars.mid`: the whole mix, a track per instrument, a marker at every section start and cue points (labels: the
-  notes play) at the risers, fills and vox entries.
+  notes play) at the risers and fills.
 - One region per section, `01_Intro_32bars.mid` to `09_Outro_32bars.mid`: the mix cut at its section lines, with the same
   tracks in the same order, the section's marker and its cues.
 - `regions.json`: integers and strings only: the tempo, swing (permille) and length (ms), every section's start bar
@@ -19,11 +19,11 @@ export.
 |---|---|---|---|---|
 | 1-32 | Intro | intro | `01_Intro_32bars.mid` | kick, snare, hats, perc |
 | 33-64 | Groove | groove | `02_Groove_32bars.mid` | kick, snare, hats, perc, bass, lead, accents, fx |
-| 65-80 | Break | break | `03_Break_16bars.mid` | hats, lead, chords, accents, fx |
+| 65-80 | Break | break | `03_Break_16bars.mid` | hats, chords, accents, fx |
 | 81-96 | Build | build | `04_Build_16bars.mid` | kick, snare, hats, bass, lead, chords, fx |
 | 97-128 | Drop | drop | `05_Drop_32bars.mid` | kick, snare, hats, perc, bass, lead, chords, accents, fx |
 | 129-144 | Switch-up | switch | `06_SwitchUp_16bars.mid` | kick, snare, hats, perc, bass, lead, accents |
-| 145-160 | Break 2 | break | `07_Break2_16bars.mid` | hats, lead, chords, accents, fx |
+| 145-160 | Break 2 | break | `07_Break2_16bars.mid` | hats, chords, accents, fx |
 | 161-192 | Drop 2 | drop2 | `08_Drop2_32bars.mid` | kick, snare, hats, perc, bass, lead, chords, accents, fx |
 | 193-224 | Outro | outro | `09_Outro_32bars.mid` | kick, snare, hats, perc |
 
@@ -42,15 +42,15 @@ Line by line (bars of the whole mix):
 - 57-64: kick, clap, hats, perc, bass (Orbit), the lead's skeleton, accents, fx; the Lead filter ride from 20 to 40; the fill in its last bar
 
 **3. Break** (bars 65-80)
-- 65-72: the lead's call, chords, accents; the Lead filter ride held at 48
-- 73-80: off-beat hats, the lead's call, chords, accents, fx; the Lead filter ride from 48 to 96; the hats rise from 40% to 100% velocity; the fill in its last bar
+- 65-72: chords (tonic), accents
+- 73-80: off-beat hats, chords (tonic), accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **4. Build** (bars 81-96)
-- 81-88: kick, clap, off-beat hats, bass (Orbit), lead, chords; the Lead filter ride from 0 to 64; a turnaround in its last bar
-- 89-96: clap, off-beat hats, 16ths in its second half, lead, chords, fx; the Lead filter ride from 64 to 127; the clap rolls over the line's last 8 bars up to the fill, rising hit by hit; the fill in its last bar
+- 81-88: kick, clap, off-beat hats, bass (Orbit), the lead's skeleton, chords; the Lead filter ride from 0 to 64; a turnaround in its last bar
+- 89-96: clap, off-beat hats, 16ths in its second half, the lead's skeleton, chords, fx; the Lead filter ride from 64 to 127; the clap rolls over bars 89-95 up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 97-128)
-- 97-104: kick, clap, hats, perc, bass (Orbit), lead, accents, fx; the drums' pingpong variant; a turnaround in its last bar
+- 97-104: kick, clap, hats, perc, bass (Orbit), lead, accents, fx; the drums' pingpong variant; the Lead filter ride 127 at bar 0 then 127 at bar 4 then 0 at bar 8; a turnaround in its last bar
 - 105-112: kick, clap, busy hats, perc, bass (Orbit), lead, accents, fx; the fill in its last bar
 - 113-120: kick, clap, hats, perc, bass (Orbit), lead, chords (the laser stab riff); the drums' pingpong variant; a turnaround in its last bar
 - 121-128: kick, clap, busy hats, perc, bass (Orbit), the lead's skeleton, chords (the laser stab riff), accents; the drums out in its last bar
@@ -60,12 +60,12 @@ Line by line (bars of the whole mix):
 - 137-144: kick, clap, hats, perc, bass (Orbit), the lead's skeleton, accents; the drums' tresillo variant; the Lead filter ride held at 24; a turnaround in its last bar
 
 **7. Break 2** (bars 145-160)
-- 145-152: off-beat hats, the lead's call, chords, accents; the Lead filter ride held at 64
+- 145-152: off-beat hats, chords (tonic), accents
 - 153-160: off-beat hats, chords (the laser stab riff), accents, fx; the phrases rest from the fill; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **8. Drop 2** (bars 161-192)
 - 161-168: kick, clap, hats, perc, bass (Relay), accents (the glass melody), fx; the drums' tresillo variant; a turnaround in its last bar
-- 169-176: kick, clap, busy hats, perc, bass (Relay), the lead's skeleton, accents with the glass melody, fx; the phrases rest from the fill; the fill in its last bar
+- 169-176: kick, clap, busy hats, perc, bass (Relay), the lead's skeleton, accents, fx; the fill in its last bar
 - 177-184: kick, clap, hats, perc, bass (Relay), the lead's call, accents; the drums' pingpong variant; a turnaround in its last bar
 - 185-192: kick, clap, busy hats, perc, bass (Relay), chords (the laser stab riff), fx; the phrases rest from the fill; the fill in its last bar
 
@@ -79,22 +79,16 @@ Line by line (bars of the whole mix):
 
 - bar 48: Fill
 - bar 64: Fill
-- bar 65: Vox
 - bar 80: Fill
 - bar 89: Riser
 - bar 96: Fill
-- bar 97: Vox
 - bar 112: Fill
-- bar 121: Vox
-- bar 145: Vox
 - bar 153: Riser
 - bar 160: Fill
-- bar 161: Vox
 - bar 176: Fill
-- bar 177: Vox
 - bar 192: Fill
 
-A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
+A riser's note ends on its section's first beat; a fill's on the next downbeat.
 
 ## Tracks
 
