@@ -45,6 +45,17 @@ namespace wubansia::test
         failed
     };
 
+    struct SyntheticProbeLog
+    {
+        std::atomic<int> started { 0 }; // files the slow check started on
+        std::atomic<std::chrono::steady_clock::rep> lastEnd { 0 }; // when the last file's check ended (steady_clock ticks)
+
+        std::chrono::steady_clock::time_point lastEndTime() const
+        {
+            return std::chrono::steady_clock::time_point (std::chrono::steady_clock::duration (lastEnd.load()));
+        }
+    };
+
     struct SyntheticOptions
     {
         std::vector<std::string> ids { "SYN01" };
@@ -53,6 +64,9 @@ namespace wubansia::test
         // Per file locate () checks, through P4's checkKitFiles with the service's cancel flag, as a slow content
         // folder would; 0: locate () reports at once.
         std::chrono::milliseconds probeDelay { 0 };
+        // Where the slow check also records what it did, for a test that reads it after the processor (which owns
+        // the content) is gone.
+        std::shared_ptr<SyntheticProbeLog> probeLog;
     };
 
     class SyntheticContent final : public ContentSourceFactory
@@ -63,7 +77,7 @@ namespace wubansia::test
 
         SyntheticContent() : SyntheticContent (Options {}) {}
 
-        explicit SyntheticContent (Options options) : delay (options.readDelay), probeDelay (options.probeDelay), samples (options.samples)
+        explicit SyntheticContent (Options options) : delay (options.readDelay), probeDelay (options.probeDelay), probeLog (options.probeLog), samples (options.samples)
         {
             const auto& syn = engine::testing::syntheticContent();
             for (const auto& id : options.ids)
@@ -151,7 +165,11 @@ namespace wubansia::test
                             kit,
                             [&] (std::string_view path) -> util::Result<engine::WavInfo> {
                                 ++probesStarted;
+                                if (probeLog != nullptr)
+                                    ++probeLog->started;
                                 std::this_thread::sleep_for (probeDelay);
+                                if (probeLog != nullptr)
+                                    probeLog->lastEnd.store (std::chrono::steady_clock::now().time_since_epoch().count());
                                 for (const auto& f : kit.files)
                                     if (f.path == path)
                                     {
@@ -262,6 +280,7 @@ namespace wubansia::test
         std::vector<KitSource> sources;
         std::atomic<std::chrono::milliseconds> delay;
         const std::chrono::milliseconds probeDelay;
+        const std::shared_ptr<SyntheticProbeLog> probeLog;
         std::atomic<Samples> samples;
         std::atomic<std::uint64_t> folders { 0 };
 

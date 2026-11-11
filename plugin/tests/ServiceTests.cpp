@@ -10,11 +10,14 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <algorithm>
 #include <chrono>
+#include <memory>
 
 using namespace wubansia;
 using test::SyntheticContent;
 using test::SyntheticPlugin;
+using test::SyntheticProbeLog;
 
 namespace
 {
@@ -202,10 +205,12 @@ TEST_CASE ("destroying the processor mid-load returns within 200 ms", "[service]
     CHECK (engine::KitCache::instance().find ("DST01", 1) == nullptr);
 }
 
-TEST_CASE ("destroying the processor mid-check of a slow content folder returns within 200 ms", "[service][content]")
+TEST_CASE ("destroying the processor mid-check of a slow content folder stops within the file in hand and returns within 200 ms", "[service][content]")
 {
     auto options = kits ({ "DSC01" });
     options.probeDelay = std::chrono::milliseconds (50); // a content check of about 1.5 s, before any read
+    options.probeLog = std::make_shared<SyntheticProbeLog>();
+    const auto log = options.probeLog; // outlives the processor, which owns the content
     auto plugin = std::make_unique<SyntheticPlugin> (options);
     test::prepare (**plugin, 48000.0, 512);
     auto* content = plugin->content;
@@ -213,9 +218,17 @@ TEST_CASE ("destroying the processor mid-check of a slow content folder returns 
     REQUIRE ((*plugin)->kitService().loadInFlight());
     REQUIRE (content->readsStarted.load() == 0);
 
+    const auto before = log->started.load();
     const auto start = std::chrono::steady_clock::now();
     plugin.reset();
-    CHECK (std::chrono::steady_clock::now() - start < test::limit (std::chrono::milliseconds (200)));
+    const auto end = std::chrono::steady_clock::now();
+
+    // The check gives way within the file in hand (one header read on a slow folder, 50 ms here): no later file
+    // starts. Without the cancel flag it would go on through all 30.
+    CHECK (log->started.load() <= before + 1);
+    // From the end of that file (or the reset, if later), the processor takes under 200 ms. Timed from there, so a
+    // slow machine's overrun of the test's 50 ms sleep isn't counted against the processor.
+    CHECK (end - std::max (start, log->lastEndTime()) < test::limit (std::chrono::milliseconds (200)));
 }
 
 TEST_CASE ("an instance destroyed while another waits for its build leaves the other to finish", "[service]")
