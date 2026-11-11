@@ -405,19 +405,13 @@ class TestKeymap(unittest.TestCase):
                     self.assertEqual(sound.start == 0, ins['start_frames'] == 0, (kit, role, key))
 
     def test_named_cases(self):
-        """FUT03's F1 (29) plays the G1 zone pitched down; FUT01's Low line plays Organ Bass on channel 11; FUT03's
-        Sub Deep is layered_with both Rubber Basses and reached by no key of its own; FUT02's Drop Glide follows the
-        bass switch; FUT04's rumble is drum note 35 on the kick lane, no duck key; FUT01's kick 36 is A Split, B
+        """FUT03's F1 (29) plays the G1 zone pitched down; FUT01's Low line plays Organ Bass on channel 11; FUT02's
+        Drop Glide follows the bass switch; FUT04's rumble is drum note 35 on the kick lane, no duck key; FUT01's kick 36 is A Split, B
         Garage; FUT03's congas and bongos play their zones unpitched on their drum notes."""
         m = manifest('FUT03')
         ins, zone = resolve(m, 1, 29, 'a')
         self.assertEqual((31, 0), (zone['root'], zone['lo']))
         self.assertEqual('RubberBassClean', PK.item_of('FUT03', ins['id']))
-        sub = instrument(m, 'sub_deep')
-        for side in ('a', 'b'):
-            self.assertEqual('sub_deep', resolve(m, 1, 31, side)[0]['layered_with'])
-        self.assertFalse([e for e in m['keymap'] if 'sub_deep' in (e['a'], e['b'])])
-        self.assertEqual('bass', sub['lane'])
         for note, root in ((41, 41), (43, 43), (45, 45), (47, 47), (48, 48)):
             ins, zone = resolve(m, 10, note)
             self.assertEqual((root, root, root), (zone['root'], zone['lo'], zone['hi']))
@@ -436,6 +430,29 @@ class TestKeymap(unittest.TestCase):
         ins, _ = resolve(m, 10, 35)
         self.assertEqual(('rumble', 'kick', False, 'sustain_loop'),
                          (ins['id'], ins['lane'], ins['duck_key'], ins['mode']))
+
+    def test_the_multisamples_play_at_their_stems_level(self):
+        """Off the kit's tempo, with phrases off and from MIDI in, a phrase channel's notes play its multisample: each
+        of those instruments is set to its stem's level (gain_mdb), and plays on a channel with a corrective EQ in
+        front (P3's <channel>_ms: the stem's channel with the EQ) where the multisample's spectrum differs from the
+        stem's. Measured with groovecore render, phrases off against phrases auto, pass 2 (content/plugin/README.md).
+        FUT03's Rubber Basses play alone: Sub Deep under them put 2 dB too much under 120 Hz and 3 dB too little over
+        it against their lines."""
+        for kit, want in MULTISAMPLES.items():
+            m = manifest(kit)
+            channels = {p['ch'] for p in m['phrases']}
+            got = {}
+            for e in m['keymap']:
+                for side in ('a', 'b'):
+                    if e['ch'] in channels and e[side]:
+                        ins = instrument(m, e[side])
+                        got[ins['id']] = (ins['gain_mdb'], ins['mix_channel'])
+            self.assertEqual(want, got, kit)
+            for ins in m['instruments']:
+                self.assertEqual(PK.mix_channels(kit)[ins['mix_channel']], ins['lane'], (kit, ins['id']))
+        m = manifest('FUT03')
+        self.assertNotIn('sub_deep', {i['id'] for i in m['instruments']})
+        self.assertEqual({''}, {i['layered_with'] for i in m['instruments']})
 
     def test_the_duck_keys(self):
         """The notes that key the onset ducks (mix.json): the kicks and claps (not FUT04's rumble), and FUT02's vox
@@ -496,6 +513,16 @@ class TestKeymap(unittest.TestCase):
             m = manifest(kit)
             ins, zone = resolve(m, 5, zone_root(m, 5))
             self.assertEqual(pre, m['files'][zone['layers'][0]['rr'][0]]['preroll_frames'], kit)
+
+
+# Each phrase channel's multisample instruments: (gain_mdb, mix_channel). The _ms channels carry P3's corrective EQ.
+MULTISAMPLES = {
+    'FUT01': {'chrome_pluck': (600, 'pluck'), 'vox_synth': (7550, 'vsynth_ms')},
+    'FUT02': {'roll_bass_clean': (-900, 'bass_ms'), 'roll_bass_warm': (4160, 'bass_ms'), 'chrome_arp': (130, 'arp'),
+              'vox_synth': (1850, 'vox')},
+    'FUT03': {'rubber_bass_clean': (1730, 'bass_ms'), 'rubber_bass_warm': (2240, 'bass_ms'), 'vox_synth': (6120, 'vox_ms')},
+    'FUT04': {'acid_clean': (-1000, 'bass'), 'acid_warm': (-1000, 'bass'), 'mod_blip': (-470, 'lead')},
+}
 
 
 def zone_root(m, ch):
