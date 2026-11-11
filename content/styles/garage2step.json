@@ -11,42 +11,60 @@
     "drop2": { "energy": 4, "vel": 1000, "variant": 8 },
     "outro": { "energy": 1, "vel": 940 }
   },
-  "form": [
-    { "kind": "intro", "bars": 32, "blocks": [
-      ["kick", "hats"],
-      ["kick", "hats", "shaker"],
-      ["kick", "snare", "hats", "shaker", "perc"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass"] ] },
-    { "kind": "groove", "bars": 32, "blocks": [
-      ["kick", "snare", "hats", "shaker", "perc", "bass"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"] ] },
-    { "kind": "build", "bars": 8, "blocks": [
-      ["snare", "hats", "shaker", "perc", "chords"] ] },
-    { "kind": "drop", "bars": 32, "blocks": [
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"] ] },
-    { "kind": "break", "bars": 24, "blocks": [
-      ["hats", "chords"],
-      ["hats", "perc", "chords"],
-      ["hats", "perc", "bass", "chords"] ] },
-    { "kind": "build", "bars": 16, "blocks": [
-      ["snare", "hats", "shaker", "perc", "chords"],
-      ["kick", "snare", "hats", "shaker", "perc", "chords"] ] },
-    { "kind": "drop2", "bars": 32, "blocks": [
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"] ] },
-    { "kind": "outro", "bars": 32, "blocks": [
-      ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
-      ["kick", "snare", "hats", "shaker", "perc", "bass"],
-      ["kick", "snare", "hats", "shaker", "perc"],
-      ["kick", "hats", "shaker"] ] }
-  ],
+  "form": {
+    "bars": [200, 240], "sixteen": 70,
+    "sections": [
+      { "kind": "intro", "bars": [ { "bars": 32, "w": 1 } ] },
+      { "kind": "groove", "bars": [ { "bars": 16, "w": 2 }, { "bars": 24, "w": 1 }, { "bars": 32, "w": 3 } ] },
+      { "kind": "break", "bars": [ { "bars": 0, "w": 3 }, { "bars": 8, "w": 1 }, { "bars": 16, "w": 2 } ] },
+      { "kind": "build", "bars": [ { "bars": 8, "w": 3 }, { "bars": 16, "w": 1 } ] },
+      { "kind": "drop", "bars": [ { "bars": 16, "w": 1 }, { "bars": 24, "w": 1 }, { "bars": 32, "w": 3 } ] },
+      { "kind": "groove", "bars": [ { "bars": 0, "w": 2 }, { "bars": 8, "w": 1 }, { "bars": 16, "w": 2 } ] },
+      { "kind": "break", "bars": [ { "bars": 16, "w": 3 }, { "bars": 24, "w": 2 }, { "bars": 32, "w": 1 } ] },
+      { "kind": "build", "bars": [ { "bars": 0, "w": 1 }, { "bars": 8, "w": 2 }, { "bars": 16, "w": 1 } ] },
+      { "kind": "drop2", "bars": [ { "bars": 16, "w": 1 }, { "bars": 24, "w": 1 }, { "bars": 32, "w": 3 }, { "bars": 40, "w": 1 } ] },
+      { "kind": "outro", "bars": [ { "bars": 32, "w": 1 } ] }
+    ],
+    "plans": {
+      "intro": { "choices": [
+        { "w": 2, "blocks": [ ["kick", "hats"], ["kick", "hats", "shaker"], ["kick", "snare", "hats", "shaker"], ["kick", "snare", "hats", "shaker", "bass"] ] },
+        { "w": 2, "blocks": [ ["kick", "hats"], ["kick", "snare", "hats"], ["kick", "snare", "hats", "shaker"], ["kick", "snare", "hats", "shaker", "bass"] ] },
+        { "w": 1, "blocks": [ ["kick", "hats", "shaker"], ["kick", "snare", "hats", "shaker"], ["kick", "snare", "hats", "shaker"], ["kick", "snare", "hats", "shaker", "bass"] ] }
+      ] },
+      "groove": {
+        "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
+        "entries": [
+          { "lanes": ["chords"], "after": [ { "bars": 0, "w": 1 }, { "bars": 8, "w": 3 } ] },
+          { "lanes": ["perc"], "after": [ { "bars": 16, "w": 2 }, { "bars": 24, "w": 1 }, { "bars": 32, "w": 1 } ] } ] },
+      "build": {
+        "lanes": ["kick", "snare", "hats", "shaker", "perc", "chords"],
+        "entries": [
+          { "lanes": ["kick"], "after": [ { "bars": 8, "w": 1 } ] } ] },
+      "drop": {
+        "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
+        "rest": { "p": 60, "bars": 8, "lanes": [ { "lane": "kick", "w": 3 }, { "lane": "chords", "w": 1 } ] },
+        "dropout": { "p": 35, "every": 16, "lanes": [ { "lanes": ["kick", "bass"], "w": 3 }, { "lanes": ["kick", "bass", "chords"], "w": 1 } ] },
+        "change": true },
+      "break": {
+        "lanes": ["hats", "perc", "bass", "chords"],
+        "entries": [
+          { "lanes": ["hats"], "after": [ { "bars": 0, "w": 1 }, { "bars": 8, "w": 1 } ] },
+          { "lanes": ["perc"], "after": [ { "bars": 8, "w": 1 }, { "bars": 16, "w": 1 } ] },
+          { "lanes": ["bass"], "last": [ { "bars": 8, "w": 1 } ] } ] },
+      "drop2": {
+        "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
+        "entries": [
+          { "lanes": ["chords"], "before": [ { "bars": 0, "w": 3 }, { "bars": 8, "w": 1 } ] } ],
+        "rest": { "p": 50, "bars": 8, "lanes": [ { "lane": "kick", "w": 3 }, { "lane": "hats", "w": 1 } ] },
+        "dropout": { "p": 35, "every": 16, "lanes": [ { "lanes": ["kick", "bass"], "w": 3 }, { "lanes": ["kick", "bass", "hats"], "w": 1 } ] },
+        "change": true },
+      "outro": { "choices": [
+        { "w": 2, "blocks": [ ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], ["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "shaker", "perc"], ["kick", "hats", "shaker"] ] },
+        { "w": 2, "blocks": [ ["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "shaker", "perc"], ["kick", "hats", "shaker", "perc"], ["kick", "hats"] ] },
+        { "w": 1, "blocks": [ ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], ["kick", "snare", "hats", "perc", "bass"], ["kick", "hats", "perc"], ["kick", "hats"] ] }
+      ] }
+    }
+  },
   "changes": { "turn": 50, "change": 70, "early": 50, "roster": ["hats", "snare", "bass", "perc", "shaker", "chords", "kick"] },
   "attempts": 16,
   "harmony": {

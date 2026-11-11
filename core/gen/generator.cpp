@@ -36,8 +36,9 @@ namespace wubansia::gen
         song.seed = options.seed;
         song.feelAmount = options.feelAmount >= 0 ? options.feelAmount : bundle.feel.amount;
 
-        // 1. the arrangement: the whole form, whatever the cut (step 6)
-        song.sections = arrange (style);
+        // 1. the arrangement: the seed's whole form, whatever the cut (step 6)
+        const rng::Key root = songRoot (kit.id, options.seed);
+        song.sections = arrange (style, root);
         for (const auto& s : song.sections)
             song.totalBars += s.bars;
         for (const auto& lane : style.lanes)
@@ -50,7 +51,6 @@ namespace wubansia::gen
             out.kind = lane.kind;
             song.lanes.push_back (std::move (out));
         }
-        const rng::Key root = songRoot (kit.id, options.seed);
         planChanges (song, style, root);
 
         // 2. harmony

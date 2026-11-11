@@ -98,11 +98,111 @@ namespace wubansia::gen
         std::int32_t variant = 0; // the pattern variant every lane starts the section on
     };
 
-    struct FormSection
+    // ---- the form grammar (arrange.h): every seed draws its own extended mix from it
+
+    struct LaneWeight
+    {
+        std::string lane;
+        std::int32_t weight = 0;
+    };
+
+    struct LaneGroup
+    {
+        std::vector<std::string> lanes;
+        std::int32_t weight = 0;
+    };
+
+    // One slot of the form, in order: a section kind and the lengths it may take, in bars (multiples
+    // of 8), by weight. A length of 0 leaves the slot out.
+    struct FormSlot
     {
         std::string kind;
-        std::int32_t bars = 0; // a multiple of 8
-        std::vector<std::vector<std::string>> blocks; // the active lanes of each 8-bar block
+        std::vector<Weighted> bars;
+    };
+
+    // A whole 32-bar mix-in or mix-out: the lanes of each of its 4 blocks.
+    struct BlockChoice
+    {
+        std::int32_t weight = 0;
+        std::vector<std::vector<std::string>> blocks;
+    };
+
+    // Lanes that play only part of a section, the part drawn per section from bars (multiples of 8):
+    enum class Entry : std::uint8_t {
+        after, // they join after this many bars (0: from the start; the section's length or more: they sit it out)
+        last, // they play only its last this many bars (its length or more: all of it)
+        before // they leave this many bars before its end (0: they stay; its length or more: they sit it out)
+    };
+
+    struct LaneEntry
+    {
+        std::vector<std::string> lanes;
+        Entry entry = Entry::after;
+        std::vector<Weighted> bars;
+    };
+
+    // A lane out for `bars` bars inside a section (a drop's lane move), with chance p per section: one
+    // lane drawn by weight, out from a multiple of `bars` (never the first) to `bars` later.
+    struct RestSpec
+    {
+        std::int32_t p = 0; // percent
+        std::int32_t bars = 8; // 8 or 16
+        std::vector<LaneWeight> lanes;
+    };
+
+    // A one-bar dropout: the bar before each of the section's own lines every `every` bars (16 or 32)
+    // inside it, never its last bar, with chance p per line: a lane group drawn by weight sits it out.
+    struct DropoutSpec
+    {
+        std::int32_t p = 0; // percent
+        std::int32_t every = 16;
+        std::vector<LaneGroup> lanes;
+    };
+
+    // How a section kind's lanes play across its blocks. The mix-in and mix-out take a whole 32-bar
+    // choice; the other kinds play their lanes in every block but for the entries, the rest and the
+    // dropouts.
+    struct KindPlan
+    {
+        std::string kind;
+        std::vector<BlockChoice> choices; // intro and outro only
+        std::vector<std::string> lanes;
+        std::vector<LaneEntry> entries; // a lane in at most one
+        std::optional<RestSpec> rest;
+        std::optional<DropoutSpec> dropout;
+        bool change = false; // every section of the kind has a lane change inside it: a rest, else a dropout, if the draws gave none
+    };
+
+    // The style's "form" (ADR 0023):
+    //   "form": { "bars": [lo, hi], "sixteen": percent,
+    //     "sections": [ { "kind": "intro", "bars": [ { "bars": 32, "w": 1 } ] }, ... ],
+    //     "layer": [ { "lane": id, "w": weight } ],                          (optional)
+    //     "plans": { "intro": { "choices": [ { "w": weight, "blocks": [ [ids], [ids], [ids], [ids] ] } ] },
+    //                "drop": { "lanes": [ids],
+    //                          "entries": [ { "lanes": [ids], "after" | "last" | "before": [ { "bars", "w" } ] } ],
+    //                          "rest": { "p", "bars", "lanes": [ { "lane", "w" } ] },
+    //                          "dropout": { "p", "every", "lanes": [ { "lanes": [ids], "w" } ] },
+    //                          "change": true }, ... } }
+    // The loader refuses a grammar that could draw a form breaking a DJ rule: lengths off the 8-bar
+    // grid; anything but a 32-bar intro first and a 32-bar outro last; a build not followed by a drop
+    // or drop2 that always plays; a mix-in choice that isn't drums only in its first block, lanes only
+    // joining, never three blocks alike (and a mix-out the other way round); a lane the mix-in ends on
+    // that the section after it doesn't play from its start; an entry, rest or dropout lane the kind
+    // doesn't play, or that can't play all through it where it must; a "change" kind with a length
+    // too short for its rest and its dropouts; a layer drop 2 doesn't play all through; and lines it
+    // can draw (each drop and break start on or off a 16-bar line) that no lengths keep inside
+    // [lo, hi]. makeBundle adds that every lane a plan can play has a grid for the kind.
+    struct FormSpec
+    {
+        Range bars { 200, 240 }; // the whole form's length
+        std::int32_t sixteen = 70; // percent: a drop, drop2 or break starts on a 16-bar line (bar 0 mod 16), else on 8 mod 16
+        std::vector<FormSlot> slots; // from the intro to the outro
+        std::vector<KindPlan> plans; // one per kind the slots name
+        std::vector<LaneWeight> layer; // drop 2's layer, drawn per song: drops play without it, drop2 sections with it ([] for none)
+
+        const KindPlan* plan (std::string_view kind) const noexcept;
+        // True if some plan of the kind (a block choice, or its lanes) can play the lane.
+        bool mayPlay (std::string_view kind, std::string_view lane) const noexcept;
     };
 
     struct ChangeSpec
@@ -391,7 +491,7 @@ namespace wubansia::gen
         std::string id;
         std::string about;
         std::vector<SectionSpec> sections;
-        std::vector<FormSection> form; // the default form: an extended mix
+        FormSpec form; // the extended mix's grammar: each seed draws its form from it (arrange.h)
         ChangeSpec changes;
         std::int32_t attempts = 16; // per pattern draw, then the best so far
         HarmonySpec harmony;

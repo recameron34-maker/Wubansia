@@ -5,7 +5,9 @@
 //    the kit's key signature, a marker FF 06 at every section start) and one track per lane;
 // 2. one region file per section, all lanes, named <order>_<kind>_<bars>bars.mid
 //    (03_drop_32bars.mid), so a producer can drag regions onto a DAW timeline;
-// 3. regions.json: each region's file, start bar, length, kind and active lanes.
+// 3. regions.json: each region's file, start bar, length, kind and active lanes, its lanes per
+//    8-bar block and its one-bar dropouts (each with its start bar, 1 bar and the lanes that sit it
+//    out; [] for none).
 // No note crosses a section boundary, so the regions tile the song exactly: the region files'
 // events, each moved to its section's start, are the full file's events.
 //

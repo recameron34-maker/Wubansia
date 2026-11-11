@@ -572,9 +572,9 @@ TEST_CASE ("styles: holdPads holds a key struck again straight after itself, ins
     s.lanes.resize (b.style.lanes.size());
     s.lanes[li].kind = LaneKind::chords;
     // a held section with two active ranges (bars 0-15 and 24-31), a stab section, a held section again
-    s.sections.push_back ({ 0, "groove", 0, 32, { on, on, 0, on } });
-    s.sections.push_back ({ 1, "drop", 32, 8, { on } });
-    s.sections.push_back ({ 2, "groove", 40, 8, { on } });
+    s.sections.push_back ({ 0, "groove", 0, 32, { on, on, 0, on }, {} });
+    s.sections.push_back ({ 1, "drop", 32, 8, { on }, {} });
+    s.sections.push_back ({ 2, "groove", 40, 8, { on }, {} });
     const auto note = [] (std::int64_t tick, std::int64_t length, int key, int voice, int section) {
         Note n;
         n.tick = tick;

@@ -6,8 +6,9 @@
 // score, and tests can check both.
 //
 // Pipeline (generator.cpp), feel always last:
-//   1. arrangement: the style's default form (an extended mix), its 8-bar blocks of active lanes,
-//      the salient-change schedule and the turnaround bars (arrange.h)
+//   1. arrangement: the seed's form, drawn from the style's grammar (an extended mix), its 8-bar
+//      blocks of active lanes and one-bar dropouts, the salient-change schedule and the turnaround
+//      bars (arrange.h)
 //   2. harmony: mode, one progression per slot, chord spans with pushed changes (harmony.h)
 //   3. rhythm: each drum lane's patterns from its grids, in dependency order (lanes.h, rhythm.h)
 //   4. pitches: the chords voiced; the bass on chord degrees, following its kick and agreeing with
@@ -72,6 +73,15 @@ namespace wubansia::gen
         friend bool operator== (const Note&, const Note&) = default;
     };
 
+    // A one-bar dropout inside a section (arrange.h): lanes of the bar's block that sit that bar out.
+    struct Dropout
+    {
+        std::int32_t bar = 0; // within the section
+        std::uint64_t lanes = 0; // bit i: style lane i
+
+        friend bool operator== (const Dropout&, const Dropout&) = default;
+    };
+
     struct Section
     {
         std::size_t index = 0; // 0-based, in song order
@@ -79,10 +89,12 @@ namespace wubansia::gen
         std::int32_t startBar = 0; // 0-based; a multiple of 8
         std::int32_t bars = 0; // the form's (a --bars cut shortens the last section it keeps: cut.h)
         std::vector<std::uint64_t> blocks; // per 8-bar block (of `bars`): bit i = style lane i plays
+        std::vector<Dropout> dropouts; // in bar order, at most one per bar
 
         std::int64_t startTick() const noexcept { return startBar * ticksPerBar; }
         std::int64_t endTick() const noexcept { return (startBar + bars) * ticksPerBar; }
         bool active (std::size_t lane, std::int32_t barInSection) const noexcept;
+        std::uint64_t lanesAt (std::int32_t barInSection) const noexcept; // bit i: lane i plays that bar (its block's lanes, less a dropout's)
         std::uint64_t lanesAnywhere() const noexcept; // bit i: lane i plays in some block
     };
 

@@ -177,7 +177,16 @@ namespace wubansia::gen
                 j += "        { \"startBar\": " + std::to_string (blockBar) + ", \"dawBar\": " + std::to_string (blockBar + 1) + ", \"bars\": "
                      + std::to_string (barsPerBlock) + ", \"lanes\": " + laneList (s.blocks[k]) + " }" + (k + 1 < s.blocks.size() ? "," : "") + "\n";
             }
-            j += "      ]\n";
+            j += "      ],\n";
+            // the one-bar dropouts inside it (arrange.h): lanes of a block that sit one bar out
+            j += std::string ("      \"dropouts\": [") + (s.dropouts.empty() ? "" : "\n");
+            for (std::size_t k = 0; k < s.dropouts.size(); ++k)
+            {
+                const std::int32_t bar = s.startBar + s.dropouts[k].bar;
+                j += "        { \"startBar\": " + std::to_string (bar) + ", \"dawBar\": " + std::to_string (bar + 1) + ", \"bars\": 1, \"lanes\": "
+                     + laneList (s.dropouts[k].lanes) + " }" + (k + 1 < s.dropouts.size() ? "," : "") + "\n";
+            }
+            j += std::string (s.dropouts.empty() ? "" : "      ") + "]\n";
             j += std::string ("    }") + (i + 1 < song.sections.size() ? "," : "") + "\n";
         }
         j += "  ]\n";

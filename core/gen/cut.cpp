@@ -17,11 +17,12 @@ namespace wubansia::gen
             return R::success (std::move (song));
         const std::int64_t end = static_cast<std::int64_t> (bars) * ticksPerBar;
 
-        // the arrangement: the sections that start before the cut, the last one (and its blocks) shortened
+        // the arrangement: the sections that start before the cut, the last one (its blocks and dropouts) shortened
         std::erase_if (song.sections, [&] (const Section& s) { return s.startBar >= bars; });
         Section& last = song.sections.back();
         last.bars = std::min (last.bars, bars - last.startBar);
         last.blocks.resize (static_cast<std::size_t> (last.bars / barsPerBlock));
+        std::erase_if (last.dropouts, [&] (const Dropout& d) { return d.bar >= last.bars; });
         song.harmony.resize (song.sections.size());
         std::erase_if (song.changes, [&] (const Change& c) { return c.section >= song.sections.size() || c.bar >= song.sections[c.section].bars; });
         std::erase_if (song.turnBars, [&] (std::int32_t b) { return b >= bars; });

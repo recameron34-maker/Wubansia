@@ -1,5 +1,6 @@
 #include "gen/content.h"
 
+#include "gen/arrange.h"
 #include "gen/json.h"
 #include "util/file_io.h"
 
@@ -758,6 +759,386 @@ namespace wubansia::gen
             return i && style.lanes[*i].kind == LaneKind::drums;
         }
 
+        // ------------------------------------------------------------------ the form grammar (arrange.h)
+
+        bool contains (const std::vector<std::string>& ids, std::string_view id) { return std::find (ids.begin(), ids.end(), id) != ids.end(); }
+
+        // Lane ids, each a lane of the style, none twice.
+        std::vector<std::string> laneIds (const Node& n, const Style& style, std::size_t minCount)
+        {
+            auto ids = n.strings (minCount, 32);
+            for (std::size_t a = 0; a < ids.size(); ++a)
+            {
+                if (!style.laneIndex (ids[a]))
+                    n.fail ("unknown lane \"" + ids[a] + "\"");
+                for (std::size_t b = a + 1; b < ids.size(); ++b)
+                    if (ids[a] == ids[b])
+                        n.fail ("the lane \"" + ids[a] + "\" is listed twice");
+            }
+            return ids;
+        }
+
+        // Lengths in bars by weight: multiples of 8 in [lo, 256].
+        std::vector<Weighted> barsOf (const Node& n, std::int32_t lo)
+        {
+            auto out = weightedOf (n, "bars", lo, 256);
+            for (std::size_t i = 0; i < out.size(); ++i)
+                if (out[i].value % 8 != 0)
+                    n.at (i)["bars"].fail ("a length is a multiple of 8 bars (sections and lane moves sit on 8-bar lines), not " + std::to_string (out[i].value));
+            return out;
+        }
+
+        std::vector<LaneWeight> laneWeights (const Node& n, const Style& style)
+        {
+            std::vector<LaneWeight> out;
+            std::int64_t total = 0;
+            for (std::size_t i = 0; i < n.size(); ++i)
+            {
+                const Node e = n.at (i);
+                e.only ({ "lane", "w" });
+                LaneWeight lw { e["lane"].string (1, 32), e["w"].int32 (0, 100) };
+                if (!style.laneIndex (lw.lane))
+                    e["lane"].fail ("unknown lane \"" + lw.lane + "\"");
+                total += lw.weight;
+                out.push_back (std::move (lw));
+            }
+            if (n.isArray() && total == 0)
+                n.fail ("every weight is 0: nothing could be picked");
+            return out;
+        }
+
+        // The DJ rules of a 32-bar mix-in (in) or mix-out: drums only in its first (last) block; lanes
+        // only joining (leaving), at least one every 8 or 16 bars (never three blocks in a row alike).
+        void edgeBlocks (const Style& style, const std::vector<std::vector<std::string>>& blocks, const Node& at, bool in)
+        {
+            const std::string name = in ? "the mix-in" : "the mix-out";
+            if (blocks.size() != 4)
+            {
+                at.fail (name + " is 32 bars long (4 blocks), not " + std::to_string (blocks.size() * 8));
+                return;
+            }
+            const std::size_t edge = in ? 0 : blocks.size() - 1;
+            for (const auto& id : blocks[edge])
+                if (!isDrumLane (style, id))
+                {
+                    at.at (edge).fail (name + (in ? " starts" : " ends") + " with drums only, but its " + (in ? "first" : "last") + " block has \"" + id + "\"");
+                    return;
+                }
+            const auto same = [] (const std::vector<std::string>& a, const std::vector<std::string>& b) {
+                return a.size() == b.size() && std::all_of (a.begin(), a.end(), [&] (const std::string& id) { return contains (b, id); });
+            };
+            for (std::size_t k = 1; k < blocks.size(); ++k)
+            {
+                const auto& before = blocks[k - 1];
+                const auto& here = blocks[k];
+                for (const auto& id : in ? before : here)
+                    if (!contains (in ? here : before, id))
+                    {
+                        at.at (k).fail (in ? "lanes only join in " + name + ", but \"" + id + "\" leaves here" : "lanes only leave in " + name + ", but \"" + id + "\" joins here");
+                        return;
+                    }
+                if (k >= 2 && same (here, before) && same (before, blocks[k - 2]))
+                {
+                    at.at (k).fail (name + (in ? " brings a lane in" : " takes a lane out") + " every 8 or 16 bars, but this is the third block in a row with the same lanes");
+                    return;
+                }
+            }
+        }
+
+        KindPlan kindPlan (const Node& n, const std::string& kind, const Style& style)
+        {
+            KindPlan plan;
+            plan.kind = kind;
+            if (kind == "intro" || kind == "outro")
+            {
+                n.only ({ "choices" });
+                const Node choices = n["choices"];
+                if (choices.isArray() && choices.size() == 0)
+                    choices.fail ("at least one choice is needed");
+                std::int64_t total = 0;
+                for (std::size_t i = 0; i < choices.size(); ++i)
+                {
+                    const Node c = choices.at (i);
+                    c.only ({ "w", "blocks" });
+                    BlockChoice choice;
+                    choice.weight = c["w"].int32 (0, 100);
+                    total += choice.weight;
+                    const Node blocks = c["blocks"];
+                    for (std::size_t k = 0; k < blocks.size(); ++k)
+                        choice.blocks.push_back (laneIds (blocks.at (k), style, 0));
+                    if (blocks.exists())
+                        edgeBlocks (style, choice.blocks, blocks, kind == "intro");
+                    plan.choices.push_back (std::move (choice));
+                }
+                if (choices.isArray() && choices.size() > 0 && total == 0)
+                    choices.fail ("every weight is 0: nothing could be picked");
+                return plan;
+            }
+            n.only ({ "lanes", "entries", "rest", "dropout", "change" });
+            plan.lanes = laneIds (n["lanes"], style, 1);
+            const Node entries = n.optional ("entries");
+            for (std::size_t i = 0; i < entries.size(); ++i)
+            {
+                const Node e = entries.at (i);
+                e.only ({ "lanes", "after", "last", "before" });
+                LaneEntry entry;
+                entry.lanes = laneIds (e["lanes"], style, 1);
+                for (const auto& id : entry.lanes)
+                {
+                    if (!contains (plan.lanes, id))
+                        e["lanes"].fail ("\"" + id + "\" isn't one of the " + kind + "'s lanes");
+                    for (const auto& other : plan.entries)
+                        if (contains (other.lanes, id))
+                            e["lanes"].fail ("\"" + id + "\" is in another entry: a lane joins or leaves once");
+                }
+                const bool after = e.optional ("after").exists(), last = e.optional ("last").exists(), before = e.optional ("before").exists();
+                if (int (after) + int (last) + int (before) != 1)
+                    e.fail ("an entry has one of \"after\", \"last\" or \"before\"");
+                std::string_view verb = "before";
+                entry.entry = Entry::before;
+                if (after)
+                {
+                    verb = "after";
+                    entry.entry = Entry::after;
+                }
+                else if (last)
+                {
+                    verb = "last";
+                    entry.entry = Entry::last;
+                }
+                if (after || last || before)
+                    entry.bars = barsOf (e[verb], last ? 8 : 0); // "last" plays at least one block
+                plan.entries.push_back (std::move (entry));
+            }
+            const auto entered = [&plan] (std::string_view id) {
+                return std::any_of (plan.entries.begin(), plan.entries.end(), [&] (const LaneEntry& e) { return contains (e.lanes, id); });
+            };
+            const auto layered = [&style] (std::string_view id) {
+                return std::any_of (style.form.layer.begin(), style.form.layer.end(), [&] (const LaneWeight& lw) { return lw.lane == id; });
+            };
+            if (const Node r = n.optional ("rest"); r.exists())
+            {
+                r.only ({ "p", "bars", "lanes" });
+                RestSpec rest;
+                rest.p = r["p"].int32 (0, 100);
+                rest.bars = r["bars"].int32 (8, 16);
+                if (rest.bars != 8 && rest.bars != 16)
+                    r["bars"].fail ("a rest is 8 or 16 bars, not " + std::to_string (rest.bars));
+                rest.lanes = laneWeights (r["lanes"], style);
+                for (const auto& lw : rest.lanes)
+                    if (!contains (plan.lanes, lw.lane) || entered (lw.lane) || layered (lw.lane))
+                        r["lanes"].fail ("\"" + lw.lane + "\" can't rest: a rest takes one of the " + kind + "'s lanes that plays all through it (no entry, not drop 2's layer)");
+                plan.rest = std::move (rest);
+            }
+            if (const Node d = n.optional ("dropout"); d.exists())
+            {
+                d.only ({ "p", "every", "lanes" });
+                DropoutSpec dropout;
+                dropout.p = d["p"].int32 (0, 100);
+                dropout.every = d["every"].int32 (16, 32);
+                if (dropout.every != 16 && dropout.every != 32)
+                    d["every"].fail ("a dropout comes before every 16- or 32-bar line, not " + std::to_string (dropout.every));
+                const Node groups = d["lanes"];
+                std::int64_t total = 0;
+                for (std::size_t i = 0; i < groups.size(); ++i)
+                {
+                    const Node g = groups.at (i);
+                    g.only ({ "lanes", "w" });
+                    LaneGroup group { laneIds (g["lanes"], style, 1), g["w"].int32 (0, 100) };
+                    total += group.weight;
+                    for (const auto& id : group.lanes)
+                        if (!contains (plan.lanes, id))
+                            g["lanes"].fail ("\"" + id + "\" isn't one of the " + kind + "'s lanes");
+                    if (std::all_of (group.lanes.begin(), group.lanes.end(), [&] (const std::string& id) { return entered (id) || layered (id); }))
+                        g["lanes"].fail ("a dropout group needs a lane that plays all through the " + kind + " (no entry, not drop 2's layer)");
+                    dropout.lanes.push_back (std::move (group));
+                }
+                if (groups.isArray() && total == 0)
+                    groups.fail ("every weight is 0: nothing could be picked");
+                plan.dropout = std::move (dropout);
+            }
+            if (n.optional ("change").exists())
+                plan.change = n["change"].boolean();
+            return plan;
+        }
+
+        void formOf (const Node& n, Style& style)
+        {
+            n.only ({ "bars", "sixteen", "sections", "layer", "plans" });
+            FormSpec& form = style.form;
+            form.bars = rangeOf (n["bars"], 64, 512);
+            if (form.bars.lo % 8 != 0 || form.bars.hi % 8 != 0)
+                n["bars"].fail ("the form's length is a multiple of 8 bars at both ends");
+            form.sixteen = n["sixteen"].int32 (0, 100);
+
+            const Node sections = n["sections"];
+            if (sections.isArray() && sections.size() < 2)
+                sections.fail ("the form needs a mix-in and a mix-out at least");
+            for (std::size_t i = 0; i < sections.size(); ++i)
+            {
+                const Node s = sections.at (i);
+                s.only ({ "kind", "bars" });
+                FormSlot slot;
+                slot.kind = s["kind"].string();
+                if (!knownKind (slot.kind))
+                    s["kind"].fail ("unknown section kind \"" + slot.kind + "\"");
+                else if (style.section (slot.kind) == nullptr)
+                    s["kind"].fail ("the kind \"" + slot.kind + "\" has no entry in \"sections\"");
+                slot.bars = barsOf (s["bars"], 0);
+                form.slots.push_back (std::move (slot));
+            }
+            if (n.errors().any())
+                return;
+            // A DJ-friendly extended mix: mixed in on a 32-bar intro, mixed out on a 32-bar outro.
+            for (std::size_t i = 0; i < form.slots.size(); ++i)
+            {
+                const FormSlot& slot = form.slots[i];
+                const Node at = sections.at (i);
+                const bool first = i == 0, last = i + 1 == form.slots.size();
+                if (first && slot.kind != "intro")
+                    at["kind"].fail ("the form starts with an intro, the mix-in");
+                else if (last && slot.kind != "outro")
+                    at["kind"].fail ("the form ends with an outro, the mix-out");
+                else if (!first && slot.kind == "intro")
+                    at["kind"].fail ("the intro, the mix-in, comes first and only there");
+                else if (!last && slot.kind == "outro")
+                    at["kind"].fail ("the outro, the mix-out, comes last and only there");
+                else if (slot.kind == "intro" || slot.kind == "outro")
+                {
+                    for (std::size_t k = 0; k < slot.bars.size(); ++k)
+                        if (slot.bars[k].value != 32)
+                            at["bars"].at (k)["bars"].fail ((first ? "the mix-in" : "the mix-out") + std::string (" is 32 bars long, not ") + std::to_string (slot.bars[k].value));
+                }
+                // a build leads into a drop: the next slot is a drop or drop2 that always plays
+                if (slot.kind == "build")
+                {
+                    const bool intoDrop = !last && (form.slots[i + 1].kind == "drop" || form.slots[i + 1].kind == "drop2")
+                                          && std::none_of (form.slots[i + 1].bars.begin(), form.slots[i + 1].bars.end(), [] (const Weighted& w) { return w.value == 0 && w.weight > 0; });
+                    if (!intoDrop)
+                        at["kind"].fail ("a build leads into a drop: the next section is a drop or drop2 that is never left out");
+                }
+            }
+            if (n.errors().any())
+                return;
+
+            // drop 2's layer: before the plans, which keep it out of their rests
+            if (const Node layer = n.optional ("layer"); layer.exists())
+                form.layer = laneWeights (layer, style);
+
+            const Node plans = n["plans"];
+            for (const auto& [kind, p] : plans.members())
+            {
+                if (!knownKind (kind))
+                {
+                    p.fail ("unknown section kind \"" + kind + "\"");
+                    continue;
+                }
+                if (std::none_of (form.slots.begin(), form.slots.end(), [&] (const FormSlot& s) { return s.kind == kind; }))
+                {
+                    p.fail ("the form has no " + kind + " section");
+                    continue;
+                }
+                form.plans.push_back (kindPlan (p, kind, style));
+            }
+            for (std::size_t i = 0; i < form.slots.size(); ++i)
+                if (form.plan (form.slots[i].kind) == nullptr)
+                {
+                    plans.fail ("the form has a " + form.slots[i].kind + " section, but \"plans\" gives it no plan");
+                    break;
+                }
+            if (n.errors().any())
+                return;
+
+            // the layer plays all through drop 2 and is held out of drop 1
+            if (!form.layer.empty())
+            {
+                const KindPlan* drop = form.plan ("drop");
+                const KindPlan* drop2 = form.plan ("drop2");
+                if (drop == nullptr || drop2 == nullptr)
+                    n["layer"].fail ("drop 2's layer needs a drop and a drop2 section");
+                else
+                    for (const auto& lw : form.layer)
+                        if (!contains (drop2->lanes, lw.lane) || std::any_of (drop2->entries.begin(), drop2->entries.end(), [&] (const LaneEntry& e) { return contains (e.lanes, lw.lane); }))
+                            n["layer"].fail ("\"" + lw.lane + "\" isn't one of the drop2's lanes that plays all through it");
+            }
+
+            // the mix-in's lanes carry on into the section after it (lanes only join from the mix-in on):
+            // every lane a mix-in choice ends on is one of that kind's lanes from its start
+            const KindPlan* intro = form.plan ("intro");
+            for (std::size_t i = 1; intro != nullptr && i < form.slots.size(); ++i)
+            {
+                const KindPlan& next = *form.plan (form.slots[i].kind);
+                for (const BlockChoice& c : intro->choices)
+                {
+                    if (c.blocks.empty())
+                        continue;
+                    for (const auto& id : c.blocks.back())
+                    {
+                        const bool late = std::any_of (next.entries.begin(), next.entries.end(), [&] (const LaneEntry& e) { return e.entry != Entry::before && contains (e.lanes, id); });
+                        if (!contains (next.lanes, id) || late)
+                        {
+                            plans[form.slots[i].kind].fail ("the mix-in ends on \"" + id + "\", so the " + form.slots[i].kind + " after it plays it from its start");
+                            return;
+                        }
+                    }
+                }
+                // the next slot that can follow the mix-in, if this one can be left out
+                if (std::none_of (form.slots[i].bars.begin(), form.slots[i].bars.end(), [] (const Weighted& w) { return w.value == 0 && w.weight > 0; }))
+                    break;
+            }
+
+            // a kind with "change" can always make one: a rest or a dropout fits every length it takes
+            for (std::size_t i = 0; i < form.slots.size(); ++i)
+            {
+                const KindPlan& plan = *form.plan (form.slots[i].kind);
+                if (!plan.change)
+                    continue;
+                for (std::size_t k = 0; k < form.slots[i].bars.size(); ++k)
+                {
+                    const std::int32_t bars = form.slots[i].bars[k].value;
+                    if (bars == 0 || form.slots[i].bars[k].weight == 0)
+                        continue;
+                    const bool rest = plan.rest && 2 * plan.rest->bars <= bars;
+                    const bool dropout = plan.dropout && plan.dropout->every < bars;
+                    if (!rest && !dropout)
+                        sections.at (i)["bars"].at (k)["bars"].fail ("a " + plan.kind + " has a lane change inside it, but a " + std::to_string (bars)
+                                                                     + "-bar one has no room for a rest or a dropout");
+                }
+            }
+
+            // the lines: every combination of drop and break starts on and off 16-bar lines that the
+            // form can draw must fit its length range
+            std::vector<std::size_t> landmarks;
+            for (std::size_t i = 0; i < form.slots.size(); ++i)
+                if (startsOnLine (form.slots[i].kind))
+                    landmarks.push_back (i);
+            if (landmarks.size() > 12)
+            {
+                sections.fail ("at most 12 drop, drop2 and break sections");
+                return;
+            }
+            const bool on = form.sixteen > 0, off = form.sixteen < 100;
+            for (std::uint32_t combo = 0; combo < (std::uint32_t (1) << landmarks.size()); ++combo)
+            {
+                std::vector<std::int8_t> lines (form.slots.size(), -1);
+                bool drawable = true;
+                std::string named;
+                for (std::size_t b = 0; b < landmarks.size(); ++b)
+                {
+                    const bool sixteen = ((combo >> b) & 1u) != 0;
+                    drawable = drawable && (sixteen ? on : off);
+                    lines[landmarks[b]] = sixteen ? 1 : 0;
+                    named += std::string (named.empty() ? "" : ", ") + form.slots[landmarks[b]].kind + " (form.sections[" + std::to_string (landmarks[b]) + "]) "
+                             + (sixteen ? "on a 16-bar line" : "on 8 mod 16");
+                }
+                if (drawable && !formFits (form, lines))
+                {
+                    sections.fail ("no lengths fit " + std::to_string (form.bars.lo) + " to " + std::to_string (form.bars.hi) + " bars with " + named);
+                    return;
+                }
+            }
+        }
+
         // ------------------------------------------------------------------ feel
 
         FeelLane feelLane (const Node& n)
@@ -860,6 +1241,25 @@ namespace wubansia::gen
             if (r.kind == kind)
                 return &r;
         return nullptr;
+    }
+
+    const KindPlan* FormSpec::plan (std::string_view kind) const noexcept
+    {
+        for (const auto& p : plans)
+            if (p.kind == kind)
+                return &p;
+        return nullptr;
+    }
+
+    bool FormSpec::mayPlay (std::string_view kind, std::string_view lane) const noexcept
+    {
+        const KindPlan* p = plan (kind);
+        if (p == nullptr)
+            return false;
+        const auto has = [&] (const std::vector<std::string>& ids) { return std::find (ids.begin(), ids.end(), lane) != ids.end(); };
+        if (has (p->lanes))
+            return true;
+        return std::any_of (p->choices.begin(), p->choices.end(), [&] (const BlockChoice& c) { return std::any_of (c.blocks.begin(), c.blocks.end(), has); });
     }
 
     const SectionSpec* Style::section (std::string_view kind) const noexcept
@@ -1058,110 +1458,18 @@ namespace wubansia::gen
             style.sections.push_back (spec);
         }
 
-        const Node form = root["form"];
-        for (std::size_t i = 0; i < form.size(); ++i)
-        {
-            const Node f = form.at (i);
-            f.only ({ "kind", "bars", "blocks" });
-            FormSection sec;
-            sec.kind = f["kind"].string();
-            if (!knownKind (sec.kind))
-                f["kind"].fail ("unknown section kind \"" + sec.kind + "\"");
-            else if (style.section (sec.kind) == nullptr)
-                f["kind"].fail ("the kind \"" + sec.kind + "\" has no entry in \"sections\"");
-            sec.bars = f["bars"].int32 (8, 512);
-            if (sec.bars % 8 != 0)
-                f["bars"].fail ("a section is a multiple of 8 bars long (sections start on 8-bar lines), not " + std::to_string (sec.bars));
-            const Node blocks = f["blocks"];
-            const std::size_t want = static_cast<std::size_t> (sec.bars / 8);
-            if (blocks.exists() && blocks.size() != want)
-                blocks.fail ("it must hold " + std::to_string (want) + " blocks, one per 8 bars, not " + std::to_string (blocks.size()));
-            for (std::size_t k = 0; k < blocks.size(); ++k)
-            {
-                auto active = blocks.at (k).strings (0, 32);
-                for (const auto& id : active)
-                    if (!style.laneIndex (id))
-                        blocks.at (k).fail ("unknown lane \"" + id + "\"");
-                for (std::size_t a = 0; a < active.size(); ++a)
-                    for (std::size_t b = a + 1; b < active.size(); ++b)
-                        if (active[a] == active[b])
-                            blocks.at (k).fail ("the lane \"" + active[a] + "\" is listed twice");
-                sec.blocks.push_back (std::move (active));
-            }
-            style.form.push_back (std::move (sec));
-        }
-        if (form.exists() && style.form.empty())
-            form.fail ("the form needs at least one section");
-        if (!errors.any() && !style.form.empty())
-        {
-            // A DJ-friendly extended mix: mixed in from drums only, mixed out to drums only.
-            if (style.form.front().kind != "intro")
-                form.at (0)["kind"].fail ("the form starts with an intro, the mix-in");
-            else if (!style.form.front().blocks.empty())
-                for (const auto& id : style.form.front().blocks.front())
-                    if (!isDrumLane (style, id))
-                        form.at (0)["blocks"].at (0).fail ("the mix-in starts with drums only, but its first block has \"" + id + "\"");
-            if (style.form.back().kind != "outro")
-                form.at (style.form.size() - 1)["kind"].fail ("the form ends with an outro, the mix-out");
-            else if (!style.form.back().blocks.empty())
-                for (const auto& id : style.form.back().blocks.back())
-                    if (!isDrumLane (style, id))
-                        form.at (style.form.size() - 1)["blocks"]
-                            .at (style.form.back().blocks.size() - 1)
-                            .fail ("the mix-out ends with drums only, but its last block has \"" + id + "\"");
-            // Both are 32 bars, and their lanes move one way, block by block: in the mix-in lanes only
-            // join, in the mix-out they only leave, and at least one does every 8 or 16 bars (never
-            // three blocks in a row with the same lanes).
-            const auto edge = [&] (std::size_t si, bool in) {
-                const FormSection& sec = style.form[si];
-                const Node at = form.at (si);
-                const std::string name = in ? "the mix-in" : "the mix-out";
-                if (sec.bars != 32)
-                {
-                    at["bars"].fail (name + " is 32 bars long, not " + std::to_string (sec.bars));
-                    return;
-                }
-                const auto has = [] (const std::vector<std::string>& block, const std::string& id) { return std::find (block.begin(), block.end(), id) != block.end(); };
-                const auto same = [&] (const std::vector<std::string>& a, const std::vector<std::string>& b) {
-                    return a.size() == b.size() && std::all_of (a.begin(), a.end(), [&] (const std::string& id) { return has (b, id); });
-                };
-                for (std::size_t k = 1; k < sec.blocks.size(); ++k)
-                {
-                    const auto& before = sec.blocks[k - 1];
-                    const auto& here = sec.blocks[k];
-                    for (const auto& id : in ? before : here)
-                        if (!has (in ? here : before, id))
-                        {
-                            at["blocks"].at (k).fail (in ? "lanes only join in " + name + ", but \"" + id + "\" leaves here"
-                                                         : "lanes only leave in " + name + ", but \"" + id + "\" joins here");
-                            return;
-                        }
-                    if (k >= 2 && same (here, before) && same (before, sec.blocks[k - 2]))
-                    {
-                        at["blocks"].at (k).fail (name + (in ? " brings a lane in" : " takes a lane out") + " every 8 or 16 bars, but this is the third block in a row with the same lanes");
-                        return;
-                    }
-                }
-            };
-            if (style.form.front().kind == "intro")
-                edge (0, true);
-            if (style.form.back().kind == "outro")
-                edge (style.form.size() - 1, false);
-        }
+        formOf (root["form"], style);
         // a lane's controllers need a row for every section kind the form plays the lane in (cc.h)
         for (std::size_t li = 0; li < style.lanes.size(); ++li)
             for (std::size_t ci = 0; ci < style.lanes[li].cc.size(); ++ci)
             {
                 const LaneSpec& lane = style.lanes[li];
-                for (const auto& sec : style.form)
+                for (const auto& plan : style.form.plans)
                 {
-                    const bool plays = std::any_of (sec.blocks.begin(), sec.blocks.end(), [&] (const std::vector<std::string>& block) {
-                        return std::find (block.begin(), block.end(), lane.id) != block.end();
-                    });
-                    if (plays && lane.cc[ci].row (sec.kind) == nullptr)
+                    if (style.form.mayPlay (plan.kind, lane.id) && lane.cc[ci].row (plan.kind) == nullptr)
                     {
-                        lanes.at (li)["cc"].at (ci)["rows"].fail ("the form plays the lane \"" + lane.id + "\" in a " + sec.kind + " section, but controller "
-                                                                  + std::to_string (lane.cc[ci].number) + " has no row for " + sec.kind);
+                        lanes.at (li)["cc"].at (ci)["rows"].fail ("the form plays the lane \"" + lane.id + "\" in a " + plan.kind + " section, but controller "
+                                                                  + std::to_string (lane.cc[ci].number) + " has no row for " + plan.kind);
                         break;
                     }
                 }
@@ -1178,12 +1486,12 @@ namespace wubansia::gen
                 changes["roster"].fail ("unknown lane \"" + id + "\"");
 
         harmony (root["harmony"], style.harmony);
-        for (const auto& sec : style.form)
+        for (const auto& slot : style.form.slots)
         {
-            if (style.harmony.slotFor (sec.kind).empty())
-                root["harmony"]["use"].fail ("the form has a " + sec.kind + " section, but \"use\" gives it no slot");
-            if (style.harmony.paletteFor (sec.kind) == nullptr)
-                root["harmony"]["palette"].fail ("the form has a " + sec.kind + " section, but the palette has no voicings for it");
+            if (style.harmony.slotFor (slot.kind).empty())
+                root["harmony"]["use"].fail ("the form has a " + slot.kind + " section, but \"use\" gives it no slot");
+            if (style.harmony.paletteFor (slot.kind) == nullptr)
+                root["harmony"]["palette"].fail ("the form has a " + slot.kind + " section, but the palette has no voicings for it");
         }
         return finish (errors, std::move (style));
     }
@@ -1263,15 +1571,10 @@ namespace wubansia::gen
         for (const auto& kl : kit.lanes)
             if (!style.laneIndex (kl.id))
                 return R::failure (where + "the kit's lane \"" + kl.id + "\" isn't a lane of the style");
-        for (const auto& sec : style.form)
-            for (const auto& block : sec.blocks)
-                for (const auto& id : block)
-                {
-                    const LaneSpec& lane = style.lanes[*style.laneIndex (id)];
-                    if (lane.gridFor (sec.kind).empty())
-                        return R::failure (where + "the form plays the lane \"" + id + "\" in a " + sec.kind + " section, but the lane has no grid for "
-                                           + sec.kind);
-                }
+        for (const auto& plan : style.form.plans)
+            for (const auto& lane : style.lanes)
+                if (style.form.mayPlay (plan.kind, lane.id) && lane.gridFor (plan.kind).empty())
+                    return R::failure (where + "the form plays the lane \"" + lane.id + "\" in a " + plan.kind + " section, but the lane has no grid for " + plan.kind);
         // the feel
         for (const auto& lane : style.lanes)
             if (std::none_of (feel.lanes.begin(), feel.lanes.end(), [&] (const auto& p) { return p.first == lane.id; }))

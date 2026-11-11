@@ -28,9 +28,9 @@ namespace wubansia::cli
         {
             os << "Usage: groovecore gen --kit <ID> --seed <N> --out <DIR> [options]\n"
                   "\n"
-                  "Writes an extended mix of the kit's style as MIDI regions: the full arrangement\n"
-                  "(SMF type 1, 480 PPQ, one track per lane, a marker at every section), one file per\n"
-                  "section and regions.json, with feel and quantized.\n"
+                  "Writes an extended mix of the kit's style as MIDI regions, its form drawn from the\n"
+                  "seed: the full arrangement (SMF type 1, 480 PPQ, one track per lane, a marker at every\n"
+                  "section), one file per section and regions.json, with feel and quantized.\n"
                   "\n"
                   "Options:\n"
                   "  --kit <ID>        the kit, e.g. FUT01 (content/kits/<id>.json)\n"
