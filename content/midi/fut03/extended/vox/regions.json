@@ -498,7 +498,8 @@
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
           "roll": "snare",
-          "roll_bars": 4,
+          "roll_from": 93,
+          "roll_bars": 3,
           "drums": "shaker",
           "end": "fill",
           "ride": {

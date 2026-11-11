@@ -47,7 +47,7 @@ Line by line (bars of the whole mix):
 
 **4. Build** (bars 81-96)
 - 81-88: kick, off-beat hats, perc, bass (Rubber), chords (Gm9 Cm9), pad (Gm9 Cm9), accents; the drums' shaker variant; the Chords filter ride from 16 to 96; the perc rise from 60% to 100% velocity; a turnaround (run) in its last bar
-- 89-96: kick, clap, off-beat hats, 16ths in its second half, perc, chords (Gm9 Cm9), pad (Gm9 Cm9), fx; the drums' shaker variant; the Chords filter ride from 96 to 127; the clap rolls over the line's last 4 bars up to the fill, rising hit by hit; the fill in its last bar
+- 89-96: kick, clap, off-beat hats, 16ths in its second half, perc, chords (Gm9 Cm9), pad (Gm9 Cm9), fx; the drums' shaker variant; the Chords filter ride from 96 to 127; the clap rolls over bars 93-95 up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 97-128)
 - 97-104: kick, clap, hats, perc, bass (Rubber), chords (Gm9 Cm9), pad (Gm9 Cm9), vox (riff), accents, fx; the drums' drop lite variant; the Chords filter ride 127 at bar 0 then 127 at bar 2 then 0 at bar 8; a turnaround (drop) in its last bar
@@ -89,7 +89,8 @@ Line by line (bars of the whole mix):
 - bar 160: Fill
 - bar 169: Vox
 
-A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
+A riser's note ends on its section's first beat; a fill's on the next downbeat; a Vox cue sits on the bar where
+its line's vox comes in.
 
 ## Tracks
 

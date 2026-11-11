@@ -91,15 +91,18 @@ instrument, and the sound on each key of channels 6, 7 and 8.
 - **Throws:** CC91 (Space) and CC94 (Echo) go to 127 on a thrown note's tick, before its note-on, and back to 0 at its
   note-off, or sooner at the next note-on on its track that isn't thrown (on that tick, before the note-on), so no
   other note takes the throw: FUT02's vox throw, FUT04's vox throws and thrown accents, and every vox note an extended
-  mix throws. Wubansia latches them per note (send = base + (1 - base) x value / 127). They are the GS send
-  controllers, so other samplers either use them or ignore them.
+  mix throws. Every track on a channel that throws anywhere in a kit's files (a loop, a phrase, a region or a whole
+  mix) starts with CC91 and CC94 at 0 on tick 0, before any note-on, so it starts dry whatever played before it.
+  Wubansia latches them per note (send = base + (1 - base) x value / 127). They are the GS send controllers, so other
+  samplers either use them or ignore them.
 
 ## Tracks
 One track per instrument, each resolving to one Wubansia lane (`channels.track_lane`): Kick and Rumble (kick), Snare,
 Clap or Snare/Clap (snare), Hats, Perc, Bass, Lead, Chords and Chord voicing (chords), Vox and Vox chops (vox),
 Accents, FX, plus the kit's extras by name on the lanes in the table above. The first track (the conductor) holds the
 file's name, the tempo, 4/4, the key, and in the extended mixes a marker (FF 06) at every section start and a cue point
-(FF 07) at every riser, fill and vox entry. The cues are labels for the reader: the notes play.
+(FF 07) at every riser, fill and, in the vox mix only, vox entry (on the bar where the line's vox comes in). The cues
+are labels for the reader: the notes play.
 
 ## Files per kit
 - `<KIT>_Loop_Vox_4bars.mid` and `<KIT>_Loop_NoVox_4bars.mid`: the kit's context loop as its club master plays it,
@@ -110,9 +113,10 @@ file's name, the tempo, 4/4, the key, and in the extended mixes a marker (FF 06)
   `<KIT>_Phrase_<Name>_<n>bars.mid`, each on its instrument's channel.
 - `extended/vox/` and `extended/novox/`: the 224-bar extended mix (`<KIT>_ExtendedMix_Vox_224bars.mid`, or `_NoVox_`),
   one region file per section, and `regions.json` (integers and strings only: the tempo, the swing in permille, the
-  length in ms, 1-based start bars, each line's lanes and moves, the cues, the tracks and the rides' ranges). The two
-  differ only in the Vox track, the accents (and their throws) and the chord stabs the no-vox accents take over
-  (FUT01's at 16th 30).
+  length in ms, 1-based start bars, each line's lanes and moves, the cues, the tracks and the rides' ranges; a line's
+  `throw` marks only the riff's last note the line adds, while every throw, that one or one written into the riff, the
+  loop's vox, a phrase or a hit, is in the files' CC91/CC94). The two differ only in the Vox track (and its Vox cues),
+  the accents (and their throws) and the chord stabs the no-vox accents take over (FUT01's at 16th 30).
 
 ## The extended mix
 Each kit declares its music and its arrangement as data (`PARTS`, `tools/sound/README.md`, "MIDI"). A line is 8 bars;

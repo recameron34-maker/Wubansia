@@ -340,12 +340,7 @@
           }
         }
       ],
-      "cues": [
-        {
-          "bar": 57,
-          "cue": "Vox"
-        }
-      ]
+      "cues": []
     },
     {
       "index": 3,
@@ -439,10 +434,6 @@
       ],
       "cues": [
         {
-          "bar": 65,
-          "cue": "Vox"
-        },
-        {
           "bar": 80,
           "cue": "Fill"
         }
@@ -512,7 +503,8 @@
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
           "roll": "snare",
-          "roll_bars": 4,
+          "roll_from": 93,
+          "roll_bars": 3,
           "drums": "shaker",
           "end": "fill",
           "ride": {
@@ -771,16 +763,7 @@
           ]
         }
       ],
-      "cues": [
-        {
-          "bar": 97,
-          "cue": "Vox"
-        },
-        {
-          "bar": 121,
-          "cue": "Vox"
-        }
-      ]
+      "cues": []
     },
     {
       "index": 6,
@@ -1102,12 +1085,7 @@
           }
         }
       ],
-      "cues": [
-        {
-          "bar": 169,
-          "cue": "Vox"
-        }
-      ]
+      "cues": []
     },
     {
       "index": 9,

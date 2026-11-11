@@ -386,20 +386,12 @@
           "cue": "Fill"
         },
         {
-          "bar": 57,
-          "cue": "Vox"
-        },
-        {
           "bar": 64,
           "cue": "Fill"
         },
         {
           "bar": 80,
           "cue": "Fill"
-        },
-        {
-          "bar": 81,
-          "cue": "Vox"
         },
         {
           "bar": 96,
@@ -454,14 +446,6 @@
       ],
       "cues": [
         {
-          "bar": 97,
-          "cue": "Vox"
-        },
-        {
-          "bar": 105,
-          "cue": "Vox"
-        },
-        {
           "bar": 112,
           "cue": "Fill"
         }
@@ -510,7 +494,8 @@
           "hats": "16ths",
           "bass": "AcidLine1",
           "roll": "snare",
-          "roll_bars": 2,
+          "roll_from": 127,
+          "roll_bars": 1,
           "end": "fill"
         }
       ],
@@ -625,16 +610,8 @@
       ],
       "cues": [
         {
-          "bar": 129,
-          "cue": "Vox"
-        },
-        {
           "bar": 144,
           "cue": "Fill"
-        },
-        {
-          "bar": 153,
-          "cue": "Vox"
         }
       ]
     },
@@ -736,10 +713,6 @@
         }
       ],
       "cues": [
-        {
-          "bar": 161,
-          "cue": "Vox"
-        },
         {
           "bar": 176,
           "cue": "Fill"
