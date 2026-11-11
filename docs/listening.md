@@ -101,13 +101,13 @@ Your ratings, from the listening page (its store, read back on 2026-10-29):
 
 **Then:** you asked for four kits ("give me four kits"). The fix round for FUT01 runs together with three new first-listen kits, one per remaining direction (ADR 0010). They come back as round 2.
 
-## 2026-11-11 · v0.1 · build pr6-int (measured at f1a4276) · Listener: you · DAW: … (version, VST3/AU/CLAP) · Mac: … (chip, macOS) · Monitoring: … · Mono check: …
+## 2026-11-11 · v0.1 · build pr6-int (measured at f079d0b) · Listener: you · DAW: … (version, VST3/AU/CLAP) · Mac: … (chip, macOS) · Monitoring: … · Mono check: …
 
 v0.1 has no listening round (ADR 0017): this entry holds the fidelity numbers measured before anyone listens, and the DAW checklist for you.
 
-### A. Fidelity (measured at f1a4276, before anyone listens)
+### A. Fidelity (measured at f079d0b, before anyone listens)
 
-Linux x86-64, Clang 18 release build, the samples installed from the four content zips (`tools/content/install.py`); `compare_render.py` against the round 5 masters, pass 2, 48 kHz, the plugin's look-back master, bass B unless named. **0 failing of 271 gated checks**; the known gaps are below. Each cell: LUFS-I / short-term / worst 1/3 octave / true peak / kick crest, in LU and dB against the round 5 loop.
+Linux x86-64, Clang 18 release build, the samples installed from the four content zips (`tools/content/install.py`); `compare_render.py` against the round 5 masters, pass 2, 48 kHz, the plugin's look-back master, bass B unless named. **0 failing of 271 gated checks**; the known gaps are below. The arrangement review's MIDI (f079d0b) left every loop, tempo, rate and multisample number as it was at f1a4276; only the Song changed. Each cell: LUFS-I / short-term / worst 1/3 octave / true peak / kick crest, in LU and dB against the round 5 loop.
 
 | Kit | Club loop, vox; no-vox | Wet loop, vox; no-vox | Dry A / Dry B | Phrase lanes, worst null (pass 1 / 2) | Sampled lanes, worst band | Song sections over the ceiling | Gaps, explained |
 |---|---|---|---|---|---|---|---|
@@ -117,6 +117,8 @@ Linux x86-64, Clang 18 release build, the samples installed from the four conten
 | FUT04 | −0.06 / +0.10 / +0.56 @ 79 Hz / +0.00 / +0.24; −0.13 / +0.18 / +0.54 @ 79 Hz / +0.00 / +0.20 | +0.12 / +0.15 / +0.66 @ 79 Hz / +0.04 / +0.41; +0.09 / +0.11 / +0.66 @ 79 Hz / +0.04 / +0.39 | kick crest +0.56 dB on both (known); otherwise worst +0.66 dB @ 79 Hz | bit-exact / bit-exact outside the re-syncs (−49.7 over the whole pass) | within 0.01 dB | 0 of 28 (peak −1.02 dBTP) | the dry kick crest (known); +0.66 dB @ 79 Hz is P3's own margin (engine_ref +0.66) |
 
 Gates: ±0.3 LU, ±0.5 LU, ±0.75 dB, ±0.5 dB, ±0.5 dB; phrase lanes ≤ −40 dB; sampled lanes ±1 dB per 1/3 octave; sections ≤ −0.9 dBTP.
+
+The Song, on the reviewed arrangements: 8 bars of every section (both variants, bass A and B, 136 renders) and each whole extended mix (both variants, bass B, 395-420 s), all finite, none silent; true peak −1.02 dBTP in every section and every 8-bar line (ceiling −0.9). Whole mixes against their Club loop, vox; no-vox: FUT01 −1.5; −1.4 LU, FUT02 −1.3; −1.5, FUT03 −0.5; −0.4, FUT04 −0.9; −0.7. Drops sit within ±1 LU of the Club loop, intros, breaks and outros 1-9 LU under it, except FUT03's Break 2 (145-160: the keys arp and the pad, no drums), +1.3 / +1.6 LU over it, with Drop 2 +0.9 / +1.0: the keys and the fx channels play in no loop, so no gate measured them.
 
 Look-back master against master.py's exact one (same mix), vox; no-vox: FUT01 −0.01; −0.02 LU, FUT02 −0.02; −0.02, FUT03 +0.00; −0.02, FUT04 −0.01; −0.01; true peak 0.00 dB everywhere; worst band FUT01 −0.30 dB @ 50 Hz. Rates, resampled to 48 kHz: 44.1 and 96 kHz read −0.03 to +0.08 LU and +0.05 to +0.11 dB true peak against 48 kHz (P8's fixed-rate clip; FUT01's 96 kHz true peak was +0.55 dB before it).
 
@@ -132,7 +134,7 @@ Known gaps:
 - FUT04's dry A/B kick crest (0.56 dB against 0.5): the engine's exact-tempo grid (338823.53 samples a loop) against the recipe's rounded 338824-sample loop puts the kick 1 sample off the bar-anchored stem on some beats.
 - FUT04's acid timbre steps where a ride cycle with a low CC plays the live-filtered multisample next to an at-rest stem cycle.
 - The three off-tempo bands above.
-- In the Song, some phrase-lane cycles play the multisample because no table matches them (`plugin_kit.py --report`): FUT04's bass under the arranged acid rides (26 cycles), FUT03's bass in bars 129-144 (8), FUT02's vox in bars 61-80, 125-128 and 145-152 (8).
+- In the Song, some phrase-lane cycles play the multisample because no table matches them (`plugin_kit.py --report`): FUT04's bass under the arranged acid rides (26 cycles), FUT03's switch-up Rubber riff in bars 129-144 (8 cycles, every note, by the matcher's majority rule), FUT02's vox in bars 61-80, 125-128 and 145-152 (8).
 - FUT01's vox riff entering fresh carries the previous cycle's baked throw, 36 dB under the chops, over its first 0.6 s; FUT04's squelch ticks play the full acid sample for about 33 ms on the multisample path.
 
 ### B. In your DAW (the checklist; not a listening test)
@@ -150,6 +152,10 @@ Known gaps:
 - [ ] Drag MIDI (Loop, Song, a lane) into a track
 - [ ] CPU meter
 - [ ] Editor open/close ×10
+- [ ] FUT01: drop 2 without its kick in bars 161-168
+- [ ] FUT02: the bare choir in bars 67-68; the choir's own A4 against B♭4 (a revoice was declined for v0.1); a pad release tail crossing into the B♭ bars
+- [ ] FUT03: the drop landing with the stab open; Break 2 (145-160) against the drops' level
+- [ ] FUT04: the anvil pulse in the 97-104 break; the no-vox mix's moved throws
 
 ### C. What you said
 Your words, per kit: keep, or fix (what, where).
