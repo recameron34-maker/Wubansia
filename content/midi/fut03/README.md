@@ -101,4 +101,4 @@ Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, befor
 Near the kit's tempo (within 2 %), Wubansia plays these lanes from the kit's recorded lines and phrases, sliced at
 these files' notes; away from it, and always from MIDI in, they play the multisample above:
 - **bass**: the Rubber and Deep lines (`Loops/Line Rubber Clean.wav` and the rest), as the loop plays them
-- **vox**: the Phrase Vox Riff (`Loops/Phrase Vox Riff.wav`), its dub throw baked in
+- **vox**: the vox synth riff as the context loop sings it, its dub throw baked in: stems derived from the recipe (`Stems/Context Vox Riff.wav`, and `Stems/Context Vox Riff Twice.wav` for the extended mix's riff every 2 bars), not the Loops/ phrase, which wraps its echoes over its start

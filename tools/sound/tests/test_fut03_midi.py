@@ -71,6 +71,14 @@ class TestParts(unittest.TestCase):
             _, tracks, _ = whole(KIT, v)
             self.assertFalse([c for t in tracks.values() for c in t['ccs'] if c[2] in (91, 94)], v)
 
+    def test_the_readme_names_the_vox_stems_the_plugin_slices(self):
+        """Review #28: the README's recorded lanes name the stems the plugin's vox tables read (P2's derived
+        Stems/Context Vox Riff and its Twice version), not the Loops/ phrase, which wraps its echoes."""
+        text = kit_files(KIT)['README.md'].decode()
+        self.assertIn('`Stems/Context Vox Riff.wav`', text)
+        self.assertIn('`Stems/Context Vox Riff Twice.wav`', text)
+        self.assertNotIn('Loops/Phrase Vox Riff.wav', text)
+
     def test_the_fill_bar_leaves_the_build_fill_its_room(self):
         """Audit A defect 7: at every Fill cue the drums play the kit's FillPreview bar (context.FILL_*): the kick,
         hats and shaker on beats 1-3, the clap on beat 2, no congas, bongos or rim, beat 4 empty, under the Build
@@ -107,6 +115,10 @@ RING = 5 * 240                      # the dub stab rings about 5 16ths (gone by 
 OPEN_HAT, RIM, BONGO_D5, CONGAS = 46, 37, 48, (41, 43, 45)
 BUILD_FILL, RISER, IMPACT = 48, 49, 50                      # channel 7's keys
 CONGA_RUN = {(12, 45), (13, 43), (14, 41), (15, 41)}        # D4 C4 G3 G3 on 16ths 12-15
+GLASS_PING, DUB_CM9, REVERSE_GM9, SWEEP = 48, 49, 50, 52     # channel 6's keys (PARTS['accents'] from 48)
+# the chord accents' tones: the dub chord Cm9, the reverse Gm9, the organ Gm7, the pluck Dm7, the vox synth Gm
+ACCENT_TONES = {49: TONES[60], 50: TONES[55], 51: {7, 10, 2, 5}, 53: {2, 5, 9, 0}, 55: {7, 10, 2}}
+RIFF = sorted((at(KIT, s), m) for s, m, *_ in VS.VOX_RIFF)  # the riff's 2 bars as (tick, key)
 
 
 @functools.lru_cache(maxsize=None)
@@ -147,6 +159,11 @@ def harmony(notes, tick):
 def consonant(key, root):
     """A note against a chord: one of its tones, or a tension no semitone or tritone from any of them."""
     return key % 12 in TONES[root] or all((key - t) % 12 not in (1, 6, 11) for t in TONES[root])
+
+
+def cc74(ccs, tick):
+    """The stab's CC74 in force at a tick (the Chords track's last point at or before it)."""
+    return value_at({t: v for t, _, cc, v in ccs['Chords'] if cc == 74}, tick)
 
 
 def bar_sig(notes, bar):
@@ -222,8 +239,9 @@ class TestExtendedMix(unittest.TestCase):
 
     def test_the_drop_is_a_drop(self):
         """Must-fix 4: the drop's first line against the groove's last, in what is heard first: the impact on its
-        downbeat, harmony that moves (Gm9 | Cm9 where the groove holds Gm9), the vox's whole riff where the groove had
-        its call, the accents in both blocks. Drop 2 opens on its own impact; every drop line has accents."""
+        downbeat, harmony that moves (Gm9 | Cm9 where the groove holds Gm9), the vox's whole riff (both its bars, every
+        2 bars) where the groove had its call, the accents in both blocks. Both drops open on an impact after an 8-bar
+        riser ending on their downbeat (review #34, #36); every drop line has accents."""
         for v in VARIANTS:
             R, notes, _ = mix(v)
             g, d, d2 = section(R, 'groove'), section(R, 'drop'), section(R, 'drop2')
@@ -235,6 +253,8 @@ class TestExtendedMix(unittest.TestCase):
                 for sec in (d, d2):
                     lo = (sec['start_bar'] - 1) * BAR
                     self.assertTrue([n for n in notes['FX'] if n[3] == IMPACT and n[0] == lo], sec['name'])
+                    self.assertEqual([(lo - 8 * BAR, lo)], [(n[0], n[1]) for n in notes['FX'] if n[3] == RISER
+                                                            and lo - 8 * BAR <= n[0] < lo], sec['name'])
                     for blk in (0, 4):
                         self.assertTrue(in_span(notes['Accents'], sec['start_bar'] + blk, 4), (sec['name'], blk))
                     for ln in sec['lines']:
@@ -243,7 +263,9 @@ class TestExtendedMix(unittest.TestCase):
                     vox = lambda bar: {n[3] for n in in_span(notes['Vox'], bar, 8)}  # noqa: E731
                     self.assertTrue(vox(last))
                     self.assertNotIn(75, vox(last))
-                    self.assertIn(75, vox(d['start_bar']))
+                    for bar in range(d['start_bar'], d['start_bar'] + 8, 2):     # the whole riff, call and answer
+                        lo = (bar - 1) * BAR
+                        self.assertEqual(RIFF, sorted((n[0] - lo, n[3]) for n in in_span(notes['Vox'], bar, 2)), bar)
 
     def test_the_switch_up_rides_the_rubber_riff_and_drop_2_the_deep_line_and_the_keys_arp(self):
         """Must-fix 4: the switch-up's bassline is the Rubber riff (the phrase's own notes, bar by bar; it rests under
@@ -259,9 +281,9 @@ class TestExtendedMix(unittest.TestCase):
                 lo = (sec['start_bar'] - 1 + b) * BAR
                 half = (b % 2) * BAR
                 with self.subTest(section=sec['name'], bar=sec['start_bar'] + b):
+                    got = sorted((on - lo, key) for on, _, _, key, _ in notes['Bass'] if lo <= on < lo + BAR)
                     self.assertEqual([] if sec['start_bar'] + b in fills else
-                                     [(t - half, key) for t, key in want if half <= t < half + BAR],
-                                     sorted((on - lo, key) for on, _, _, key, _ in notes['Bass'] if lo <= on < lo + BAR))
+                                     [(t - half, key) for t, key in want if half <= t < half + BAR], got)
         arp = sorted((at(KIT, s), key) for s, key, _, _ in A.ARP)
         d2 = section(R, 'drop2')
         blocks = [sorted((on - lo, key) for on, _, _, key, _ in notes['Lead'] if lo <= on < lo + 4 * BAR)
@@ -417,6 +439,79 @@ class TestExtendedMix(unittest.TestCase):
             with self.subTest(section=sec['name']):
                 self.assertTrue(in_span(notes[track], last - 1, 1))
                 self.assertFalse(in_span(notes[track], last, 1))
+
+    def test_the_stab_lands_open_on_the_drop(self):
+        """Review #13: the build opens the stab's low-pass for 16 bars and the drop lands on it open: its first hit no
+        darker than the build's last, held open, then closing into the loop's ride on the next line. Nowhere does the
+        stab, playing on through a line, snap shut at the line (a fall of more than a quarter of the range)."""
+        for v in VARIANTS:
+            R, notes, ccs = mix(v)
+            stab = sorted(n[0] for n in notes['Chords'])
+            d = section(R, 'drop')['start_bar']
+            last = max(t for t in stab if t < (d - 1) * BAR)
+            first = min(t for t in stab if t >= (d - 1) * BAR)
+            with self.subTest(variant=v):
+                self.assertGreaterEqual(cc74(ccs, first), cc74(ccs, last))
+                self.assertEqual(127, min(cc74(ccs, t) for t in stab if (d - 1) * BAR <= t < (d + 1) * BAR))
+                for _, ln, i in form_lines(R):
+                    lo = (ln['start_bar'] - 1) * BAR
+                    before = [t for t in stab if lo - BAR <= t < lo]
+                    after = [t for t in stab if lo <= t < lo + BAR]
+                    if before and after:
+                        self.assertLessEqual(cc74(ccs, before[-1]) - cc74(ccs, after[0]), 32, ln['start_bar'])
+
+    def test_a_vox_cue_at_every_vox_entry(self):
+        """Review #16, #26: the vox mix's cue points mark every vox entry: every line whose vox comes in after a line
+        without it (the riff's return at 121 included) starts on a Vox cue."""
+        R, notes, _ = mix('vox')
+        cues = {c['bar'] for s in R['sections'] for c in s['cues'] if c['cue'] == 'Vox'}
+        sings = [bool(in_span(notes['Vox'], ln['start_bar'], 8)) for _, ln, _ in form_lines(R)]
+        entries = [ln['start_bar'] for (_, ln, _), now, before in zip(form_lines(R), sings, [False] + sings)
+                   if now and not before]
+        self.assertIn(121, entries)
+        self.assertLessEqual(set(entries), cues)
+
+    def test_the_accents_leave_the_riff_its_notes(self):
+        """Review #30: where the vox sings, no accent starts on one of its notes (the dub chord on the riff's thrown G4
+        masked it) and no chord accent sounding under a vox note clashes with it (the reverse Gm9 swelling under the
+        riff's Cm9 bar): the loop's call and response, accent then vox, kept."""
+        R, notes, _ = mix('vox')
+        vox = notes['Vox']
+        ons = {n[0] for n in vox}
+        self.assertEqual([], [(n[0] // BAR + 1, n[3]) for n in notes['Accents'] if n[0] in ons])
+        clash = [(on // BAR + 1, key, a[3]) for on, _, _, key, _ in vox for a in notes['Accents']
+                 if a[3] in ACCENT_TONES and a[0] <= on < a[1] and key % 12 not in ACCENT_TONES[a[3]]
+                 and any((key - t) % 12 in (1, 6, 11) for t in ACCENT_TONES[a[3]])]
+        self.assertEqual([], clash)
+
+    def test_the_cues_land_where_the_form_puts_them(self):
+        """Review #34: the cue sounds sit on their lines: the reverse Gm9 swells into break 1, the build and the
+        switch-up (in the no-vox mix; in the vox mix only where the vox rests, into break 1); the noise sweep into 49,
+        89, 113, 145 and 177; the Cm9 dub chord on the 'and' of 4 of 40, 56, 120, 168 and 184, and of 104 where no vox
+        throws its last note there."""
+        def ends(v, key):   # the bars an end-aligned sound ends on (its note-off on their downbeat)
+            return sorted(n[1] // BAR + 1 for n in mix(v)[1]['Accents'] if n[3] == key and n[1] % BAR == 0)
+        self.assertEqual([65, 81, 129], ends('novox', REVERSE_GM9))
+        self.assertEqual([65], [b for b in ends('vox', REVERSE_GM9) if b in (65, 81, 129)])
+        self.assertEqual([49, 89, 113, 145, 177], ends('vox', SWEEP))
+        for v, bars in (('vox', (40, 56, 120, 168, 184)), ('novox', (40, 56, 104, 120, 168, 184))):
+            got = {n[0] // BAR + 1 for n in mix(v)[1]['Accents']
+                   if n[3] == DUB_CM9 and tick_step(KIT, n[0] % BAR) == 14}
+            self.assertLessEqual(set(bars), got, v)
+        self.assertNotIn(104, {n[0] // BAR + 1 for n in mix('vox')[1]['Accents'] if n[3] == DUB_CM9})
+
+    def test_the_outro_is_not_the_intro_reversed(self):
+        """Review #35, audit cross-kit issue 13: no outro line plays an intro line again, not even in its first 7 bars,
+        and the outro doesn't take the intro's lanes away in the order the intro brought them in."""
+        for v in VARIANTS:
+            R, notes, _ = mix(v)
+            body = lambda first: tuple(bar_sig(notes, b) for b in range(first, first + 7))  # noqa: E731
+            intro, outro = R['sections'][0], R['sections'][-1]
+            with self.subTest(variant=v):
+                self.assertFalse({body(ln['start_bar']) for ln in intro['lines']}
+                                 & {body(ln['start_bar']) for ln in outro['lines']})
+                self.assertNotEqual([(ln['lanes'], ln.get('hats')) for ln in intro['lines']],
+                                    [(ln['lanes'], ln.get('hats')) for ln in reversed(outro['lines'])])
 
     def test_the_keys_thin_where_the_vox_plays(self):
         """Where the vox plays, the keys play at most one bar of each 2-bar cycle (their call, or their answer to the

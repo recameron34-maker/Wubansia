@@ -340,12 +340,7 @@
           }
         }
       ],
-      "cues": [
-        {
-          "bar": 57,
-          "cue": "Vox"
-        }
-      ]
+      "cues": []
     },
     {
       "index": 3,
@@ -370,7 +365,40 @@
             "accents"
           ],
           "pad": "Gm9 Cm9",
-          "accents": "loop"
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              30,
+              "AccentDubChordCm9"
+            ],
+            [
+              46,
+              "AccentOrganHitGm7"
+            ],
+            [
+              64,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ],
+            [
+              94,
+              "AccentDubChordCm9"
+            ],
+            [
+              110,
+              "AccentOrganHitGm7"
+            ],
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ]
+          ]
         },
         {
           "start_bar": 73,
@@ -391,15 +419,20 @@
             "from_pm": 400,
             "to_pm": 1000
           },
-          "accents": "lead-in",
-          "end": "fill"
+          "end": "fill",
+          "hits": [
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              128,
+              "AccentReverseChordGm9"
+            ]
+          ]
         }
       ],
       "cues": [
-        {
-          "bar": 65,
-          "cue": "Vox"
-        },
         {
           "bar": 80,
           "cue": "Fill"
@@ -470,7 +503,8 @@
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
           "roll": "snare",
-          "roll_bars": 4,
+          "roll_from": 93,
+          "roll_bars": 3,
           "drums": "shaker",
           "end": "fill",
           "ride": {
@@ -529,10 +563,66 @@
           "bass": "Rubber",
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
-          "accents": "loop",
           "drums": "drop lite",
           "end": "turn",
-          "turn": "drop"
+          "turn": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              30,
+              "AccentDubChordCm9"
+            ],
+            [
+              46,
+              "AccentOrganHitGm7"
+            ],
+            [
+              64,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ],
+            [
+              94,
+              "AccentDubChordCm9"
+            ],
+            [
+              110,
+              "AccentOrganHitGm7"
+            ],
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              126,
+              "AccentDubChordCm9"
+            ]
+          ],
+          "ride": {
+            "Chords": [
+              "points",
+              [
+                [
+                  0,
+                  127
+                ],
+                [
+                  2,
+                  127
+                ],
+                [
+                  8,
+                  0
+                ]
+              ]
+            ]
+          }
         },
         {
           "start_bar": 105,
@@ -552,10 +642,43 @@
           "lead": "call",
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
-          "accents": "loop",
           "drums": "drop",
           "end": "turn",
-          "turn": "drop"
+          "turn": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              30,
+              "AccentDubChordCm9"
+            ],
+            [
+              46,
+              "AccentOrganHitGm7"
+            ],
+            [
+              64,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ],
+            [
+              94,
+              "AccentDubChordCm9"
+            ],
+            [
+              110,
+              "AccentOrganHitGm7"
+            ],
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ]
+          ]
         },
         {
           "start_bar": 113,
@@ -598,17 +721,49 @@
           "lead": "call",
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
-          "accents": "loop",
           "drums": "drop",
-          "end": "drop"
+          "end": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              30,
+              "AccentDubChordCm9"
+            ],
+            [
+              46,
+              "AccentOrganHitGm7"
+            ],
+            [
+              64,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ],
+            [
+              94,
+              "AccentDubChordCm9"
+            ],
+            [
+              110,
+              "AccentOrganHitGm7"
+            ],
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              128,
+              "AccentReverseChordGm9"
+            ]
+          ]
         }
       ],
-      "cues": [
-        {
-          "bar": 97,
-          "cue": "Vox"
-        }
-      ]
+      "cues": []
     },
     {
       "index": 6,
@@ -834,10 +989,43 @@
           "lead": "call",
           "chords": "Gm9 Cm9",
           "pad": "Gm9 Cm9",
-          "accents": "loop",
           "drums": "drop",
           "end": "turn",
-          "turn": "drop"
+          "turn": "drop",
+          "hits": [
+            [
+              14,
+              "AccentGlassPingD6"
+            ],
+            [
+              30,
+              "AccentDubChordCm9"
+            ],
+            [
+              46,
+              "AccentOrganHitGm7"
+            ],
+            [
+              64,
+              "AccentNoiseSweepUp"
+            ],
+            [
+              78,
+              "AccentGlassPingD6"
+            ],
+            [
+              94,
+              "AccentDubChordCm9"
+            ],
+            [
+              110,
+              "AccentOrganHitGm7"
+            ],
+            [
+              128,
+              "AccentNoiseSweepUp"
+            ]
+          ]
         },
         {
           "start_bar": 177,
@@ -897,12 +1085,7 @@
           }
         }
       ],
-      "cues": [
-        {
-          "bar": 169,
-          "cue": "Vox"
-        }
-      ]
+      "cues": []
     },
     {
       "index": 9,
