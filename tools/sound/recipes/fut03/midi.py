@@ -129,11 +129,26 @@ DUB_ROWS = [(16 * b + s, v, ch) for b, ch in enumerate(A.DUB_BARS) for s, v in A
 
 # ------------------------------------------------------------------ the form
 DR = 'kick snare hats perc'
+BLOCK16 = 64                        # 16ths a 4-bar block
 STAB = 'Chords'                     # the ride's track: the dub stab's low-pass, CC74
 ROLL = dict(lane='snare', bars=3, every=((1, 4), (1, 2), (1, 1)), ramp=(0.7, 1.0), rest='lane')
 RIFF = ('Rubber riff',)
 ARP = ('Keys arp',)
 ORGAN = 'AccentOrganHitGm7'         # the switch-up's own ear candy: a Gm7 organ stab on the 'and' of 4 every 4 bars
+SWELL, SWEEP = 'AccentReverseChordGm9', 'AccentNoiseSweepUp'
+OPEN_LANDING = ('points', ((0, 127), (2, 127), (8, 0)))   # the drop lands on the build's open stab, then closes into
+                                                          # the loop's ride, which starts closed on the next line
+
+
+def over_riff(novox=()):
+    """The accents of a line where the vox sings the riff or its answer (review #30). In the loop the accents and
+    the vox take turns; with the riff every 2 bars, the loop's would land on it (the Cm9 dub chord on its thrown G4,
+    the reverse Gm9 under its Cm9 bar). So in the vox mix each 4-bar block keeps only the glass ping, on the 'and' of
+    4 after the riff's call bar; the no-vox mix, with nothing to collide with, keeps the loop's accents in every block
+    and `novox`, the line's own (a stab, a swell)."""
+    loop = tuple(Hit(off + (BLOCK16 if step == 'end' else step), name, 1, 'end' if step == 'end' else 'on')
+                 for off in (0, BLOCK16) for step, name in C5.ACCENTS['novox'])
+    return dict(vox=tuple(Hit(off + 14, 'AccentGlassPingD6', 1) for off in (0, BLOCK16)), novox=loop + tuple(novox))
 
 FORM = (
     # 32 bars to mix in on, an element on every line, each line turned by the conga run (alone, until the congas come
@@ -154,12 +169,14 @@ FORM = (
              stab=True),
         line(DR + ' bass chords lead vox', lead='answer', vox='call', cue='Vox', ride={STAB: ('ramp', 85, 127)},
              accents='alternate', end='drop', into='swell'))),
-    # no kick: the vox riff over Pad Warm from the break's downbeat, Gm9 | Cm9; then the stab, the keys' call and the
-    # off-beat hats rising into the fill
+    # no kick: the vox riff over Pad Warm from the break's downbeat, Gm9 | Cm9, a glass ping after its call bar; then
+    # the stab, the keys' call and the off-beat hats rising into the fill, the riff's thrown G4 leading into the build
+    # (the no-vox mix keeps the loop's accents and a swell into the build)
     section('Break', 'break', (
-        line('pad vox', chords=GM_CM, vox='riff', cue='Vox', accents='loop'),
+        line('pad vox', chords=GM_CM, vox='riff', cue='Vox', hits=over_riff()),
         line('hats pad chords lead vox', chords=GM_CM, hats='thin', rise=('hats', 0.4, 1.0), lead='call', vox='riff',
-             accents='lead-in', end='fill', into='swell'))),
+             hits=dict(novox=(Hit(2 * BLOCK16, SWEEP, 1, 'end'), Hit(2 * BLOCK16, SWELL, 1, 'end'))),
+             end='fill'))),
     # the kick, the shaker (swelling) and the Rubber line back under the stab opening; then the bass out and the clap
     # rolling over the 3 bars before the fill bar with the kick under it, the hats to 16ths, the riser; the fill bar is
     # the FillPreview's, the kick out on beat 4 alone under the Build Fill
@@ -168,18 +185,21 @@ FORM = (
              ride={STAB: ('ramp', 16, 96)}, end='turn', turn='run', into='uplift'),
         line('kick snare hats perc chords pad', chords=GM_CM, hats=('thin', '16ths'), drums='shaker',
              ride={STAB: ('ramp', 96, 127)}, cue='Riser', end='fill', roll=ROLL))),
-    # the impact; Gm9 | Cm9 under the whole riff, the keys out; the keys' call answered by the vox, its 16 bars marked
-    # by the sweep (no tom fill inside a drop); the vox out, the dub chords' harmony under the keys' whole riff, the
-    # hats busy; the riff and the call together, the drums out in the last bar under the swell
+    # the impact on the build's open stab, closing over the line into the loop's ride; Gm9 | Cm9 under the whole riff,
+    # the keys out; the keys' call answered by the vox, its 16 bars marked by the sweep (no tom fill inside a drop); the
+    # vox out, the dub chords' harmony under the keys' whole riff, the hats busy; the riff's return with the call, the
+    # drums out in the last bar under the riff's thrown G4 (the no-vox mix: under the swell). Where the vox sings, the
+    # loop's accents give way to it (over_riff)
     section('Drop', 'drop', (
-        line(DR + ' bass chords pad vox', chords=GM_CM, vox='riff', drums='drop lite', accents='loop',
-             downbeat='impact', cue='Vox', end='turn', turn='drop', stab=True),
-        line(DR + ' bass chords pad lead vox', chords=GM_CM, lead='call', vox='answer', drums='drop', accents='loop',
-             end='turn', turn='drop', into='uplift'),
+        line(DR + ' bass chords pad vox', chords=GM_CM, vox='riff', drums='drop lite', ride={STAB: OPEN_LANDING},
+             hits=over_riff((Hit(126, 'AccentDubChordCm9', 1),)), downbeat='impact', cue='Vox', end='turn',
+             turn='drop'),
+        line(DR + ' bass chords pad lead vox', chords=GM_CM, lead='call', vox='answer', drums='drop',
+             hits=over_riff(), end='turn', turn='drop', into='uplift'),
         line(DR + ' bass chords pad lead', chords=DUB, hats='busy', drums='drop lite', accents='loop', end='turn',
              turn='drop', stab=True),
         line(DR + ' bass chords pad lead vox', chords=GM_CM, lead='call', vox='riff', hats=('full', 'busy'),
-             drums='drop', accents='loop', end='drop', into='swell'))),
+             drums='drop', hits=over_riff((Hit(2 * BLOCK16, SWELL, 1, 'end'),)), cue='Vox', end='drop'))),
     # the Rubber riff for a bassline, dry: no pad, the stab held dark under it, the hats busy, a Gm7 organ hit on the
     # 'and' of 4 every 4 bars; then the keys' riff and the stab opening, the riff resting under the fill
     section('Switch-up', 'switch', (
@@ -199,7 +219,7 @@ FORM = (
         line(DR + ' bass chords pad', bass='drop2', chords=GM_CM, phrases=ARP, hats='busy', drums='drop lite',
              accents='loop', downbeat='impact', end='turn', turn='drop', stab=True),
         line(DR + ' bass chords pad lead vox', bass='drop2', chords=GM_CM, lead='call', vox='riff', hats='busy',
-             drums='drop', accents='loop', cue='Vox', end='turn', turn='drop', into='uplift'),
+             drums='drop', hits=over_riff(), cue='Vox', end='turn', turn='drop', into='uplift'),
         line(DR + ' bass chords pad', bass='drop2', chords=GM_CM, phrases=ARP, hats=('busy', '16ths'),
              drums='drop lite', ride={STAB: ('hold', 127)}, accents='loop', end='turn', turn='drop', stab=True),
         line(DR + ' bass chords', bass='drop2', hats='busy', drums='drop', ride={STAB: ('ramp', 127, 0)},
@@ -285,6 +305,8 @@ PARTS = dict(
                 what="the dub stab's low-pass: closed on the loop's downbeat, open at its middle",
                 values=stab_ride())],
     recorded={'bass': 'the Rubber and Deep lines (`Loops/Line Rubber Clean.wav` and the rest), as the loop plays them',
-              'vox': 'the Phrase Vox Riff (`Loops/Phrase Vox Riff.wav`), its dub throw baked in'},
+              'vox': ('the vox synth riff as the context loop sings it, its dub throw baked in: stems derived from the '
+                      'recipe (`Stems/Context Vox Riff.wav`, and `Stems/Context Vox Riff Twice.wav` for the extended '
+                      "mix's riff every 2 bars), not the Loops/ phrase, which wraps its echoes over its start")},
     form=FORM,
 )
