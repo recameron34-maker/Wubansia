@@ -751,7 +751,6 @@ EXTENDED_SPLIT = {
         105 ch2: pluck 48
         113 ch2: pluck 24
         113 ch5: riff 16
-        153 ch5: riff 16
         161 ch2: pluck 24
         161 ch5: riff 32
         177 ch2: pluck 24
@@ -765,13 +764,11 @@ EXTENDED_SPLIT = {
         57 ch1: orbit 82
         57 ch2: arp 42
         57 ch5: multisample 1
-        65 ch2: arp 60
         65 ch5: multisample 32
-        73 ch2: arp 60
         73 ch5: multisample 28
         81 ch1: orbit 88
-        81 ch2: arp 120
-        89 ch2: arp 105
+        81 ch2: arp 48
+        89 ch2: arp 42
         97 ch1: orbit 88
         97 ch2: arp 120
         97 ch5: vox 22
@@ -786,7 +783,6 @@ EXTENDED_SPLIT = {
         129 ch1: orbit 88
         137 ch1: orbit 88
         137 ch2: arp 48
-        145 ch2: arp 60
         145 ch5: multisample 32
         153 ch5: vox_twice 20
         161 ch1: relay 72
