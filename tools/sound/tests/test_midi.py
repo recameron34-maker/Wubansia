@@ -1394,7 +1394,8 @@ class TestLineRules(unittest.TestCase):
                 self.assertEqual({on for on, *_ in got}, {on for on, *_ in trig})
                 risen = self.notes(tracks, 'Chord voicing', 1)
                 self.assertLess(min(n[4] for n in risen if n[0] < BAR), max(n[4] for n in risen if n[0] >= 7 * BAR))
-        _, tracks, _ = self.mix('FUT01', lines, 'vox')
+        bare = [{key: x for key, x in ph.items() if key != 'voicing'} if ph is stab else ph for ph in k.phrases]
+        _, tracks, _ = self.mix('FUT01', lines, 'vox', phrases=bare)
         self.assertFalse(self.notes(tracks, 'Chord voicing', 0))
         files = Mi.files_of(Mi.Kit('FUT01', k.K, {**k.P, 'phrases': phrases}, items=k.items))
         self.assertEqual(kit_files('FUT01')[Mi.phrase_file('FUT01', stab)], files[Mi.phrase_file('FUT01', stab)])
