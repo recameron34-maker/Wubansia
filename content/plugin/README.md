@@ -160,9 +160,9 @@ FUT02 vox ch 5: 8 cycles (94 notes) from bars 61, 65, 69, 73, 77, 125, 145, 149
 FUT02 novox ch 1: every cycle resolves
 FUT02 novox ch 2: every cycle resolves
 FUT02 novox ch 5: every cycle resolves
-FUT03 vox ch 1: 8 cycles (90 notes) from bars 129, 131, 133, 135, 137, 139, 141, 143
+FUT03 vox ch 1: 8 cycles (143 notes) from bars 129, 131, 133, 135, 137, 139, 141, 143
 FUT03 vox ch 5: every cycle resolves
-FUT03 novox ch 1: 8 cycles (90 notes) from bars 129, 131, 133, 135, 137, 139, 141, 143
+FUT03 novox ch 1: 8 cycles (143 notes) from bars 129, 131, 133, 135, 137, 139, 141, 143
 FUT03 novox ch 5: every cycle resolves
 FUT04 vox ch 1: 26 cycles (976 notes) from bars 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93, 105, 109, 113, 117, 121, 125, 169, 173, 177, 181, 185, 189
 FUT04 vox ch 2: every cycle resolves
@@ -172,7 +172,8 @@ FUT04 novox ch 2: every cycle resolves
 
 They are the kit arrangements' new lines (`tools/sound/recipes/<kit>/midi.py`):
 - FUT02's vox in bars 61-80, 125-128 and 145-152: the re-arranged vox lines place notes neither vox stem has.
-- FUT03's bass in bars 129-144: a line neither bass stem plays.
+- FUT03's bass in bars 129-144, the switch-up Rubber riff: fewer than half of each cycle's notes are a bass table's,
+  so the whole cycle plays the multisample (the matcher's majority rule, `docs/plugin/manifest.md` 2.6).
 - FUT04's bass in its grooves and drops: the arranged acid rides (CC74/CC71) differ from the Ride stem's baked values
   and the at-rest stems' 0/0, so those cycles play the multisample through the live filter on `bass`; without the
   controllers every one of their notes would match.
