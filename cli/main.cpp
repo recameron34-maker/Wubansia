@@ -25,9 +25,10 @@ namespace
         std::string_view summary;
     };
 
-    constexpr std::array<Entry, 2> commands = { {
+    constexpr std::array<Entry, 3> commands = { {
         { "gen", &wubansia::cli::runGen, "write MIDI from a kit and a seed" },
         { "metrics", &wubansia::cli::runMetrics, "score MIDI files with the generator metrics" },
+        { "render", &wubansia::cli::runRender, "play a kit through the engine into a WAV" },
     } };
 
     const Entry* findCommand (std::string_view name)

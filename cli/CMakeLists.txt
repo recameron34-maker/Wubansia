@@ -1,12 +1,12 @@
-# groovecore, the command-line tool: `groovecore gen`, `groovecore metrics` (S1b), `render` later (S1d).
-# Every .cpp and .h directly in cli/ is part of it, so a command can add its own files without
-# editing this file. It links only the groove core for now; render brings juce_core and
-# juce_audio_formats (ADR 0006).
+# groovecore, the command-line tool: `groovecore gen`, `groovecore metrics` (S1b) and `groovecore render`
+# (S1d). Every .cpp and .h directly in cli/ is part of it, so a command can add its own files without
+# editing this file. It links the groove core and the engine (wubansia_engine, plain C++ without JUCE,
+# ADR 0017): render plays a kit through the same engine as the plugin.
 
 file(GLOB WUBANSIA_CLI_SOURCES CONFIGURE_DEPENDS "*.cpp" "*.h")
 
 add_executable(groovecore ${WUBANSIA_CLI_SOURCES})
-target_link_libraries(groovecore PRIVATE wubansia_core wubansia_core_warnings)
+target_link_libraries(groovecore PRIVATE wubansia_engine wubansia_core wubansia_core_warnings)
 target_compile_definitions(groovecore PRIVATE WUBANSIA_VERSION="${PROJECT_VERSION}")
 
 if(WUBANSIA_BUILD_TESTS)
@@ -100,6 +100,35 @@ if(WUBANSIA_BUILD_TESTS)
         COMMAND ${CMAKE_COMMAND} -DGROOVECORE=$<TARGET_FILE:groovecore> "-DFIXTURE=${_fixtures}/harmony_a.mid"
             "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/check-test" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/check.cmake")
     set_tests_properties("groovecore: metrics --check fails an extra or a missing section" PROPERTIES LABELS cli)
+
+    # groovecore render: its options and refusals, then whole renders (cli/tests/render.cmake). The synthetic kit
+    # (SYN01, engine/testing) needs no samples: groovecore_render_fixture (a test tool, never installed) writes its
+    # manifests, MIDI and WAVs into the build tree.
+    _groovecore_test("render --help" 0 stdout "^Usage: groovecore render --kit <ID> --out <FILE.wav>" render --help)
+    _groovecore_test("render without options is a usage error" 2 stderr "--kit and --out are required" render)
+    _groovecore_test("render: a bad A/B value is a usage error" 2 stderr "--bass takes a or b, not \"c\"" render --kit FUT01 --bass c --out x.wav)
+    _groovecore_test("render: --passes with a Song is a usage error" 2 stderr "--passes is for --mode loop" render --kit FUT01 --mode song --passes 2 --out x.wav)
+    _groovecore_test("render: a bad --master is a usage error" 2 stderr "--master takes lookback or exact, not \"both\""
+        render --kit FUT01 --master both --out x.wav)
+    _groovecore_test("render: an unknown kit fails" 1 stderr "no kit \"NOPE\""
+        render --kit NOPE --manifests "${_content}/plugin" --midi "${_content}/midi" --out "${CMAKE_CURRENT_BINARY_DIR}/nope.wav")
+
+    add_executable(groovecore_render_fixture tests/render_fixture.cpp)
+    target_link_libraries(groovecore_render_fixture PRIVATE wubansia_engine_testing wubansia_engine wubansia_core_warnings)
+    foreach(_check deterministic blocks taps latency master song pcm24 no_content)
+        add_test(NAME "groovecore: render ${_check}"
+            COMMAND ${CMAKE_COMMAND} -DGROOVECORE=$<TARGET_FILE:groovecore> -DFIXTURE=$<TARGET_FILE:groovecore_render_fixture>
+                "-DSOURCE=${PROJECT_SOURCE_DIR}" "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/render-${_check}" -DCHECK=${_check}
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/render.cmake")
+        set_tests_properties("groovecore: render ${_check}" PROPERTIES LABELS cli TIMEOUT 300)
+    endforeach()
+    # The real kits, with $WUBANSIA_CONTENT_DIR set: every Loop and 8 bars of every Song section (minutes); it skips
+    # without content.
+    add_test(NAME "groovecore: render the real kits' loops and sections"
+        COMMAND ${CMAKE_COMMAND} -DGROOVECORE=$<TARGET_FILE:groovecore> "-DSOURCE=${PROJECT_SOURCE_DIR}"
+            "-DWORK=${CMAKE_BINARY_DIR}/renders-matrix" -DCHECK=matrix -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/render.cmake")
+    set_tests_properties("groovecore: render the real kits' loops and sections" PROPERTIES
+        LABELS "cli;render" TIMEOUT 3600 SKIP_REGULAR_EXPRESSION "SKIP: set WUBANSIA_CONTENT_DIR")
 endif()
 
 # golden_check's last step (cmake/WubansiaGolden.cmake; plan sections 4.3 and 5.1): after the fresh
