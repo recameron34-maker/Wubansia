@@ -127,6 +127,14 @@ def plan_loops(variants=VARIANTS):
     return out
 
 
+RATES = (44100, 96000)        # host rates besides 48 kHz: the engine runs at the host's rate (ADR 0017)
+
+
+def rate_render(rate, variant='vox'):
+    """The club mix at another host rate, bass B (measured after resampling to 48 kHz)."""
+    return Render(f'loop_{variant}_bassb_{rate}', ('--variant', variant, '--bass', 'b', '--passes', PASSES, '--rate', str(rate)))
+
+
 def side_render(switch, side, variant='vox'):
     """The club mix with one A/B switch on its other side (kick A, stab B), with taps: that lane against the recipe's
     lane on that side."""
@@ -220,6 +228,7 @@ def ensure(groovecore, kit, renders, root, content=None, fresh=False, log=print,
     extra = [multisample_render(taps_of=lanes), bench_render()] + [exact_render(v) for v in VARIANTS]
     extra += [tempo_render(bpm, t, taps_of=lanes) for t in TEMPO_PCT]
     extra += [side_render(sw, 'a' if DEFAULT_SIDE[sw] == 'b' else 'b') for sw in switches(kit, root) if sw != 'bass']
+    extra += [rate_render(r) for r in RATES]
     for r in plan_loops() + extra:
         code, err = one(r)
         if code != 0:
@@ -244,15 +253,21 @@ def meta_of(wav):
         return None
 
 
-def load(wav):
-    """(audio (n, 2) float64, sidecar) of a render, or None when it isn't there."""
+def load(wav, resample=False):
+    """(audio (n, 2) float64, sidecar) of a render, or None when it isn't there. A render at another rate is refused,
+    or with resample, brought to 48 kHz for measuring (scipy's polyphase resampler)."""
     import soundfile as sf
     wav = Path(wav)
     if not wav.exists():
         return None
     x, sr = sf.read(str(wav), dtype='float64', always_2d=True)
     if sr != SR:
-        raise ValueError(f'{wav}: {sr} Hz; the comparisons are at {SR}')
+        if not resample:
+            raise ValueError(f'{wav}: {sr} Hz; the comparisons are at {SR}')
+        from math import gcd
+        from scipy import signal
+        g = gcd(SR, sr)
+        x = signal.resample_poly(x, SR // g, sr // g, axis=0)
     return D.st(x), meta_of(wav)
 
 
@@ -748,6 +763,31 @@ def tempo_checks(kit, renders, root=None):
     return out
 
 
+def rate_checks(kit, renders):
+    """The club mix at 44.1 and 96 kHz, resampled to 48 kHz for measuring, pass 2, against the Club loop with every
+    gate, and against the 48 kHz render's own readings. Reported: the gates are held at 48 kHz, where the samples are."""
+    from tools.sound import engine_ref as E
+    from tools.sound import plugin_mix as PM
+    L, _ = PM.loop_info(kit)
+    kicks = E.full_kicks(kit)
+    _, club_item = E.items(kit, 'vox')
+    club_ref, club_rep = E.reference(kit, club_item)
+    base = load(wav_path(renders, kit, 'loop_vox_bassb'))
+    out = []
+    for rate in RATES:
+        got = load(wav_path(renders, kit, rate_render(rate).name), resample=True)
+        if got is None:
+            continue
+        a = got[0][L:2 * L] * D.undb(club_rep['gain_db'])
+        r = compare(a, club_ref, kicks)
+        values = dict(r['diff'])
+        if base is not None:
+            values['vs_48k'] = compare(a, base[0][L:2 * L] * D.undb(club_rep['gain_db']), kicks)['diff']
+        out.append(Check(kit, 'rate', f'{rate} Hz: club vs {club_item}', values, None,
+                         f"resampled to 48 kHz to measure; latency {got[1].get('latency')} samples at {rate} Hz"))
+    return out
+
+
 def lane_sum(renders, kit, name, meta, lane):
     """A render's taps of every mix channel on a lane, summed; None when none was written."""
     x = None
@@ -784,13 +824,13 @@ def cpu_checks(kit, renders):
     return out
 
 
-GROUPS = ('mix', 'dry', 'lane', 'master', 'tempo', 'song', 'multisample', 'cpu')
+GROUPS = ('mix', 'dry', 'lane', 'master', 'tempo', 'rate', 'song', 'multisample', 'cpu')
 
 
 def run_kit(kit, renders, root=None, groups=GROUPS):
     out = []
     fns = {'mix': mix_checks, 'dry': dry_checks, 'lane': lambda k, r: lane_checks(k, r, root), 'song': section_checks,
-           'master': master_checks, 'tempo': lambda k, r: tempo_checks(k, r, root),
+           'master': master_checks, 'tempo': lambda k, r: tempo_checks(k, r, root), 'rate': rate_checks,
            'multisample': lambda k, r: multisample_checks(k, r, root), 'cpu': cpu_checks}
     for g in groups:
         out += fns[g](kit, renders)
@@ -840,7 +880,7 @@ def report_md(checks, kits):
         if not ks:
             continue
         lines += [f'## {kit}', '']
-        gate_rows = [c for c in ks if c.group in ('mix', 'dry', 'master') or (c.group in ('tempo', 'multisample') and 'lufs_i' in c.values)]
+        gate_rows = [c for c in ks if c.group in ('mix', 'dry', 'master', 'rate') or (c.group in ('tempo', 'multisample') and 'lufs_i' in c.values)]
         if gate_rows:
             lines += ['| check | LUFS-I | short-term | worst 1/3 oct | true peak | kick crest | result |',
                       '|---|---|---|---|---|---|---|']

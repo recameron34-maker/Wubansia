@@ -248,6 +248,11 @@ class Plan(unittest.TestCase):
         self.assertEqual(('pluck', 'vsynth'), r.taps_of)
         self.assertEqual('loop_vox_bassb_tempo+1', C.tempo_render(134.0, 1).name)
 
+    def test_another_host_rate(self):
+        r = C.rate_render(44100)
+        self.assertEqual('loop_vox_bassb_44100', r.name)
+        self.assertEqual('44100', r.args[r.args.index('--rate') + 1])
+
     def test_a_switch_on_its_other_side(self):
         r = C.side_render('kick', 'a')
         self.assertEqual('loop_vox_kicka', r.name)
@@ -263,6 +268,20 @@ class Plan(unittest.TestCase):
 
 
 class Files(unittest.TestCase):
+    def test_a_render_at_another_rate_is_refused_or_resampled(self):
+        import soundfile as sf
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / 'x.wav'
+            t = np.arange(44100)
+            tone = 0.5 * np.sin(2 * np.pi * 1000.0 * t / 44100)
+            sf.write(str(p), np.stack([tone, tone], 1).astype(np.float32), 44100, subtype='FLOAT')
+            with self.assertRaises(ValueError):
+                C.load(p)
+            x, _ = C.load(p, resample=True)
+            self.assertEqual(48000, len(x))
+            f = np.fft.rfftfreq(len(x), 1 / SR)
+            self.assertAlmostEqual(1000.0, f[np.argmax(np.abs(np.fft.rfft(x[:, 0])))], delta=1.0)
+
     def test_a_render_and_its_sidecar_read_back(self):
         import soundfile as sf
         with tempfile.TemporaryDirectory() as d:
