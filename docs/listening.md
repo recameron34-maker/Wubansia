@@ -101,7 +101,7 @@ Your ratings, from the listening page (its store, read back on 2026-10-29):
 
 **Then:** you asked for four kits ("give me four kits"). The fix round for FUT01 runs together with three new first-listen kits, one per remaining direction (ADR 0010). They come back as round 2.
 
-## 2026-11-11 · v0.1 · build pr6-int (measured at f079d0b) · Listener: you · DAW: … (version, VST3/AU/CLAP) · Mac: … (chip, macOS) · Monitoring: … · Mono check: …
+## 2026-11-11 · v0.1 · build e48b3e0 (measured at f079d0b) · Listener: you · DAW: Ableton Live 12 and Logic Pro (formats not reported) · Mac: not reported · Monitoring: not reported · Mono check: not reported
 
 v0.1 has no listening round (ADR 0017): this entry holds the fidelity numbers measured before anyone listens, and the DAW checklist for you.
 
@@ -158,6 +158,10 @@ Known gaps:
 - [ ] FUT04: the anvil pulse in the 97-104 break; the no-vox mix's moved throws
 
 ### C. What you said
-Your words, per kit: keep, or fix (what, where).
+2026-11-11, after installing the macOS build (e48b3e0) for Ableton Live 12 and Logic Pro: "Sounds great". No kit or
+part named for a fix.
 
 ### D. Action
+- None to the sounds, the MIDI or the mix from this note: every kit keeps its round 5 sounds and the reviewed
+  extended mixes.
+- The checklist above wasn't reported item by item, so its boxes stay open; tick them as you check each one.
