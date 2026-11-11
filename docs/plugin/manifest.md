@@ -270,7 +270,9 @@ because at the exact BPM a cycle isn't a whole number of samples. FUT03's is: 36
 
 Each held note starts after the slice's note and before the next note the phrase's pattern matches on that channel.
 The matcher gives held notes no sound of their own: the stem already has them. A note that fits neither a slice nor
-a hold stays on the multisample.
+a hold stays on the multisample. A cycle plays its phrase only when its matched and held notes are more than half of its
+notes; otherwise every note of the cycle plays the multisample, so a line that lands on a few of a stem's cells isn't a
+patchwork of stem and multisample.
 
 A looped stem is one the phrase plays cycle after cycle, so it holds what wraps round its cycle:
 - A looped stem is read modulo its frames. A slice's start is its onset less its lead, modulo the stem's frames.
