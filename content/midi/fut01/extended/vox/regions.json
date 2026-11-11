@@ -59,6 +59,7 @@
         "35": "B1",
         "37": "C#2",
         "38": "D2",
+        "40": "E2",
         "42": "F#2"
       }
     },
@@ -89,6 +90,20 @@
       }
     },
     {
+      "track": "Organ Lead",
+      "lane": "lead",
+      "channel": 12,
+      "notes": {
+        "66": "F#4",
+        "68": "G#4",
+        "69": "A4",
+        "71": "B4",
+        "73": "C#5",
+        "76": "E5",
+        "78": "F#5"
+      }
+    },
+    {
       "track": "Chords",
       "lane": "chords",
       "channel": 4,
@@ -114,6 +129,15 @@
       }
     },
     {
+      "track": "Air Pad",
+      "lane": "chords",
+      "channel": 13,
+      "notes": {
+        "54": "F#3",
+        "59": "B3"
+      }
+    },
+    {
       "track": "Vox",
       "lane": "vox",
       "channel": 5,
@@ -134,6 +158,9 @@
         "48": "Reverse Stab",
         "49": "Noise Uplifter",
         "50": "Organ Hit",
+        "52": "Rave Stab",
+        "53": "Chord Sweep",
+        "54": "Vox Synth Stab",
         "55": "Alloy Bell"
       }
     },
@@ -142,6 +169,7 @@
       "lane": "fx",
       "channel": 7,
       "notes": {
+        "48": "Glitch Fill Lift",
         "49": "Glitch Fill Lift, from its 16th 4",
         "50": "Shift Riser",
         "51": "Sub Drop"
@@ -183,7 +211,9 @@
             "hats",
             "perc"
           ],
-          "hats": "full"
+          "hats": "thin",
+          "end": "turn",
+          "turn": "thin"
         },
         {
           "start_bar": 9,
@@ -193,8 +223,9 @@
             "hats",
             "perc"
           ],
-          "hats": "thin",
-          "end": "turn"
+          "hats": "full",
+          "end": "turn",
+          "turn": "gap"
         },
         {
           "start_bar": 17,
@@ -205,7 +236,8 @@
             "hats",
             "perc"
           ],
-          "hats": "full"
+          "hats": "full",
+          "end": "turn"
         },
         {
           "start_bar": 25,
@@ -216,8 +248,9 @@
             "hats",
             "perc"
           ],
-          "hats": "full",
-          "end": "turn"
+          "hats": "busy",
+          "end": "turn",
+          "turn": "flam"
         }
       ],
       "cues": []
@@ -253,7 +286,7 @@
             "bass"
           ],
           "hats": "full",
-          "bass": "Bounce",
+          "bass": "Low",
           "end": "turn"
         },
         {
@@ -270,8 +303,7 @@
             "fx"
           ],
           "hats": "full",
-          "bass": "Bounce",
-          "accents": "alternate",
+          "bass": "Low",
           "end": "fill"
         },
         {
@@ -288,10 +320,11 @@
             "accents"
           ],
           "hats": "full",
-          "bass": "Bounce",
+          "bass": "Low",
           "lead": "call",
-          "accents": "alternate",
-          "end": "turn"
+          "drums": "alloy",
+          "end": "turn",
+          "turn": "flam"
         },
         {
           "start_bar": 57,
@@ -308,12 +341,10 @@
             "accents",
             "fx"
           ],
-          "hats": "full",
-          "bass": "Bounce",
+          "hats": "busy",
+          "bass": "Low",
           "lead": "call",
-          "vox": "call",
-          "throw": 1,
-          "accents": "alternate",
+          "vox": "answer",
           "end": "fill"
         }
       ],
@@ -352,12 +383,12 @@
           "start_bar": 65,
           "bars": 8,
           "lanes": [
-            "lead",
             "chords",
-            "vox"
+            "vox",
+            "accents"
           ],
-          "lead": "call",
-          "vox": "riff"
+          "vox": "riff",
+          "accents": "alternate"
         },
         {
           "start_bar": 73,
@@ -371,7 +402,7 @@
             "fx"
           ],
           "hats": "thin",
-          "lead": "phrase",
+          "lead": "call",
           "vox": "riff",
           "rise": {
             "lane": "hats",
@@ -388,10 +419,6 @@
           "cue": "Vox"
         },
         {
-          "bar": 73,
-          "cue": "Vox"
-        },
-        {
           "bar": 80,
           "cue": "Fill"
         }
@@ -402,14 +429,15 @@
       "name": "Build",
       "kind": "build",
       "start_bar": 81,
-      "bars": 16,
-      "file": "04_Build_16bars.mid",
+      "bars": 8,
+      "file": "04_Build_8bars.mid",
       "lanes": [
         "kick",
         "snare",
         "hats",
         "perc",
         "chords",
+        "vox",
         "fx"
       ],
       "lines": [
@@ -421,34 +449,31 @@
             "snare",
             "hats",
             "perc",
-            "chords"
-          ],
-          "hats": "thin",
-          "end": "turn"
-        },
-        {
-          "start_bar": 89,
-          "bars": 8,
-          "lanes": [
-            "kick",
-            "snare",
-            "hats",
-            "perc",
+            "chords",
+            "vox",
             "fx"
           ],
-          "hats": "full",
+          "hats": "thin",
+          "vox": "call",
           "roll": "snare",
           "roll_bars": 2,
-          "end": "fill"
+          "rise": {
+            "lane": "Chords",
+            "from_pm": 550,
+            "to_pm": 1000
+          },
+          "drums": "tamb",
+          "end": "fill",
+          "fill": "GlitchFillLift"
         }
       ],
       "cues": [
         {
-          "bar": 89,
+          "bar": 81,
           "cue": "Riser"
         },
         {
-          "bar": 96,
+          "bar": 88,
           "cue": "Fill"
         }
       ]
@@ -457,7 +482,7 @@
       "index": 5,
       "name": "Drop",
       "kind": "drop",
-      "start_bar": 97,
+      "start_bar": 89,
       "bars": 32,
       "file": "05_Drop_32bars.mid",
       "lanes": [
@@ -473,6 +498,26 @@
         "fx"
       ],
       "lines": [
+        {
+          "start_bar": 89,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "chords",
+            "vox",
+            "accents",
+            "fx"
+          ],
+          "hats": "full",
+          "bass": "Bounce",
+          "vox": "riff",
+          "accents": "loop",
+          "end": "turn"
+        },
         {
           "start_bar": 97,
           "bars": 8,
@@ -490,35 +535,13 @@
           ],
           "hats": "full",
           "bass": "Bounce",
-          "lead": "phrase",
-          "vox": "loop",
-          "accents": "loop",
-          "end": "turn"
-        },
-        {
-          "start_bar": 105,
-          "bars": 8,
-          "lanes": [
-            "kick",
-            "snare",
-            "hats",
-            "perc",
-            "bass",
-            "lead",
-            "chords",
-            "vox",
-            "accents",
-            "fx"
-          ],
-          "hats": "full",
-          "bass": "Bounce",
-          "lead": "phrase",
-          "vox": "loop",
+          "lead": "call",
+          "vox": "riff",
           "accents": "loop",
           "end": "fill"
         },
         {
-          "start_bar": 113,
+          "start_bar": 105,
           "bars": 8,
           "lanes": [
             "kick",
@@ -533,11 +556,13 @@
           "hats": "busy",
           "bass": "Bounce",
           "lead": "phrase",
-          "accents": "loop",
-          "end": "turn"
+          "accents": "alternate",
+          "drums": "rims",
+          "end": "turn",
+          "turn": "gap"
         },
         {
-          "start_bar": 121,
+          "start_bar": 113,
           "bars": 8,
           "lanes": [
             "kick",
@@ -552,23 +577,24 @@
           ],
           "hats": "full",
           "bass": "Bounce",
-          "lead": "phrase",
-          "vox": "loop",
+          "lead": "call",
+          "vox": "answer",
           "accents": "loop",
+          "drums": "alloy",
           "end": "drop"
         }
       ],
       "cues": [
         {
-          "bar": 97,
+          "bar": 89,
           "cue": "Vox"
         },
         {
-          "bar": 112,
+          "bar": 104,
           "cue": "Fill"
         },
         {
-          "bar": 121,
+          "bar": 113,
           "cue": "Vox"
         }
       ]
@@ -577,7 +603,7 @@
       "index": 6,
       "name": "Switch-up",
       "kind": "switch",
-      "start_bar": 129,
+      "start_bar": 121,
       "bars": 16,
       "file": "06_SwitchUp_16bars.mid",
       "lanes": [
@@ -592,6 +618,38 @@
       ],
       "lines": [
         {
+          "start_bar": 121,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "accents",
+            "fx"
+          ],
+          "hats": "full",
+          "bass": "Speed",
+          "drums": "4x4",
+          "end": "turn",
+          "turn": "4x4",
+          "hits": [
+            [
+              22,
+              "VoxSynthStab"
+            ],
+            [
+              86,
+              "VoxSynthStab"
+            ],
+            [
+              126,
+              "RaveStab"
+            ]
+          ]
+        },
+        {
           "start_bar": 129,
           "bars": 8,
           "lanes": [
@@ -600,35 +658,29 @@
             "hats",
             "perc",
             "bass",
-            "accents"
-          ],
-          "hats": "busy",
-          "bass": "Low",
-          "accents": "loop",
-          "end": "turn"
-        },
-        {
-          "start_bar": 137,
-          "bars": 8,
-          "lanes": [
-            "kick",
-            "snare",
-            "hats",
-            "perc",
-            "bass",
             "chords",
             "accents",
             "fx"
           ],
           "hats": "busy",
-          "bass": "Low",
-          "accents": "loop",
-          "end": "fill"
+          "bass": "Speed",
+          "drums": "4x4",
+          "end": "fill",
+          "hits": [
+            [
+              22,
+              "VoxSynthStab"
+            ],
+            [
+              86,
+              "VoxSynthStab"
+            ]
+          ]
         }
       ],
       "cues": [
         {
-          "bar": 144,
+          "bar": 136,
           "cue": "Fill"
         }
       ]
@@ -637,63 +689,60 @@
       "index": 7,
       "name": "Break 2",
       "kind": "break",
-      "start_bar": 145,
+      "start_bar": 137,
       "bars": 16,
       "file": "07_Break2_16bars.mid",
       "lanes": [
         "hats",
         "lead",
         "chords",
-        "vox",
         "accents",
         "fx"
       ],
       "lines": [
         {
-          "start_bar": 145,
+          "start_bar": 137,
           "bars": 8,
           "lanes": [
             "lead",
             "chords",
-            "vox"
+            "accents"
           ],
-          "lead": "call",
-          "vox": "riff"
+          "pad": "slow",
+          "phrases": [
+            "Organ riff"
+          ]
         },
         {
-          "start_bar": 153,
+          "start_bar": 145,
           "bars": 8,
           "lanes": [
             "hats",
             "lead",
             "chords",
-            "vox",
-            "accents",
             "fx"
           ],
           "hats": "thin",
-          "lead": "phrase",
-          "vox": "riff",
+          "chords": "slow",
+          "pad": "slow",
+          "phrases": [
+            "Organ riff"
+          ],
           "rise": {
             "lane": "hats",
             "from_pm": 400,
             "to_pm": 1000
           },
-          "accents": "lead-in",
           "end": "fill"
         }
       ],
       "cues": [
         {
           "bar": 145,
-          "cue": "Vox"
-        },
-        {
-          "bar": 153,
           "cue": "Riser"
         },
         {
-          "bar": 160,
+          "bar": 152,
           "cue": "Fill"
         }
       ]
@@ -702,9 +751,9 @@
       "index": 8,
       "name": "Drop 2",
       "kind": "drop2",
-      "start_bar": 161,
-      "bars": 32,
-      "file": "08_Drop2_32bars.mid",
+      "start_bar": 153,
+      "bars": 40,
+      "file": "08_Drop2_40bars.mid",
       "lanes": [
         "kick",
         "snare",
@@ -718,6 +767,31 @@
         "fx"
       ],
       "lines": [
+        {
+          "start_bar": 153,
+          "bars": 8,
+          "lanes": [
+            "kick",
+            "snare",
+            "hats",
+            "perc",
+            "bass",
+            "lead",
+            "chords",
+            "vox",
+            "accents",
+            "fx"
+          ],
+          "hats": "busy",
+          "bass": "Bounce",
+          "vox": "answer",
+          "phrases": [
+            "Organ riff"
+          ],
+          "accents": "loop",
+          "drums": "alloy2",
+          "end": "turn"
+        },
         {
           "start_bar": 161,
           "bars": 8,
@@ -734,11 +808,13 @@
             "fx"
           ],
           "hats": "busy",
-          "bass": "Bounce",
-          "lead": "phrase",
-          "vox": "loop",
+          "lead": "call",
+          "vox": "riff",
+          "phrases": [
+            "Warp riff"
+          ],
           "accents": "loop",
-          "end": "turn"
+          "end": "fill"
         },
         {
           "start_bar": 169,
@@ -751,16 +827,18 @@
             "bass",
             "lead",
             "chords",
-            "vox",
-            "accents",
-            "fx"
+            "accents"
           ],
-          "hats": "busy",
+          "hats": "full",
           "bass": "Bounce",
-          "lead": "phrase",
-          "vox": "loop",
-          "accents": "loop",
-          "end": "fill"
+          "phrases": [
+            "Organ riff",
+            "E-piano stab rhythm"
+          ],
+          "accents": "alternate",
+          "drums": "rims",
+          "end": "turn",
+          "turn": "flam"
         },
         {
           "start_bar": 177,
@@ -774,14 +852,15 @@
             "lead",
             "chords",
             "vox",
-            "accents"
+            "accents",
+            "fx"
           ],
           "hats": "busy",
           "bass": "Bounce",
-          "lead": "phrase",
-          "vox": "answer",
+          "lead": "answer",
+          "vox": "call",
           "accents": "loop",
-          "end": "turn"
+          "end": "fill"
         },
         {
           "start_bar": 185,
@@ -791,28 +870,29 @@
             "snare",
             "hats",
             "perc",
-            "bass",
-            "chords",
-            "accents",
-            "fx"
+            "bass"
           ],
           "hats": "full",
-          "bass": "Bounce",
-          "accents": "alternate",
-          "end": "fill"
+          "bass": "Low",
+          "end": "turn",
+          "turn": "gap"
         }
       ],
       "cues": [
         {
-          "bar": 161,
+          "bar": 153,
           "cue": "Vox"
         },
         {
-          "bar": 176,
+          "bar": 168,
           "cue": "Fill"
         },
         {
-          "bar": 192,
+          "bar": 177,
+          "cue": "Vox"
+        },
+        {
+          "bar": 184,
           "cue": "Fill"
         }
       ]
@@ -840,7 +920,10 @@
             "hats",
             "perc"
           ],
-          "hats": "full"
+          "hats": "busy",
+          "drums": "rims",
+          "end": "turn",
+          "turn": "gap"
         },
         {
           "start_bar": 201,
@@ -852,7 +935,9 @@
             "perc"
           ],
           "hats": "full",
-          "end": "turn"
+          "drums": "alloy",
+          "end": "turn",
+          "turn": "flam"
         },
         {
           "start_bar": 209,
@@ -862,7 +947,9 @@
             "hats",
             "perc"
           ],
-          "hats": "thin"
+          "hats": "full",
+          "drums": "tamb8",
+          "end": "turn"
         },
         {
           "start_bar": 217,
@@ -872,7 +959,10 @@
             "hats",
             "perc"
           ],
-          "hats": "full"
+          "hats": "full",
+          "drums": "tamb",
+          "end": "turn",
+          "turn": "gap"
         }
       ],
       "cues": []
