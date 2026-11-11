@@ -97,5 +97,5 @@ Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, befor
 
 Near the kit's tempo (within 2 %), Wubansia plays these lanes from the kit's recorded lines and phrases, sliced at
 these files' notes; away from it, and always from MIDI in, they play the multisample above:
-- **bass**: the Acid Line 1 Ride (`Loops/Acid Line 1 Ride Clean.wav` and Warm), its ride baked in; the other lines from `Loops/Acid Line 1` and `Acid Line 2`
+- **bass**: the Acid Line 1 Ride (`Loops/Acid Line 1 Ride Clean.wav` and Warm), its ride baked in; the lines at rest (CC74 and CC71 at 0) from `Stems/Acid Line 1 Clean 4 Bars.wav` and `Stems/Acid Line 2 Clean 4 Bars.wav` and their Warm twins, each its 2-bar `Loops/` line twice
 - **lead**: the Mod Blip Phrase (`Loops/Mod Blip Phrase.wav`), its ratchets included

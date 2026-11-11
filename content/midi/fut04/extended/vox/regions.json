@@ -135,6 +135,7 @@
         "48": "Accent Rave Stab Em",
         "49": "Accent Noise Sweep E",
         "50": "Accent Reverse Hit Em",
+        "52": "Accent Metal Chord Em",
         "54": "Accent Dist Chord Em"
       }
     },
@@ -214,7 +215,9 @@
           "bars": 8,
           "lanes": [
             "kick"
-          ]
+          ],
+          "end": "turn",
+          "turn": "kick"
         },
         {
           "start_bar": 9,
@@ -416,9 +419,22 @@
           "phrases": [
             "Metal chords, Em Em Am Bm"
           ],
-          "accents": "alternate",
           "end": "turn",
           "turn": "big",
+          "hits": [
+            [
+              78,
+              "AccentRaveStabEm"
+            ],
+            [
+              128,
+              "AccentNoiseSweepE"
+            ],
+            [
+              128,
+              "AccentReverseHitEm"
+            ]
+          ],
           "ride": {
             "Bass": [
               "ramp",
@@ -506,6 +522,7 @@
       "file": "03_Break_16bars.mid",
       "lanes": [
         "hats",
+        "perc",
         "bass",
         "chords",
         "vox",
@@ -517,6 +534,7 @@
           "start_bar": 97,
           "bars": 8,
           "lanes": [
+            "perc",
             "chords",
             "vox",
             "accents",
@@ -526,7 +544,31 @@
           "phrases": [
             "Metal chords, Em Em Am Bm"
           ],
-          "accents": "alternate"
+          "drums": "break",
+          "end": "turn",
+          "turn": "break",
+          "hits": [
+            [
+              0,
+              "AccentMetalChordEm"
+            ],
+            [
+              64,
+              "AccentMetalChordEm"
+            ],
+            [
+              78,
+              "AccentRaveStabEm"
+            ],
+            [
+              128,
+              "AccentNoiseSweepE"
+            ],
+            [
+              128,
+              "AccentReverseHitEm"
+            ]
+          ]
         },
         {
           "start_bar": 105,
@@ -735,8 +777,33 @@
           "phrases": [
             "Metal chords, Em Em Am Bm"
           ],
-          "accents": "loop",
           "end": "turn",
+          "hits": [
+            [
+              14,
+              "AccentRaveStabEm"
+            ],
+            [
+              64,
+              "AccentNoiseSweepE"
+            ],
+            [
+              64,
+              "AccentReverseHitEm"
+            ],
+            [
+              78,
+              "AccentRaveStabEm"
+            ],
+            [
+              128,
+              "AccentNoiseSweepE"
+            ],
+            [
+              128,
+              "AccentReverseHitEm"
+            ]
+          ],
           "ride": {
             "Bass": "loop"
           }

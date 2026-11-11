@@ -19,7 +19,7 @@ export.
 |---|---|---|---|---|
 | 1-32 | Intro | intro | `01_Intro_32bars.mid` | kick, snare, hats, perc |
 | 33-96 | Groove | groove | `02_Groove_64bars.mid` | kick, snare, hats, perc, bass, lead, chords, vox, accents, fx |
-| 97-112 | Break | break | `03_Break_16bars.mid` | hats, bass, chords, vox, accents, fx |
+| 97-112 | Break | break | `03_Break_16bars.mid` | hats, perc, bass, chords, vox, accents, fx |
 | 113-128 | Build | build | `04_Build_16bars.mid` | kick, hats, perc, bass, chords, fx |
 | 129-160 | Drop | drop | `05_Drop_32bars.mid` | kick, snare, hats, perc, bass, lead, chords, vox, accents, fx |
 | 161-192 | Drop 2 | drop2 | `06_Drop2_32bars.mid` | kick, snare, hats, perc, bass, lead, chords, vox, accents, fx |
@@ -28,7 +28,7 @@ export.
 Line by line (bars of the whole mix):
 
 **1. Intro** (bars 1-32)
-- 1-8: kick
+- 1-8: kick; a turnaround (kick) in its last bar
 - 9-16: kick, off-beat hats; a turnaround (big) in its last bar
 - 17-24: kick, snare, hats; a turnaround in its last bar
 - 25-32: kick, snare, hats, perc; a turnaround (big) in its last bar
@@ -44,7 +44,7 @@ Line by line (bars of the whole mix):
 - 89-96: kick, snare, hats, perc, bass (AcidLine1), the lead's skeleton, chords (the metal chords), the vox's last note thrown, accents, fx; the drums' ride on 8ths variant; the Bass filter ride from 72 to 92; the fill in its last bar
 
 **3. Break** (bars 97-112)
-- 97-104: chords (the metal chords), vox (riff), accents, fx
+- 97-104: perc, chords (the metal chords), vox (riff), accents, fx; the drums' break variant; a turnaround (break) in its last bar
 - 105-112: off-beat hats, bass (AcidLine1), chords, accents; the Bass filter ride from 0 to 24; the hats rise from 40% to 100% velocity; a turnaround (big) in its last bar
 
 **4. Build** (bars 113-128)
@@ -104,7 +104,7 @@ has every instrument's zones and every one-key sound's file.
 | Chord voicing | 3 | chords | 52 E3, 59 B3, 64 E4, 67 G4, 78 F#5 |
 | Metal Chord | 12 | chords | 64 E4, 69 A4, 71 B4 |
 | Vox | 5 | vox | 52 E3, 55 G3, 59 B3, 62 D4 |
-| Accents | 6 | accents | 48 Accent Rave Stab Em, 49 Accent Noise Sweep E, 50 Accent Reverse Hit Em, 54 Accent Dist Chord Em |
+| Accents | 6 | accents | 48 Accent Rave Stab Em, 49 Accent Noise Sweep E, 50 Accent Reverse Hit Em, 52 Accent Metal Chord Em, 54 Accent Dist Chord Em |
 | Acid Stab | 11 | accents | 62 D4, 64 E4, 66 F#4, 67 G4, 69 A4, 71 B4 |
 | Rave Stab | 13 | accents | 64 E4, 69 A4, 71 B4 |
 | FX | 7 | fx | 48 Stutter Fill, 49 Iron Riser, 50 Accent Sub Drop E2 |
