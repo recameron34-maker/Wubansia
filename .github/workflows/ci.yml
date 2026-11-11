@@ -10,17 +10,28 @@
 #   pull_request to main, draft                              no     no     no     no
 #   workflow_dispatch, platforms=all                         yes    yes    yes    yes
 #   workflow_dispatch, platforms=linux | macos | windows     only the chosen job (linux brings sound)
+#   workflow_dispatch, platforms=content                     only "content"
 #
-# "sound" runs the tests of the Python sound tools (tools/sound) on the image's own python3.
+# "sound" runs the tests of the Python sound tools (tools/sound) and of the content tools (tools/content) on the
+# image's own python3.
+#
+# "content" packs the per-kit content zips (tools/content/pack.py, ADR 0022). It runs only when dispatched with
+# platforms=content, never with "all": it pulls the kits' samples through Git LFS, which counts against the repo
+# owner's LFS bandwidth (about 200 MB for the four kits' first run), and its zips (about 175 MB) take artifact
+# storage for 3 days. Before any download it checks that every listed sample is in the commit. The samples it
+# pulls are cached by each kit's manifest hash, but a cache belongs to its branch (any branch can also restore
+# main's) and is evicted after 7 days unused: a re-run on the same branch that week downloads nothing, and a run
+# on another branch downloads again unless main has the cache. So dispatch it on main when you can:
+#   gh workflow run ci.yml --ref <branch> -f platforms=content
 #
 # Windows runs only when dispatched: for now only macOS is needed (ADR 0004).
 #
 # Nothing runs for:
-#   - pushes and PRs that change only docs/** or **/*.md. A PR is filtered on
-#     its whole diff, so a docs-only commit to a PR with code changes still runs the
-#     desktop jobs. If a job here ever becomes a required check, drop paths-ignore from
-#     pull_request: a docs-only PR would stay "Pending" and couldn't merge (GitHub docs,
-#     "Skipping workflow runs").
+#   - pushes and PRs that change only docs/** or **/*.md, except dist/INSTALL.md, which ships in
+#     the macOS zip and is tested ("paths": the last pattern that matches a file decides). A PR is
+#     filtered on its whole diff, so a docs-only commit to a PR with code changes still runs the
+#     desktop jobs. If a job here ever becomes a required check, drop paths from pull_request: a
+#     docs-only PR would stay "Pending" and couldn't merge (GitHub docs, "Skipping workflow runs").
 #   - tag pushes ("branches" is set, so tags never match)
 #   - PRs to other base branches, other PR activity (closed, labeled, ...), and PRs
 #     with a merge conflict (GitHub skips pull_request runs until it is resolved)
@@ -42,17 +53,17 @@ name: CI
 on:
   push:
     branches: ["**"]
-    paths-ignore: ["docs/**", "**/*.md"]
+    paths: ["**", "!docs/**", "!**/*.md", "dist/INSTALL.md"]
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore: ["docs/**", "**/*.md"]
+    paths: ["**", "!docs/**", "!**/*.md", "dist/INSTALL.md"]
   workflow_dispatch:
     inputs:
       platforms:
         description: Which jobs to run
         type: choice
-        options: [all, linux, macos, windows]
+        options: [all, linux, macos, windows, content]
         default: all
         required: true
 
@@ -182,6 +193,16 @@ jobs:
       - name: Test
         run: python3 -m unittest discover -s tools/sound/tests -t . -v
 
+      - name: Content tools
+        # pack.py and install.py on a synthetic kit, and install-macos.sh's dry runs against a fake home folder
+        # (ADR 0022). Standard library only; shellcheck and unzip are on the image. pack.py --check finds every
+        # sample the kit manifests list in this commit, as an LFS pointer with the manifest's SHA-256: it reads
+        # the pointers only, so it downloads nothing.
+        run: |
+          shellcheck --shell=bash dist/install-macos.sh
+          python3 tools/content/pack.py --check
+          python3 -m unittest discover -s tools/content/tests -t . -v
+
   macos:
     name: macOS
     if: >-
@@ -265,8 +286,42 @@ jobs:
             ditto "$bundle" "dist/Wubansia/$(basename "$bundle")"
           done
           cp THIRD_PARTY_NOTICES.md dist/Wubansia/ # the bundled licenses require it with the binaries
+          cp dist/INSTALL.md dist/install-macos.sh dist/Wubansia/ # how to install, and the installer (ADR 0022)
           ditto -c -k --keepParent dist/Wubansia "$zip"
           echo "zip=$zip" >> "$GITHUB_OUTPUT"
+
+      - name: Check the package
+        # The zip, unpacked as Finder does: exactly the four bundles, the notices, INSTALL.md and an executable
+        # install-macos.sh; each bundle still passes codesign --verify --strict after packaging; and the installer
+        # runs on the runner's bash 3.2 (a dry run; no content zips here).
+        env:
+          ZIP: ${{ steps.package.outputs.zip }}
+        run: |
+          unpacked=$RUNNER_TEMP/package
+          rm -rf "$unpacked"
+          ditto -x -k "$ZIP" "$unpacked"
+          for item in Wubansia.vst3 Wubansia.component Wubansia.clap Wubansia.app \
+                      THIRD_PARTY_NOTICES.md INSTALL.md install-macos.sh; do
+            if [ ! -e "$unpacked/Wubansia/$item" ]; then
+              echo "::error::$ZIP has no Wubansia/$item"
+              exit 1
+            fi
+          done
+          count=$(find "$unpacked/Wubansia" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
+          if [ "$count" != 7 ] || [ "$(find "$unpacked" -mindepth 1 -maxdepth 1)" != "$unpacked/Wubansia" ]; then
+            echo "::error::$ZIP holds more than Wubansia/ and its 7 items:"
+            find "$unpacked" -maxdepth 2
+            exit 1
+          fi
+          if [ ! -x "$unpacked/Wubansia/install-macos.sh" ]; then
+            echo "::error::install-macos.sh isn't executable in $ZIP"
+            exit 1
+          fi
+          for bundle in "$unpacked/Wubansia/Wubansia.vst3" "$unpacked/Wubansia/Wubansia.component" \
+                        "$unpacked/Wubansia/Wubansia.clap" "$unpacked/Wubansia/Wubansia.app"; do
+            codesign --verify --strict --verbose=2 "$bundle"
+          done
+          bash "$unpacked/Wubansia/install-macos.sh" --dry-run
 
       - name: Upload
         # archive: false uploads the zip itself (one unzip for the user, and ditto keeps
@@ -279,6 +334,96 @@ jobs:
           archive: false
           overwrite: true
           retention-days: 14
+          if-no-files-found: error
+
+      - name: Install with install-macos.sh
+        # The installer as you run it, for real, after the upload (a failure here leaves the zip uploaded). The
+        # unpacked bundles first get the quarantine flag a browser download gives them. It replaces the AU the
+        # validation step installed. Each installed bundle must then pass codesign --verify --strict without
+        # the flag.
+        run: |
+          unpacked=$RUNNER_TEMP/package/Wubansia
+          for bundle in "$unpacked/Wubansia.vst3" "$unpacked/Wubansia.component" "$unpacked/Wubansia.clap" \
+                        "$unpacked/Wubansia.app"; do
+            xattr -w com.apple.quarantine "0083;$(printf '%x' "$(date +%s)");Safari;" "$bundle"
+          done
+          bash "$unpacked/install-macos.sh" --plugins-only
+          apps=/Applications
+          if [ ! -w /Applications ]; then apps=$HOME/Applications; fi
+          for bundle in "$HOME/Library/Audio/Plug-Ins/VST3/Wubansia.vst3" \
+                        "$HOME/Library/Audio/Plug-Ins/Components/Wubansia.component" \
+                        "$HOME/Library/Audio/Plug-Ins/CLAP/Wubansia.clap" "$apps/Wubansia.app"; do
+            codesign --verify --strict --verbose=2 "$bundle"
+            if xattr -p com.apple.quarantine "$bundle" >/dev/null 2>&1; then
+              echo "::error::$bundle still has the quarantine flag"
+              exit 1
+            fi
+          done
+
+      - name: Content tools
+        # tools/content's tests on the runner's bash 3.2 and BSD tools: install-macos.sh's dry runs against a fake
+        # home folder, and a real content install into it (ADR 0022). Standard library only.
+        run: python3 -m unittest discover -s tools/content/tests -t . -v
+
+  content:
+    name: Content (${{ matrix.kit }})
+    # Dispatch with platforms=content only (see the table at the top): it uses LFS bandwidth and artifact storage.
+    if: github.event_name == 'workflow_dispatch' && inputs.platforms == 'content'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        kit: [fut01, fut02, fut03, fut04]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Kept for this job's git lfs pull, which authenticates with the checkout's token. The job runs only
+          # this repo's own scripts. Without lfs: true, the checkout itself fetches no samples.
+          persist-credentials: true
+
+      - name: Check the kit's samples are in this commit
+        # Before any LFS download: every file the kit's manifest lists must be here as an LFS pointer whose oid is
+        # the manifest's SHA-256. A missing file would otherwise show up only after the download, at Pack.
+        env:
+          KIT: ${{ matrix.kit }}
+        run: python3 tools/content/pack.py --kit "$KIT" --check
+
+      - name: Restore the kit's samples from the cache
+        uses: actions/cache@v5
+        with:
+          path: .git/lfs/objects
+          # The kit's manifest lists every file it packs, with its SHA-256: the same manifest, the same samples.
+          # The cache is this branch's (or main's) and lasts 7 days unused. A changed manifest restores the
+          # previous one's objects, so only the changed samples download.
+          key: content-lfs-${{ matrix.kit }}-${{ hashFiles(format('content/plugin/{0}/*_kit.json', matrix.kit)) }}
+          restore-keys: content-lfs-${{ matrix.kit }}-
+
+      - name: Pull the listed samples (Git LFS)
+        # Only the files the kit's manifest lists, not the reference loops beside them. git lfs downloads only the
+        # objects the cache didn't have.
+        env:
+          KIT: ${{ matrix.kit }}
+        run: |
+          include=$(python3 tools/content/pack.py --kit "$KIT" --list | paste -sd, -)
+          git lfs pull --include "$include"
+
+      - name: Pack
+        id: pack
+        env:
+          KIT: ${{ matrix.kit }}
+        run: |
+          python3 tools/content/pack.py --kit "$KIT" --out build/content
+          for zip in build/content/Wubansia-Content-*.zip; do echo "zip=${zip##*/}" >> "$GITHUB_OUTPUT"; done
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.pack.outputs.zip }}
+          path: build/content/${{ steps.pack.outputs.zip }}
+          archive: false
+          overwrite: true
+          retention-days: 3
           if-no-files-found: error
 
   windows:
