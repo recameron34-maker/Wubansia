@@ -368,8 +368,8 @@ namespace
             ph.stem = { static_cast<std::uint16_t> (stem), static_cast<std::uint16_t> (stem) };
             ph.firstSlice = static_cast<std::uint16_t> (t.kit.slices.size());
             ph.sliceCount = 2;
-            t.kit.slices.push_back (PhraseSlice { 0, 60, 0, 24000, 22000, 0, 1 });
-            t.kit.slices.push_back (PhraseSlice { 8, 62, 24000, 48000, 46000, 0, 1 });
+            t.kit.slices.push_back (PhraseSlice { 0, 60, 0, 24000, 22000, 0 });
+            t.kit.slices.push_back (PhraseSlice { 8, 62, 24000, 48000, 46000, 0 });
             t.kit.phrases.push_back (ph);
             return static_cast<int> (t.kit.phrases.size()) - 1;
         }
