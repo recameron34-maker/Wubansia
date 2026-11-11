@@ -529,7 +529,8 @@
           "hats": "16ths",
           "bass": "AcidLine1",
           "roll": "snare",
-          "roll_bars": 2,
+          "roll_from": 127,
+          "roll_bars": 1,
           "end": "fill"
         }
       ],

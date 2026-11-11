@@ -339,10 +339,6 @@
           "cue": "Fill"
         },
         {
-          "bar": 57,
-          "cue": "Vox"
-        },
-        {
           "bar": 64,
           "cue": "Fill"
         }
@@ -395,10 +391,6 @@
       ],
       "cues": [
         {
-          "bar": 65,
-          "cue": "Vox"
-        },
-        {
           "bar": 80,
           "cue": "Fill"
         }
@@ -433,9 +425,10 @@
           ],
           "hats": "thin",
           "roll": "snare",
+          "roll_from": 87,
           "roll_bars": 2,
           "rise": {
-            "lane": "Chords",
+            "lane": "chords",
             "from_pm": 550,
             "to_pm": 1000
           },
@@ -556,16 +549,8 @@
       ],
       "cues": [
         {
-          "bar": 89,
-          "cue": "Vox"
-        },
-        {
           "bar": 104,
           "cue": "Fill"
-        },
-        {
-          "bar": 113,
-          "cue": "Vox"
         }
       ]
     },
@@ -763,7 +748,6 @@
           "start_bar": 161,
           "bars": 8,
           "lanes": [
-            "kick",
             "snare",
             "hats",
             "perc",
@@ -843,16 +827,8 @@
       ],
       "cues": [
         {
-          "bar": 153,
-          "cue": "Vox"
-        },
-        {
           "bar": 168,
           "cue": "Fill"
-        },
-        {
-          "bar": 177,
-          "cue": "Vox"
         },
         {
           "bar": 184,

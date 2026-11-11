@@ -46,7 +46,7 @@ Line by line (bars of the whole mix):
 - 73-80: off-beat hats, the lead's call, chords, pad, vox (riff), accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **4. Build** (bars 81-88)
-- 81-88: kick, clap, off-beat hats, perc, chords, vox (call), fx; the drums' tamb variant; the clap rolls over the line's last 2 bars up to the fill, rising hit by hit; the Chords rise from 55% to 100% velocity; the fill (Glitch Fill Lift) in its last bar, the drums out from its start
+- 81-88: kick, clap, off-beat hats, perc, chords, vox (call), fx; the drums' tamb variant; the clap rolls over bars 87-88 up to the fill, rising hit by hit; the chords rise from 55% to 100% velocity; the fill (Glitch Fill Lift) in its last bar, the drums out from its start
 
 **5. Drop** (bars 89-120)
 - 89-96: kick, clap, hats, perc, bass (Bounce), chords, vox (riff), accents, fx; a turnaround in its last bar
@@ -63,8 +63,8 @@ Line by line (bars of the whole mix):
 - 145-152: off-beat hats, lead (the organ riff), chords (slow), pad (slow), fx; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **8. Drop 2** (bars 153-192)
-- 153-160: kick, clap, busy hats, perc, bass (Bounce), lead (the organ riff), chords, vox (answer), accents, fx; the drums' alloy2 variant; a turnaround in its last bar
-- 161-168: kick, clap, busy hats, perc, bass (the warp riff), the lead's call, chords, vox (riff), accents, fx; the fill in its last bar
+- 153-160: kick, clap, busy hats, perc, bass (Bounce), lead (the organ riff), chords, accents, fx; the drums' alloy2 variant; a turnaround in its last bar
+- 161-168: clap, busy hats, perc, bass (the warp riff), the lead's call, chords, vox (riff), accents, fx; the fill in its last bar
 - 169-176: kick, clap, hats, perc, bass (Bounce), lead (the organ riff), chords (the e-piano stab rhythm), accents; the drums' rims variant; a turnaround (flam) in its last bar
 - 177-184: kick, clap, busy hats, perc, bass (Bounce), the lead's answer, chords, vox (call), accents, fx; the fill in its last bar
 - 185-192: kick, clap, hats, perc, bass (Low); a turnaround (gap) in its last bar
@@ -78,7 +78,7 @@ Line by line (bars of the whole mix):
 ## The cues
 
 - bar 48: Fill
-- bar 57: Vox
+- bar 58: Vox
 - bar 64: Fill
 - bar 65: Vox
 - bar 80: Fill
@@ -86,16 +86,17 @@ Line by line (bars of the whole mix):
 - bar 88: Fill
 - bar 89: Vox
 - bar 104: Fill
-- bar 113: Vox
+- bar 114: Vox
 - bar 136: Fill
 - bar 145: Riser
 - bar 152: Fill
-- bar 153: Vox
+- bar 161: Vox
 - bar 168: Fill
 - bar 177: Vox
 - bar 184: Fill
 
-A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
+A riser's note ends on its section's first beat; a fill's on the next downbeat; a Vox cue sits on the bar where
+its line's vox comes in.
 
 ## Tracks
 

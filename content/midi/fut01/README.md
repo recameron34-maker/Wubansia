@@ -64,7 +64,7 @@ plays its zone's file repitched by the distance to its root.
 | 13 | Air Pad | Air Pad F#m9 | F#3 (54) | one layer |
 
 On channel 3, Chord voicing is the chords as single notes for your own synth; Wubansia ignores channel 3.
-The Low line plays the Organ Bass on channel 11, rooted as the warp bass (F#1, A1, C#2).
+The Low line plays the Organ Bass on channel 11, rooted as the warp bass (F#1, A1, C#2). The E-piano stab rhythm is written on channel 4 (the extended mix's 169-176), so Wubansia plays it on the Stab A/B: the Organ Stab by default, the E Piano Stab on B.
 
 ## One-key sounds (channels 6, 7 and 8)
 
@@ -96,7 +96,7 @@ it), so a gated pad plays the whole file; an end-aligned sound's note ends on th
 Filter rides, every 60 ticks while they move (CC74 cutoff, CC71 resonance):
 - CC74 on channel 1 (Bass): the warp bass's wobble: the lane filter over 450 Hz opening once an 8th, deeper in bars 2 and 4; logarithmic, 0 = 650 Hz to 127 = 2210 Hz.
 
-Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 at its note-off, or sooner at the next note-on on its track that isn't thrown, so no other note takes the throw (the GS send controllers).
+Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 at its note-off, or sooner at the next note-on on its track that isn't thrown, so no other note takes the throw; every track on a channel that throws anywhere in these files starts with both at 0 on tick 0 (the GS send controllers).
 
 ## Lanes Wubansia plays from recorded phrases
 
