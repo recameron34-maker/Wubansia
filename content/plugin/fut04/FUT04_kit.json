@@ -1777,7 +1777,7 @@
       "align": "start",
       "attack_us": 0,
       "release_us": 30000,
-      "gain_mdb": 0,
+      "gain_mdb": -470,
       "start_frames": 0,
       "velocity_law": "pow15",
       "interp": "sinc",

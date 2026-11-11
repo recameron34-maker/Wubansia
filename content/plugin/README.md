@@ -51,15 +51,15 @@ exporter falls back to the checkout for them. A content folder for the plugin ne
 
 | Kit | `kit.json` | Instruments | Keymap entries | Files | WAV listed | Phrase lanes (slices) |
 |---|---|---|---|---|---|---|
-| FUT01 | 99,638 bytes | 34 | 31 | 189 | 68.3 MB | 2 (20) |
-| FUT02 | 96,364 bytes | 31 | 29 | 138 | 53.2 MB | 5 (103) |
-| FUT03 | 94,998 bytes | 31 | 32 | 164 | 40.1 MB | 4 (60) |
-| FUT04 | 99,978 bytes | 28 | 27 | 130 | 43.5 MB | 4 (130) |
+| FUT01 | 99,646 bytes | 34 | 31 | 189 | 68.3 MB | 2 (20) |
+| FUT02 | 96,381 bytes | 31 | 29 | 138 | 53.2 MB | 5 (103) |
+| FUT03 | 92,908 bytes | 30 | 32 | 161 | 39.5 MB | 4 (60) |
+| FUT04 | 99,981 bytes | 28 | 27 | 130 | 43.5 MB | 4 (130) |
 
 A/B switches: the kick on FUT01 only (A Kick Split, B Kick Garage: the loops play B), the bass on all four (A clean,
 B warm: the wet and club loops play B), the stab on FUT01 only (A Organ Stab, the loops'; B E Piano Stab). FUT02's
-Drop Glide (channel 11) follows the bass switch. FUT03's Sub Deep is layered under both Rubber Basses, 11 dB down,
-where its sine meets the Rubber Bass's own sub (measured under 120 Hz on the hard layers' loops).
+Drop Glide (channel 11) follows the bass switch. FUT03's Rubber Basses play alone: the Sub Deep layer under them put
+2 dB too much under 120 Hz and 3 dB too little over it against the Rubber and Deep lines.
 
 Duck keys (`duck_key`): the kicks and claps key the onset ducks (FUT04's rumble, on the kick lane, doesn't), and so
 does FUT02's vox synth: its riff keys the arp's pocket (`context5.ARP_POCKET`, two onset ducks on the vox lane, 100 ms
@@ -174,15 +174,54 @@ The one left is FUT02's call line in bars 61-64: it throws its last note on 16th
 has one, so that note plays the multisample. When the kit engineers re-arrange the extended mixes, run `--report`
 again and update this list (`test_plugin_kit` checks it).
 
+## The multisample path
+
+Off the kit's tempo (past 2 %), with phrases off, from MIDI in, and in the Song cycles no table matches (FUT04's
+arranged acid rides, FUT03's switch-up Rubber riff, FUT02's call lines), a phrase channel's notes play its multisample.
+Each of those instruments is set to its stem's level (`gain_mdb`, each kit's `MS_GAIN_MDB`), and where the spectra
+differ it plays on a channel with a corrective EQ in front: P3's `<channel>_ms` (the stem's channel, copied, with the
+EQ first), or FUT04's `bass`, which only the acid multisamples play. Measured with groovecore render (P12's build),
+phrases off against phrases auto, pass 2 of the loop, bass B unless named, each lane after its channel's inserts
+(before: the dry taps P12 reported):
+
+| Kit | Lane | Instrument gain, channel | Level before → after | Worst 1/3 octave before → after |
+|---|---|---|---|---|
+| FUT01 | lead | Chrome Pluck +0.6 dB, `pluck` | -0.6 → -0.0 dB | -4.1 @ 3.2 kHz → -3.7 @ 3.2 kHz |
+| FUT01 | vox | Vox Synth +7.55 dB, `vsynth_ms` | -7.6 → -0.2 dB | -10.8 @ 315 Hz → -2.1 @ 250 Hz |
+| FUT02 | bass | Roll Bass Warm +4.16 dB, Clean -0.9 dB, `bass_ms` | -2.8 → -0.0 dB (A +0.8 → -0.3) | -5.8 @ 99 Hz → -1.8 @ 99 Hz (A +8.9 @ 158 Hz → -1.9) |
+| FUT02 | lead | Chrome Arp +0.13 dB, `arp` | -0.1 → +0.0 dB | -4.6 @ 794 Hz → -4.5 @ 794 Hz |
+| FUT02 | vox | Vox Synth +1.85 dB, `vox` | -2.1 → -0.1 dB | -3.7 @ 630 Hz → +2.9 @ 250 Hz |
+| FUT03 | bass | Rubber Bass Warm +2.24 dB, Clean +1.73 dB, no Sub Deep, `bass_ms` | +2.1 → -0.0 dB (A +2.6 → -0.7) | +3.0 @ 50 Hz → +2.7 @ 500 Hz (A +12.2 @ 125 Hz → +2.8) |
+| FUT03 | vox | Vox Synth +6.12 dB, `vox_ms` | -6.1 → -0.7 dB | -16.9 @ 1.26 kHz → -4.3 @ 630 Hz |
+| FUT04 | bass | Acid 0 dB, `bass` (EQ in front of the cc_filter) | +3.0 → +0.1 dB (A +3.3 → +0.1) | +16.3 @ 99 Hz → -6.2 @ 16 kHz (A +26.2 → -6.0) |
+| FUT04 | lead | Mod Blip -0.47 dB, `lead` | +0.5 → +0.0 dB | +1.2 @ 10 kHz → -0.9 @ 99 Hz |
+
+FUT04's bass is matched at rest: the acid multisample at CC 0/0 through `bass` against the at-rest Acid Line 1 stems,
+-0.9 dB, worst +2.1 dB (A +2.2 dB), with the cc_filter open while no CC has come (P3's `cc74_default` 127). The table's
+row plays the loop's ride, where the filter's top shelves off 16 kHz. Not met, and why:
+- FUT01's pluck and FUT02's arp (-3.7 and -4.5 dB in one 1/3 octave): each phrase note was excited with its own noise,
+  and with one or two harmonics a band at these pitches, the bands swing ±3-4 dB note by note. An EQ fitted to the
+  loop's notes would colour every other melody.
+- FUT03's vox (-4.3 dB at 630 Hz): its riff is chops through a riding low-pass with a dub echo, not the vox synth; the
+  EQ is the one that keeps the club mix within 1.5 dB (a closer lane fit pushed 794 Hz 1.9 dB over in the mix).
+- FUT01's no-vox warp stab rings 15 ms past its gate: the recipe's 15 ms fade ends on the gate, and a gated voice's
+  release starts at its note-off. A shorter release cuts the stab with a click (+4-5 dB at 125 Hz). Only a release that
+  ends on the note-off would match (a contract change: P0, P5).
+
+The club mix 3 % off the kit's tempo, against the at-tempo Club loop (before → after): FUT01 -0.31 → +0.00 LU, -2.9 →
++1.0 dB (worst band, -3 %); FUT02 -1.0 → -0.12 LU, -2.5 → +1.1 dB; FUT03 +0.10 → +0.15 LU, -2.4 → +2.0 dB at 198 Hz
+(already +1.6 dB there before: a tempo effect, not a phrase lane); FUT04 +0.20 → +0.06 LU, +5.2 → +1.7 dB at 250 Hz.
+At +3 % every kit is within 0.3 LU and 1.5 dB per band.
+
 ## Mix channels
 
 The channel ids `kit.json` names, P3's (`MIX_CHANNELS` in each kit's `plugin.py`):
 
 | Kit | Channels |
 |---|---|
-| FUT01 | kick, bass, bass_organ, clap, rim, hat_c, hat_o, tamb, perc, stab, pad, pluck, fill, vsynth, acc_rev, acc_up, acc_hit, acc_warp |
-| FUT02 | kick, clap, hat, zap, bass, glide, pad, arp, fill, vox, acc_laser, acc_glass, acc_sweep, acc_revchord, acc_arpstab |
-| FUT03 | kick, clap, rim, hat, shaker, perc, bass, stab, pad, vox, accent, lead, fx |
+| FUT01 | kick, bass, bass_organ, clap, rim, hat_c, hat_o, tamb, perc, stab, pad, pluck, fill, vsynth, vsynth_ms, acc_rev, acc_up, acc_hit, acc_warp |
+| FUT02 | kick, clap, hat, zap, bass, bass_ms, glide, pad, arp, fill, vox, acc_laser, acc_glass, acc_sweep, acc_revchord, acc_arpstab |
+| FUT03 | kick, clap, rim, hat, shaker, perc, bass, bass_ms, stab, pad, vox, vox_ms, accent, lead, fx |
 | FUT04 | kick, rumble, bass, bass_stem, snare, hat, ride, perc, fill, pad, lead, vox, accent |
 
 Instruments with no lane of their own in the loops take their lane's nearest channel: FUT01's Organ Lead `pluck`, its
@@ -197,7 +236,7 @@ vox chops `vsynth`, its FX keys `fill`, its other accents `acc_hit` (its Air Pad
 - FUT01's no-vox warp stab accent: the recipe's 15 ms fade ends on its gate (1.75 16ths); a gated voice's release
   starts there.
 - The multisample fallbacks' release times and glides where no recipe plays that multisample (the vox synths, FUT02's
-  arp, FUT03's Keys EP, FUT02-04's basses), and Sub Deep's layer level: chosen from the nearest recipe, in each
+  arp, FUT03's Keys EP, FUT02-04's basses): chosen from the nearest recipe, in each
   kit's `plugin.py`.
 - FUT01's vox riff entering fresh: from slice 0's pre-roll on, the stem still carries the last of the previous cycle's
   throw (it rings 3 s), 36 dB under the chops over the first 0.6 s (RMS, measured on the recipe's riff) and fading.

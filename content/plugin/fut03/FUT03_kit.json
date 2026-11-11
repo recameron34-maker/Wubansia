@@ -1432,33 +1432,6 @@
       "preroll_frames": 1200
     },
     {
-      "path": "Bass/Sub Deep G1.wav",
-      "frames": 71659,
-      "channels": 1,
-      "sha256": "d6a28676520ede396544e47885ef8e8426fe1dc3b605aae8868fbbdf5b0566e3",
-      "loop_start": 19818,
-      "loop_end": 67819,
-      "preroll_frames": 0
-    },
-    {
-      "path": "Bass/Sub Deep D2.wav",
-      "frames": 71686,
-      "channels": 1,
-      "sha256": "ead812604fc97d6d779bdabf0f34d1d2a591b3d090f1878c6e1fd346484e7f0e",
-      "loop_start": 20118,
-      "loop_end": 67846,
-      "preroll_frames": 0
-    },
-    {
-      "path": "Bass/Sub Deep G2.wav",
-      "frames": 71321,
-      "channels": 1,
-      "sha256": "a56baa0f9758aa9af05bb59af29466d6bb2fd49f75048f1f8a77d2716f2efc96",
-      "loop_start": 19480,
-      "loop_end": 67481,
-      "preroll_frames": 0
-    },
-    {
       "path": "Loops/Line Rubber Clean.wav",
       "frames": 180000,
       "channels": 1,
@@ -2027,12 +2000,12 @@
       "id": "rubber_bass_clean",
       "name": "Rubber Bass Clean",
       "lane": "bass",
-      "mix_channel": "bass",
+      "mix_channel": "bass_ms",
       "mode": "sustain_loop",
       "align": "start",
       "attack_us": 1000,
       "release_us": 80000,
-      "gain_mdb": 0,
+      "gain_mdb": 1730,
       "start_frames": 0,
       "velocity_law": "pow15",
       "interp": "sinc",
@@ -2052,7 +2025,7 @@
       "duck_key": false,
       "pan_cycle_pm": [],
       "rr_block_16ths": 64,
-      "layered_with": "sub_deep",
+      "layered_with": "",
       "zones": [
         {
           "root": 31,
@@ -2105,12 +2078,12 @@
       "id": "rubber_bass_warm",
       "name": "Rubber Bass Warm",
       "lane": "bass",
-      "mix_channel": "bass",
+      "mix_channel": "bass_ms",
       "mode": "sustain_loop",
       "align": "start",
       "attack_us": 1000,
       "release_us": 80000,
-      "gain_mdb": 0,
+      "gain_mdb": 2240,
       "start_frames": 0,
       "velocity_law": "pow15",
       "interp": "sinc",
@@ -2130,7 +2103,7 @@
       "duck_key": false,
       "pan_cycle_pm": [],
       "rr_block_16ths": 64,
-      "layered_with": "sub_deep",
+      "layered_with": "",
       "zones": [
         {
           "root": 31,
@@ -2343,12 +2316,12 @@
       "id": "vox_synth",
       "name": "Vox Synth",
       "lane": "vox",
-      "mix_channel": "vox",
+      "mix_channel": "vox_ms",
       "mode": "gated",
       "align": "start",
       "attack_us": 0,
       "release_us": 70000,
-      "gain_mdb": 0,
+      "gain_mdb": 6120,
       "start_frames": 0,
       "velocity_law": "pow15",
       "interp": "sinc",
@@ -3179,72 +3152,6 @@
           ]
         }
       ]
-    },
-    {
-      "id": "sub_deep",
-      "name": "Sub Deep",
-      "lane": "bass",
-      "mix_channel": "bass",
-      "mode": "sustain_loop",
-      "align": "start",
-      "attack_us": 1000,
-      "release_us": 80000,
-      "gain_mdb": -11000,
-      "start_frames": 0,
-      "velocity_law": "pow15",
-      "interp": "sinc",
-      "mono": true,
-      "glide": {
-        "curve": "raised_cosine",
-        "us": 50000,
-        "dip_us": 0
-      },
-      "restrike_continues": false,
-      "choke": {
-        "group": "",
-        "role": "none",
-        "fade_us": 0,
-        "curve": "linear"
-      },
-      "duck_key": false,
-      "pan_cycle_pm": [],
-      "rr_block_16ths": 64,
-      "layered_with": "",
-      "zones": [
-        {
-          "root": 31,
-          "lo": 0,
-          "hi": 37,
-          "layers": [
-            {
-              "vel": 127,
-              "rr": [155]
-            }
-          ]
-        },
-        {
-          "root": 38,
-          "lo": 38,
-          "hi": 42,
-          "layers": [
-            {
-              "vel": 127,
-              "rr": [156]
-            }
-          ]
-        },
-        {
-          "root": 43,
-          "lo": 43,
-          "hi": 127,
-          "layers": [
-            {
-              "vel": 127,
-              "rr": [157]
-            }
-          ]
-        }
-      ]
     }
   ],
   "keymap": [
@@ -3489,8 +3396,8 @@
       "gain_mdb": 0,
       "throw": "live",
       "stems": {
-        "a": 158,
-        "b": 159
+        "a": 155,
+        "b": 156
       },
       "cycle_16ths": 32,
       "tolerance_pm": 20,
@@ -3646,8 +3553,8 @@
       "gain_mdb": 0,
       "throw": "live",
       "stems": {
-        "a": 160,
-        "b": 161
+        "a": 157,
+        "b": 158
       },
       "cycle_16ths": 32,
       "tolerance_pm": 20,
@@ -3857,7 +3764,7 @@
       "gain_mdb": 0,
       "throw": "baked",
       "stems": {
-        "a": 162,
+        "a": 159,
         "b": -1
       },
       "cycle_16ths": 64,
@@ -3951,7 +3858,7 @@
       "gain_mdb": 1000,
       "throw": "baked",
       "stems": {
-        "a": 163,
+        "a": 160,
         "b": -1
       },
       "cycle_16ths": 64,
