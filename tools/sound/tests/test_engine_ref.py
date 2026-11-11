@@ -1,13 +1,11 @@
 """The streaming references (rt_ref.py) against the offline stages they stand in for, the streaming mix (engine_ref.py)
 on a synthetic mix, and the gates against each kit's committed Wet and Club loops.
 
-The rt_ref tests are small and run everywhere. The gates need the round 5 reference loops (the FLAC masters in
-build/<kit>-r5, or the WAVs in content/samples/<kit>/Loops) and re-render each kit's recipe once (about 30 s a
-variant): they run when WUBANSIA_R5_BUILD points at a folder holding <kit>-r5/ (or the repo's build/ has it), and
-skip otherwise.
+The rt_ref tests are small and run everywhere. The gates need the round 5 renders (build/<kit>-r5: the FLAC masters,
+sample for sample the WAVs committed in content/samples/<kit>/Loops, and qa_report.json, which holds each loop's
+gain) and re-render each kit's recipe once (about 30 s a variant): they run when WUBANSIA_R5_BUILD points at a
+folder holding <kit>-r5/ (or the repo's build/ has it), and skip otherwise.
 """
-import math
-import os
 import unittest
 
 import numpy as np
@@ -219,6 +217,24 @@ class Limiter(unittest.TestCase):
             # the gain's own movement between the detector's 4x points can lift a peak by a few tenths of a mdB:
             # master.py trims that offline (its trim, about -0.003 dB); live it stays
             self.assertLessEqual(D.true_peak_db(y), -1.02 + 0.002, hold)
+
+    def test_lookback_hold_keeps_a_driven_tone_clean(self):
+        """master.py's transparency case on the live master's last stages: saws in the bass register driven 3 and
+        6 dB into the clip and the look-back limiter read nothing between their harmonics (qa's alias check, -60 dB).
+        A low note's 4x peak drifts from cycle to cycle; the hold's 120 ms back window keeps the lowest one."""
+        from tools.sound import mixmeter as MM
+        from tools.sound import qa as Q
+        for f0 in (55.0, 110.0, 220.0):
+            n = int(1.2 * SR)
+            f = round(f0 * n / SR) * SR / n
+            x = D.st(0.5 * D.additive_saw(f, n))
+            for drive in (3.0, 6.0):
+                with self.subTest(f0=f0, drive=drive):
+                    u = np.tile(x * D.undb(-1.02 + drive - MM.true_peak_db(x)), (3, 1))
+                    y = R.limit(R.soft_clip(u, -0.52, 1.5), -1.02, hold='lookback')[n:2 * n]
+                    got = {c.name: c for c in Q.check_take(y, Q.Spec('lead', f0=f, oneshot=False))}['alias']
+                    self.assertIs(got.ok, True, f'{got.value} dB')
+                    self.assertLessEqual(MM.true_peak_db(y), -1.02 + 0.002)     # a loop: read round its seam
 
     def test_sliding_min(self):
         a = np.random.default_rng(13).uniform(0, 1, 500)

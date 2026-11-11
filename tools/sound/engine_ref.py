@@ -33,7 +33,6 @@ from scipy import signal  # noqa: E402
 from scipy.linalg import hadamard  # noqa: E402
 
 from tools.sound import dsp48 as D  # noqa: E402
-from tools.sound import master as MS  # noqa: E402
 from tools.sound import phrase as Ph  # noqa: E402
 from tools.sound import rt_ref as R  # noqa: E402
 from tools.sound import sends as S  # noqa: E402
@@ -518,7 +517,7 @@ def render(kit, variant, bass='b', passes=3, master='exact', mix=None, taps=(), 
         if not any(side == 'a' and ch in ('bass', 'bass_stem') for ch, side in cap.sides):
             raise ValueError(f'{kit}: the trace holds no bass A dry lane')
     L, bpm = PM.loop_info(kit)
-    out, meta = render_mix(m, dry, variant=variant, loop_len=L, bpm=bpm, keys=PM.keys(kit),
+    out, meta = render_mix(m, dry, variant=variant, loop_len=L, bpm=bpm, keys=PM.keys(kit, variant),
                            ccs=PM.ride_points(kit), throws=cap.throws, ab={'bass': bass}, passes=passes,
                            master=master, taps=taps, **kw)
     meta['loop_len'] = L
@@ -605,10 +604,11 @@ def wet_file(kit, premaster, item_report, mix):
 
 def gates(kit, variant, master='exact', passes=3):
     """engine_ref against the kit's committed Wet and Club loops on the second pass: {'wet': compare(), 'club':
-    compare(), 'lookback': the look-back master's difference from the exact one}."""
-    L, _ = __import__('tools.sound.plugin_mix', fromlist=['loop_info']).loop_info(kit)
-    wet_item, club_item = items(kit, variant)
+    compare(), 'latency': the render's latencies}. The references are round 5's FLAC masters, sample for sample the
+    committed WAVs."""
     from tools.sound import plugin_mix as PM
+    L, _ = PM.loop_info(kit)
+    wet_item, club_item = items(kit, variant)
     mix = PM.load(kit)
     out, meta = render(kit, variant, passes=passes, master=master, mix=mix)
     kicks = full_kicks(kit)
@@ -624,9 +624,9 @@ def gates(kit, variant, master='exact', passes=3):
 def master_difference(kit, variant):
     """The look-back master against the exact one on the same mix (pass 2): compare()'s readings, and each one's
     loudness and true peak."""
-    L, _ = __import__('tools.sound.plugin_mix', fromlist=['loop_info']).loop_info(kit)
-    out_off, meta = render(kit, variant, master='off')
     from tools.sound import plugin_mix as PM
+    L, _ = PM.loop_info(kit)
+    _, meta = render(kit, variant, master='off')
     m = PM.load(kit)
     pre = meta['premaster']
     exact, _ = master_chain(pre, m['master'], variant, 'exact')

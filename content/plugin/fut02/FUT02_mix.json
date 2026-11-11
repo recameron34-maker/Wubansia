@@ -215,13 +215,14 @@
         },
         {
           "type": "duck",
-          "mode": "level",
-          "key_channel": "vox",
+          "mode": "onset",
+          "key_lanes": ["vox"],
+          "min_velocity": 1,
           "depth_mdb": 2000,
-          "range_mdb": 36000,
-          "top_mdb": -15716,
-          "attack_us": 5000,
-          "release_us": 1000000,
+          "ramp_us": 20000,
+          "hold_us": 470000,
+          "release_us": 20000,
+          "pre_us": 100000,
           "band": {
             "lo_hz": 0,
             "hi_hz": 0
@@ -230,15 +231,16 @@
         },
         {
           "type": "duck",
-          "mode": "level",
-          "key_channel": "vox",
-          "depth_mdb": 5000,
-          "range_mdb": 36000,
-          "top_mdb": -15716,
-          "attack_us": 5000,
-          "release_us": 1000000,
+          "mode": "onset",
+          "key_lanes": ["vox"],
+          "min_velocity": 1,
+          "depth_mdb": 4000,
+          "ramp_us": 20000,
+          "hold_us": 470000,
+          "release_us": 20000,
+          "pre_us": 100000,
           "band": {
-            "lo_hz": 1200,
+            "lo_hz": 700,
             "hi_hz": 6500
           },
           "pump": false
@@ -685,7 +687,7 @@
     "vox": {
       "pre_master_lufs_mlu": -11037,
       "club_lufs_mlu": -9258,
-      "channel_true_peak_mdb": [-3020, -3097, -4016, -12072, -2020, -4399, -11120, -10253, -6236, -4341, -7127, -12853, -15788, -120000, -120000]
+      "channel_true_peak_mdb": [-3020, -3097, -4016, -12072, -2020, -4399, -11120, -10617, -6236, -4341, -7127, -12853, -15788, -120000, -120000]
     },
     "novox": {
       "pre_master_lufs_mlu": -11240,

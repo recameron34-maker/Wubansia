@@ -23,7 +23,7 @@ match. A stage with latency 0 is causal as it stands.
   returns, bus EQ, parallel chains). P8 measured aliases at -94 dB, and -69 dB under 16 kHz against
   master.soft_clip on drum material, at about a fifth of os_fir(4)'s cost.
 - limit_db: master.limit's gain on a stream, its 60 ms hold two-sided (master.py's, latency 3145) or looking back
-  (the real-time master's, reaching forward only over the true peak's FIR, latency 289).
+  (the real-time master's: 120 ms back, forward only over the true peak's FIR, latency 289).
 - dc_block: the real-time master's causal DC blocker, in place of master.dc_clean's zero-phase one.
 """
 import math
@@ -335,8 +335,10 @@ def limit_db(x, ceiling_db, lookahead_s=0.005, hold_s=0.060, release_s=0.080, ho
     needs from the 4x peak within a sample of it (os_fir(4)), the lowest need held from hold_s before to lookahead_s
     after (hold='lookback', the real-time master) or to lookahead_s + hold_s after (hold='two_sided', master.limit),
     ramped down over the lookahead by a moving average and released exponentially in dB. Looking back, the hold
-    also reaches os_fir(4)'s reach forward (OS_REACH), so the gain is still over the samples the true peak's FIR reads
-    round a peak. Latency limit_latency(lookahead_s, hold_s, hold)."""
+    reaches 2 x hold_s back (the two-sided window's length: a low note's 4x peak drifts from cycle to cycle, and a
+    shorter window keeps losing the lowest one, so the gain steps and makes sidebands) and os_fir(4)'s reach forward
+    (OS_REACH), so the gain is still over the samples the true peak's FIR reads round a peak (P8). Latency
+    limit_latency(lookahead_s, hold_s, hold)."""
     x = D.st(np.asarray(x, dtype=float))
     n = len(x)
     c = float(D.undb(ceiling_db))
@@ -349,8 +351,11 @@ def limit_db(x, ceiling_db, lookahead_s=0.005, hold_s=0.060, release_s=0.080, ho
     h = int(round(hold_s * SR))
     if hold not in ('lookback', 'two_sided'):
         raise ValueError(f"hold is 'lookback' or 'two_sided', not {hold!r}")
-    after = w + h if hold == 'two_sided' else w + OS_REACH     # looking back, the hold still reaches over the FIR
-    m = sliding_min(need, h, after)
+    if hold == 'two_sided':
+        before, after = h, w + h
+    else:                       # looking back: the two-sided window's length, all behind, and over the FIR ahead
+        before, after = 2 * h, w + OS_REACH
+    m = sliding_min(need, before, after)
     g = _mean_back(m, w)
     r2 = -20 * np.log10(np.minimum(g, 1.0))
     return _release(r2, release_s)

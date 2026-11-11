@@ -7,11 +7,8 @@ round 5 renders are (WUBANSIA_R5_BUILD, or the repo's build/<kit>-r5) and skip o
 do.
 """
 import json
-import math
 import re
 import unittest
-
-import numpy as np
 
 from tools.sound import plugin_mix as PM
 
@@ -110,7 +107,7 @@ INSERTS = {
         'bass': ['gain:bass=b', 'gain:bass=a', 'gain'],
         'glide': ['duck_onset', 'gain:bass=b', 'gain:bass=a', 'gain'],
         'pad': ['gain', 'duck_onset'],
-        'arp': ['cc_filter', 'duck_level', 'duck_level', 'gain', 'duck_onset'],
+        'arp': ['cc_filter', 'duck_onset', 'duck_onset', 'gain', 'duck_onset'],
         'fill': ['gain', 'duck_onset'],
         'vox': ['clip', 'gain', 'duck_onset'],
         'acc_laser': ['gain', 'duck_onset'],

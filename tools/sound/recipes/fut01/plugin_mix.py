@@ -9,11 +9,9 @@ plugin_mix.py and engine_ref.py read it through kits.load('FUT01').RECIPES, as m
 - build(caps): the mix manifest's channels, groups, returns and bus EQ, and the master's settings.
 - keys(), loop_info(), ride_points(): the duck keys, the loop, the wobble's CC74 ride.
 """
-import numpy as np
-
 from tools.sound import mix_trace as T
 from tools.sound import plugin_mix as PM
-from tools.sound.mix_trace import Rule, anc, array_arg, lane_of, nth, scalar_arg  # noqa: F401
+from tools.sound.mix_trace import Rule, array_arg, lane_of, scalar_arg
 
 VARIANTS = {'vox': 'vox', 'novox': 'novox'}                  # the manifest's variants: the recipe's own names
 R5_LOOPS = {'vox': ('GarageVoxWet', 'GarageVoxClub'), 'novox': ('GarageNoVoxWet', 'GarageNoVoxClub')}
@@ -257,6 +255,3 @@ def ride_points():
 def item_hp_hz(name):
     from tools.sound.recipes.fut01 import context5 as C5
     return next(i for i in C5.ITEMS if i.name == name).hp_hz
-
-
-_ = np
