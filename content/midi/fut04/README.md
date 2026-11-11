@@ -27,8 +27,8 @@ integer nearest 136 BPM) and the key signature (FF 59: 1 sharp, minor) on its fi
 | `FUT04_Phrase_RaveStabRiff_2bars.mid` | Rave stab riff, on Accent Rave Stab Em | channel 13 |
 | `FUT04_Phrase_VoxSynthRiff_2bars.mid` | Vox synth riff, on Vox Synth | channel 5 |
 
-The extended mix: `extended/vox/` (with the vox synth) and `extended/novox/` (without), each a 224-bar mix in the
-genre's form, one region file per section, `regions.json` and a README.
+The extended mix: `extended/vox/` (with the vox synth) and `extended/novox/` (without), each a 224-bar mix in the kit's
+own form, one region file per section, `regions.json` and a README.
 
 ## Drums (channel 10)
 

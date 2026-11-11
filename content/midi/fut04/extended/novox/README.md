@@ -19,8 +19,8 @@ export.
 |---|---|---|---|---|
 | 1-32 | Intro | intro | `01_Intro_32bars.mid` | kick, snare, hats, perc |
 | 33-96 | Groove | groove | `02_Groove_64bars.mid` | kick, snare, hats, perc, bass, lead, chords, accents, fx |
-| 97-112 | Break | break | `03_Break_16bars.mid` | hats, lead, chords, accents, fx |
-| 113-128 | Build | build | `04_Build_16bars.mid` | kick, snare, hats, perc, bass, fx |
+| 97-112 | Break | break | `03_Break_16bars.mid` | hats, bass, chords, accents, fx |
+| 113-128 | Build | build | `04_Build_16bars.mid` | kick, hats, perc, bass, chords, fx |
 | 129-160 | Drop | drop | `05_Drop_32bars.mid` | kick, snare, hats, perc, bass, lead, chords, accents, fx |
 | 161-192 | Drop 2 | drop2 | `06_Drop2_32bars.mid` | kick, snare, hats, perc, bass, lead, chords, accents, fx |
 | 193-224 | Outro | outro | `07_Outro_32bars.mid` | kick, snare, hats, perc |
@@ -29,64 +29,58 @@ Line by line (bars of the whole mix):
 
 **1. Intro** (bars 1-32)
 - 1-8: kick
-- 9-16: kick, off-beat hats, perc; a turnaround in its last bar
-- 17-24: kick, snare, hats, perc
-- 25-32: kick, snare, hats, perc; a turnaround in its last bar
+- 9-16: kick, off-beat hats; a turnaround (big) in its last bar
+- 17-24: kick, snare, hats; a turnaround in its last bar
+- 25-32: kick, snare, hats, perc; a turnaround (big) in its last bar
 
 **2. Groove** (bars 33-96)
-- 33-40: kick, snare, hats, perc, bass (AcidLine1); a turnaround in its last bar
-- 41-48: kick, snare, hats, perc, bass (AcidLine1), chords, accents, fx; the fill in its last bar
-- 49-56: kick, snare, hats, perc, bass (AcidLine1), the lead's call, chords, accents; a turnaround in its last bar
-- 57-64: kick, snare, hats, perc, bass (AcidLine1), the lead's call, chords, accents, fx; the fill in its last bar
-- 65-72: kick, snare, busy hats, perc, bass (AcidLine1), lead, chords, accents; a turnaround in its last bar
-- 73-80: kick, snare, busy hats, perc, bass (AcidLine1), lead, chords, accents, fx; the fill in its last bar
-- 81-88: kick, snare, hats, perc, bass (AcidLine1), the lead's call, chords, accents; a turnaround in its last bar
-- 89-96: kick, snare, hats, perc, bass (AcidLine1), lead, chords, accents, fx; the fill in its last bar
+- 33-40: kick, snare, hats, perc, bass (AcidLine1), accents; the Bass filter ride held at 0; a turnaround in its last bar
+- 41-48: kick, snare, hats, perc, bass (AcidLine1), chords; the Bass filter ride from 0 to 8; a turnaround (big) in its last bar
+- 49-56: kick, snare, hats, perc, bass (AcidLine1), the lead's call, chords, accents; the Bass filter ride from 8 to 20; a turnaround in its last bar
+- 57-64: kick, snare, hats, perc, bass (AcidLine1), lead, chords, accents, fx; the Bass filter ride from 20 to 40; the fill in its last bar
+- 65-72: kick, snare, hats, perc, bass (AcidLine1), the lead's call, chords (the metal chords), accents; the Bass filter ride from 40 to 46; a turnaround in its last bar
+- 73-80: kick, snare, hats, perc, bass (AcidLine1), the lead's skeleton, chords with the metal chords, accents; the Bass filter ride from 46 to 58; a turnaround (big) in its last bar
+- 81-88: kick, snare, hats, perc, bass (AcidLine1), lead, chords, accents; the drums' ride on 8ths variant; the Bass filter ride from 58 to 72; a turnaround in its last bar
+- 89-96: kick, snare, hats, perc, bass (AcidLine1), the lead's skeleton, chords (the metal chords), accents, fx; the drums' ride on 8ths variant; the Bass filter ride from 72 to 92; the fill in its last bar
 
 **3. Break** (bars 97-112)
-- 97-104: the lead's call, chords
-- 105-112: off-beat hats, lead, chords, accents, fx; the hats rise from 40% to 100% velocity; the fill in its last bar
+- 97-104: chords (the metal chords), accents, fx
+- 105-112: off-beat hats, bass (AcidLine1), chords, accents; the Bass filter ride from 0 to 24; the hats rise from 40% to 100% velocity; a turnaround (big) in its last bar
 
 **4. Build** (bars 113-128)
-- 113-120: kick, off-beat hats, full in its second half, perc, bass (AcidLine1); a turnaround in its last bar
-- 121-128: kick, snare, 16th hats, perc, bass (AcidLine1), fx; the snare rolls over the line's last 2 bars up to the fill, rising hit by hit; the fill in its last bar
+- 113-120: kick, off-beat hats, full in its second half, perc, bass (AcidLine1), chords; the Bass filter ride from 24 to 80; a turnaround in its last bar
+- 121-128: kick, hats, perc, bass (AcidLine1), chords, fx; the drums' build variant; the Bass filter ride 80 at bar 0 then 127 at bar 6; the perc rolls over the line's last 2 bars up to the fill, rising hit by hit; the hats rise from 50% to 100% velocity; the fill in its last bar
 
 **5. Drop** (bars 129-160)
-- 129-136: kick, snare, hats, perc, bass (AcidLine1), lead, chords, accents, fx; a turnaround in its last bar
-- 137-144: kick, snare, hats, perc, bass (AcidLine1), lead, chords, accents, fx; the fill in its last bar
-- 145-152: kick, snare, busy hats, perc, bass (AcidLine1), lead, chords, accents; a turnaround in its last bar
-- 153-160: kick, snare, hats, perc, bass (AcidLine1), lead, chords, accents; the drums out in its last bar
+- 129-136: kick, snare, hats, perc, bass (AcidLine1), the lead's skeleton, accents, fx; the Bass filter ride as the loop's; a turnaround in its last bar
+- 137-144: kick, snare, hats, perc, bass (AcidLine1), chords, accents with the rave stab riff; the Bass filter ride as the loop's; the drums out in its last bar
+- 145-152: kick, snare, hats, perc, bass (AcidLine1), chords (the metal chords), accents; the Bass filter ride as the loop's; a turnaround in its last bar
+- 153-160: kick, snare, hats, perc, bass (AcidLine1), the lead's skeleton, chords, accents with the rave stab riff, fx; the drums' ride on 8ths variant; the Bass filter ride as the loop's; the fill in its last bar
 
 **6. Drop 2** (bars 161-192)
-- 161-168: kick, snare, busy hats, perc, bass (AcidLine1), lead, chords, accents, fx; a turnaround in its last bar
-- 169-176: kick, snare, busy hats, perc, bass (AcidLine1), lead, chords, accents, fx; the fill in its last bar
-- 177-184: kick, snare, busy hats, perc, bass (AcidLine1), lead, chords, accents; a turnaround in its last bar
-- 185-192: kick, snare, hats, perc, bass (AcidLine1), chords, accents, fx; the fill in its last bar
+- 161-168: kick, snare, hats, perc, bass (AcidLine2), chords, accents with the acid stab riff, fx; the drums' drop 2 variant; the Bass filter ride held at 0; a turnaround in its last bar
+- 169-176: kick, snare, hats, perc, bass (AcidLine2), the lead's skeleton, chords, accents with the acid stab riff; the drums' drop 2 variant; the Bass filter ride from 0 to 64; a turnaround (big) in its last bar
+- 177-184: kick, snare, hats, perc, bass (AcidLine2), accents; the drums' peak variant; the Bass filter ride 64 at bar 0 then 127 at bar 6; a turnaround in its last bar
+- 185-192: kick, snare, hats, perc, bass (AcidLine2), the lead's call, accents, fx; the Bass filter ride 127 at bar 0 then 116 at bar 2 then 0 at bar 8; the fill in its last bar
 
 **7. Outro** (bars 193-224)
-- 193-200: kick, snare, hats, perc
-- 201-208: kick, snare, hats, perc; a turnaround in its last bar
-- 209-216: kick, off-beat hats, perc
-- 217-224: kick, hats
+- 193-200: kick, snare, hats, perc; the drums' drop 2 variant; a turnaround in its last bar
+- 201-208: kick, hats, perc; the drums' ride on 8ths variant; a turnaround (big) in its last bar
+- 209-216: kick, hats, perc; a turnaround in its last bar
+- 217-224: kick, off-beat hats
 
 ## The cues
 
-- bar 48: Fill
-- bar 57: Vox
 - bar 64: Fill
-- bar 80: Fill
-- bar 81: Vox
 - bar 96: Fill
 - bar 97: Vox
-- bar 105: Vox
-- bar 112: Fill
 - bar 121: Riser
 - bar 128: Fill
 - bar 129: Vox
-- bar 144: Fill
-- bar 153: Vox
-- bar 161: Vox
-- bar 176: Fill
+- bar 145: Vox
+- bar 160: Fill
+- bar 177: Vox
+- bar 185: Vox
 - bar 192: Fill
 
 A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
@@ -108,7 +102,10 @@ has every instrument's zones and every one-key sound's file.
 | Lead | 2 | lead | 71 B4, 74 D5, 76 E5, 78 F#5, 79 G5, 81 A5, 83 B5, 84 C6 |
 | Chords | 4 | chords | 52 E3 |
 | Chord voicing | 3 | chords | 52 E3, 59 B3, 64 E4, 67 G4, 78 F#5 |
+| Metal Chord | 12 | chords | 64 E4, 69 A4, 71 B4 |
 | Accents | 6 | accents | 48 Accent Rave Stab Em, 49 Accent Noise Sweep E, 50 Accent Reverse Hit Em, 51 Accent Zap E5, 52 Accent Metal Chord Em, 54 Accent Dist Chord Em |
+| Acid Stab | 11 | accents | 62 D4, 64 E4, 66 F#4, 67 G4, 69 A4, 71 B4 |
+| Rave Stab | 13 | accents | 64 E4, 69 A4, 71 B4 |
 | FX | 7 | fx | 48 Stutter Fill, 49 Iron Riser, 50 Accent Sub Drop E2 |
 
 ## On a timeline
