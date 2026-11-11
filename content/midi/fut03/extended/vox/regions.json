@@ -435,7 +435,8 @@
           ],
           "hats": "thin",
           "roll": "snare",
-          "roll_bars": 4,
+          "roll_from": 93,
+          "roll_bars": 3,
           "end": "fill"
         }
       ],
@@ -557,7 +558,7 @@
       ],
       "cues": [
         {
-          "bar": 97,
+          "bar": 99,
           "cue": "Vox"
         },
         {
@@ -565,7 +566,7 @@
           "cue": "Fill"
         },
         {
-          "bar": 121,
+          "bar": 123,
           "cue": "Vox"
         }
       ]
@@ -801,7 +802,7 @@
       ],
       "cues": [
         {
-          "bar": 161,
+          "bar": 163,
           "cue": "Vox"
         },
         {

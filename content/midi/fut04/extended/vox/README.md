@@ -49,7 +49,7 @@ Line by line (bars of the whole mix):
 
 **4. Build** (bars 113-128)
 - 113-120: kick, off-beat hats, full in its second half, perc, bass (AcidLine1); a turnaround in its last bar
-- 121-128: kick, snare, 16th hats, perc, bass (AcidLine1), fx; the snare rolls over the line's last 2 bars up to the fill, rising hit by hit; the fill in its last bar
+- 121-128: kick, snare, 16th hats, perc, bass (AcidLine1), fx; the snare rolls over bar 127 up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 129-160)
 - 129-136: kick, snare, hats, perc, bass (AcidLine1), lead, chords, vox (loop), accents, fx; a turnaround in its last bar
@@ -89,7 +89,8 @@ Line by line (bars of the whole mix):
 - bar 176: Fill
 - bar 192: Fill
 
-A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
+A riser's note ends on its section's first beat; a fill's on the next downbeat; a Vox cue sits on the bar where
+its line's vox comes in.
 
 ## Tracks
 

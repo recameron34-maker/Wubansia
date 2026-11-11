@@ -301,10 +301,6 @@
           "cue": "Fill"
         },
         {
-          "bar": 57,
-          "cue": "Vox"
-        },
-        {
           "bar": 64,
           "cue": "Fill"
         }
@@ -357,14 +353,6 @@
       ],
       "cues": [
         {
-          "bar": 65,
-          "cue": "Vox"
-        },
-        {
-          "bar": 73,
-          "cue": "Vox"
-        },
-        {
           "bar": 80,
           "cue": "Fill"
         }
@@ -414,7 +402,8 @@
           ],
           "hats": "thin",
           "roll": "snare",
-          "roll_bars": 4,
+          "roll_from": 93,
+          "roll_bars": 3,
           "end": "fill"
         }
       ],
@@ -529,16 +518,8 @@
       ],
       "cues": [
         {
-          "bar": 97,
-          "cue": "Vox"
-        },
-        {
           "bar": 112,
           "cue": "Fill"
-        },
-        {
-          "bar": 121,
-          "cue": "Vox"
         }
       ]
     },
@@ -649,10 +630,6 @@
       ],
       "cues": [
         {
-          "bar": 145,
-          "cue": "Vox"
-        },
-        {
           "bar": 153,
           "cue": "Riser"
         },
@@ -760,10 +737,6 @@
         }
       ],
       "cues": [
-        {
-          "bar": 161,
-          "cue": "Vox"
-        },
         {
           "bar": 176,
           "cue": "Fill"
