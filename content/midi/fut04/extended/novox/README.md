@@ -7,7 +7,7 @@ the same mix with the vox synth. A test keeps these files equal to a fresh
 export.
 
 - `FUT04_ExtendedMix_NoVox_224bars.mid`: the whole mix, a track per instrument, a marker at every section start and cue points (labels: the
-  notes play) at the risers, fills and vox entries.
+  notes play) at the risers and fills.
 - One region per section, `01_Intro_32bars.mid` to `07_Outro_32bars.mid`: the mix cut at its section lines, with the same
   tracks in the same order, the section's marker and its cues.
 - `regions.json`: integers and strings only: the tempo, swing (permille) and length (ms), every section's start bar
@@ -49,7 +49,7 @@ Line by line (bars of the whole mix):
 
 **4. Build** (bars 113-128)
 - 113-120: kick, off-beat hats, full in its second half, perc, bass (AcidLine1), chords; the Bass filter ride from 24 to 80; a turnaround in its last bar
-- 121-128: kick, hats, perc, bass (AcidLine1), chords, fx; the drums' build variant; the Bass filter ride 80 at bar 0 then 127 at bar 6; the perc rolls over the line's last 2 bars up to the fill, rising hit by hit; the hats rise from 50% to 100% velocity; the fill in its last bar
+- 121-128: kick, hats, perc, bass (AcidLine1), chords, fx; the drums' build variant; the Bass filter ride 80 at bar 0 then 127 at bar 6; the perc rolls over bar 127 up to the fill, rising hit by hit; the hats rise from 50% to 100% velocity; the fill in its last bar
 
 **5. Drop** (bars 129-160)
 - 129-136: kick, snare, hats, perc, bass (AcidLine1), the lead's skeleton, accents, fx; the Bass filter ride as the loop's; a turnaround in its last bar
@@ -73,17 +73,12 @@ Line by line (bars of the whole mix):
 
 - bar 64: Fill
 - bar 96: Fill
-- bar 97: Vox
 - bar 121: Riser
 - bar 128: Fill
-- bar 129: Vox
-- bar 145: Vox
 - bar 160: Fill
-- bar 177: Vox
-- bar 185: Vox
 - bar 192: Fill
 
-A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
+A riser's note ends on its section's first beat; a fill's on the next downbeat.
 
 ## Tracks
 

@@ -438,6 +438,7 @@
           ],
           "hats": "full",
           "roll": "snare",
+          "roll_from": 95,
           "roll_bars": 2,
           "end": "fill"
         }

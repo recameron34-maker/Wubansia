@@ -50,6 +50,21 @@ def signature(key):
 DRUMS_RUMBLE_BASS = Mi.DRUMS + ' rumble bass'
 
 
+def slid_files(kit):
+    """The kit's files that write slides, as (file name, its notes, the rows written): every bassline file, and the
+    phrase file of every phrase with a slide."""
+    k = Mi.kit_of(kit)
+    made = kit_files(kit)
+    for name, line in k.P['bass']['lines'].items():
+        f = next(n for n in made if re.fullmatch(rf'{kit}_Bassline_{name}(_InTheLoop)?_2bars\.mid', n))
+        yield f, parse(made[f])[2][1]['notes'], Mi.as_notes(line)
+    for ph in k.phrases:
+        rows = Mi.as_notes(ph['notes'])
+        if any(n.slide for n in rows):
+            f = Mi.phrase_file(kit, ph)
+            yield f, parse(made[f])[2][1]['notes'], rows
+
+
 def fill_notes(kit, tracks, ln):
     """In a whole mix's tracks, the notes of the fill a line (regions.json's) ends on, ending on the line's end and
     starting in its last bar: its own (fill=<sound>, on that sound's channel) or the kit's (FX)."""
@@ -249,6 +264,22 @@ class TestFiles(unittest.TestCase):
                 for role in ('accents', 'fx'):
                     for key, sound in k.keymap(role).items():
                         self.assertIn(f'| {key} |', text)
+                vowels = k.P.get('vox', {}).get('vowels')
+                if vowels:                      # audit A #6: the vowel each layer picks, by its velocity
+                    row = next(r for r in text.splitlines() if r.startswith('| 5 | Vox |'))
+                    layers = k.item(k.items_on(5)[0]).layers
+                    self.assertEqual(len(layers), len(vowels))
+                    for v, vowel in zip(layers, vowels):
+                        self.assertIn(f"{math.floor(v * 127 + 0.5)} '{vowel}'", row)
+                drums = next(r for r in text.splitlines() if r.startswith(f'| `{kit}_Drums_4bars.mid` |'))
+                block = k.drums('perc', 'loop') + k.drums('kick', 'loop') + k.drums('snare', 'loop') + \
+                    k.drums('hats', 'loop')
+                bar = lambda b: sorted((n.step - 16 * b, n.key)  # noqa: E731
+                                       for n in block if b * 16 <= n.step < (b + 1) * 16)
+                has_fill = bool(k.loop_fx())
+                self.assertEqual(has_fill, bar(3) != bar(1))       # a fill bar: bar 4 isn't bar 2 again
+                self.assertEqual(has_fill, 'its fill bar included' in drums, drums)
+                self.assertEqual(not has_fill, 'no fill bar' in drums, drums)
                 for v in VARIANTS:
                     made, R = ext(kit, v)
                     etext = made['README.md'].decode()
@@ -256,6 +287,9 @@ class TestFiles(unittest.TestCase):
                         self.assertIn(f'`{name}`', etext)
                     for words in ('C1 = 36', 'C3 = 60', 'C4 = 60', 'MIDI number'):
                         self.assertIn(words, etext)
+                    if v == 'novox':            # no vox entries in a mix with no vox
+                        self.assertNotIn('Vox cue', etext)
+                        self.assertNotIn('vox entr', etext)
                 self.assertIn(f'`{Mi.EXTENDED}/vox/`', text)
                 self.assertIn(f'`{Mi.EXTENDED}/novox/`', text)
 
@@ -338,14 +372,10 @@ class TestTiming(unittest.TestCase):
                                 self.assertTrue(all(n[3] != key for n in notes if n[0] == later[0]))
                                 self.assertLessEqual(off, later[0] + Mi.SLIDE_TICKS)
         for kit in KITS:
-            k = Mi.kit_of(kit)
-            for name, line in k.P['bass']['lines'].items():
-                f = next(n for n in kit_files(kit)
-                         if re.fullmatch(rf'{kit}_Bassline_{name}(_InTheLoop)?_2bars\.mid', n))
-                notes = parse(kit_files(kit)[f])[2][1]['notes']
+            for name, notes, rows in slid_files(kit):
                 overlaps = {n[0] for m in notes for n in notes if m[0] < n[0] < m[1]}
-                slid = {at(kit, n.step) for n in (Mi.Note(*row) for row in line) if n.slide}
-                with self.subTest(kit=kit, line=name):
+                slid = {at(kit, n.step) for n in rows if n.slide}
+                with self.subTest(kit=kit, file=name):
                     self.assertLessEqual(overlaps, slid)
 
     def test_a_slide_holds_the_note_before_into_it(self):
@@ -365,23 +395,21 @@ class TestTiming(unittest.TestCase):
                              sorted(off for _, off, *_ in got))
 
     def test_the_kits_slides_reach_their_notes(self):
-        """In every bassline file, the note before a slid note still sounds SLIDE_TICKS into it wherever it runs up to
-        it as written (FUT01, FUT02 and FUT04: 11 slides at least)."""
-        joined = 0
+        """In every bassline file and every phrase file that slides (FUT01's warp riff, FUT03's rubber riff), the note
+        before a slid note still sounds SLIDE_TICKS into it wherever it runs up to it as written (FUT01, FUT02 and
+        FUT04's basslines: 11 slides at least; the phrases: 10 at least)."""
+        joined = {'line': 0, 'phrase': 0}
         for kit in KITS:
-            k = Mi.kit_of(kit)
-            made = kit_files(kit)
-            for name, line in k.P['bass']['lines'].items():
-                f = next(n for n in made if re.fullmatch(rf'{kit}_Bassline_{name}(_InTheLoop)?_2bars\.mid', n))
-                notes = parse(made[f])[2][1]['notes']
-                rows = sorted(Mi.Note(*n) for n in line)
+            for name, notes, rows in slid_files(kit):
+                rows = sorted(rows)
                 for p, n in zip(rows, rows[1:]):
                     if n.slide and p.key != n.key and at(kit, p.step) + round(p.length * 240) >= at(kit, n.step) - 240:
-                        with self.subTest(kit=kit, line=name, step=n.step):
+                        with self.subTest(kit=kit, file=name, step=n.step):
                             (off,) = [o for on, o, _, key, _ in notes if on == at(kit, p.step) and key == p.key]
                             self.assertGreaterEqual(off, at(kit, n.step) + Mi.SLIDE_TICKS)
-                            joined += 1
-        self.assertGreaterEqual(joined, 11)
+                            joined['phrase' if '_Phrase_' in name else 'line'] += 1
+        self.assertGreaterEqual(joined['line'], 11)
+        self.assertGreaterEqual(joined['phrase'], 10)
 
 
 class TestLoops(unittest.TestCase):
@@ -409,8 +437,11 @@ class TestLoops(unittest.TestCase):
         """CC74 and CC71 lie in 0-127, on the 60-tick grid, only on the channels (and controllers) the kit's rides
         name; CC91 and CC94 only around thrown notes: 127 on its tick before its note-on, back to 0 at its note-off or
         at the next note-on on the track that isn't thrown, whichever comes first (the kits' files check where the
-        throws fall)."""
+        throws fall); and, on every track of a channel that throws anywhere in the kit's files, 0 on tick 0 before
+        any note-on, so a file, a region or a loop's first pass starts dry whatever played before it."""
         for kit in KITS:
+            throwing = {c[1] for path in mids(kit) for t in parsed(kit, path)[2][1:] for c in t['ccs']
+                        if c[2] == 91 and c[3] == 127}
             for path in mids(kit):
                 for t in parsed(kit, path)[2][1:]:
                     with self.subTest(kit=kit, file=path, track=t['name']):
@@ -427,9 +458,16 @@ class TestLoops(unittest.TestCase):
                         thrown = [n for n in t['notes'] if (n[0], n[2], 91, 127) in throws]
                         plain = sorted({n[0] for n in t['notes'] if n not in thrown})
                         back = lambda n: min([n[1]] + [on for on in plain if on > n[0]][:1])  # noqa: E731
+                        ch = CH.track_channel(kit, t['name'])
+                        reset = [(0, ch, cc, 0) for cc in (91, 94)] if ch in throwing else []
                         want = sorted([(n[0], n[2], cc, 127) for n in thrown for cc in (91, 94)]
-                                      + [(back(n), n[2], cc, 0) for n in thrown for cc in (91, 94)])
+                                      + [(back(n), n[2], cc, 0) for n in thrown for cc in (91, 94)] + reset)
                         self.assertEqual(want, sorted(throws))
+                        if reset:               # on tick 0, before any note-on
+                            ev = t['events']
+                            first_on = next((i for i, e in enumerate(ev) if e[1] == 'on'), len(ev))
+                            for cc in (91, 94):
+                                self.assertIn((0, 'cc', ch, cc, 0), ev[:first_on])
 
     def test_a_throw_reaches_no_other_note(self):
         """No note-on that isn't thrown starts while CC91 or CC94 is up on its channel, in any file: Wubansia latches
@@ -794,9 +832,10 @@ class TestExtendedMix(unittest.TestCase):
                                         (kit, form))
 
     def test_the_cues_have_their_notes(self):
-        """Every Vox cue has vox notes in its line in the vox file and none in the no-vox file; every Riser cue an
-        FX note ending on the next section's first beat; every Fill cue its fill's note (FX, or the line's own fill
-        sound) ending on the next downbeat. The genres' default forms have risers."""
+        """A Vox cue only in the vox file, on the bar where its line's vox comes in (its first vox note; none before it
+        in the line); every Riser cue an FX note ending on the next section's first beat; every Fill cue its fill's
+        note (FX, or the line's own fill sound) ending on the next downbeat. The genres' default forms have risers
+        and vox cues."""
         for kit in KITS:
             for form in forms(kit):
                 for v in VARIANTS:
@@ -809,12 +848,16 @@ class TestExtendedMix(unittest.TestCase):
                                      cues)
                     if form == 'genre':
                         self.assertTrue(any(c == 'Riser' for _, c in cues))
+                        self.assertEqual(v == 'vox', any(c == 'Vox' for _, c in cues))
+                    vox = tracks.get('Vox', {'notes': []})['notes']
                     for t, c in cues:
                         with self.subTest(kit=kit, form=form, variant=v, cue=c, bar=t // BAR + 1):
                             self.assertEqual(0, t % BAR)
                             if c == 'Vox':
-                                got = [n for n in tracks.get('Vox', {'notes': []})['notes'] if t <= n[0] < t + 8 * BAR]
-                                self.assertEqual(v == 'vox', bool(got))
+                                self.assertEqual('vox', v)
+                                lo = (max(b for b in lines if b <= t // BAR + 1) - 1) * BAR
+                                self.assertTrue([n for n in vox if t <= n[0] < t + BAR])
+                                self.assertFalse([n for n in vox if lo <= n[0] < t])
                             if c == 'Riser':
                                 self.assertIn(t + 8 * BAR, starts)
                                 self.assertTrue([n for n in fx if n[1] == t + 8 * BAR and n[1] - n[0] >= 4 * BAR])
@@ -838,8 +881,11 @@ class TestExtendedMix(unittest.TestCase):
                 for ln in rolls:
                     lo = (ln['start_bar'] - 1) * BAR
                     hits = lane_ons(kit, tracks, ln['roll'], lo, lo + 8 * BAR)
-                    rolled = [h for h in hits if h[0] >= lo + (8 - ln['roll_bars']) * BAR]
+                    first = ln['roll_from'] - ln['start_bar']           # the bars the roll plays, of the line's 8
+                    rolled = [h for h in hits if h[0] >= lo + first * BAR]
                     with self.subTest(kit=kit, form=form, bar=ln['start_bar']):
+                        self.assertEqual(set(range(first, first + ln['roll_bars'])),
+                                         {(h[0] - lo) // BAR for h in rolled})
                         if ln.get('end') == 'fill':
                             fills = fill_notes(kit, tracks, ln)
                             self.assertTrue(fills)
@@ -1277,6 +1323,81 @@ class TestLineRules(unittest.TestCase):
         R, _, text = self.mix('FUT04', lines, 'novox')
         self.assertFalse([ln for ln in R['sections'][0]['lines'] if {'throw', 'vox'} & set(ln)])
         self.assertNotIn('thrown', text)
+
+
+    def test_a_roll_counts_the_bars_it_plays(self):
+        """regions.json's roll_from and roll_bars and the README give the bars the roll plays: up to the fill's start,
+        so not the fill bar where the fill starts on its downbeat (FUT04's stutter fill, FUT02's laser fill), but where
+        it starts later in the bar (FUT01's glitch fill from 16th 12), and the last bar on a line with no fill."""
+        roll = dict(lane='snare', bars=2, every=((2, 2),), last=1)
+        for kit, lines, want in (
+                ('FUT04', (Mi.line(DRUMS_RUMBLE_BASS, end='fill', roll=roll),), (6, 7, 2, 'bars 6-7')),
+                ('FUT01', (Mi.line(Mi.GROOVE, end='fill', roll=roll),), (6, 8, 3, 'bars 6-8')),
+                ('FUT02', (Mi.line(Mi.GROOVE, roll=dict(roll, bars=0, every=())),), (8, 8, 1, 'bar 8'))):
+            R, tracks, text = self.mix(kit, lines + (Mi.line(Mi.GROOVE),) * 3, 'vox')
+            info = R['sections'][0]['lines'][0]
+            hits = {on // BAR + 1 for on, *_ in lane_ons(kit, tracks, 'snare', 0, 8 * BAR)
+                    if on >= (want[0] - 1) * BAR}
+            with self.subTest(kit=kit):
+                self.assertEqual(want[:3], (info['roll_from'], hits and max(hits), info['roll_bars']))
+                self.assertEqual(set(range(want[0], want[1] + 1)), hits)
+                self.assertIn(f"rolls over {want[3]}", self.said(text, 0))
+
+    def test_a_rise_takes_its_lanes_tracks(self):
+        """rise=(lane, from, to): a lane name rises every track the lane's part plays on ('chords': Chords and Chord
+        voicing; 'bass': the bass line's track), an exact track name that track ('Chords' with its voicing too); a name
+        that is neither is refused, and so is a rise on the vox where its velocity picks the vowel (FUT02, FUT04)."""
+        k = Mi.kit_of('FUT01')
+        rest = (Mi.line(Mi.GROOVE),) * 3
+        for rise, risen in ((('chords', 0.4, 1.0), {'Chords', 'Chord voicing'}),
+                            (('Chords', 0.4, 1.0), {'Chords', 'Chord voicing'}),
+                            (('bass', 0.4, 1.0), {'Bass'}), (('hats', 0.4, 1.0), {'Hats'})):
+            _, flat, _ = self.mix('FUT01', (Mi.line(Mi.GROOVE),) + rest, 'vox')
+            _, tracks, _ = self.mix('FUT01', (Mi.line(Mi.GROOVE, rise=rise),) + rest, 'vox')
+            with self.subTest(rise=rise[0]):
+                changed = {name for name in tracks if self.notes(tracks, name, 0) != self.notes(flat, name, 0)}
+                self.assertEqual(risen, changed)
+                for name in risen:          # bar 1 at 0.4 of its velocity, the last bar as written
+                    first = [n for n in self.notes(tracks, name, 0) if n[0] < BAR]
+                    was = [n for n in self.notes(flat, name, 0) if n[0] < BAR]
+                    self.assertTrue(all(a[4] < b[4] for a, b in zip(first, was) if b[4] > 3))
+        for kit, rise in (('FUT01', ('nonsense', 0.4, 1.0)), ('FUT02', ('vox', 0.4, 1.0)),
+                          ('FUT04', ('Vox', 0.4, 1.0))):
+            with self.subTest(kit=kit, rise=rise[0]), self.assertRaises(ValueError):
+                self.mix(kit, (Mi.line(Mi.EVERYTHING, vox='loop', rise=rise),) + rest, 'vox')
+
+    def test_a_chords_phrase_writes_its_voicing(self):
+        """A phrase on Chords (FUT01's e-piano stab rhythm) with a voicing (PARTS['phrases'][i]['voicing']) plays it on
+        Chord voicing (channel 3) wherever it plays, repeated every period; the no-vox accents' stab_drop takes both
+        its trigger and its voicing on their 16ths (FUT01's 16th 30 of the accent blocks), and a rise on the chords
+        reaches the voicing. The phrase's own file stays the trigger alone; with no voicing, Chord voicing rests."""
+        k = Mi.kit_of('FUT01')
+        stab = next(ph for ph in k.phrases if ph['name'] == 'E-piano stab rhythm')
+        shape = (0, 3, 7, 10, 14)                   # m9 over the stab's zone, as the organ stabs are voiced
+        voicing = [(n.step, n.key + d, n.length, n.vel, False) for n in Mi.as_notes(stab['notes']) for d in shape]
+        voiced = dict(stab, voicing=voicing)
+        phrases = [voiced if ph is stab else ph for ph in k.phrases]
+        lines = (Mi.line(Mi.DRUMS_BASS, phrases=(stab['name'],), accents='loop'),
+                 Mi.line(Mi.DRUMS_BASS, phrases=(stab['name'],), rise=('chords', 0.5, 1.0)),
+                 Mi.line(Mi.GROOVE), Mi.line(Mi.GROOVE))
+        period = stab.get('bars', 2) * 16
+        for v in VARIANTS:
+            drop = set(k.P['loop']['stab_drop'].get(v, ()))
+            _, tracks, _ = self.mix('FUT01', lines, v, phrases=phrases)
+            want = sorted({(at('FUT01', n[0] + period * r), n[1]) for r in range(8 * 16 // period) for n in voicing
+                           if (n[0] + period * r) % 64 not in drop})
+            got = self.notes(tracks, 'Chord voicing', 0)
+            trig = self.notes(tracks, 'Chords', 0)
+            with self.subTest(variant=v):
+                self.assertEqual(want, sorted({(on, key) for on, _, ch, key, _ in got}))
+                self.assertEqual({3}, {ch for _, _, ch, _, _ in got})
+                self.assertEqual({on for on, *_ in got}, {on for on, *_ in trig})
+                risen = self.notes(tracks, 'Chord voicing', 1)
+                self.assertLess(min(n[4] for n in risen if n[0] < BAR), max(n[4] for n in risen if n[0] >= 7 * BAR))
+        _, tracks, _ = self.mix('FUT01', lines, 'vox')
+        self.assertFalse(self.notes(tracks, 'Chord voicing', 0))
+        files = Mi.files_of(Mi.Kit('FUT01', k.K, {**k.P, 'phrases': phrases}, items=k.items))
+        self.assertEqual(kit_files('FUT01')[Mi.phrase_file('FUT01', stab)], files[Mi.phrase_file('FUT01', stab)])
 
 
 class TestSchema(unittest.TestCase):

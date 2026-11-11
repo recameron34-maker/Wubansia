@@ -656,7 +656,8 @@
           "hats": "full",
           "bass": "AcidLine1",
           "roll": "perc",
-          "roll_bars": 2,
+          "roll_from": 127,
+          "roll_bars": 1,
           "rise": {
             "lane": "hats",
             "from_pm": 500,
@@ -1006,7 +1007,7 @@
           "cue": "Vox"
         },
         {
-          "bar": 185,
+          "bar": 186,
           "cue": "Vox"
         },
         {
