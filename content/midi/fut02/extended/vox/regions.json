@@ -520,7 +520,8 @@
           "hats": "thin/16ths",
           "lead": "skeleton",
           "roll": "snare",
-          "roll_bars": 8,
+          "roll_from": 89,
+          "roll_bars": 7,
           "end": "fill",
           "ride": {
             "Lead": [
@@ -672,7 +673,7 @@
       ],
       "cues": [
         {
-          "bar": 97,
+          "bar": 98,
           "cue": "Vox"
         },
         {
@@ -992,7 +993,7 @@
           "cue": "Fill"
         },
         {
-          "bar": 177,
+          "bar": 178,
           "cue": "Vox"
         },
         {

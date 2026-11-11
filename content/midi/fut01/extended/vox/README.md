@@ -47,7 +47,7 @@ Line by line (bars of the whole mix):
 
 **4. Build** (bars 81-96)
 - 81-88: kick, clap, off-beat hats, perc, chords; a turnaround in its last bar
-- 89-96: kick, clap, hats, perc, fx; the clap rolls over the line's last 2 bars up to the fill, rising hit by hit; the fill in its last bar
+- 89-96: kick, clap, hats, perc, fx; the clap rolls over bars 95-96 up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 97-128)
 - 97-104: kick, clap, hats, perc, bass (Bounce), lead, chords, vox (loop), accents, fx; a turnaround in its last bar
@@ -96,7 +96,8 @@ Line by line (bars of the whole mix):
 - bar 176: Fill
 - bar 192: Fill
 
-A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
+A riser's note ends on its section's first beat; a fill's on the next downbeat; a Vox cue sits on the bar where
+its line's vox comes in.
 
 ## Tracks
 

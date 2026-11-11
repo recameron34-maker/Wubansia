@@ -47,7 +47,7 @@ Line by line (bars of the whole mix):
 
 **4. Build** (bars 81-96)
 - 81-88: kick, clap, off-beat hats, bass (Orbit), the lead's skeleton, chords; the Lead filter ride from 0 to 64; a turnaround in its last bar
-- 89-96: clap, off-beat hats, 16ths in its second half, the lead's skeleton, chords, fx; the Lead filter ride from 64 to 127; the clap rolls over the line's last 8 bars up to the fill, rising hit by hit; the fill in its last bar
+- 89-96: clap, off-beat hats, 16ths in its second half, the lead's skeleton, chords, fx; the Lead filter ride from 64 to 127; the clap rolls over bars 89-95 up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 97-128)
 - 97-104: kick, clap, hats, perc, bass (Orbit), lead, vox (loop), accents, fx; the drums' pingpong variant; the Lead filter ride 127 at bar 0 then 127 at bar 4 then 0 at bar 8; a turnaround in its last bar
@@ -83,7 +83,7 @@ Line by line (bars of the whole mix):
 - bar 80: Fill
 - bar 89: Riser
 - bar 96: Fill
-- bar 97: Vox
+- bar 98: Vox
 - bar 112: Fill
 - bar 121: Vox
 - bar 145: Vox
@@ -91,10 +91,11 @@ Line by line (bars of the whole mix):
 - bar 160: Fill
 - bar 161: Vox
 - bar 176: Fill
-- bar 177: Vox
+- bar 178: Vox
 - bar 192: Fill
 
-A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
+A riser's note ends on its section's first beat; a fill's on the next downbeat; a Vox cue sits on the bar where
+its line's vox comes in.
 
 ## Tracks
 

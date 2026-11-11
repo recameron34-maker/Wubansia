@@ -7,7 +7,7 @@ the same mix with the vox synth. A test keeps these files equal to a fresh
 export.
 
 - `FUT01_ExtendedMix_NoVox_224bars.mid`: the whole mix, a track per instrument, a marker at every section start and cue points (labels: the
-  notes play) at the risers, fills and vox entries.
+  notes play) at the risers and fills.
 - One region per section, `01_Intro_32bars.mid` to `09_Outro_32bars.mid`: the mix cut at its section lines, with the same
   tracks in the same order, the section's marker and its cues.
 - `regions.json`: integers and strings only: the tempo, swing (permille) and length (ms), every section's start bar
@@ -47,7 +47,7 @@ Line by line (bars of the whole mix):
 
 **4. Build** (bars 81-96)
 - 81-88: kick, clap, off-beat hats, perc, chords; a turnaround in its last bar
-- 89-96: kick, clap, hats, perc, fx; the clap rolls over the line's last 2 bars up to the fill, rising hit by hit; the fill in its last bar
+- 89-96: kick, clap, hats, perc, fx; the clap rolls over bars 95-96 up to the fill, rising hit by hit; the fill in its last bar
 
 **5. Drop** (bars 97-128)
 - 97-104: kick, clap, hats, perc, bass (Bounce), lead, chords, accents, fx; a turnaround in its last bar
@@ -78,25 +78,18 @@ Line by line (bars of the whole mix):
 ## The cues
 
 - bar 48: Fill
-- bar 57: Vox
 - bar 64: Fill
-- bar 65: Vox
-- bar 73: Vox
 - bar 80: Fill
 - bar 89: Riser
 - bar 96: Fill
-- bar 97: Vox
 - bar 112: Fill
-- bar 121: Vox
 - bar 144: Fill
-- bar 145: Vox
 - bar 153: Riser
 - bar 160: Fill
-- bar 161: Vox
 - bar 176: Fill
 - bar 192: Fill
 
-A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
+A riser's note ends on its section's first beat; a fill's on the next downbeat.
 
 ## Tracks
 

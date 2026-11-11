@@ -17,7 +17,7 @@ integer nearest 128 BPM) and the key signature (FF 59: 2 flats, minor) on its fi
 | `FUT03_Bassline_Rubber_InTheLoop_2bars.mid` | the Rubber line (the loop's) on Bass | channel 1 |
 | `FUT03_Chords_DubStabGm9_4bars.mid` | the chord sample, one note per chord at its root, on Dub Stab Gm9 | channel 4 |
 | `FUT03_Chords_DubStabGm9_Voicing_4bars.mid` | the chord voicing, single notes for your own synth | channel 3 |
-| `FUT03_Drums_4bars.mid` | the loop's drums and percussion, its fill bar included | channel 10 |
+| `FUT03_Drums_4bars.mid` | the loop's drums and percussion (the loop has no fill bar; the extended mix writes one at each fill) | channel 10 |
 | `FUT03_Lead_KeysEP_2bars.mid` | the lead phrase, on Keys EP | channel 2 |
 | `FUT03_Loop_NoVox_4bars.mid` | the context loop as its club master plays it, lane by lane: no vox, the accents carry the top | channels 1, 3, 4, 6, 10, 11 |
 | `FUT03_Loop_Vox_4bars.mid` | the context loop as its club master plays it, lane by lane: with the vox synth | channels 1, 3, 4, 5, 6, 10, 11 |
@@ -94,7 +94,7 @@ it), so a gated pad plays the whole file; an end-aligned sound's note ends on th
 Filter rides, every 60 ticks while they move (CC74 cutoff, CC71 resonance):
 - CC74 on channel 4 (Chords): the dub stab's low-pass: closed on the loop's downbeat, open at its middle; logarithmic, 0 = 900 Hz to 127 = 5000 Hz.
 
-Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 at its note-off, or sooner at the next note-on on its track that isn't thrown, so no other note takes the throw (the GS send controllers).
+Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 at its note-off, or sooner at the next note-on on its track that isn't thrown, so no other note takes the throw; every track on a channel that throws anywhere in these files starts with both at 0 on tick 0 (the GS send controllers).
 
 ## Lanes Wubansia plays from recorded phrases
 
