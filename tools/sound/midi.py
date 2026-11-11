@@ -1823,7 +1823,9 @@ def file_rows(k, names):
                     ('with the vox synth' if v == 'vox' else 'no vox, the accents carry the top'))
             chans = {k.channel(t) for t in k.loop_tracks(v)}
         elif n.endswith('_Drums_4bars.mid'):
-            what, chans = "the loop's drums and percussion, its fill bar included", {10}
+            what, chans = ("the loop's drums and percussion, its fill bar included" if k.loop_fx() else
+                           "the loop's drums and percussion (the loop has no fill bar; the extended mix writes one at "
+                           "each fill)"), {10}
         elif '_Bassline_' in n:
             name = re.search(r'_Bassline_([A-Za-z0-9]+)', n)[1]
             track = on.get(name, 'Bass')
