@@ -99,7 +99,8 @@ One track per instrument, each resolving to one Wubansia lane (`channels.track_l
 Clap or Snare/Clap (snare), Hats, Perc, Bass, Lead, Chords and Chord voicing (chords), Vox and Vox chops (vox),
 Accents, FX, plus the kit's extras by name on the lanes in the table above. The first track (the conductor) holds the
 file's name, the tempo, 4/4, the key, and in the extended mixes a marker (FF 06) at every section start and a cue point
-(FF 07) at every riser, fill and vox entry. The cues are labels for the reader: the notes play.
+(FF 07) at every riser, fill and, in the vox mix only, vox entry (on the bar where the line's vox comes in). The cues
+are labels for the reader: the notes play.
 
 ## Files per kit
 - `<KIT>_Loop_Vox_4bars.mid` and `<KIT>_Loop_NoVox_4bars.mid`: the kit's context loop as its club master plays it,
@@ -111,8 +112,8 @@ file's name, the tempo, 4/4, the key, and in the extended mixes a marker (FF 06)
 - `extended/vox/` and `extended/novox/`: the 224-bar extended mix (`<KIT>_ExtendedMix_Vox_224bars.mid`, or `_NoVox_`),
   one region file per section, and `regions.json` (integers and strings only: the tempo, the swing in permille, the
   length in ms, 1-based start bars, each line's lanes and moves, the cues, the tracks and the rides' ranges). The two
-  differ only in the Vox track, the accents (and their throws) and the chord stabs the no-vox accents take over
-  (FUT01's at 16th 30).
+  differ only in the Vox track (and its Vox cues), the accents (and their throws) and the chord stabs the no-vox
+  accents take over (FUT01's at 16th 30).
 
 ## The extended mix
 Each kit declares its music and its arrangement as data (`PARTS`, `tools/sound/README.md`, "MIDI"). A line is 8 bars;

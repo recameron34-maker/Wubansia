@@ -262,7 +262,7 @@ def line(lanes, **opt):
     - hits: one-shots placed by hand on channels 6 and 7, Hits on whole 16ths from the line's start (or end-aligned
       on them), a tuple for both variants or {'vox': hits, 'novox': hits};
     - cue: 'Riser' (the kit's riser, end-aligned on the line's end: put it on a section's last line) or 'Vox' (a
-      label: the vox notes play);
+      label on the bar where the line's vox comes in, in the vox mix only: the vox notes play);
     - ride: {track: 'loop' (the default) | ('hold', value) | ('ramp', from, to) | ('points', ((bar, value), ...))}:
       the filter rides on the track (every one of its controllers): the loop's curve, held, ramped over the line, or
       breakpoints on whole bars 0-8 joined linearly, held before the first and after the last."""
@@ -1522,8 +1522,10 @@ def plan(k, variant):
                 ccs.setdefault(t, []).extend((tick + j * LINE * BAR * S16, c, val) for tick, c, val in v)
             info.append(line_info(k, ln, got, start, variant))
             said.append(describe_line(k, ln, info[-1], got, variant))
-            if ln.get('cue') in ('Vox', 'Riser'):
-                cues.append(dict(bar=start, cue=ln['cue']))
+            if ln.get('cue') == 'Riser':
+                cues.append(dict(bar=start, cue='Riser'))
+            if ln.get('cue') == 'Vox' and variant == 'vox' and got.get('Vox'):    # where the line's vox comes in
+                cues.append(dict(bar=start + int(min(n.step for n in got['Vox']) // BAR), cue='Vox'))
             if ln.get('end') == 'fill':
                 cues.append(dict(bar=start + LINE - 1, cue='Fill'))
         for t, v in ccs.items():
@@ -2006,7 +2008,7 @@ the same mix {'without' if variant == 'vox' else 'with'} the vox synth. A test k
 export.
 
 - `{R['file']}`: the whole mix, a track per instrument, a marker at every section start and cue points (labels: the
-  notes play) at the risers, fills and vox entries.
+  notes play) at the risers{', fills and vox entries' if variant == 'vox' else ' and fills'}.
 - One region per section, `{secs[0]['file']}` to `{secs[-1]['file']}`: the mix cut at its section lines, with the same
   tracks in the same order, the section's marker and its cues.
 - `regions.json`: integers and strings only: the tempo, swing (permille) and length (ms), every section's start bar
@@ -2025,7 +2027,8 @@ Line by line (bars of the whole mix):
 
 {cue_rows}
 
-A riser's note ends on its section's first beat; a fill's on the next downbeat; the vox plays from a Vox cue.
+A riser's note ends on its section's first beat; a fill's on the next downbeat{
+'; a Vox cue sits on the bar where' + chr(10) + 'its line' + chr(39) + 's vox comes in' if variant == 'vox' else ''}.
 
 ## Tracks
 
