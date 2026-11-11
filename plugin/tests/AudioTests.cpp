@@ -380,6 +380,6 @@ TEST_CASE ("the host is told the engine's latency and tail", "[audio]")
     prepare (*plugin, 44100.0, 512);
     CHECK (plugin->getLatencySamples() == 404);
     prepare (*plugin, 96000.0, 512);
-    CHECK (plugin->getLatencySamples() == 664);
+    CHECK (plugin->getLatencySamples() == 712); // the club clip at 192 kHz inside (ADR 0021)
     CHECK_THAT (plugin->getTailLengthSeconds(), WithinAbs (6.0, 1.0e-9));
 }
