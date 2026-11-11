@@ -369,7 +369,7 @@
             "chords",
             "accents"
           ],
-          "chords": "choir",
+          "chords": "tonic",
           "hits": [
             [
               14,
@@ -455,7 +455,7 @@
             "fx"
           ],
           "hats": "thin",
-          "chords": "choir",
+          "chords": "tonic",
           "rise": {
             "lane": "hats",
             "from_pm": 400,
@@ -837,7 +837,7 @@
             "accents"
           ],
           "hats": "thin",
-          "chords": "choir",
+          "chords": "tonic",
           "hits": [
             [
               14,

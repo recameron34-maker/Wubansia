@@ -391,7 +391,7 @@
             "vox",
             "accents"
           ],
-          "chords": "choir",
+          "chords": "tonic",
           "phrases": [
             "Vox choir chords, the velocity picks the vowel"
           ],
@@ -425,7 +425,7 @@
             "fx"
           ],
           "hats": "thin",
-          "chords": "choir",
+          "chords": "tonic",
           "phrases": [
             "Vox choir chords, the velocity picks the vowel"
           ],
@@ -792,7 +792,7 @@
             "accents"
           ],
           "hats": "thin",
-          "chords": "choir",
+          "chords": "tonic",
           "phrases": [
             "Vox choir chords, the velocity picks the vowel"
           ],

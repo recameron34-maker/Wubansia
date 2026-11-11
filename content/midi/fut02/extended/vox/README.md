@@ -42,8 +42,8 @@ Line by line (bars of the whole mix):
 - 57-64: kick, clap, hats, perc, bass (Orbit), the lead's skeleton, the vox's last note thrown, accents, fx; the Lead filter ride from 20 to 40; the fill in its last bar
 
 **3. Break** (bars 65-80)
-- 65-72: chords (choir), vox (the vox choir chords), accents
-- 73-80: off-beat hats, chords (choir), vox (the vox choir chords), accents, fx; the phrases rest from the fill; the hats rise from 40% to 100% velocity; the fill in its last bar
+- 65-72: chords (tonic), vox (the vox choir chords), accents
+- 73-80: off-beat hats, chords (tonic), vox (the vox choir chords), accents, fx; the phrases rest from the fill; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **4. Build** (bars 81-96)
 - 81-88: kick, clap, off-beat hats, bass (Orbit), the lead's skeleton, chords; the Lead filter ride from 0 to 64; a turnaround in its last bar
@@ -60,7 +60,7 @@ Line by line (bars of the whole mix):
 - 137-144: kick, clap, hats, perc, bass (Orbit), the lead's skeleton, accents; the drums' tresillo variant; the Lead filter ride held at 24; a turnaround in its last bar
 
 **7. Break 2** (bars 145-160)
-- 145-152: off-beat hats, chords (choir), vox (the vox choir chords), accents
+- 145-152: off-beat hats, chords (tonic), vox (the vox choir chords), accents
 - 153-160: off-beat hats, chords (the laser stab riff), vox (call), accents, fx; the phrases rest from the fill; the hats rise from 40% to 100% velocity; the fill in its last bar
 
 **8. Drop 2** (bars 161-192)

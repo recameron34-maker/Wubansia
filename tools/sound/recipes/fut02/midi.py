@@ -130,7 +130,7 @@ def ramp(a, b):
 
 
 # The choir's lines (the breaks'). The choir sings Dm7 | Dm9 | B-flat maj7/D | Am7, a bar each. The pad (Dm9: D3 A3
-# C4 F4 A4 E5) holds under its Dm7 and Dm9 only (CHOIR_PAD, chords='choir'): under the B-flat maj7/D its A3, A4 and E5
+# C4 F4 A4 E5) holds under its Dm7 and Dm9 only (TONIC_PAD, chords='tonic'): under the B-flat maj7/D its A3, A4 and E5
 # would sit a minor ninth, a semitone and a tritone from the choir's B-flat 4, and under the Am7 its Dm9 would blur
 # the move back. The arp sits these lines out: its call would tick A4 and E5 under the B-flat bar, its answer F5 over
 # the Am7's E5. The accents differ by mix (choir_hits()):
@@ -140,7 +140,7 @@ def ramp(a, b):
 #   of 4 as a pickup, the laser stab's B-flat maj9 on the 3-3-2 of bar 3 and its Dm9 back on the bar's 'and' of 3 and
 #   'a' of 3 (the stab riff's own turn back to i), the arp stab on bar 4's 'and' of 2, the reverse chord swelling into
 #   the pad's next Dm9; nothing in a fill line's fill bar.
-CHOIR_PAD = dict(trigger=[(0, 50, 32, 1.0, False)], voicing=[(0, n, 32, 1.0, False) for n in Pd.CHORD])
+TONIC_PAD = dict(trigger=[(0, 50, 32, 1.0, False)], voicing=[(0, n, 32, 1.0, False) for n in Pd.CHORD])
 
 
 def choir_hits(fill=False):
@@ -187,7 +187,7 @@ SWITCH_STABS_SKELETON = (Hit(26, 'ArpStab', 2), Hit(90, 'ArpStab', 1))
 #   minor ninth under the glass's F6 in the melody's second bar), and never sings over the pad (whose E5 rubs the F5);
 #   no bar has three toplines: where the vox calls under the glass the arp sits out, and the glass makes way for it;
 # - the pad plays where nothing plays B-flat (the stabs' B-flat 3 is a semitone over its A3, the choir's B-flat 4 over
-#   its A4): under the choir only its Dm7 and Dm9 (CHOIR_PAD); the arp sits out under the choir;
+#   its A4): under the choir only its Dm7 and Dm9 (TONIC_PAD); the arp sits out under the choir;
 # - the choir chords play on the vox synth multisample, as written in their phrase (the plugin has no recorded choir
 #   table), in the vox mix only; the no-vox breaks move between Dm9 and B-flat maj9 with the laser stab as accents;
 # - the arp's filter ride (CC74): closed and held low in the groove (12, then 20: 2-2.3 kHz), from closed to fully
@@ -210,8 +210,8 @@ FORM = (
         line(GROOVE + ' lead', hats='busy', lead='skeleton', ride=hold(20), accents='alternate', end='turn'),  # 49
         line(GROOVE + ' lead', lead='skeleton', ride=ramp(20, 40), accents='loop', throw=True, end='fill'))),  # 57
     section('Break', 'break', (                       # 65-80: the choir (vox), the pad under its Dm7 and Dm9
-        line('chords vox', chords='choir', phrases=(CHOIR,), hits=choir_hits(), cue='Vox'),                   # 65
-        line('hats chords vox', hats='thin', rise=('hats', 0.4, 1.0), chords='choir', phrases=(CHOIR,),
+        line('chords vox', chords='tonic', phrases=(CHOIR,), hits=choir_hits(), cue='Vox'),                   # 65
+        line('hats chords vox', hats='thin', rise=('hats', 0.4, 1.0), chords='tonic', phrases=(CHOIR,),
              phrases_rest=True, hits=choir_hits(fill=True), accents='lead-in', end='fill'))),               # 73
     section('Build', 'build', (                       # 81-96: the arp's skeleton opening from closed, the clap rolling
         line('kick snare hats bass chords lead', hats='thin', lead='skeleton', ride=ramp(0, 64), end='turn'),  # 81
@@ -231,7 +231,7 @@ FORM = (
         line(GROOVE + ' lead', bass='switch', drums='tresillo', lead='skeleton', ride=hold(24),
              accents='alternate', hits={'vox': SWITCH_STABS_SKELETON}, end='turn'))),                         # 137
     section('Break 2', 'break', (                     # 145-160: the choir again, then the stabs and the vox's call
-        line('hats chords vox', hats='thin', chords='choir', phrases=(CHOIR,), hits=choir_hits(), cue='Vox'),  # 145
+        line('hats chords vox', hats='thin', chords='tonic', phrases=(CHOIR,), hits=choir_hits(), cue='Vox'),  # 145
         line('hats vox', hats='thin', rise=('hats', 0.4, 1.0), vox='call', phrases=(STABS,), phrases_rest=True,
              accents='lead-in', cue='Riser', end='fill'))),                                                   # 153
     section('Drop 2', 'drop2', (                      # 161-192: Relay; the vox's call under the glass melody
@@ -266,7 +266,7 @@ PARTS = dict(
     lead=dict(item='ChromeArp', name='Chrome arp phrase', notes=lead_notes(), skeleton=skeleton()),
     chords=dict(items=('StarfieldPadDm9',), name='Starfield pad Dm9, held',
                 trigger=[(0, 50, 64, 1.0, False)], voicing=[(0, n, 64, 1.0, False) for n in Pd.CHORD],
-                blocks={'choir': CHOIR_PAD}),
+                blocks={'tonic': TONIC_PAD}),
     vox=dict(item='VoxSynth', riff=Vs.riff_midi(), throws=(Vs.THROW_AT,), vowels=Vs.LAYER_VOWEL),
     accents=(Key('LaserChordStab', 62, name=STAB[62]), Key('LaserChordStab', 58, name=STAB[58]), Key('GlassPing'),
              Key('StarfieldSweep'), Key('ReverseChord'), Key('ArpStab'), Key('NoiseUplifter'), Key('ResonantZap'),
