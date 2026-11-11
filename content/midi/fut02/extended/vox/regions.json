@@ -143,6 +143,7 @@
         "50": "Glass Ping",
         "51": "Starfield Sweep",
         "52": "Reverse Chord",
+        "53": "Arp Stab",
         "54": "Noise Uplifter",
         "55": "Resonant Zap"
       }
@@ -376,7 +377,6 @@
       "file": "03_Break_16bars.mid",
       "lanes": [
         "hats",
-        "lead",
         "chords",
         "vox",
         "accents",
@@ -387,36 +387,45 @@
           "start_bar": 65,
           "bars": 8,
           "lanes": [
-            "lead",
             "chords",
             "vox",
             "accents"
           ],
-          "lead": "call",
+          "chords": "choir",
           "phrases": [
             "Vox choir chords, the velocity picks the vowel"
           ],
-          "accents": "loop",
-          "ride": {
-            "Lead": [
-              "hold",
-              48
+          "hits": [
+            [
+              14,
+              "LaserChordStabDm9"
+            ],
+            [
+              30,
+              "GlassPing"
+            ],
+            [
+              78,
+              "LaserChordStabDm9"
+            ],
+            [
+              94,
+              "GlassPing"
             ]
-          }
+          ]
         },
         {
           "start_bar": 73,
           "bars": 8,
           "lanes": [
             "hats",
-            "lead",
             "chords",
             "vox",
             "accents",
             "fx"
           ],
           "hats": "thin",
-          "lead": "call",
+          "chords": "choir",
           "phrases": [
             "Vox choir chords, the velocity picks the vowel"
           ],
@@ -427,13 +436,24 @@
           },
           "accents": "lead-in",
           "end": "fill",
-          "ride": {
-            "Lead": [
-              "ramp",
-              48,
-              96
+          "hits": [
+            [
+              14,
+              "LaserChordStabDm9"
+            ],
+            [
+              30,
+              "GlassPing"
+            ],
+            [
+              78,
+              "LaserChordStabDm9"
+            ],
+            [
+              94,
+              "GlassPing"
             ]
-          }
+          ]
         }
       ],
       "cues": [
@@ -477,7 +497,7 @@
           ],
           "hats": "thin",
           "bass": "Orbit",
-          "lead": "phrase",
+          "lead": "skeleton",
           "end": "turn",
           "ride": {
             "Lead": [
@@ -498,7 +518,7 @@
             "fx"
           ],
           "hats": "thin/16ths",
-          "lead": "phrase",
+          "lead": "skeleton",
           "roll": "snare",
           "roll_bars": 8,
           "end": "fill",
@@ -562,7 +582,26 @@
           "vox": "loop",
           "accents": "loop",
           "drums": "pingpong",
-          "end": "turn"
+          "end": "turn",
+          "ride": {
+            "Lead": [
+              "points",
+              [
+                [
+                  0,
+                  127
+                ],
+                [
+                  4,
+                  127
+                ],
+                [
+                  8,
+                  0
+                ]
+              ]
+            ]
+          }
         },
         {
           "start_bar": 105,
@@ -678,7 +717,17 @@
           "bass": "Orbit",
           "accents": "alternate",
           "drums": "tresillo",
-          "end": "turn"
+          "end": "turn",
+          "hits": [
+            [
+              22,
+              "ArpStab"
+            ],
+            [
+              86,
+              "ArpStab"
+            ]
+          ]
         },
         {
           "start_bar": 137,
@@ -698,6 +747,16 @@
           "accents": "alternate",
           "drums": "tresillo",
           "end": "turn",
+          "hits": [
+            [
+              26,
+              "ArpStab"
+            ],
+            [
+              90,
+              "ArpStab"
+            ]
+          ],
           "ride": {
             "Lead": [
               "hold",
@@ -717,7 +776,6 @@
       "file": "07_Break2_16bars.mid",
       "lanes": [
         "hats",
-        "lead",
         "chords",
         "vox",
         "accents",
@@ -729,23 +787,33 @@
           "bars": 8,
           "lanes": [
             "hats",
-            "lead",
             "chords",
             "vox",
             "accents"
           ],
           "hats": "thin",
-          "lead": "call",
+          "chords": "choir",
           "phrases": [
             "Vox choir chords, the velocity picks the vowel"
           ],
-          "accents": "loop",
-          "ride": {
-            "Lead": [
-              "hold",
-              64
+          "hits": [
+            [
+              14,
+              "LaserChordStabDm9"
+            ],
+            [
+              30,
+              "GlassPing"
+            ],
+            [
+              78,
+              "LaserChordStabDm9"
+            ],
+            [
+              94,
+              "GlassPing"
             ]
-          }
+          ]
         },
         {
           "start_bar": 153,
@@ -846,9 +914,6 @@
           "bass": "Relay",
           "lead": "skeleton",
           "vox": "call",
-          "phrases": [
-            "Glass melody"
-          ],
           "end": "fill"
         },
         {
@@ -868,9 +933,34 @@
           "bass": "Relay",
           "lead": "call",
           "vox": "answer",
-          "accents": "loop",
           "drums": "pingpong",
-          "end": "turn"
+          "end": "turn",
+          "hits": [
+            [
+              14,
+              "LaserChordStabDm9"
+            ],
+            [
+              30,
+              "GlassPing"
+            ],
+            [
+              64,
+              "StarfieldSweep"
+            ],
+            [
+              78,
+              "LaserChordStabDm9"
+            ],
+            [
+              94,
+              "GlassPing"
+            ],
+            [
+              128,
+              "StarfieldSweep"
+            ]
+          ]
         },
         {
           "start_bar": 185,

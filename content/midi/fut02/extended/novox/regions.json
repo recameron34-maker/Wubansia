@@ -357,7 +357,6 @@
       "file": "03_Break_16bars.mid",
       "lanes": [
         "hats",
-        "lead",
         "chords",
         "accents",
         "fx"
@@ -367,31 +366,96 @@
           "start_bar": 65,
           "bars": 8,
           "lanes": [
-            "lead",
             "chords",
             "accents"
           ],
-          "lead": "call",
-          "accents": "loop",
-          "ride": {
-            "Lead": [
-              "hold",
-              48
+          "chords": "choir",
+          "hits": [
+            [
+              14,
+              "LaserChordStabDm9"
+            ],
+            [
+              30,
+              "GlassPing"
+            ],
+            [
+              32,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              35,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              38,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              42,
+              "LaserChordStabDm9"
+            ],
+            [
+              45,
+              "LaserChordStabDm9"
+            ],
+            [
+              54,
+              "ArpStab"
+            ],
+            [
+              64,
+              "ReverseChord"
+            ],
+            [
+              78,
+              "LaserChordStabDm9"
+            ],
+            [
+              94,
+              "GlassPing"
+            ],
+            [
+              96,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              99,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              102,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              106,
+              "LaserChordStabDm9"
+            ],
+            [
+              109,
+              "LaserChordStabDm9"
+            ],
+            [
+              118,
+              "ArpStab"
+            ],
+            [
+              128,
+              "ReverseChord"
             ]
-          }
+          ]
         },
         {
           "start_bar": 73,
           "bars": 8,
           "lanes": [
             "hats",
-            "lead",
             "chords",
             "accents",
             "fx"
           ],
           "hats": "thin",
-          "lead": "call",
+          "chords": "choir",
           "rise": {
             "lane": "hats",
             "from_pm": 400,
@@ -399,13 +463,72 @@
           },
           "accents": "lead-in",
           "end": "fill",
-          "ride": {
-            "Lead": [
-              "ramp",
-              48,
-              96
+          "hits": [
+            [
+              14,
+              "LaserChordStabDm9"
+            ],
+            [
+              30,
+              "GlassPing"
+            ],
+            [
+              32,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              35,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              38,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              42,
+              "LaserChordStabDm9"
+            ],
+            [
+              45,
+              "LaserChordStabDm9"
+            ],
+            [
+              54,
+              "ArpStab"
+            ],
+            [
+              64,
+              "ReverseChord"
+            ],
+            [
+              78,
+              "LaserChordStabDm9"
+            ],
+            [
+              94,
+              "GlassPing"
+            ],
+            [
+              96,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              99,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              102,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              106,
+              "LaserChordStabDm9"
+            ],
+            [
+              109,
+              "LaserChordStabDm9"
             ]
-          }
+          ]
         }
       ],
       "cues": [
@@ -449,7 +572,7 @@
           ],
           "hats": "thin",
           "bass": "Orbit",
-          "lead": "phrase",
+          "lead": "skeleton",
           "end": "turn",
           "ride": {
             "Lead": [
@@ -470,7 +593,7 @@
             "fx"
           ],
           "hats": "thin/16ths",
-          "lead": "phrase",
+          "lead": "skeleton",
           "roll": "snare",
           "roll_bars": 8,
           "end": "fill",
@@ -531,7 +654,26 @@
           "lead": "phrase",
           "accents": "loop",
           "drums": "pingpong",
-          "end": "turn"
+          "end": "turn",
+          "ride": {
+            "Lead": [
+              "points",
+              [
+                [
+                  0,
+                  127
+                ],
+                [
+                  4,
+                  127
+                ],
+                [
+                  8,
+                  0
+                ]
+              ]
+            ]
+          }
         },
         {
           "start_bar": 105,
@@ -681,7 +823,6 @@
       "file": "07_Break2_16bars.mid",
       "lanes": [
         "hats",
-        "lead",
         "chords",
         "accents",
         "fx"
@@ -692,19 +833,85 @@
           "bars": 8,
           "lanes": [
             "hats",
-            "lead",
             "chords",
             "accents"
           ],
           "hats": "thin",
-          "lead": "call",
-          "accents": "loop",
-          "ride": {
-            "Lead": [
-              "hold",
-              64
+          "chords": "choir",
+          "hits": [
+            [
+              14,
+              "LaserChordStabDm9"
+            ],
+            [
+              30,
+              "GlassPing"
+            ],
+            [
+              32,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              35,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              38,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              42,
+              "LaserChordStabDm9"
+            ],
+            [
+              45,
+              "LaserChordStabDm9"
+            ],
+            [
+              54,
+              "ArpStab"
+            ],
+            [
+              64,
+              "ReverseChord"
+            ],
+            [
+              78,
+              "LaserChordStabDm9"
+            ],
+            [
+              94,
+              "GlassPing"
+            ],
+            [
+              96,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              99,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              102,
+              "LaserChordStabBbmaj9"
+            ],
+            [
+              106,
+              "LaserChordStabDm9"
+            ],
+            [
+              109,
+              "LaserChordStabDm9"
+            ],
+            [
+              118,
+              "ArpStab"
+            ],
+            [
+              128,
+              "ReverseChord"
             ]
-          }
+          ]
         },
         {
           "start_bar": 153,
@@ -798,9 +1005,6 @@
           "hats": "busy",
           "bass": "Relay",
           "lead": "skeleton",
-          "phrases": [
-            "Glass melody"
-          ],
           "end": "fill"
         },
         {
@@ -818,9 +1022,50 @@
           "hats": "full",
           "bass": "Relay",
           "lead": "call",
-          "accents": "loop",
           "drums": "pingpong",
-          "end": "turn"
+          "end": "turn",
+          "hits": [
+            [
+              14,
+              "LaserChordStabDm9"
+            ],
+            [
+              32,
+              "ReverseChord"
+            ],
+            [
+              64,
+              "StarfieldSweep"
+            ],
+            [
+              78,
+              "LaserChordStabDm9"
+            ],
+            [
+              96,
+              "ReverseChord"
+            ],
+            [
+              128,
+              "StarfieldSweep"
+            ],
+            [
+              16,
+              "ArpStab"
+            ],
+            [
+              48,
+              "ArpStab"
+            ],
+            [
+              80,
+              "ArpStab"
+            ],
+            [
+              112,
+              "ArpStab"
+            ]
+          ]
         },
         {
           "start_bar": 185,
