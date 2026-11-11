@@ -11,6 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -688,6 +689,34 @@ TEST_CASE ("buildKit and checkKitFiles read a kit folder through FileSampleSourc
             CHECK (failed.result.error.starts_with (c.starts));
         }
     }
+}
+
+TEST_CASE ("checkKitFiles stops within one probe of a cancel", "[kit_builder]")
+{
+    const auto manifest = testKit();
+    std::atomic<bool> cancel { false };
+    int probes = 0;
+    const auto checked = checkKitFiles (manifest, [&] (std::string_view path) {
+        if (++probes == 4)
+            cancel = true; // raised while the fourth file is probed
+        const auto& f = *std::find_if (manifest.files.begin(), manifest.files.end(), [&] (const FileEntry& e) { return e.path == path; });
+        WavInfo info;
+        info.frames = f.frames;
+        info.channels = f.channels;
+        info.sampleRate = 48000;
+        return util::Result<WavInfo>::success (info);
+    }, &cancel);
+    REQUIRE_FALSE (checked.ok());
+    CHECK (checked.error == "cancelled: the check was cancelled after 4 of 18 files");
+    CHECK (loadErrorOf (checked.error) == LoadError::cancelled);
+    CHECK (probes == 4);
+
+    // Through a FileSampleSource, raised before the check: no file is probed.
+    const std::atomic<bool> raised { true };
+    FileSampleSource source (std::filesystem::path (WUBANSIA_TEST_TMP_DIR) / "nowhere");
+    CHECK (checkKitFiles (manifest, source, &raised).error == "cancelled: the check was cancelled after 0 of 18 files");
+    // And without a flag, the first problem as before.
+    CHECK (checkKitFiles (manifest, source).error.starts_with ("missing: Drums/Kick A.wav: "));
 }
 
 TEST_CASE ("loadErrorOf sorts errors by their code", "[kit_builder]")

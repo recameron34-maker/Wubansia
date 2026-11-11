@@ -14,6 +14,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <atomic>
 #include <bit>
 #include <cstdint>
 #include <cstring>
@@ -23,6 +24,10 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+#if ! defined(_WIN32)
+    #include <sys/stat.h>
+#endif
 
 using namespace wubansia;
 using namespace wubansia::engine;
@@ -327,6 +332,20 @@ TEST_CASE ("readWavInfo through a reader reads only the headers", "[wav]")
     CHECK (info.value.dataBytes == 6000);
     CHECK (bytesRead < 1024); // the first 256 bytes, then chunk headers and the fmt chunk: never the 1 MB LIST
     CHECK (reads < 10);
+
+    // A plain file's headers all sit in the first 256 bytes: one read.
+    const auto plain = readFixture ("float32_stereo.wav");
+    int plainReads = 0;
+    const auto plainInfo = readWavInfo (plain.size(), [&] (std::uint64_t offset, std::span<std::uint8_t> out) {
+        ++plainReads;
+        if (offset > plain.size() || out.size() > plain.size() - offset)
+            return false;
+        std::memcpy (out.data(), plain.data() + offset, out.size());
+        return true;
+    });
+    REQUIRE (plainInfo.ok());
+    CHECK (plainInfo.value == readWavInfo (plain).value);
+    CHECK (plainReads == 1);
 }
 
 TEST_CASE ("FileSampleSource reads a kit folder by its manifest paths", "[wav]")
@@ -436,4 +455,50 @@ TEST_CASE ("FileSampleSource on the checkout's samples: LFS pointers or real WAV
     }
     if (checked == 0)
         SKIP ("no Loops/ WAVs in this checkout");
+}
+
+TEST_CASE ("FileSampleSource reads in chunks, stops on its cancel flag, and names I/O problems in fixed English", "[wav]")
+{
+    const auto root = scratch ("chunks");
+    // A 24-bit stereo file of 200 000 frames: 1.2 MB, several read chunks.
+    Bytes data;
+    for (std::uint32_t i = 0; i < 200000 * 2; ++i)
+    {
+        const auto v = (i * 2654435761u) >> 8;
+        data.push_back (static_cast<std::uint8_t> (v & 0xFFu));
+        data.push_back (static_cast<std::uint8_t> ((v >> 8) & 0xFFu));
+        data.push_back (static_cast<std::uint8_t> ((v >> 16) & 0xFFu));
+    }
+    const auto big = riff ({ fmt (1, 2, 24), chunk ("data", data) });
+    REQUIRE (big.size() > 4 * FileSampleSource::kReadChunkBytes);
+    writeFile (root / "Loops" / "Big.wav", big);
+
+    std::atomic<bool> cancel { false };
+    FileSampleSource source (root, &cancel);
+    const auto read = source.read ("Loops/Big.wav");
+    REQUIRE (read.ok());
+    CHECK (read.value == readWav (big).value);
+
+    cancel = true;
+    const auto cancelled = source.read ("Loops/Big.wav");
+    REQUIRE_FALSE (cancelled.ok());
+    CHECK (cancelled.error == "cancelled: Loops/Big.wav: the read was cancelled");
+    CHECK (source.probe ("Loops/Big.wav").ok()); // a probe is a few small reads: it doesn't stop
+    cancel = false;
+
+    // A C1 control in a path is escaped in the message, which stays one line.
+    const auto c1 = source.read ("Drums/Kick\xC2\x85" "B.wav");
+    REQUIRE_FALSE (c1.ok());
+    CHECK (c1.error.starts_with ("missing: Drums/Kick\\u0085B.wav: "));
+
+#if ! defined(_WIN32)
+    // Not regular files: a FIFO, and a loop of symbolic links. The messages are fixed English text.
+    std::filesystem::create_directories (root / "Odd");
+    REQUIRE (::mkfifo ((root / "Odd" / "Pipe.wav").c_str(), 0600) == 0);
+    std::filesystem::create_symlink (root / "Odd" / "B.wav", root / "Odd" / "A.wav");
+    std::filesystem::create_symlink (root / "Odd" / "A.wav", root / "Odd" / "B.wav");
+    CHECK (source.read ("Odd/Pipe.wav").error == "unreadable: Odd/Pipe.wav: not a regular file");
+    CHECK (source.probe ("Odd/Pipe.wav").error == "unreadable: Odd/Pipe.wav: not a regular file");
+    CHECK (source.read ("Odd/A.wav").error == "unreadable: Odd/A.wav: too many levels of symbolic links");
+#endif
 }

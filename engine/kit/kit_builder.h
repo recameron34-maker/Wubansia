@@ -61,6 +61,12 @@ namespace wubansia::engine
     // Whether every file kit.json lists is ready under source's root, from the headers alone (probe): it exists,
     // isn't an LFS pointer, is a WAV the reader takes, at 48 kHz, with the listed frames and channels. The first
     // problem is the error, in buildKit's words; success gives the number of files checked. The installer checks
-    // SHA-256; this doesn't.
-    [[nodiscard]] util::Result<int> checkKitFiles (const KitManifest& manifest, const FileSampleSource& source);
+    // SHA-256; this doesn't. cancel, if given, is checked before each file: a raised flag stops the check within one
+    // probe ("cancelled: the check was cancelled after 3 of 189 files", which loadErrorOf sorts as cancelled).
+    [[nodiscard]] util::Result<int> checkKitFiles (const KitManifest& manifest, const FileSampleSource& source,
+        const std::atomic<bool>* cancel = nullptr);
+
+    // The same check through any probe (path -> its WavInfo or error, as FileSampleSource::probe gives them).
+    [[nodiscard]] util::Result<int> checkKitFiles (const KitManifest& manifest, FunctionRef<util::Result<WavInfo> (std::string_view path)> probe,
+        const std::atomic<bool>* cancel = nullptr);
 }

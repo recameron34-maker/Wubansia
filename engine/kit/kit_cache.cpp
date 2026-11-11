@@ -10,8 +10,12 @@ namespace wubansia::engine
 {
     KitCache& KitCache::instance()
     {
-        static KitCache cache;
-        return cache;
+        // Immortal on purpose: a host can exit, or unload the plugin, while a kit service's thread is still inside
+        // acquire (). A destructible static would free the entries, mutex and condition variable under that thread.
+        // The cache holds only weak references, short strings and at most a hand-off reference, so nothing of value
+        // leaks.
+        static KitCache* const cache = new KitCache();
+        return *cache;
     }
 
     KitCache::Entry* KitCache::findEntry (std::string_view id, std::int32_t version) const
@@ -29,6 +33,7 @@ namespace wubansia::engine
 
     KitCache::KitResult KitCache::acquire (std::string_view id, std::int32_t version, FunctionRef<KitResult()> build, const std::atomic<bool>* cancel)
     {
+        std::shared_ptr<const Kit> released; // a hand-off reference this call lets go of: after the lock, never under it
         std::unique_lock lock (mutex);
         prune();
         Entry* entry = findEntry (id, version);
@@ -63,10 +68,13 @@ namespace wubansia::engine
                 else
                     finished.wait_for (lock, std::chrono::milliseconds (5));
             }
-            --entry->waiters;
+            // The build's hand-off reference keeps its Kit alive until its last waiter has looked.
+            auto kit = entry->kit.lock();
+            if (--entry->waiters == 0)
+                released = std::move (entry->handoff);
             if (cancelled)
                 return KitResult::failure ("cancelled: the load was cancelled while waiting for kit " + entry->id + " v" + std::to_string (version));
-            if (auto kit = entry->kit.lock())
+            if (kit != nullptr)
                 return KitResult::success (std::move (kit));
             // It failed, or its kit is already gone. Its error is ours too, unless it was its caller's cancellation
             // (or another build has started since): then go round, and build or wait again.
@@ -96,6 +104,10 @@ namespace wubansia::engine
                     {
                         entry.kit = result->value;
                         entry.lastError.clear();
+                        // Its caller may drop the Kit at once (a request replaced meanwhile): hold it for the
+                        // threads waiting on this build, so none of them decodes it again.
+                        if (entry.waiters > 0)
+                            entry.handoff = result->value;
                     }
                     else
                         entry.lastError = result != nullptr ? result->error : "failed: building the kit threw";
