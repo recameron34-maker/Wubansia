@@ -95,6 +95,45 @@
       "sends_pm": [0, 0, 0]
     },
     {
+      "id": "bass_ms",
+      "lane": "bass",
+      "group": "none",
+      "inserts": [
+        {
+          "type": "peak",
+          "freq_hz": 130,
+          "gain_mdb": -9567,
+          "q_pm": 3000,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        },
+        {
+          "type": "peak",
+          "freq_hz": 380,
+          "gain_mdb": -11530,
+          "q_pm": 3000,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        },
+        {
+          "type": "gain",
+          "gain_mdb": 470,
+          "when": {
+            "variant": "any",
+            "ab": "bass",
+            "is": "a"
+          }
+        }
+      ],
+      "sends_pm": [0, 0, 0]
+    },
+    {
       "id": "stab",
       "lane": "chords",
       "group": "music",
@@ -193,6 +232,110 @@
       "lane": "vox",
       "group": "none",
       "inserts": [
+        {
+          "type": "gain",
+          "gain_mdb": -4000
+        },
+        {
+          "type": "comp",
+          "threshold_mdb": -18683,
+          "ratio_pm": 4000,
+          "knee_mdb": 6000,
+          "attack_us": 5000,
+          "release_fast_us": 80000,
+          "release_slow_us": 500000,
+          "makeup_mdb": 2500
+        },
+        {
+          "type": "duck",
+          "mode": "onset",
+          "key_lanes": ["kick"],
+          "min_velocity": 1,
+          "depth_mdb": 3000,
+          "ramp_us": 2000,
+          "hold_us": 15000,
+          "release_us": 100000,
+          "pre_us": 0,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 0
+          },
+          "pump": true
+        },
+        {
+          "type": "peak",
+          "freq_hz": 330,
+          "gain_mdb": -2000,
+          "q_pm": 1000
+        },
+        {
+          "type": "peak",
+          "freq_hz": 950,
+          "gain_mdb": -4000,
+          "q_pm": 1000
+        },
+        {
+          "type": "peak",
+          "freq_hz": 2800,
+          "gain_mdb": 5500,
+          "q_pm": 800
+        }
+      ],
+      "sends_pm": [300, 180, 0]
+    },
+    {
+      "id": "vox_ms",
+      "lane": "vox",
+      "group": "none",
+      "inserts": [
+        {
+          "type": "peak",
+          "freq_hz": 250,
+          "gain_mdb": 8641,
+          "q_pm": 2500
+        },
+        {
+          "type": "peak",
+          "freq_hz": 500,
+          "gain_mdb": -8221,
+          "q_pm": 2500
+        },
+        {
+          "type": "peak",
+          "freq_hz": 794,
+          "gain_mdb": 5000,
+          "q_pm": 3000
+        },
+        {
+          "type": "peak",
+          "freq_hz": 1000,
+          "gain_mdb": -8616,
+          "q_pm": 4300
+        },
+        {
+          "type": "peak",
+          "freq_hz": 1260,
+          "gain_mdb": 10000,
+          "q_pm": 4300
+        },
+        {
+          "type": "peak",
+          "freq_hz": 2500,
+          "gain_mdb": 1500,
+          "q_pm": 1000
+        },
+        {
+          "type": "high_shelf",
+          "freq_hz": 6000,
+          "gain_mdb": -8213,
+          "q_pm": 707
+        },
+        {
+          "type": "high_shelf",
+          "freq_hz": 11000,
+          "gain_mdb": -10000,
+          "q_pm": 707
+        },
         {
           "type": "gain",
           "gain_mdb": -4000
@@ -389,6 +532,21 @@
           "freq_hz": 2800,
           "gain_mdb": 4500,
           "q_pm": 800
+        },
+        {
+          "type": "duck",
+          "mode": "level",
+          "key_channel": "vox_ms",
+          "depth_mdb": 6000,
+          "range_mdb": 18000,
+          "top_mdb": -11855,
+          "attack_us": 10000,
+          "release_us": 300000,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 0
+          },
+          "pump": false
         }
       ]
     },
@@ -488,12 +646,12 @@
     "vox": {
       "pre_master_lufs_mlu": -9469,
       "club_lufs_mlu": -9227,
-      "channel_true_peak_mdb": [-1020, -2020, -10867, -8930, -10376, -4593, -1020, -6157, -7291, -120000, -120000, -4988, -8769]
+      "channel_true_peak_mdb": [-1020, -2020, -10867, -8930, -10376, -4593, -1020, -1020, -6157, -7291, -120000, -120000, -4988, -4988, -8769]
     },
     "novox": {
       "pre_master_lufs_mlu": -9766,
       "club_lufs_mlu": -9184,
-      "channel_true_peak_mdb": [-1020, -2020, -10867, -8930, -10376, -4593, -1020, -6157, -7291, -120000, -120000, -120000, -8791]
+      "channel_true_peak_mdb": [-1020, -2020, -10867, -8930, -10376, -4593, -1020, -1020, -6157, -7291, -120000, -120000, -120000, -120000, -8791]
     }
   }
 }

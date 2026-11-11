@@ -2,8 +2,8 @@
 (context5.py on context.py), kept here because shared code imports no kit (ADR 0008). tools/sound/mix_trace.py,
 plugin_mix.py and engine_ref.py read it through kits.load('FUT04').RECIPES.
 
-The loops play the acid stem (bass_stem, its ride baked in); the multisample (bass) has the same strip after a
-cc_filter for the ride on CC74/CC71 (ACID). The vox keys the bass's and the fill's top bands (level ducks) and the
+The loops play the acid stem (bass_stem, its ride baked in); the multisample (bass) has the same strip after P2's
+corrective EQ (ACID_EQ) and a cc_filter for the ride on CC74/CC71 (ACID), open at rest. The vox keys the bass's and the fill's top bands (level ducks) and the
 Space return; its throws and the no-vox accents' throws take the full Space and Echo sends.
 """
 import numpy as np
@@ -18,6 +18,14 @@ R5_LOOPS = {'vox': ('ContextLoopWetVox', 'ContextLoopClubVox'),
 CHANNEL = {'bass': 'bass_stem'}     # the loops play the acid stem (its ride baked in), not the multisample
 ACID = (5400.0, 14040.0)            # REST_HZ 900 x 2^2.6 (the attack's widest), x the ride's 2.6
 ACID_Q = (0.707, 2.5)               # the ride's resonance 0.9-0.96 adds about 8 dB to the ladder's peak
+# the multisample path (P2's calibration, plugin-p2 f519bbe): the acid multisample's EQ per bass side, in front of
+# its cc_filter, which rests open (CC74 127) until a ride arrives; no copy channels (the stems play on bass_stem)
+ACID_EQ = [PM.eq_measured('peak', 62, -18000, 4300, 'b'), PM.eq_measured('peak', 99, -18000, 4300, 'b'),
+           PM.eq_measured('peak', 125, 4000, 3000, 'b'), PM.eq_measured('peak', 62, -13742, 4300, 'a'),
+           PM.eq_measured('peak', 80, -18000, 4300, 'a'), PM.eq_measured('peak', 99, -18000, 4300, 'a'),
+           PM.eq_measured('peak', 125, -13093, 4300, 'a'), PM.eq_measured('peak', 450, 6102, 1400, 'a'),
+           PM.eq_measured('peak', 794, -4328, 2500, 'a')]
+MS_COPIES = {}
 
 
 def render(mode):
@@ -152,7 +160,8 @@ def build(caps):
     chans = [
         ch('kick', 'kick', 'drums', fpan('kick') + fader('kick'), sends('kick')),
         ch('rumble', 'kick', 'none', fpan('rumble') + fader('rumble'), sends('rumble')),
-        ch('bass', 'bass', 'none', [PM.cc_filter('lowpass', *ACID, *ACID_Q)] + bass_tail, sends('bass')),
+        ch('bass', 'bass', 'none', ACID_EQ + [PM.cc_filter('lowpass', *ACID, *ACID_Q, cc74_default=127)] + bass_tail,
+           sends('bass')),
         ch('bass_stem', 'bass', 'none', bass_tail, sends('bass')),
         ch('snare', 'snare', 'drums', fpan('snare') + fader('snare'), sends('snare')),
         ch('hat', 'hats', 'drums', fpan('hat') + fader('hat'), sends('hat')),

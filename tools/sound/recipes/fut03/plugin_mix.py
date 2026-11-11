@@ -15,6 +15,17 @@ VARIANTS = {'vox': 'vox', 'novox': 'novox'}
 R5_LOOPS = {'vox': ('ContextLoopVoxWet', 'ContextLoopVoxClub'),
             'novox': ('ContextLoopNoVoxWet', 'ContextLoopNoVoxClub')}
 STAB = (900.0, 5000.0)              # the stab's CC74 map: context.STAB_RIDE
+# the multisample path (P2's calibration, plugin-p2 f519bbe): the bass and vox synth multisamples play on copies of
+# bass and vox, corrected to the stems the loops play there
+MS_COPIES = {
+    'bass_ms': ('bass', [PM.eq_measured('peak', 130, -9567, 3000, 'a'),
+                         PM.eq_measured('peak', 380, -11530, 3000, 'a')]),
+    'vox_ms': ('vox', [PM.eq_measured('peak', 250, 8641, 2500), PM.eq_measured('peak', 500, -8221, 2500),
+                       PM.eq_measured('peak', 794, 5000, 3000), PM.eq_measured('peak', 1000, -8616, 4300),
+                       PM.eq_measured('peak', 1260, 10000, 4300), PM.eq_measured('peak', 2500, 1500, 1000),
+                       PM.eq_measured('high_shelf', 6000, -8213, 707),
+                       PM.eq_measured('high_shelf', 11000, -10000, 707)]),
+}
 
 
 def render(variant):
@@ -161,6 +172,7 @@ def build(caps):
     }
     groups = {'drums': {'inserts': [PM.clip(v[('clip', 'drums', 0, '')], C.DRUM_KNEE_DB)]},
               'music': {'inserts': music_eq}}
+    PM.add_copies(chans, returns, MS_COPIES)
     return chans, groups, returns, {'vox': [], 'novox': []}, MS.settings(K, max_reduction_db=C.MASTER_REDUCTION_DB)
 
 

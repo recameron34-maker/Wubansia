@@ -38,19 +38,21 @@ LANE_CHANNELS = {
               'ride': ['ride'], 'perc': ['perc'], 'pad': ['pad'], 'lead': ['lead'], 'fill': ['fill'], 'vox': ['vox'],
               'accent': ['accent']},
 }
-# channels for instruments the loops don't play (the extended mix's and MIDI in's)
-EXTRA_CHANNELS = {'FUT01': ['bass_organ', 'pad'], 'FUT02': [], 'FUT03': ['lead', 'fx'], 'FUT04': ['bass']}
+# channels for instruments the loops don't play (the extended mix's and MIDI in's), and the multisamples' copies
+EXTRA_CHANNELS = {'FUT01': ['bass_organ', 'pad', 'vsynth_ms'], 'FUT02': ['bass_ms'],
+                  'FUT03': ['lead', 'fx', 'bass_ms', 'vox_ms'], 'FUT04': ['bass']}
 LANE_OF = {  # each channel's plugin lane (channels.py: drum notes 37-40 snare, 42/46/51 hats, others perc)
     'FUT01': {'kick': 'kick', 'bass': 'bass', 'bass_organ': 'bass', 'clap': 'snare', 'hat_c': 'hats', 'hat_o': 'hats',
               'tamb': 'perc', 'rim': 'perc', 'perc': 'perc', 'stab': 'chords', 'pluck': 'lead', 'fill': 'fx',
-              'pad': 'chords', 'vsynth': 'vox', 'acc_rev': 'accents', 'acc_up': 'accents', 'acc_hit': 'accents',
-              'acc_warp': 'accents'},
-    'FUT02': {'kick': 'kick', 'clap': 'snare', 'hat': 'hats', 'zap': 'perc', 'bass': 'bass', 'glide': 'bass',
+              'pad': 'chords', 'vsynth': 'vox', 'vsynth_ms': 'vox', 'acc_rev': 'accents', 'acc_up': 'accents',
+              'acc_hit': 'accents', 'acc_warp': 'accents'},
+    'FUT02': {'kick': 'kick', 'clap': 'snare', 'hat': 'hats', 'zap': 'perc', 'bass': 'bass', 'bass_ms': 'bass',
+              'glide': 'bass',
               'pad': 'chords', 'arp': 'lead', 'fill': 'fx', 'vox': 'vox', 'acc_laser': 'accents',
               'acc_glass': 'accents', 'acc_sweep': 'accents', 'acc_revchord': 'accents', 'acc_arpstab': 'accents'},
     'FUT03': {'kick': 'kick', 'clap': 'snare', 'rim': 'perc', 'hat': 'hats', 'shaker': 'perc', 'perc': 'perc',
-              'bass': 'bass', 'stab': 'chords', 'pad': 'chords', 'lead': 'lead', 'fx': 'fx', 'vox': 'vox',
-              'accent': 'accents'},
+              'bass': 'bass', 'bass_ms': 'bass', 'stab': 'chords', 'pad': 'chords', 'lead': 'lead', 'fx': 'fx',
+              'vox': 'vox', 'vox_ms': 'vox', 'accent': 'accents'},
     'FUT04': {'kick': 'kick', 'rumble': 'kick', 'bass': 'bass', 'bass_stem': 'bass', 'snare': 'snare', 'hat': 'hats',
               'ride': 'hats', 'perc': 'perc', 'fill': 'fx', 'pad': 'chords', 'lead': 'lead', 'vox': 'vox',
               'accent': 'accents'},
@@ -87,13 +89,14 @@ INSERTS = {
         'fill': ['gain', 'gain:vox'],
         'pad': ['mono_below', 'peak', 'peak', 'gain'],
         'vsynth': ['peak', 'peak', 'peak', 'clip', 'duck_onset', 'gain'],
+        'vsynth_ms': ['peak', 'peak', 'peak', 'high_shelf', 'peak', 'peak', 'peak', 'clip', 'duck_onset', 'gain'],
         'acc_rev': ['duck_onset', 'duck_onset', 'gain', 'gain:novox'],
         'acc_up': ['duck_onset', 'duck_onset', 'gain', 'gain:novox'],
         'acc_hit': ['clip', 'duck_onset', 'duck_onset', 'gain', 'gain:novox'],
         'acc_warp': ['clip', 'duck_onset', 'duck_onset', 'pan', 'gain', 'gain:novox'],
         'groups.drums': [],
         'groups.music': [],
-        'returns.space': ['duck_level'],
+        'returns.space': ['duck_level', 'duck_level'],
         'returns.echo': [],
         'returns.resonator': [],
         'bus_eq.vox': ['peak', 'highpass'],
@@ -105,6 +108,7 @@ INSERTS = {
         'hat': ['pan', 'gain'],
         'zap': ['gain', 'gain', 'duck_onset'],
         'bass': ['gain:bass=b', 'gain:bass=a', 'gain'],
+        'bass_ms': ['peak:bass=a', 'gain:bass=b', 'gain:bass=a', 'gain'],
         'glide': ['duck_onset', 'gain:bass=b', 'gain:bass=a', 'gain'],
         'pad': ['gain', 'duck_onset'],
         'arp': ['cc_filter', 'duck_onset', 'duck_onset', 'gain', 'duck_onset'],
@@ -131,15 +135,18 @@ INSERTS = {
         'shaker': ['pan', 'gain'],
         'perc': ['gain'],
         'bass': ['gain:bass=a'],
+        'bass_ms': ['peak:bass=a', 'peak:bass=a', 'gain:bass=a'],
         'stab': ['cc_filter', 'duck_onset', 'gain'],
         'pad': ['duck_onset', 'gain'],
         'lead': ['gain'],
         'fx': ['gain'],
         'vox': ['gain', 'comp', 'duck_onset', 'peak', 'peak', 'peak'],
+        'vox_ms': ['peak', 'peak', 'peak', 'peak', 'peak', 'peak', 'high_shelf', 'high_shelf',
+                   'gain', 'comp', 'duck_onset', 'peak', 'peak', 'peak'],
         'accent': ['highpass', 'peak', 'gain', 'duck_onset'],
         'groups.drums': ['clip'],
         'groups.music': ['peak', 'peak', 'peak'],
-        'returns.space': ['duck_level', 'duck_onset', 'peak', 'peak', 'peak'],
+        'returns.space': ['duck_level', 'duck_onset', 'peak', 'peak', 'peak', 'duck_level'],
         'returns.echo': ['duck_onset', 'peak', 'peak', 'peak'],
         'returns.resonator': [],
         'bus_eq.vox': [],
@@ -148,7 +155,8 @@ INSERTS = {
     'FUT04': {
         'kick': ['gain'],
         'rumble': ['gain'],
-        'bass': ['cc_filter', 'gain:bass=b', 'gain:bass=a', 'duck_onset', 'duck_level'],
+        'bass': ['peak:bass=b'] * 3 + ['peak:bass=a'] * 6
+                + ['cc_filter', 'gain:bass=b', 'gain:bass=a', 'duck_onset', 'duck_level'],
         'bass_stem': ['gain:bass=b', 'gain:bass=a', 'duck_onset', 'duck_level'],
         'snare': ['gain'],
         'hat': ['pan', 'gain'],
@@ -177,6 +185,32 @@ DRAWS = {
     'FUT03': ([680, 809, 920, 1027, 1196, 1361, 1564, 1794], [1, -1, -1, 1, 1, -1, -1, 1], (4.812487, 1.378363)),
     'FUT04': ([1164, 1303, 1562, 1756, 1945, 2271, 2583, 2927], [-1, 1, 1, 1, 1, 1, -1, -1], (2.122682, 3.892756)),
 }
+
+
+# P2's calibration of the multisample path (plugin-p2 f519bbe): each copy channel's corrective EQ, written as
+# measured (type, Hz, mdB, Q per mille, the bass switch's side or None), and FUT04's in front of the acid's cc_filter
+MS_COPIES = {
+    'FUT01': {'vsynth_ms': ('vsynth', [('peak', 400, 4104, 1000, None), ('peak', 1200, -5541, 1000, None),
+                                       ('peak', 5500, -1650, 1000, None), ('high_shelf', 14000, -3956, 707, None)])},
+    'FUT02': {'bass_ms': ('bass', [('peak', 160, -8328, 2000, 'a')])},
+    'FUT03': {'bass_ms': ('bass', [('peak', 130, -9567, 3000, 'a'), ('peak', 380, -11530, 3000, 'a')]),
+              'vox_ms': ('vox', [('peak', 250, 8641, 2500, None), ('peak', 500, -8221, 2500, None),
+                                 ('peak', 794, 5000, 3000, None), ('peak', 1000, -8616, 4300, None),
+                                 ('peak', 1260, 10000, 4300, None), ('peak', 2500, 1500, 1000, None),
+                                 ('high_shelf', 6000, -8213, 707, None), ('high_shelf', 11000, -10000, 707, None)])},
+    'FUT04': {},
+}
+FUT04_BASS_EQ = [('peak', 62, -18000, 4300, 'b'), ('peak', 99, -18000, 4300, 'b'), ('peak', 125, 4000, 3000, 'b'),
+                 ('peak', 62, -13742, 4300, 'a'), ('peak', 80, -18000, 4300, 'a'), ('peak', 99, -18000, 4300, 'a'),
+                 ('peak', 125, -13093, 4300, 'a'), ('peak', 450, 6102, 1400, 'a'), ('peak', 794, -4328, 2500, 'a')]
+
+
+def eq_insert(row):
+    kind, hz, g, q, side = row
+    out = {'type': kind, 'freq_hz': hz, 'gain_mdb': g, 'q_pm': q}
+    if side:
+        out['when'] = {'variant': 'any', 'ab': 'bass', 'is': side}
+    return out
 
 
 def _inserts(m):
@@ -287,6 +321,81 @@ class Contract(unittest.TestCase):
     def test_bus_eq_per_variant(self):
         for kit, m in self.m.items():
             self.assertEqual(['vox', 'novox'], list(m['bus_eq']))
+
+
+class MultisampleChannels(unittest.TestCase):
+    """The multisample path's channels (P2's calibration): each copy sits right after its source with the same lane,
+    group, sends and inserts behind its corrective EQ, reads the source's reference peak, and has the source's return
+    level ducks; FUT04's acid gets its EQ in front of a cc_filter that rests open."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.m = manifests()
+
+    def test_copies_follow_their_sources(self):
+        for kit, copies in MS_COPIES.items():
+            ch = {c['id']: c for c in self.m[kit]['channels']}
+            ids = list(ch)
+            for new, (src, eq) in copies.items():
+                with self.subTest(kit=kit, channel=new):
+                    self.assertEqual(ids.index(src) + 1, ids.index(new))
+                    for k in ('lane', 'group', 'sends_pm'):
+                        self.assertEqual(ch[src][k], ch[new][k])
+                    self.assertEqual([eq_insert(r) for r in eq] + ch[src]['inserts'], ch[new]['inserts'])
+
+    def test_reference_peaks_are_the_sources(self):
+        for kit, copies in MS_COPIES.items():
+            ids = [c['id'] for c in self.m[kit]['channels']]
+            for var in ('vox', 'novox'):
+                tps = self.m[kit]['reference'][var]['channel_true_peak_mdb']
+                for new, (src, _) in copies.items():
+                    self.assertEqual(tps[ids.index(src)], tps[ids.index(new)], f'{kit} {var} {new}')
+
+    def test_return_level_ducks_are_copied(self):
+        for kit, copies in MS_COPIES.items():
+            for r, ret in self.m[kit]['returns'].items():
+                ducks = [i for i in ret['inserts'] if i['type'] == 'duck' and i['mode'] == 'level']
+                for new, (src, _) in copies.items():
+                    on_src = [i for i in ducks if i['key_channel'] == src]
+                    on_new = [i for i in ducks if i['key_channel'] == new]
+                    self.assertEqual([{**i, 'key_channel': new} for i in on_src], on_new, f'{kit} {r} {new}')
+        space = self.m['FUT01']['returns']['space']['inserts']
+        self.assertEqual(['vsynth', 'vsynth_ms'], [i['key_channel'] for i in space if i['type'] == 'duck'])
+
+    def test_fut04_acid_eq_and_open_filter(self):
+        bass = next(c for c in self.m['FUT04']['channels'] if c['id'] == 'bass')
+        n = len(FUT04_BASS_EQ)
+        self.assertEqual([eq_insert(r) for r in FUT04_BASS_EQ], bass['inserts'][:n])
+        f = bass['inserts'][n]
+        self.assertEqual(('cc_filter', 127, 0), (f['type'], f['cc74_default'], f['cc71_default']))
+        stem = next(c for c in self.m['FUT04']['channels'] if c['id'] == 'bass_stem')
+        self.assertEqual(stem['inserts'], bass['inserts'][n + 1:])
+
+    def test_at_most_16_inserts(self):
+        for kit, m in self.m.items():
+            for c in m['channels']:
+                self.assertLessEqual(len(c['inserts']), PM.MAX_INSERTS, f'{kit} {c["id"]}')
+        m = json.loads(json.dumps(self.m['FUT01']))
+        m['channels'][0]['inserts'] += [PM.gain(0.0)] * PM.MAX_INSERTS
+        with self.assertRaisesRegex(ValueError, 'inserts, over'):
+            PM.validate(m)
+
+    def test_the_kit_manifests_channels(self):
+        """P2's <KIT>_kit.json (where it is): every instrument and phrase plays on a channel of the mix with its lane,
+        and every channel of the mix has something playing on it."""
+        for kit, m in self.m.items():
+            p = PM.path(kit).with_name(f'{kit}_kit.json')
+            if not p.exists():
+                continue
+            kj = json.loads(p.read_text(encoding='utf-8'))
+            lane = {c['id']: c['lane'] for c in m['channels']}
+            used = set()
+            for x in kj['instruments'] + kj.get('phrases', []):
+                with self.subTest(kit=kit, channel=x['mix_channel']):
+                    self.assertIn(x['mix_channel'], lane)
+                    self.assertEqual(lane[x['mix_channel']], x['lane'])
+                used.add(x['mix_channel'])
+            self.assertEqual(sorted(lane), sorted(used), kit)
 
 
 class RecipeConstants(unittest.TestCase):

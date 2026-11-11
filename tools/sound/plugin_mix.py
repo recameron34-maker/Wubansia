@@ -36,6 +36,7 @@ TICKS = 15360                     # the 4-bar loop, 960 PPQ
 CC_STEP = 60                      # ticks between a ride's points (P1's midi.CC_STEP)
 SILENT_MDB = -120000              # a channel the reference loop doesn't play
 MAX_CHANNELS = 24
+MAX_INSERTS = 16                  # a channel's, group's or return's inserts (docs/plugin/manifest.md 3.1-3.3)
 MAX_PATH_LATENCY = 64             # samples of insert latency from a channel through its group or return to the bus EQ
 INSERT_LATENCY = {'clip': 27, 'drive': 27, 'comp': 23}   # rt_ref.LATENCY: lane clips and drives, the glue
 DC_HZ = 5                         # the live master's causal DC blocker (rt_ref.dc_block) in place of the 10 Hz clean
@@ -212,6 +213,32 @@ def channel(cid, lane, group, inserts, sends=(0.0, 0.0, 0.0)):
     return {'id': cid, 'lane': lane, 'group': group, 'inserts': list(inserts), 'sends_pm': [pm(s) for s in sends]}
 
 
+def eq_measured(kind, freq_hz, gain_mdb, q_pm, side=None):
+    """A peak or shelf in the manifest's own units, as a measurement gave it (P2's calibration of the multisample
+    path); side: the bass switch's side it works on, or None for both."""
+    if kind not in ('peak', 'low_shelf', 'high_shelf'):
+        raise ValueError(f'eq_measured: {kind!r} is not a peak or shelf')
+    return _ins(kind, {'freq_hz': int(freq_hz), 'gain_mdb': int(gain_mdb), 'q_pm': int(q_pm)},
+                when(ab='bass', side=side) if side else None)
+
+
+def add_copies(chans, returns, copies):
+    """The multisample path's copy channels (copies: {new id: (source id, corrective inserts)}): each a full copy
+    of its source (lane, group, sends, every insert) with its corrective inserts in front, right after the source; a
+    return's level ducks keyed on the source are copied, keyed on the copy, at the end of its inserts. The phrase stem
+    plays on the source and the multisample on the copy, so the loops (the stems) don't change. Changes chans and
+    returns in place."""
+    for new, (src, eq) in copies.items():
+        i = next(k for k, c in enumerate(chans) if c['id'] == src)
+        c = json.loads(json.dumps(chans[i]))
+        chans.insert(i + 1, {**c, 'id': new, 'inserts': list(eq) + c['inserts']})
+        for ret in returns.values():
+            ret['inserts'] = ret['inserts'] + [{**d, 'key_channel': new} for d in ret['inserts']
+                                               if d['type'] == 'duck' and d['mode'] == 'level'
+                                               and d['key_channel'] == src]
+    return chans, returns
+
+
 # ------------------------------------------------------------------ the returns and the master
 def space_return(K, seed, settings, inserts, return_db=3.0):
     """sends.space's settings, with the delay jitter and the input signs drawn from the kit's seed as sends.space
@@ -353,6 +380,9 @@ def reference(kit, m, caps):
             x = meta['channels'].get(c['id'])
             tp = D.true_peak_db(x) if x is not None and np.any(x) else None
             tps.append(SILENT_MDB if tp is None or tp < -120.0 else mdb(tp))
+        ids = [c['id'] for c in m['channels']]
+        for new, (src, _) in getattr(kit_module(kit), 'MS_COPIES', {}).items():
+            tps[ids.index(new)] = tps[ids.index(src)]     # the loops play the source; the copy reads its peak
         vals = caps[var].values
         out[var] = {'pre_master_lufs_mlu': mdb(vals['pre_master_lufs']), 'club_lufs_mlu': mdb(vals['club_lufs']),
                     'channel_true_peak_mdb': tps}
@@ -430,6 +460,11 @@ def validate(m):
         bad.append(f'{len(ids)} channels, over {MAX_CHANNELS}')
     if len(set(ids)) != len(ids):
         bad.append('channel ids repeat')
+    for where, lst in ([(f"channels[{c['id']}]", c['inserts']) for c in m['channels']]
+                       + [(f'groups.{g}', grp['inserts']) for g, grp in m['groups'].items()]
+                       + [(f'returns.{r}', ret['inserts']) for r, ret in m['returns'].items()]):
+        if len(lst) > MAX_INSERTS:
+            bad.append(f'{where}: {len(lst)} inserts, over {MAX_INSERTS}')
     for i in ids:
         if not re.fullmatch(r'[a-z0-9_]{1,32}', i):
             bad.append(f'channel id {i!r} is not [a-z0-9_]{{1,32}}')

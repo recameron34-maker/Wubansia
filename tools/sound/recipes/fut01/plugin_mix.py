@@ -15,6 +15,12 @@ from tools.sound.mix_trace import Rule, array_arg, lane_of, scalar_arg
 
 VARIANTS = {'vox': 'vox', 'novox': 'novox'}                  # the manifest's variants: the recipe's own names
 R5_LOOPS = {'vox': ('GarageVoxWet', 'GarageVoxClub'), 'novox': ('GarageNoVoxWet', 'GarageNoVoxClub')}
+# the multisample path (P2's calibration, plugin-p2 f519bbe): the vox synth's multisample plays on a copy of vsynth,
+# corrected to the stem the loops play on vsynth
+MS_COPIES = {'vsynth_ms': ('vsynth', [PM.eq_measured('peak', 400, 4104, 1000),
+                                      PM.eq_measured('peak', 1200, -5541, 1000),
+                                      PM.eq_measured('peak', 5500, -1650, 1000),
+                                      PM.eq_measured('high_shelf', 14000, -3956, 707)])}
 WOBBLE = (650.0, 2210.0)          # the wobble's CC74 map: base 650 Hz x depth up to 3.4 (context4.WOBBLE)
 
 
@@ -230,6 +236,7 @@ def build(caps):
                                          S.RESONATOR_RETURN_DB),
     }
     bus_eq = {var: PM.peaks(C5.BUS_EQ[var]) + [PM.highpass(20.0, 4)] for var in ('vox', 'novox')}
+    PM.add_copies(chans, returns, MS_COPIES)
     return chans, {'drums': {'inserts': []}, 'music': {'inserts': []}}, returns, bus_eq, MS.settings(K)
 
 

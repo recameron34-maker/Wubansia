@@ -594,6 +594,81 @@
       "sends_pm": [300, 100, 0]
     },
     {
+      "id": "vsynth_ms",
+      "lane": "vox",
+      "group": "none",
+      "inserts": [
+        {
+          "type": "peak",
+          "freq_hz": 400,
+          "gain_mdb": 4104,
+          "q_pm": 1000
+        },
+        {
+          "type": "peak",
+          "freq_hz": 1200,
+          "gain_mdb": -5541,
+          "q_pm": 1000
+        },
+        {
+          "type": "peak",
+          "freq_hz": 5500,
+          "gain_mdb": -1650,
+          "q_pm": 1000
+        },
+        {
+          "type": "high_shelf",
+          "freq_hz": 14000,
+          "gain_mdb": -3956,
+          "q_pm": 707
+        },
+        {
+          "type": "peak",
+          "freq_hz": 600,
+          "gain_mdb": -6000,
+          "q_pm": 1000
+        },
+        {
+          "type": "peak",
+          "freq_hz": 1000,
+          "gain_mdb": -3000,
+          "q_pm": 1200
+        },
+        {
+          "type": "peak",
+          "freq_hz": 3800,
+          "gain_mdb": 9000,
+          "q_pm": 800
+        },
+        {
+          "type": "clip",
+          "ceiling_mdb": -11235,
+          "knee_mdb": 1500
+        },
+        {
+          "type": "duck",
+          "mode": "onset",
+          "key_lanes": ["kick"],
+          "min_velocity": 1,
+          "depth_mdb": 6000,
+          "ramp_us": 2000,
+          "hold_us": 60000,
+          "release_us": 80000,
+          "pre_us": 0,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 0
+          },
+          "pump": true
+        },
+        {
+          "type": "gain",
+          "gain_mdb": -500
+        }
+      ],
+      "sends_pm": [300, 100, 0]
+    },
+    {
       "id": "acc_rev",
       "lane": "accents",
       "group": "none",
@@ -860,6 +935,21 @@
             "hi_hz": 0
           },
           "pump": false
+        },
+        {
+          "type": "duck",
+          "mode": "level",
+          "key_channel": "vsynth_ms",
+          "depth_mdb": 6000,
+          "range_mdb": 18000,
+          "top_mdb": -15442,
+          "attack_us": 10000,
+          "release_us": 300000,
+          "band": {
+            "lo_hz": 0,
+            "hi_hz": 0
+          },
+          "pump": false
         }
       ]
     },
@@ -984,12 +1074,12 @@
     "vox": {
       "pre_master_lufs_mlu": -11807,
       "club_lufs_mlu": -9732,
-      "channel_true_peak_mdb": [-2444, -3664, -120000, -3461, -14402, -17120, -14577, -17688, -17232, -9159, -12020, -6020, -120000, -10784, -9020, -12728, -11493, -120000]
+      "channel_true_peak_mdb": [-2444, -3664, -120000, -3461, -14402, -17120, -14577, -17688, -17232, -9159, -12020, -6020, -120000, -10784, -10784, -9020, -12728, -11493, -120000]
     },
     "novox": {
       "pre_master_lufs_mlu": -11874,
       "club_lufs_mlu": -9715,
-      "channel_true_peak_mdb": [-2444, -3664, -120000, -3461, -14402, -17120, -14577, -17688, -17232, -10159, -10020, -4020, -120000, -120000, -7020, -8728, -9493, -10662]
+      "channel_true_peak_mdb": [-2444, -3664, -120000, -3461, -14402, -17120, -14577, -17688, -17232, -10159, -10020, -4020, -120000, -120000, -120000, -7020, -8728, -9493, -10662]
     }
   }
 }
