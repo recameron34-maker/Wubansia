@@ -113,9 +113,10 @@ are labels for the reader: the notes play.
   `<KIT>_Phrase_<Name>_<n>bars.mid`, each on its instrument's channel.
 - `extended/vox/` and `extended/novox/`: the 224-bar extended mix (`<KIT>_ExtendedMix_Vox_224bars.mid`, or `_NoVox_`),
   one region file per section, and `regions.json` (integers and strings only: the tempo, the swing in permille, the
-  length in ms, 1-based start bars, each line's lanes and moves, the cues, the tracks and the rides' ranges). The two
-  differ only in the Vox track (and its Vox cues), the accents (and their throws) and the chord stabs the no-vox
-  accents take over (FUT01's at 16th 30).
+  length in ms, 1-based start bars, each line's lanes and moves, the cues, the tracks and the rides' ranges; a line's
+  `throw` marks only the riff's last note the line adds, while every throw, that one or one written into the riff, the
+  loop's vox, a phrase or a hit, is in the files' CC91/CC94). The two differ only in the Vox track (and its Vox cues),
+  the accents (and their throws) and the chord stabs the no-vox accents take over (FUT01's at 16th 30).
 
 ## The extended mix
 Each kit declares its music and its arrangement as data (`PARTS`, `tools/sound/README.md`, "MIDI"). A line is 8 bars;

@@ -1650,7 +1650,9 @@ def own_parts(k, ln, variant):
 def line_info(k, ln, got, start, variant='vox'):
     """regions.json's entry for a line: where it starts, the lanes with notes in it, and how the line's own parts play
     (own_parts(): only where the part plays, not where its lane plays a phrase or an extra): the bassline, the lead's
-    mode, the vox's, a throw, a chord block and the pad's own; then only the phrases that play in the variant."""
+    mode, the vox's, a throw, a chord block and the pad's own; then only the phrases that play in the variant. 'throw'
+    marks only the riff's last note the line adds (line(throw=True)); the throws written into the riff, the loop's vox,
+    a phrase or a hit are in the files' CC91/CC94, not here."""
     lanes = [lane for lane in CH.LANES if any(got.get(t) for t in got if CH.track_lane(k.kit, t) == lane)]
     info = dict(start_bar=start, bars=LINE, lanes=lanes)
     phrase_on = playing_phrases(k, ln, variant)
