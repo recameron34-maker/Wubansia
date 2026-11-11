@@ -114,7 +114,7 @@ labels are `""` where the kit has no such switch, otherwise both are names. On F
 
 | Key | Type | Range | Meaning |
 |---|---|---|---|
-| `path` | string | relative path | from the kit's folder, `/`-separated, ending `.wav`, with no `..`, no leading `/` and no empty part: `"Drums/Kick Garage v1 rr1.wav"` |
+| `path` | string | relative path | from the kit's folder, `/`-separated, ending `.wav`: `"Drums/Kick Garage v1 rr1.wav"`. A relative path with no `..` or `.` part, no leading `/`, no empty part, and no `\`, `:` or control character, so it can't resolve outside the kit folder (on Windows, `"C:/x.wav"` or `"..\..\x.wav"` would). P4's parser and `FileSampleSource` share the rule (`contentPathProblem`, `engine/kit/file_sample_source.h`). |
 | `frames` | integer | 1-28 800 000 | the file's length in frames (48 kHz) |
 | `channels` | integer | 1 or 2 | mono files stay mono |
 | `sha256` | string | 64 lowercase hex digits | of the whole WAV file. The installer checks it; loads don't. |
@@ -135,9 +135,10 @@ at least one instrument or phrase. Every file one instrument plays has the same 
 | `mix_channel` | string | a `mix.json` channel id | where its voices play |
 | `mode` | string | `one_shot`, `gated`, `sustain_loop` | `one_shot` plays to the end and ignores note-off. `gated` releases at note-off. `sustain_loop` wraps its files' loops while held, then releases. Every file of a `sustain_loop` instrument has a loop. |
 | `align` | string | `start`, `end` | `end`: the sample's end lands on its note's end at the current tempo (risers, fills, reverse swells) |
-| `attack_us` | integer | 0-10 000 000 | a linear fade-in at the voice's start |
+| `attack_us` | integer | 0-10 000 000 | a raised-cosine fade-in at the voice's start (`parts.raised`, `dsp48.fade`) |
 | `release_us` | integer | 0-10 000 000 | the raised-cosine release after note-off (`gated`, `sustain_loop`) |
 | `gain_mdb` | integer | −60 000 to 24 000 | the voice's own gain, before its mix channel. Use it for per-sound levels where several sounds share a channel (accents). |
+| `start_frames` | integer | 0 to the shortest of its files' `frames` − 1 | playback starts this far into each of its files; `attack_us` fades it in (FUT01's Glitch Fill Lift: frame 21 493, with a 2 ms attack) |
 | `velocity_law` | string | `layer_only`, `pow15` | `layer_only`: the layer carries the dynamics (drums, perc). `pow15`: × (velocity / layer `vel`)^1.5 (pitched parts). |
 | `interp` | string | `sinc`, `hermite` | the resampler: the polyphase sinc, or 4-point Hermite where the recipe used it (`fut01/basslines.hermite`) |
 | `mono` | flag | | one voice at a time, legato: a note while one is held moves that voice to the new key |
@@ -154,17 +155,20 @@ at least one instrument or phrase. Every file one instrument plays has the same 
 
 | Key | Type | Range | Meaning |
 |---|---|---|---|
-| `curve` | string | `none`, `raised_cosine`, `exponential`, `linear` | `none`, with `us` 0, means no glide. FUT01: `raised_cosine`; FUT02: `exponential`; FUT04: `linear`. |
-| `us` | integer | 0-2 000 000 | the slide's length, or the exponential's time constant |
-| `dip_us` | integer | 0-2 000 000 | `raised_cosine` only (else 0): the level dip across the slide (FUT01: 30 000) |
+| `curve` | string | `none`, `raised_cosine`, `exponential`, `linear` | `none`, with `us` 0, means no glide. The pitch moves in log frequency (semitones): along a raised cosine, an exponential approach, or a straight line. FUT01 and FUT04: `raised_cosine`; FUT02: `exponential`. |
+| `us` | integer | 0-2 000 000 | a slide's length (FUT01 70 000, FUT04 50 000), or the exponential's time constant (FUT02 18 000) |
+| `dip_us` | integer | 0-2 000 000 | `raised_cosine` only (else 0): a dip's length (FUT01: 30 000); 0 when the instrument has no dips |
 
-A glide needs `mono`. A glide keeps the first note's zone and layer.
+A glide needs `mono`. A legato note (one that starts while the voice still holds the last) glides instead of
+starting a voice, and keeps the first note's zone and layer. It is a *dip* when the next legato note returns to the
+pitch before it (FUT01's pitch dips): the dip and that returning note glide over `dip_us` (the timeline marks both,
+`NoteFlag::dip`; live MIDI never does). Every other legato note is a *slide*, over `us`.
 
 `choke`:
 
 | Key | Type | Range | Meaning |
 |---|---|---|---|
-| `group` | string | id, or `""` | instruments with the same group choke each other; `""` (with role `none`) is no group |
+| `group` | string | id, or `""` | instruments with the same group choke each other. `group` is `""` exactly when `role` is `none` (both ways): `""` is no group |
 | `role` | string | `none`, `chokes`, `choked`, `both` | a `chokes` (or `both`) note-on fades every sounding voice of the group's `choked` (or `both`) instruments |
 | `fade_us` | integer | 0-1 000 000 | how fast this instrument's voices fade when choked (FUT01 5000, FUT02-04 4000) |
 | `curve` | string | `linear`, `cos2` | the choke fade's shape (FUT01 `linear`, FUT02-04 `cos2`) |
@@ -200,13 +204,14 @@ All the files of one zone have the same number of channels.
 | `keys` | array of 2 integers | `[lo, hi]`, 0 ≤ lo ≤ hi ≤ 127 | the keys, both ends included |
 | `a` | string | an instrument id | what plays: the A side when there is a switch |
 | `b` | string | an instrument id, or `""` | the B side, or none |
-| `ab` | string | `kick`, `bass`, `stab`, or `""` | the switch choosing between `a` and `b`; `""` exactly when `b` is `""` |
+| `ab` | string | `kick`, `bass`, `stab`, or `""` | the switch choosing between `a` and `b`; `""` exactly when `b` is `""`, and only a switch the kit has (its `kit.ab` labels aren't empty) |
 
 - Ranges on one channel don't overlap.
 - Channel 3 (the voicing) and channel 9 (reserved) have no entries: Wubansia ignores them.
 - Channel 10's keys are within 35-59.
 - Every instrument appears in at least one entry, or is another's `layered_with`.
-- The phrase lanes' channels map to the multisample they fall back to.
+- The phrase lanes fall back to the multisample on their channel: every slice key, and every key in a slice's `holds`,
+  has a keymap entry on the phrase's channel.
 - A key that no entry covers plays nothing.
 
 ### 2.5 `extras[]`
@@ -226,18 +231,24 @@ extra's lane. A track of the kit's MIDI resolves to a lane by `channels.py`'s `T
 ### 2.6 `phrases[]`
 
 A phrase lane plays a recorded line (a stem) sliced per note instead of the multisample, while the host tempo is
-near the kit's (ADR 0020).
+near the kit's (ADR 0020). At the kit's tempo and 48 kHz it is sample-exact against the recipe's lane over a loop's
+first pass. After that the voice re-syncs at each cycle wrap, with a 1 ms crossfade when it is a frame or more off,
+because at the exact BPM a cycle isn't a whole number of samples. FUT03's is: 360 000 frames for 4 bars at 128 BPM.
 
 | Key | Type | Range | Meaning |
 |---|---|---|---|
 | `lane` | string | lane id | the lane it plays on |
 | `ch` | integer | 1-16 | the MIDI channel whose notes it covers |
-| `ab` | string | `kick`, `bass`, `stab`, or `""` | the switch that chooses the stem; `""` exactly when `stems.b` is −1 |
+| `ab` | string | `kick`, `bass`, `stab`, or `""` | the switch that chooses the stem; `""` exactly when `stems.b` is −1, and only a switch the kit has (its `kit.ab` labels aren't empty) |
 | `mix_channel` | string | a `mix.json` channel id | where the stem plays; its lane is `lane` |
+| `gain_mdb` | integer | −60 000 to 24 000 | the stem's own gain, before its mix channel, as instruments have. Every `Loops/` stem has 0; FUT02's derived vox stem is stored 3 dB down and plays with 3000. |
+| `throw` | string | `live`, `baked` | `live` (most stems): the engine sends its slice notes' CC91/CC94 throws live, as for any note. `baked`: the stem has its throw in the audio, and the engine sends no live throw for its slice notes. |
 | `stems` | object | | `{"a": file, "b": file or -1}`: the stem per A/B side |
 | `cycle_16ths` | integer | 16-256, a multiple of 16 | the phrase's length; cycles start every `cycle_16ths` from song 16th 0 |
 | `tolerance_pm` | integer | 0-100 | slices play while abs(host BPM ÷ kit BPM − 1) × 1000 ≤ this (20: 2 %) |
 | `fade_us` | integer | 0-100 000 | how long a slice with no follower takes to fade from its `fade` frame |
+| `fade_in_us` | integer | 0-100 000 | the fade-in when a run starts on a slice whose `lead` is 0, so plucks, arps and blips keep their transients: 500 for most stems; FUT02's arp keeps 3000, its recipe's rest-mask in-edge on the downbeat after its rest. A run that starts in a slice's pre-roll (`lead` > 0) crossfades over 3 ms instead. |
+| `ride` | object | | `{"cc74": [...], "cc71": [...]}`: the controller values the stem was rendered with (below) |
 | `slices` | array of objects | 1-256 | the phrase's notes, by `step` ascending (below) |
 
 `slices[]`, in the stems' 48 kHz frames:
@@ -246,12 +257,46 @@ near the kit's (ADR 0020).
 |---|---|---|---|
 | `step` | integer | 0 to `cycle_16ths` − 1 | the 16th in the cycle where its note starts |
 | `key` | integer | 0-127 | its note's key; (`step`, `key`) is unique in a phrase |
-| `start` | integer | ≥ 0 | the first frame: the onset (`phrase.Grid.at(step)`) less `lead` |
-| `end` | integer | `start` + 1 to the shorter stem's frames | the frame after the last |
+| `start` | integer | 0 to the stem's frames − 1 | the first frame: the onset (`phrase.Grid.at(step)`) less `lead`; modulo the stem's frames in a looped stem (below) |
+| `end` | integer | `start` + 1 to the shorter stem's frames; in a looped stem, up to `start` + frames | the frame after the last (below, for a wrapping slice) |
 | `fade` | integer | `start` to `end` | where it starts fading when no slice follows it (the recipe's mute edge) |
 | `lead` | integer | 0-48 000 | frames of the slice before its onset |
+| `holds` | array of integers | 0-8 keys, each 0-127 | the notes after the slice's own that it plays itself (below); `[]` for most slices |
 
-Two phrases may share a channel; the matcher picks per cycle (`engine/sched/phrase_match.h`).
+`holds` lists, by key and in order, the notes after the slice's own note that the slice plays itself:
+- retriggers of its key (FUT04's blip ratchets: step 10 `[74]`, step 26 `[84, 84]`);
+- the targets its note glides to inside it (FUT03's in-note glides, written as legato notes: Rubber 14 `[31]`,
+  25 `[31]`, 30 `[38]`; Deep 14 `[36]`, 22 `[38]`, 30 `[31]`).
+
+Each held note starts after the slice's note and before the next note the phrase's pattern matches on that channel.
+The matcher gives held notes no sound of their own: the stem already has them. A note that fits neither a slice nor
+a hold stays on the multisample.
+
+A looped stem is one the phrase plays cycle after cycle, so it holds what wraps round its cycle:
+- A looped stem is read modulo its frames. A slice's start is its onset less its lead, modulo the stem's frames.
+  Its end and fade may run past the stem's frames, up to start + frames.
+- The last slice owns the tail that wraps to the stem's start. It ends where the next cycle's slice 0 starts:
+  frames + slice 0's start, or slice 0's start when slice 0 wraps.
+- Slice 0 starts at its own pre-roll. Where that is before its cycle's start, it starts at frames + onset − lead and
+  wraps through the stem's end (FUT02's riff twice: [352062, 368899), lead 2400).
+- A slice continues into the next one (the last into the next cycle's slice 0) when its end equals that slice's
+  start, modulo the stem's frames.
+
+`ride` has the keys `cc74` and `cc71`, in that order. Each is an array of either 0 or `cycle_16ths` × 4 integers,
+each 0-127.
+- **Non-empty:** the values of that controller the stem was rendered with, one per 60 ticks over the cycle
+  (ticks 0, 60, 120... from the cycle's start), as the MIDI files write rides. A cycle matches the phrase only where
+  its own values on that grid equal these within 1. A cycle's value at a grid tick is the last CC on the phrase's
+  channel at or before that tick; 0 before any. A cycle that doesn't match plays the multisample, whose filter
+  follows the arranged ride.
+- **Empty:** no constraint on that controller. One array may be empty while the other isn't.
+- **Both empty:** the stem follows no controller, and the matcher ignores CCs for it.
+
+Only FUT04's Acid Line 1 Ride stems have a ride. Beside them, FUT04's Acid Line 1 and 2 at rest ride 0/0. So the loop's
+ride plays the Ride stem, a ride at 0 the at-rest stem, and any other ride the multisample.
+
+Two phrases may share a channel; the matcher picks per cycle (`engine/sched/phrase_match.h`). Phrases that share a
+channel share its `cycle_16ths`, so its cycles line up (P2's export checks this).
 
 ## 3. `<KIT>_mix.json`
 
@@ -281,8 +326,10 @@ The top level is an object:
 The signal flow is fixed:
 - **Channel:** the voices sum into its stereo bus, then go through its inserts. Then come the lane's level and
   mute (10 ms smoothing). Then it goes to its group, or to the mix bus for `none`, and post-fader to the sends.
-  Thrown voices (CC91 Space, CC94 Echo) also add into the send inputs directly, at
-  `base + (1 − base) × value / 127`.
+- **Throws:** a thrown voice (CC91 Space, CC94 Echo, latched at its note-on) sends at
+  `base + (1 − base) × value / 127`, where `base` is its channel's send level. The thrown part,
+  `(1 − base) × value / 127`, goes from the voice straight into the send input, after the channel's static gain (the
+  product of its active `gain` inserts): it is sent post-fader, like the base.
 - **Groups:** their inserts, then the mix bus.
 - **Returns:** their effect, then their inserts, then `return_mdb`, then the macro. Space scales the Space and
   Resonator returns, Echo the Echo return, each 0-200 %. Then the mix bus.
@@ -302,25 +349,33 @@ keys are exactly `variant`, `ab`, `is`:
 At least one of `variant` and `ab` restricts. An inactive insert is bypassed; switching crossfades over 10 ms.
 Without `when`, an insert is always active.
 
-`band`, inside cc_filter and duck, is `{"lo_hz", "hi_hz"}`, each 0-24 000. The insert works between `lo_hz` and
-`hi_hz`, split off with LR4 crossovers, and the rest passes untouched. `0` leaves that side open, so
-`{"lo_hz": 0, "hi_hz": 0}` is the whole signal. When both are set, `lo_hz` < `hi_hz`.
+`band`, inside highpass, lowpass, cc_filter and duck, is `{"lo_hz", "hi_hz"}`, each 0-24 000. `0` leaves that side
+open. When both are set, `lo_hz` < `hi_hz`. The filters and the duck apply their band differently:
+- **highpass, lowpass and cc_filter: the crossover form.** LR4 crossovers at `lo_hz` and `hi_hz` (each only if set)
+  split the signal into the band and the rest. The filter runs on the band, and the rest is added back unfiltered:
+  rest + f(band). `{"lo_hz": 0, "hi_hz": 0}` filters the whole signal, with no split.
+- **duck: the additive form.** The duck scales the band (an LR4 high-pass at `lo_hz`, then a low-pass at `hi_hz`,
+  each only if set) and adds the difference to the signal: x + (g − 1)·band(x). Outside its band, and while it
+  rests (g = 1), the signal passes untouched. A band of `{0, 0}` scales the whole signal: x·g. This is how the
+  recipes' band ducks work (FUT02's snap and carve, FUT04's sidechain and dips, with a zero-phase band). The
+  crossover form would all-pass the whole channel even at rest, which moved the pre-master kick crest by 1-2.9 dB
+  and the true peak by up to 0.85 dB on FUT02-04 in P3's measurements.
 
 | `type` | Fields, in order | Ranges | What it is |
 |---|---|---|---|
 | `gain` | `gain_mdb` | −60 000 to 24 000 | a static gain: faders, and FUT04's LUFS-solved faders |
 | `pan` | `pan_pm` | −1000 to 1000 | equal power, unity in the centre (`phrase.pan`) |
-| `width` | `width_pm` | 0-4000 | the side × `width_pm` / 1000 |
+| `width` | `width_pm`, `freq_hz`, `order` | 0-4000; 0-24 000; 1-8 | side′ = side + (`width_pm` / 1000 − 1) × HP(side), HP a Butterworth high-pass of `order` at `freq_hz`. `freq_hz` 0 widens the whole side: side × `width_pm` / 1000. |
 | `peak` | `freq_hz`, `gain_mdb`, `q_pm` | 10-24 000; −30 000 to 30 000; 100-30 000 | RBJ peaking EQ (`dsp48.peaking`) |
 | `low_shelf`, `high_shelf` | `freq_hz`, `gain_mdb`, `q_pm` | as `peak` | RBJ shelves |
-| `highpass`, `lowpass` | `freq_hz`, `order`, `q_pm` | 5-24 000; 1-8; 0, or 100-30 000 with `order` 2 | Butterworth of that order (`dsp48.bfilt`); with `q_pm` > 0, the RBJ 2nd-order filter with that Q |
+| `highpass`, `lowpass` | `freq_hz`, `order`, `q_pm`, `stages`, `band` | 5-24 000; 1-8; 0, or 100-30 000 with `order` 2; 1-2; band | Butterworth of that order (`dsp48.bfilt`); with `q_pm` > 0, the RBJ 2nd-order filter with that Q. `stages`: the filter applied that many times in series. |
 | `cc_filter` | `response`, `cc74_lo_hz`, `cc74_hi_hz`, `cc74_default`, `cc71_lo_pm`, `cc71_hi_pm`, `cc71_default`, `band` | `lowpass`/`bandpass`/`highpass`; 10-24 000; above `cc74_lo_hz` to 24 000; 0-127; 100-30 000; 100-30 000; 0-127 | a TPT state-variable filter (`dsp48.svf_tpt`) driven by CC74 and CC71 (below). Channels only, at most one per channel. |
 | `mono_below` | `freq_hz`, `order` | 20-2000; 1-8 | the side high-passed at `freq_hz` (`dsp48.mono_below`, order 8) |
 | `clip` | `ceiling_mdb`, `knee_mdb` | −40 000 to 0; 100-24 000 | `master.soft_clip`: linear up to `knee_mdb` under an absolute ceiling (dBFS), ADAA, 4x oversampled |
 | `drive` | `drive_pm`, `bias_pm`, `output_mdb` | 100-50 000; −2000 to 2000; −40 000 to 24 000 | `dsp48.tanh_adaa` at 4x: (tanh(d·x + b) − tanh(b)) / tanh(d), then `output_mdb` |
 | `duck` (onset) | `mode`, `key_lanes`, `min_velocity`, `depth_mdb`, `ramp_us`, `hold_us`, `release_us`, `pre_us`, `band`, `pump` | `"onset"`; 1-10 unique lane ids; 1-127; −24 000 to 60 000, not 0; 0-1 000 000; 0-2 000 000; 1000-4 000 000; 0-100 000; band; flag | `phrase.pump_db` (below) |
 | `duck` (level) | `mode`, `key_channel`, `depth_mdb`, `range_mdb`, `top_mdb`, `attack_us`, `release_us`, `band`, `pump` | `"level"`; another channel's id; −24 000 to 60 000, not 0; 1000-60 000; −60 000 to 12 000; 100-1 000 000; 1000-4 000 000; band; flag | `sends.duck` with a fixed top (below) |
-| `comp` | `threshold_mdb`, `ratio_pm`, `knee_mdb`, `attack_us`, `release_us`, `makeup_mdb` | −60 000 to 0; 1001-100 000; 0-24 000; 10-1 000 000; 1000-4 000 000; −24 000 to 24 000 | a feed-forward peak compressor with a soft knee (FUT03's vocal glue) |
+| `comp` | `threshold_mdb`, `ratio_pm`, `knee_mdb`, `attack_us`, `release_fast_us`, `release_slow_us`, `makeup_mdb` | −60 000 to 0; 1001-100 000; 0-24 000; 100-1 000 000; 1000-10 000 000; 1000-10 000 000; −24 000 to 24 000 | `master.py`'s glue at a fixed threshold, the same glue the club master runs (FUT03's vocal glue). Stereo-linked RMS over 5 ms on 16-sample blocks, a soft knee, the attack, and an auto release: the larger of the fast release's envelope and a slow one (`release_slow_us`, with a 0.5 s attack). Then `makeup_mdb`. |
 | `parallel` | `level_mdb`, `inserts` | −60 000 to 12 000; 1-16 inserts | `inserts` run on a copy of the signal, which is mixed back at `level_mdb` over the dry signal (FUT04's drum-bus grit). They hold no `parallel` and no `cc_filter`. |
 
 **cc_filter.** It listens to CC74 (cutoff) and CC71 (resonance) on every MIDI channel that reaches its channel:
@@ -392,7 +447,7 @@ the reference loop: a real-time engine can't measure the whole loop first.
 
 | Key | Type | Range | Meaning |
 |---|---|---|---|
-| `tones_mhz` | integers | 0-16, each 20 000-20 000 000 | one 2-pole resonator per tone; none means no resonator (FUT03) |
+| `tones_mhz` | integers | 0-24, each 20 000-20 000 000 | one 2-pole resonator per tone; none means no resonator (FUT03) |
 | `tau_ms` | integer | 10-10 000 | the time to fall by e |
 | `send_hp_hz` | integer | 0-5000 | |
 | `return_mdb` | integer | −60 000 to 12 000 | |
@@ -401,7 +456,7 @@ the reference loop: a real-time engine can't measure the whole loop first.
 ### 3.4 `master`
 
 `master.py`'s chain, played live: the limiter's hold looks back only, and a causal DC blocker replaces the
-zero-phase clean (ADR 0021). Its keys, in order:
+zero-phase clean (ADR 0021). Its glue is the `comp` insert's. Its keys, in order:
 
 | Key | Type | Range | Meaning |
 |---|---|---|---|

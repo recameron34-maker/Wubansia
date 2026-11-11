@@ -73,8 +73,10 @@ endif()
 # file is done (cmake_language(DEFER)).
 include(WubansiaGolden OPTIONAL)
 
-# The groove core and its command-line tool (ADR 0006). Neither links JUCE.
+# The groove core and its command-line tool (ADR 0006), and the engine between them (ADR 0017). None
+# of them links JUCE.
 add_subdirectory(core)
+add_subdirectory(engine)
 add_subdirectory(cli)
 
 add_subdirectory(plugin)

@@ -43,7 +43,8 @@ target_link_libraries(WubansiaPluginCode INTERFACE
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags
-    wubansia_build_defaults)
+    wubansia_build_defaults
+    wubansia_engine) # the engine and, through it, the groove core (ADR 0017); both are built PIC for the .so
 
 target_link_libraries(Wubansia PRIVATE WubansiaPluginCode)
 
@@ -59,7 +60,8 @@ if(WUBANSIA_BUILD_TESTS)
         JUCE_MODAL_LOOPS_PERMITTED=1
         WUBANSIA_TEST_CLAP_ID="${WUBANSIA_CLAP_ID}")
 
-    target_link_libraries(WubansiaPluginTests PRIVATE WubansiaPluginCode Catch2::Catch2)
+    # wubansia_engine_testing: the synthetic kit, SMF builder and fake host, shared with engine_tests.
+    target_link_libraries(WubansiaPluginTests PRIVATE WubansiaPluginCode wubansia_engine_testing Catch2::Catch2)
 
     # Universal macOS builds: the tests only run on the host's slice, so build just that one.
     if(APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES ";")

@@ -27,10 +27,33 @@ namespace wubansia::engine
     namespace NoteFlag
     {
         inline constexpr std::uint8_t endAligned = 1 << 0; // the sample's end lands on the note's end at the current tempo
-        inline constexpr std::uint8_t chase = 1 << 1; // longer than a beat: listed in Timeline::chase, started mid-sample after a seek
+
+        // A note a start or seek must chase, listed in Timeline::chase: (i) a note longer than a beat;
+        // (ii) a note pre-roll moved earlier, so starting at its onset still plays it instead of dropping
+        // it; (iii) a phrase-matched note (slice >= 0), which the phrase voice chases mid-slice.
+        inline constexpr std::uint8_t chase = 1 << 1;
+
         inline constexpr std::uint8_t continues = 1 << 2; // a phrase slice whose next slice follows contiguously
+
+        // A legato note that glides over its instrument's glide.dip_us: a dip (a legato note whose next
+        // legato note returns to the pitch before it) and that returning note. The builder sets it on
+        // both notes of the pair; live MIDI never does.
+        inline constexpr std::uint8_t dip = 1 << 3;
+
+        inline constexpr std::uint8_t held = 1 << 4; // a note a phrase slice plays itself (a retrigger or an in-note glide target)
     }
 
+    // A note is one of three kinds, by (phrase, slice):
+    // - phrase < 0: an ordinary note.
+    // - phrase >= 0 and slice >= 0: a slice note. It plays its slice (slice is the global Kit::slices
+    //   index) only while phrase `phrase` plays slices. It has no note-off. It is placed at its slice's
+    //   start frame on the stem's own timeline. A slice whose start precedes its cycle (a wrapping slice 0,
+    //   FUT02's riff twice) is placed in the previous cycle: in a loop its pos wraps to the loop's end and
+    //   its preroll stays unwrapped, so pos + preroll is still its onset. At a song's start the part before
+    //   bar 1 is dropped.
+    // - phrase >= 0 and slice < 0: a matched note's multisample twin, or a note a slice holds
+    //   (NoteFlag::held). It plays the multisample only while phrase `phrase` doesn't play slices.
+    // Whether a phrase plays slices is decided once per phrase per onset cycle.
     struct Note
     {
         std::int64_t pos = 0; // milliticks; already moved by swing snap and pre-roll
@@ -43,11 +66,15 @@ namespace wubansia::engine
         std::uint8_t flags = 0; // NoteFlag bits
         std::uint8_t throwSpace = 0; // CC91 latched at the note-on, 0-127 (0: no throw)
         std::uint8_t throwEcho = 0; // CC94, the same
-        std::int16_t phrase = -1; // Kit::phrases index when the note can play a recorded slice
-        std::int16_t slice = -1; // Kit::slices index (the phrase's own slice), with phrase
+        std::int16_t phrase = -1; // Kit::phrases index, or -1 (the three kinds above)
+        std::int16_t slice = -1; // the global Kit::slices index, or -1 (the three kinds above)
+        // Signed: the milliticks the note starts before its onset; onset = floorMod (pos + preroll,
+        // length) in a loop, pos + preroll in a song.
+        std::int32_t preroll = 0;
 
         friend bool operator== (const Note&, const Note&) = default;
     };
+    static_assert (sizeof (Note) == 32); // timelines hold many: keep it to 32 bytes
 
     // A sequenced controller. A CC whose next value on the same channel and controller comes within a
     // 16th ramps to it linearly: rampTo is that next point's position and nextValue its value.
@@ -75,6 +102,17 @@ namespace wubansia::engine
         friend bool operator== (const DuckKey&, const DuckKey&) = default;
     };
 
+    // Each slice note's twin's end: the milliticks from the slice note's pos to the end (pos + len) of the
+    // note it slices (same channel and key, same onset; floorMod in a loop). Note is full at 32 bytes, so
+    // this lives beside it, in Timeline::sliceThrough.
+    struct SliceThrough
+    {
+        std::uint32_t note = 0; // the slice note's index into Timeline::notes
+        std::int64_t through = 0; // milliticks
+
+        friend bool operator== (const SliceThrough&, const SliceThrough&) = default;
+    };
+
     // A section marker (FF 06) or a cue point (FF 07) from the file's conductor track.
     struct Section
     {
@@ -93,7 +131,14 @@ namespace wubansia::engine
         std::vector<DuckKey> keys; // by pos
         std::vector<Section> sections; // FF 06, by pos
         std::vector<Section> cues; // FF 07, by pos
-        std::vector<std::uint32_t> chase; // indices into notes of the notes longer than a beat, by pos
+        // Indices into notes of every note with NoteFlag::chase (longer than a beat, moved earlier by
+        // pre-roll, or phrase-matched), by pos. The builder makes it after annotatePhrases.
+        std::vector<std::uint32_t> chase;
+        // Each slice note's twin's end, by note index, ascending; a slice note with no twin has no entry.
+        // Built by buildTimeline after annotatePhrases. At a slice note's note-on the engine looks up its
+        // index and passes NoteOn::lengthSamples = the samples from the note's start to start + through;
+        // with no entry it passes 0, and the throw lasts until the next note sets another.
+        std::vector<SliceThrough> sliceThrough;
 
         friend bool operator== (const Timeline&, const Timeline&) = default;
     };

@@ -98,11 +98,12 @@ namespace wubansia::engine
     };
     inline constexpr std::array<std::string_view, 2> kInterpIds { "sinc", "hermite" };
 
+    // How a mono legato voice moves to a new note's pitch. The curves run in log frequency (semitones).
     enum class GlideCurve : std::uint8_t {
         none, // no glide (and us == 0)
-        raisedCosine, // FUT01: a raised-cosine slide over us, with a dip of dipUs
-        exponential, // FUT02: an exponential approach with time constant us
-        linear // FUT04: a linear slide over us
+        raisedCosine, // a raised-cosine slide over us, or over dipUs for a dip (FUT01: 70 ms, dip 30 ms; FUT04: 50 ms)
+        exponential, // an exponential approach with time constant us (FUT02: 18 ms)
+        linear // a linear slide over us
     };
     inline constexpr std::array<std::string_view, 4> kGlideCurveIds { "none", "raised_cosine", "exponential", "linear" };
 
@@ -120,6 +121,13 @@ namespace wubansia::engine
     };
     inline constexpr std::array<std::string_view, 2> kChokeCurveIds { "linear", "cos2" };
 
+    // How a phrase's slice notes reach the throw sends (CC91 Space, CC94 Echo).
+    enum class PhraseThrow : std::uint8_t {
+        live, // the engine sends their throws live, as for any note (most stems)
+        baked // the stem has its throw in the audio: no live throw for its slice notes
+    };
+    inline constexpr std::array<std::string_view, 2> kPhraseThrowIds { "live", "baked" };
+
     // An A/B switch's two labels for the editor. Both empty: the kit has no such switch.
     struct AbLabels
     {
@@ -131,12 +139,16 @@ namespace wubansia::engine
         friend bool operator== (const AbLabels&, const AbLabels&) = default;
     };
 
-    // Mono legato glide: a new note while one is held slides the held voice instead of starting one.
+    // Mono legato glide: a new note while one is held moves the held voice to its pitch instead of
+    // starting a voice, keeping the first note's zone and layer. A dip is a legato note whose next legato
+    // note returns to the pitch before it (FUT01's 30 ms pitch dip): the dip and that returning note
+    // glide over dipUs (the timeline marks both with NoteFlag::dip). Every other legato note is a slide,
+    // over us.
     struct Glide
     {
         GlideCurve curve = GlideCurve::none;
-        std::int32_t us = 0; // the slide's length (raised_cosine, linear) or time constant (exponential)
-        std::int32_t dipUs = 0; // raised_cosine only: the level dip across the slide
+        std::int32_t us = 0; // a slide's length (raised_cosine, linear) or time constant (exponential)
+        std::int32_t dipUs = 0; // raised_cosine only: a dip's length; 0 when the instrument has no dips
 
         friend bool operator== (const Glide&, const Glide&) = default;
     };
@@ -205,9 +217,10 @@ namespace wubansia::engine
         std::uint8_t mixChannel = 0; // index into mix.channels; that channel's lane is this lane
         SampleMode mode = SampleMode::oneShot;
         Align align = Align::start;
-        std::int32_t attackUs = 0;
-        std::int32_t releaseUs = 0;
+        std::int32_t attackUs = 0; // a raised-cosine fade-in
+        std::int32_t releaseUs = 0; // a raised-cosine fade-out after note-off (gated, sustain_loop)
         std::int32_t gainMdb = 0; // the voice's own gain, before its mix channel
+        std::int64_t startFrames = 0; // playback starts this far into each of its files (the attack fades it in)
         VelocityLaw velocityLaw = VelocityLaw::layerOnly;
         Interp interp = Interp::sinc;
         bool mono = false; // one voice at a time, legato (with glide when glide.curve isn't none)
@@ -235,32 +248,50 @@ namespace wubansia::engine
         friend bool operator== (const KeyTarget&, const KeyTarget&) = default;
     };
 
-    // A phrase lane's recorded line: a stem (per A/B character) and the slices that tie it to notes.
+    // A phrase lane's recorded line: a stem (per A/B character) and the slices that tie it to notes. Its
+    // rides (PhraseEntry::ride74, ride71) stay in the manifest: only the matcher reads them.
     struct Phrase
     {
         Lane lane = Lane::lead;
         std::uint8_t channel = 0; // 0-15: the MIDI channel whose notes it covers
         std::int8_t ab = -1; // an AbSwitch value choosing the stem, or -1
         std::uint8_t mixChannel = 0;
+        std::int32_t gainMdb = 0; // the stem's own gain, before its mix channel
+        PhraseThrow throwMode = PhraseThrow::live;
         std::array<std::uint16_t, 2> stem {}; // file index per character (A, B); B == A without an alternative
         std::int32_t cycle16ths = 32; // 32 or 64, aligned to the song grid
         std::int32_t tolerancePm = 20; // slices play while |host BPM / kit BPM - 1| <= tolerancePm / 1000
         std::int32_t fadeUs = 5000; // a slice with no follower fades over this, from its fade frame
+        // A run that starts on a slice whose lead is 0 fades in over this, so plucks, arps and blips keep
+        // their transients; a run that starts in a slice's pre-roll (lead > 0) crossfades over 3 ms.
+        std::int32_t fadeInUs = 500;
         std::uint16_t firstSlice = 0; // into Kit::slices
         std::uint16_t sliceCount = 0;
 
         friend bool operator== (const Phrase&, const Phrase&) = default;
     };
 
-    // One note of a phrase, in the stem's 48 kHz frames.
+    inline constexpr int kMaxHolds = 8;
+
+    // One note of a phrase, in the stem's 48 kHz frames. holds are the notes after the slice's own that it
+    // plays itself, by key, in order: retriggers of its key (FUT04's ratchets) and the targets its note
+    // glides to inside it (FUT03's in-note glides, written as legato notes). Each starts after the slice's
+    // note and before the next note the phrase's pattern matches on that channel; the matcher gives them no
+    // sound of their own.
     struct PhraseSlice
     {
         std::int32_t step = 0; // the 16th in the cycle where its note starts
         std::uint8_t key = 0;
-        std::int64_t start = 0; // the onset (phrase.Grid.at (step)) less lead
-        std::int64_t end = 0; // exclusive
-        std::int64_t fade = 0; // where it fades out when no slice follows it
+        // The onset (phrase.Grid.at (step)) less lead; in a looped stem, modulo the stem's frames (a slice 0
+        // whose pre-roll falls before its cycle starts at frames + onset - lead and wraps).
+        std::int64_t start = 0;
+        // Exclusive. In a looped stem, read modulo its frames, the end may run past the stem's frames, up
+        // to start + frames; the last slice ends where the next cycle's slice 0 starts.
+        std::int64_t end = 0;
+        std::int64_t fade = 0; // where it fades out when no slice follows it; up to start + frames too
         std::int32_t lead = 0; // frames of pre-roll before the onset
+        std::array<std::uint8_t, kMaxHolds> holds {}; // keys, in order; entries from holdCount on are 0
+        std::uint8_t holdCount = 0;
 
         friend bool operator== (const PhraseSlice&, const PhraseSlice&) = default;
     };
@@ -310,7 +341,8 @@ namespace wubansia::engine
         std::vector<PhraseSlice> slices;
         std::array<std::array<KeyTarget, 128>, 16> keys {}; // [channel 0-15][key]; built from the keymap
         // [channel 0-15]: bit per mix channel a CC on that MIDI channel reaches: the mix channels of
-        // every instrument the keymap names on it (a and b) and of every phrase on it.
+        // every instrument the keymap names on it (a and b, and what they're layered with) and of every
+        // phrase on it.
         std::array<std::uint32_t, 16> ccMixChannels {};
         MixConfig mix;
         // [0] Loop vox, [1] Loop no-vox, [2] Song vox, [3] Song no-vox: engine.h's timelineIndex ().

@@ -1,0 +1,4020 @@
+{
+  "kit": {
+    "id": "FUT03",
+    "title": "Glass Current",
+    "direction": "garage-house / deep tech house",
+    "bpm": 128,
+    "key": "G minor",
+    "camelot": "6A",
+    "swing_pm": 560,
+    "content_version": 1,
+    "lanes": {
+      "kick": "Kick",
+      "snare": "Clap",
+      "hats": "Hats",
+      "perc": "Perc",
+      "bass": "Rubber Bass",
+      "lead": "Keys EP",
+      "chords": "Dub Stab",
+      "vox": "Vox Synth",
+      "accents": "Accents",
+      "fx": "FX"
+    },
+    "ab": {
+      "kick": {
+        "a": "",
+        "b": ""
+      },
+      "bass": {
+        "a": "Rubber Bass Clean",
+        "b": "Rubber Bass Warm"
+      },
+      "stab": {
+        "a": "",
+        "b": ""
+      }
+    }
+  },
+  "files": [
+    {
+      "path": "Drums/Kick Deep v1 rr1.wav",
+      "frames": 16217,
+      "channels": 1,
+      "sha256": "a5ca5c52c54bf432b7be9b465dc893d48a152e537b6a1e54f631d6c25be9668d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Deep v1 rr2.wav",
+      "frames": 16228,
+      "channels": 1,
+      "sha256": "6d705896ca16636eb5417c5ccb84970b9742cc06c5d99eed140853ab846de867",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Deep v2 rr1.wav",
+      "frames": 16327,
+      "channels": 1,
+      "sha256": "a2dc99bfb10135b7b9a5ba80a351400552b906bca971fae2962856b7959da563",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Deep v2 rr2.wav",
+      "frames": 16326,
+      "channels": 1,
+      "sha256": "ce4545e5a80bd22572511a0a4376d5e9b2132ed3a71d04077975f87603e98467",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Deep v3 rr1.wav",
+      "frames": 16406,
+      "channels": 1,
+      "sha256": "e3020e2b51d7d1d487b6d11bebcaad2620bd8b0d0c084d8bd22ca048f3fe507a",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Deep v3 rr2.wav",
+      "frames": 16398,
+      "channels": 1,
+      "sha256": "7c08f47371462540daa871a70a277b225103e1c8ee15c7710573d72cc0e11d03",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Deep v4 rr1.wav",
+      "frames": 16165,
+      "channels": 1,
+      "sha256": "3d40634852735d4165afb7aec8314eaff23d00fc2b70de34541ed56386ce7049",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Deep v4 rr2.wav",
+      "frames": 16192,
+      "channels": 1,
+      "sha256": "41461e30ba6c5f761f38208167e23aadcaaaa869cd4dd5bb400899319e8e9c17",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Deep v5 rr1.wav",
+      "frames": 16434,
+      "channels": 1,
+      "sha256": "3a696d02a311350b713b96a0850a15d79443a0bf3b346d6d3447f8ed5707ca82",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Kick Deep v5 rr2.wav",
+      "frames": 16413,
+      "channels": 1,
+      "sha256": "6e1d961f93613d6b29ad553d358f5db49a19496bf1e3338e5e3cbd262a25457a",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Rimshot v1 rr1.wav",
+      "frames": 12630,
+      "channels": 1,
+      "sha256": "70b34d8b9447829b05e90d33373baa8428682e7e1c0a0cc16828c4c7e72c3d5e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Rimshot v1 rr2.wav",
+      "frames": 12631,
+      "channels": 1,
+      "sha256": "c1eeb67b126e7194922568a8189add799db672fac035305cf6ac16e73d080544",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Rimshot v2 rr1.wav",
+      "frames": 12630,
+      "channels": 1,
+      "sha256": "12188667f4fa72aa0177b77259168dd078b9d149be55ffce60b2aa855a486c94",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Rimshot v2 rr2.wav",
+      "frames": 12630,
+      "channels": 1,
+      "sha256": "48816604f489c61284431a5695a2aa68d390b43451b7458a79cf4b652e2a0bfc",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Rimshot v3 rr1.wav",
+      "frames": 12630,
+      "channels": 1,
+      "sha256": "eb081912553bc810339c208706914a50b5e437cf9f6b0a4103f8b8abf9790661",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Rimshot v3 rr2.wav",
+      "frames": 12630,
+      "channels": 1,
+      "sha256": "72cf69b1655dfb8eab0d3a25eaa53172bcb6c5c8d945a61d866ada05a7e8fe84",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Clap Snare v1 rr1.wav",
+      "frames": 21069,
+      "channels": 2,
+      "sha256": "88354fbfd8c654321203c39f4f1adcb11ab887d9646064f305bfd12d35e6d175",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Clap Snare v1 rr2.wav",
+      "frames": 20982,
+      "channels": 2,
+      "sha256": "2e6af2454ec5ce213b69787c8fff06216a652a7fbebc34170802186ece4efc3b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Clap Snare v2 rr1.wav",
+      "frames": 21184,
+      "channels": 2,
+      "sha256": "04dc87cb213f3b51b7196c19ecf4df58d441afabdb4c7bd34bfdfa2aad7d79c3",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Clap Snare v2 rr2.wav",
+      "frames": 21097,
+      "channels": 2,
+      "sha256": "a2c6ba1987e6b90a2c18935785cf6479de51eaca2dfca5e9bb35a80a204de7d2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Clap Snare v3 rr1.wav",
+      "frames": 21291,
+      "channels": 2,
+      "sha256": "0a5b27e3fea6d90b56e706d5a6871a65e8b162c98370516ed182f5c99c2b3896",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Clap Snare v3 rr2.wav",
+      "frames": 21276,
+      "channels": 2,
+      "sha256": "6b70123286c023cbe01d2ec9b1f24ead234d7ccb602836f792d75e2c0c2bdfc4",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Clap Snare v4 rr1.wav",
+      "frames": 21324,
+      "channels": 2,
+      "sha256": "0de6e153120d2a73584fce3b849a0d963893aec4dee5bb48262244582fcbded4",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Clap Snare v4 rr2.wav",
+      "frames": 21357,
+      "channels": 2,
+      "sha256": "faa62174f2cbb066824caf2e1ce96555154453c3ea772568b956dd1f0a996a3b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Clap Snare v5 rr1.wav",
+      "frames": 21460,
+      "channels": 2,
+      "sha256": "a84caf2f8067760ad6ff61bb62ae9df389c17b46997ab3d4516e267a77db631a",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Clap Snare v5 rr2.wav",
+      "frames": 21448,
+      "channels": 2,
+      "sha256": "b9fd89e330275963b8357ad84d848fc2abb4858e9a58f8201ef01cf23013ed53",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga G3 v1 rr1.wav",
+      "frames": 39160,
+      "channels": 1,
+      "sha256": "ed447aff5e90cee3b4e597101949e0a5c33c23f7ed2afe811b6a24ffd4cdbe74",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga G3 v1 rr2.wav",
+      "frames": 39163,
+      "channels": 1,
+      "sha256": "a3d86b7223c81957e77d701129b02fdc24964a12550fed9506aca82018fabcde",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga G3 v2 rr1.wav",
+      "frames": 44926,
+      "channels": 1,
+      "sha256": "8119911a02d63b8896d5c1b040f4c37f52b99f55570c4159aa05267bd42adfa8",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga G3 v2 rr2.wav",
+      "frames": 44927,
+      "channels": 1,
+      "sha256": "e3123b4cdf55fb99aae3c0e45928e3a6f1b25fe5141f6e028dda63d8562ce5f3",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga G3 v3 rr1.wav",
+      "frames": 42339,
+      "channels": 1,
+      "sha256": "08384a3efde715df12d97bb235d4610a5931aa793823d246c5ce9d03f3962cd0",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga G3 v3 rr2.wav",
+      "frames": 42458,
+      "channels": 1,
+      "sha256": "5ffbb3f4fccf2f19b1d8ed29d78dd9ed3c7d50d0a2a3e850c662dea42eb659b6",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga C4 v1 rr1.wav",
+      "frames": 38986,
+      "channels": 1,
+      "sha256": "8662fd0a7f4c556980b2378c076aec63e5eedac25f9e7dc7d5295da2cfef555d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga C4 v1 rr2.wav",
+      "frames": 38984,
+      "channels": 1,
+      "sha256": "538a3f40d83557c0a70e0a6ef066abf8663b05779d8a6d5c32e7a7c8ab8d6141",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga C4 v2 rr1.wav",
+      "frames": 44949,
+      "channels": 1,
+      "sha256": "a543f9012b43f298dbc088d7bf5fc9d064bc137720710e383afbd9bd204989bd",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga C4 v2 rr2.wav",
+      "frames": 44949,
+      "channels": 1,
+      "sha256": "96ad7da51dfb18f5ab24e7765dc6f0fa0792cd87dbab5ea9a5eb924ef84a6339",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga C4 v3 rr1.wav",
+      "frames": 42640,
+      "channels": 1,
+      "sha256": "d2ae975cb14823c971893af0bb38674df7dbef25b6d67efe124567b3bb7f9d80",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga C4 v3 rr2.wav",
+      "frames": 42644,
+      "channels": 1,
+      "sha256": "e764f236c938ea546bb1ad87bacfa020165f9a4575f8e75ed0aca95898069bed",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga D4 v1 rr1.wav",
+      "frames": 38912,
+      "channels": 1,
+      "sha256": "03502355cadc959df49c664407cb1b76b66f93109df87a568196c8db3e14f0c2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga D4 v1 rr2.wav",
+      "frames": 38912,
+      "channels": 1,
+      "sha256": "bee78a4224f760063e80ce5fdca5ace4f6af894f5ee34ac5401bcd19229cac87",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga D4 v2 rr1.wav",
+      "frames": 44958,
+      "channels": 1,
+      "sha256": "dee0e7d2b86d072e50f8b347bb52c691bba1085c08a72bf8bdce0edb0089d39b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga D4 v2 rr2.wav",
+      "frames": 44958,
+      "channels": 1,
+      "sha256": "273d99be17828eedae59fc95c1d8af727fbc670dec7992076f4bdc25e96b56de",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga D4 v3 rr1.wav",
+      "frames": 42657,
+      "channels": 1,
+      "sha256": "6667eb6f55eb48085e6dc53a2241fa5d1994103b6f0ad696c9bd0b1db0cf1da2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Conga D4 v3 rr2.wav",
+      "frames": 42656,
+      "channels": 1,
+      "sha256": "283595171479117d54d2885185ad321dbc173bafbbe10e15fa52a59b19df5e0f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v1 rr1.wav",
+      "frames": 4927,
+      "channels": 2,
+      "sha256": "8b9cf63cf97bbbea0ac0add829f2454f6788969500c302085fb934f09c805dd5",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v1 rr2.wav",
+      "frames": 4914,
+      "channels": 2,
+      "sha256": "82bd76d77c3cb786c1aea9feabd1b830f2b995067e647cb8bc8b14313c0b66be",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v1 rr3.wav",
+      "frames": 4927,
+      "channels": 2,
+      "sha256": "7b665941b8e15e8d612b6d04b88c5ad1a4fb84beca5bcedf740e03e307898a84",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v2 rr1.wav",
+      "frames": 4747,
+      "channels": 2,
+      "sha256": "1d10aa6cc0c7162d43c936f176e00123bb129d1b538be6583eaa1094b29b7d4e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v2 rr2.wav",
+      "frames": 4747,
+      "channels": 2,
+      "sha256": "e924192dc05684af6c174e65bcd6bb175725cc94d9bc165a2a6bfc7568da9fb0",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v2 rr3.wav",
+      "frames": 4747,
+      "channels": 2,
+      "sha256": "ab9cf5a51cdce4214158a107e4fad894446287abb3befa291278fc4bad7c1256",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v3 rr1.wav",
+      "frames": 4606,
+      "channels": 2,
+      "sha256": "2e2e9c544f9a251a380f560a6d570e0a6f2f1a2389d38a20f85bc1014bd182cf",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v3 rr2.wav",
+      "frames": 4606,
+      "channels": 2,
+      "sha256": "2f4f99a08c5dfefd7857dc73eb5a8c8370094ae69f14ab737181997de962c5b9",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v3 rr3.wav",
+      "frames": 4606,
+      "channels": 2,
+      "sha256": "93afdfc382cd0ef940752fe5e3ca22e75ca35b8c6b026ef39838fab1af0069b7",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v4 rr1.wav",
+      "frames": 4354,
+      "channels": 2,
+      "sha256": "790feab2126589a2a3a712e32fb515deea63ca7eead9fcef77aff9004aaddac1",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v4 rr2.wav",
+      "frames": 4354,
+      "channels": 2,
+      "sha256": "f7a1a07d26cbc2256f5780535be51f3b229babaa0a5b97d7437e3a2af208d6df",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v4 rr3.wav",
+      "frames": 4354,
+      "channels": 2,
+      "sha256": "6b6bea329cb1f1996c8608fe6caefc09d6880ac1e2a1f30c34fa70adb0cb4953",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v5 rr1.wav",
+      "frames": 4202,
+      "channels": 2,
+      "sha256": "ad6babd4795e47b079efc81b3988d07a2950eec5c56e93e8d4d2260233866c75",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v5 rr2.wav",
+      "frames": 4202,
+      "channels": 2,
+      "sha256": "76ff0e0200a834c53776322e9152a4fc71c15044c017c256ba0c041e60d20b50",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Closed Hat Deep v5 rr3.wav",
+      "frames": 4202,
+      "channels": 2,
+      "sha256": "b9e19740184350713122a3c4a6346b4ae219aafcc6eec427b5930867fbfed865",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v1 rr1.wav",
+      "frames": 21325,
+      "channels": 2,
+      "sha256": "c5364aef6dfbe6d03c917690cbdc3d6eccf7e9d0139bef02823d2ea9abfb511f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v1 rr2.wav",
+      "frames": 21325,
+      "channels": 2,
+      "sha256": "f3dd8b3039f789d5d216258a724aad776354fa49dd309484a0cf483575d9413c",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v1 rr3.wav",
+      "frames": 21325,
+      "channels": 2,
+      "sha256": "01c945c50148888244a37581c9b36ba4fcb9f5f70d32e8df1aeed4f0d754bfb3",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v2 rr1.wav",
+      "frames": 21151,
+      "channels": 2,
+      "sha256": "4c12f27806192ae05ed855cb90cf3f2defd089d7adea8d69e9aa905ff859850c",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v2 rr2.wav",
+      "frames": 21151,
+      "channels": 2,
+      "sha256": "7a0cd5a60a1758cceb9e65be035dab76f6d193f4b70dcfd629e774fc39b61f02",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v2 rr3.wav",
+      "frames": 21151,
+      "channels": 2,
+      "sha256": "5e3defca85db4c6b0a1a77441078f6f5b0246a156bfcd999d2766a2594e55066",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v3 rr1.wav",
+      "frames": 20878,
+      "channels": 2,
+      "sha256": "035f75ac3f5dc4c53961aee9b0504157ce6d396f35b0a7e6de5e9e372b2fa5b8",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v3 rr2.wav",
+      "frames": 20904,
+      "channels": 2,
+      "sha256": "c5b7c41f8ede84592a89bfdbbe72ec2ddc8cc24655c806f38c3d424b8592670c",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v3 rr3.wav",
+      "frames": 20904,
+      "channels": 2,
+      "sha256": "e25941e859524c39a7f652d07518b3ed5cb5d0e1851a3c9a817cc93ec9a4a62c",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v4 rr1.wav",
+      "frames": 20411,
+      "channels": 2,
+      "sha256": "02e7aa5bc0512384da12acbb06cb5ab174d075209f7780ce75aeb11d59fa8235",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v4 rr2.wav",
+      "frames": 20379,
+      "channels": 2,
+      "sha256": "e49b753dcd2c7249c5caca399c12061721c5f351dacca168eaafdbc8d2db61dc",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v4 rr3.wav",
+      "frames": 20379,
+      "channels": 2,
+      "sha256": "77413677f0ddbee761df15d8d72511f1bf68c30a9b4cedaccd3e1cde2b141933",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v5 rr1.wav",
+      "frames": 19503,
+      "channels": 2,
+      "sha256": "56aadecd01d64277dba4a67990cd6ac5d3ead8c7d2e50e914bc2d59ad75df6d9",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v5 rr2.wav",
+      "frames": 19438,
+      "channels": 2,
+      "sha256": "a5c591f2bc9297106c00152b46376b521adeceb2a34812ce25f026eb62c6f5f2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Open Hat Deep v5 rr3.wav",
+      "frames": 19416,
+      "channels": 2,
+      "sha256": "848aa1b86b75143eeb7f89ef2bb932950d8cfcdcd44812f623cdd60c97999ab2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo G4 v1 rr1.wav",
+      "frames": 24745,
+      "channels": 1,
+      "sha256": "c256ff935c18ee916ace999d6f024964539268b824916d6db93a2394c5564cfa",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo G4 v1 rr2.wav",
+      "frames": 24745,
+      "channels": 1,
+      "sha256": "c9b9795828b9f97dac8cc92099ba536a031085022c499d950c87da55e6115e6d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo G4 v2 rr1.wav",
+      "frames": 41638,
+      "channels": 1,
+      "sha256": "46d73a6d6bd0e8621fe68d17d019e8cb288c132204dfecc16bf108367638bd9d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo G4 v2 rr2.wav",
+      "frames": 41698,
+      "channels": 1,
+      "sha256": "404fe2b94aa91fe93a9fd205f53c18ade27b4b1ebf9eaef0389c7305cc0ec1b2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo G4 v3 rr1.wav",
+      "frames": 32139,
+      "channels": 1,
+      "sha256": "c261b43311bfdfd13666bbb2edf5a7aa2429d9582dde035b18b11af84a877efd",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo G4 v3 rr2.wav",
+      "frames": 32446,
+      "channels": 1,
+      "sha256": "ec000801eb9118daa605fd07b69695af6ed3be952891834a4a408674222139f8",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo D5 v1 rr1.wav",
+      "frames": 24677,
+      "channels": 1,
+      "sha256": "c566dde60c6e65bfb87d160d58e425e3bae8402a7e7f22ae33a03ae0cd19819f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo D5 v1 rr2.wav",
+      "frames": 24717,
+      "channels": 1,
+      "sha256": "294f1130f25f6730fe4578652130a9b18a3423f35a73a12671eafae75f1e98ec",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo D5 v2 rr1.wav",
+      "frames": 41345,
+      "channels": 1,
+      "sha256": "cdfd75cd9441ab4d3febe0d7a58b1a5992cac26d9f8900a83f030c1ad5606c9d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo D5 v2 rr2.wav",
+      "frames": 41384,
+      "channels": 1,
+      "sha256": "e5752d6f1985635bf176d5207304bd2e484d424d87308a8fbb795dd8b70fa764",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo D5 v3 rr1.wav",
+      "frames": 31775,
+      "channels": 1,
+      "sha256": "2d1102d8771b4adec97331862e640f475d9c7adfe23f98a3c3978e222af21534",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Bongo D5 v3 rr2.wav",
+      "frames": 31978,
+      "channels": 1,
+      "sha256": "ae2a39578cbd4fbadc55ec3f47c14bea393091b872a581a4a6d7b778cf6403e8",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v1 rr1.wav",
+      "frames": 9914,
+      "channels": 2,
+      "sha256": "c21abe7f8a073f8fa899a37d416f55e6ae7b657c355dbb37c2c160a7be2997c9",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v1 rr2.wav",
+      "frames": 10039,
+      "channels": 2,
+      "sha256": "04ea8f7071aadd127256cb44c227be2739278df79cf051f89a2e533c8eb05a7a",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v1 rr3.wav",
+      "frames": 9938,
+      "channels": 2,
+      "sha256": "f71b3f4cbf58f8d85decdbbcaa6e6451b3e4ccd287f06523a1321e8df1b2acfe",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v1 rr4.wav",
+      "frames": 10170,
+      "channels": 2,
+      "sha256": "5c702a62f7624f18fb04fb3ff883d1ac99e3489bae72c4e56975c76d0cc1d2de",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v2 rr1.wav",
+      "frames": 10240,
+      "channels": 2,
+      "sha256": "27f276fe23c5e05eb8717f876f4bd1bbeb421480024c7880f9cc0d776c96a1ed",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v2 rr2.wav",
+      "frames": 10323,
+      "channels": 2,
+      "sha256": "31ba225e27a7dfd24953ae5ff7a1789e67758ac3c23f2de5a766cc84dc371b81",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v2 rr3.wav",
+      "frames": 10318,
+      "channels": 2,
+      "sha256": "66d79c145db4eb05d40bca97d84eb7f230bd7498fdd8d7f0cdc7483a7b908587",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v2 rr4.wav",
+      "frames": 10288,
+      "channels": 2,
+      "sha256": "bea35270c89d249f842d115ae57ab4166f660d7112986d1ff830bb4b587c45d9",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v3 rr1.wav",
+      "frames": 10396,
+      "channels": 2,
+      "sha256": "5ad3b859c6439cb8b611584246053e215399e1e23575ed4c8dfd5904dd63ec14",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v3 rr2.wav",
+      "frames": 10502,
+      "channels": 2,
+      "sha256": "e45b1cd27afa4cdff5fda5bc81ec4bac111efafa28487f5e2d4f73face94f032",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v3 rr3.wav",
+      "frames": 10505,
+      "channels": 2,
+      "sha256": "9195dfb652dbf7c76c2ba71fc63729290abfd41f4c8238567c0104e6435e106b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v3 rr4.wav",
+      "frames": 10534,
+      "channels": 2,
+      "sha256": "f2957ab3be1cfc645a4eff36fbc18c3610ead4b28fffe9ba875eb49af59d95b8",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v4 rr1.wav",
+      "frames": 10606,
+      "channels": 2,
+      "sha256": "2c7980425babddee596f2f91d6f0e9fc027dc6010001607a500b9e5706621a79",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v4 rr2.wav",
+      "frames": 10634,
+      "channels": 2,
+      "sha256": "b7f2e8321caed5ca5df14b06d95ec34217d99034eecbb6f23f4e2fb3b60ee21c",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v4 rr3.wav",
+      "frames": 10637,
+      "channels": 2,
+      "sha256": "83389289676250d906a44ff18bec10c9232f2e85879ba0dcf06d0c73798d6652",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Shaker Deep v4 rr4.wav",
+      "frames": 10636,
+      "channels": 2,
+      "sha256": "e2e1ab2793fd4c8a270cf311c25137bc81407f67ca538ebf239f9072aae841b1",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Clean G1 v1.wav",
+      "frames": 71191,
+      "channels": 1,
+      "sha256": "46c138f5c7062c81ff125b89dfa0bbf75a3204486568742d37e8fb69877321ea",
+      "loop_start": 19350,
+      "loop_end": 67351,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Clean G1 v2.wav",
+      "frames": 71871,
+      "channels": 1,
+      "sha256": "e719112bce87609b7484267e977946086dcd2b009edbf8e3024ab6dd890b0331",
+      "loop_start": 20030,
+      "loop_end": 68031,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Clean D2 v1.wav",
+      "frames": 70817,
+      "channels": 1,
+      "sha256": "ace3f53533132090a4b8f8480f74055d1f69014d5f4c5ce8a69868a111cee010",
+      "loop_start": 19249,
+      "loop_end": 66977,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Clean D2 v2.wav",
+      "frames": 71139,
+      "channels": 1,
+      "sha256": "3cb9ac8b48daec441a091edf3d291c4d5fbf723f841e0c707bcdd8b3aee7bde0",
+      "loop_start": 19571,
+      "loop_end": 67299,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Clean G2 v1.wav",
+      "frames": 71662,
+      "channels": 1,
+      "sha256": "e5a24cdd14d19e555d7eafd9c2288c48e89e718dd14661fe42dc28f9d230a512",
+      "loop_start": 19821,
+      "loop_end": 67822,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Clean G2 v2.wav",
+      "frames": 71423,
+      "channels": 1,
+      "sha256": "ac9bfb7446c5aa9d67c212912cac87765a445aabc106f6a32dd29202ad9271ea",
+      "loop_start": 19582,
+      "loop_end": 67583,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Warm G1 v1.wav",
+      "frames": 71946,
+      "channels": 1,
+      "sha256": "f91ea5f6e3d1615706ec8206671fe99de58acb65ba6d3862deda7845aaa3b389",
+      "loop_start": 20105,
+      "loop_end": 68106,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Warm G1 v2.wav",
+      "frames": 71684,
+      "channels": 1,
+      "sha256": "297ea7e3775866bedea901eb0b4ab6821c0baa085fefb395aa40a1de6226fa4b",
+      "loop_start": 19843,
+      "loop_end": 67844,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Warm D2 v1.wav",
+      "frames": 71666,
+      "channels": 1,
+      "sha256": "66015f4371b761790841205ab2d49d7d0815e2a84693fbfbc0a2da8c581a820d",
+      "loop_start": 20098,
+      "loop_end": 67826,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Warm D2 v2.wav",
+      "frames": 70856,
+      "channels": 1,
+      "sha256": "035105f34dd779b511936a2e0df71cf8315d21c32c47a86766e37560b735c235",
+      "loop_start": 19288,
+      "loop_end": 67016,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Warm G2 v1.wav",
+      "frames": 71416,
+      "channels": 1,
+      "sha256": "e651302f5cf7528d3144a6e565bfe9a4fdc0a4fc9719665a2e112423bdf0e5d1",
+      "loop_start": 19575,
+      "loop_end": 67576,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Rubber Bass Warm G2 v2.wav",
+      "frames": 71535,
+      "channels": 1,
+      "sha256": "cea8595b5a438d80c45b46b1712964a473190bed1cf649e5539a2fb23f2fbe7a",
+      "loop_start": 19694,
+      "loop_end": 67695,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Keys EP G3 v1.wav",
+      "frames": 69798,
+      "channels": 1,
+      "sha256": "58a09a6561a61e3372b9f29233c20eae7851feb5a8fd523dd71018957dd55b26",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Keys EP G3 v2.wav",
+      "frames": 69793,
+      "channels": 1,
+      "sha256": "dea91094d9e7c833a04bd9d649b7270a63a416219ca991668806347621be8d8e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Keys EP D4 v1.wav",
+      "frames": 69744,
+      "channels": 1,
+      "sha256": "efbe646be4f03108bdda19d3924139e2886b1edd24706ef8cd89a795d197ca49",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Keys EP D4 v2.wav",
+      "frames": 69741,
+      "channels": 1,
+      "sha256": "534aefc275a78455b7e1f1b62d6e1560a859e0915db743862032f4fb4990cc80",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Keys EP G4 v1.wav",
+      "frames": 69726,
+      "channels": 1,
+      "sha256": "ebd870834233ef94753f90314e7d21d612e01aacf4970a285e90cd1a2440dcb6",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Keys EP G4 v2.wav",
+      "frames": 69724,
+      "channels": 1,
+      "sha256": "4591fc3645230cbd27033c9063a30db8595ec2c923c8286e06cd9725f281ae0d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Keys EP D5 v1.wav",
+      "frames": 69759,
+      "channels": 1,
+      "sha256": "75f92fd6d1a00b4545e5307bdb06be3e5ee7b7df1f645e64d9b62c5530102e7e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Keys EP D5 v2.wav",
+      "frames": 69759,
+      "channels": 1,
+      "sha256": "a9e0f8104f0fd4d79390064431d133450a5bd3487e6633bc9ceb500c77e823b7",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Keys EP G5 v1.wav",
+      "frames": 69732,
+      "channels": 1,
+      "sha256": "ab7e6d5dbc9af1bc0ab9c5849c34bdb28973ab1b49e736f8d5568cf810730121",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Keys EP G5 v2.wav",
+      "frames": 69731,
+      "channels": 1,
+      "sha256": "7f365e03d37ae585cd406471eb180e3e3ecdec987a643ff3199294dbc6689faa",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Dub Stab Gm9 v1 rr1.wav",
+      "frames": 21590,
+      "channels": 2,
+      "sha256": "27815137c2ba330d680229b4d8f81e440590ccf6e71e572f0a97430a4d77ba26",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Dub Stab Gm9 v1 rr2.wav",
+      "frames": 21637,
+      "channels": 2,
+      "sha256": "9973611a19dedd09438d85901f490a51cd7b1416e8cb909030dc987fe6d43261",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Dub Stab Gm9 v2 rr1.wav",
+      "frames": 21641,
+      "channels": 2,
+      "sha256": "fdd18d72f783f9469983b7ea88ce0c178999ba5f4ef12bcef9bd6fe1607fc48e",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Dub Stab Gm9 v2 rr2.wav",
+      "frames": 21595,
+      "channels": 2,
+      "sha256": "4864ed92d7e3009bb0400107a8657c5f258dcc0add75728a43b88382053931d9",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Dub Stab Gm9 v3 rr1.wav",
+      "frames": 21639,
+      "channels": 2,
+      "sha256": "a3bf682ec848b3380011331e44f90806401045acd4ed5b91e5ce7d4cf2fb4c6d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Dub Stab Gm9 v3 rr2.wav",
+      "frames": 21603,
+      "channels": 2,
+      "sha256": "bd9421ace65b1a01db1b4bb1d6181e932b6c50b0943c04030ee3d9f733b4ad87",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Synth G3 v1.wav",
+      "frames": 75101,
+      "channels": 2,
+      "sha256": "a5c6e21bdf95d07bef6dafcd2bb1df91a8f0f425bbbd384fa3ac2af0f1c74e08",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Vox/Vox Synth G3 v2.wav",
+      "frames": 75096,
+      "channels": 2,
+      "sha256": "a4de25e7587165bb001b82d693a5bc4d48e13fc185cdbf0850fe7cda99d15de2",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Vox/Vox Synth D4 v1.wav",
+      "frames": 75055,
+      "channels": 2,
+      "sha256": "a474d85660acd45237a02209bb913fdc1bbbf98d061c80e1d6bf8ee7dc51169f",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Vox/Vox Synth D4 v2.wav",
+      "frames": 75061,
+      "channels": 2,
+      "sha256": "ad4248cad30d301ee15007b27e2c26fadf9aaa464ce8f2ad62f625f3094b1c89",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Vox/Vox Synth G4 v1.wav",
+      "frames": 75128,
+      "channels": 2,
+      "sha256": "14e3d491a23edcf2d9aec103423cadfc446b59632920443920f2d1e16e555617",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Vox/Vox Synth G4 v2.wav",
+      "frames": 75056,
+      "channels": 2,
+      "sha256": "b23ca7c11ea0279ad917c932c799df85b772eb8d8a92d0ad928f1b55f4f487cf",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Vox/Vox Synth D5 v1.wav",
+      "frames": 75066,
+      "channels": 2,
+      "sha256": "4f9f5afb3f3b01b76a0da44d07523daebcf3d9906412fb0652d02b77b17dfe4d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Vox/Vox Synth D5 v2.wav",
+      "frames": 75100,
+      "channels": 2,
+      "sha256": "c701ee5e0942ba3f6eb2e2a9aaa3645c4abaabb621701c90605fb07cdc6da185",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Music/Pad Warm.wav",
+      "frames": 360000,
+      "channels": 2,
+      "sha256": "60949a9ba9fe420d3204cd01a9dc8ee621f13c9ca090855b37763d3c08681cde",
+      "loop_start": 0,
+      "loop_end": 360000,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Accent Glass Ping D6.wav",
+      "frames": 76021,
+      "channels": 2,
+      "sha256": "7a54b5e029371e0d6a64f6275f824571fa247f4e580c6270382cf0219c8fd39c",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Accent Dub Chord Cm9.wav",
+      "frames": 109332,
+      "channels": 2,
+      "sha256": "57dd0ade21aba20f27cc9959a4a4cbbc12b8fc6ed22414f5c47697fb7e18c82b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "FX/Accent Reverse Chord Gm9.wav",
+      "frames": 105600,
+      "channels": 2,
+      "sha256": "818039460bc2d5ed32fefbc21b0ebfb4f68c7abd600d75eb3f7ffe1e8412c21b",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Accent Organ Hit Gm7.wav",
+      "frames": 21731,
+      "channels": 2,
+      "sha256": "d383e6e543940d226d7a691b72181b28410faa691e7ef7c667319fc75b03c682",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "FX/Accent Noise Sweep Up.wav",
+      "frames": 45000,
+      "channels": 2,
+      "sha256": "8929c4836dc72fc7aaf0f80517d0f04e37b99eab19d2ce91d7723b9ed94da415",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Accent Pluck Chord Dm7.wav",
+      "frames": 69172,
+      "channels": 2,
+      "sha256": "5cdc1f167a4c0f3c5c14366d1adf3c3b8dc292406b76952848c7559ef6b86bc6",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Drums/Accent Zap G4.wav",
+      "frames": 17407,
+      "channels": 1,
+      "sha256": "ae1d3fad26f537e5cc190cc10976e4171bc96dfc24874457531a0d01ad46f7e5",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Music/Accent Vox Synth Gm.wav",
+      "frames": 28594,
+      "channels": 2,
+      "sha256": "e419343b26ef851e7eb6ebdc90bb54a0cea2b183c7bba26bc9f402e123fff136",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Bass/Accent Rubber Stab G1.wav",
+      "frames": 18656,
+      "channels": 1,
+      "sha256": "0aa1af7837a362e6cba8c191ec8651c21a6a6db25c9965aeb08ce788aac968a1",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "FX/Build Fill.wav",
+      "frames": 90000,
+      "channels": 2,
+      "sha256": "6aef0adddf6c8d3f556ee3fc10383742290fd1fe997dc8f9bfa38d6dd8279da6",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "FX/Riser.wav",
+      "frames": 720000,
+      "channels": 2,
+      "sha256": "446fb7fb3ed5ffdabd1757855534934d847b81b17d5d45df8509b4e879c7c73d",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "FX/Impact.wav",
+      "frames": 177720,
+      "channels": 2,
+      "sha256": "24cb58dc0e298292d8132531787c26415b31c9ecc8058174074d269c02534bf3",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Vox/Vox Chop Ooh Ah G4.wav",
+      "frames": 93859,
+      "channels": 2,
+      "sha256": "f9cc4245ad75f9fece34ae1def1fae3879088cd990e94277a9f2df09f29e7d66",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Vox/Vox Chop Ooh Ah C5.wav",
+      "frames": 84309,
+      "channels": 2,
+      "sha256": "ab2698b3c9b6afe9818c1be773212276869597c324dbf14c9e2bb6b8fbe02c89",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Vox/Vox Chop Ah D5.wav",
+      "frames": 88282,
+      "channels": 2,
+      "sha256": "4be44e8a748a5bffd0414cfb36cb3c7ae56db674b2fcfb28d481800d0ff772cf",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Vox/Vox Chop Stack Gm7.wav",
+      "frames": 93951,
+      "channels": 2,
+      "sha256": "7c6280863224022bd06e2e9884df01c91e3fce2434468c48f0f0ab3bb4dc77ff",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 1200
+    },
+    {
+      "path": "Loops/Line Rubber Clean.wav",
+      "frames": 180000,
+      "channels": 1,
+      "sha256": "48f89691ced67c1ee89e3fc4022ee4e8339471d31795f21c5e50571118d7a5be",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Loops/Line Rubber Warm.wav",
+      "frames": 180000,
+      "channels": 1,
+      "sha256": "f9fb13a95f8f990488f280056bbf206d9020c033f3dfd1fae4583bba1daaa441",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Loops/Line Deep Clean.wav",
+      "frames": 180000,
+      "channels": 1,
+      "sha256": "328df83032399054bf9fd970cecf149fd50346f99ea99b8040cb022779b8a7dd",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Loops/Line Deep Warm.wav",
+      "frames": 180000,
+      "channels": 1,
+      "sha256": "77f0539082c2590b1104af73a95d4061b2f6461af1ac684faa36d4a519c2ca3c",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Stems/Context Vox Riff.wav",
+      "frames": 540000,
+      "channels": 2,
+      "sha256": "ea67744cc34400a81e7f9f76902f8a83c3acd37d457f536c15172e771bfbe5f4",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    },
+    {
+      "path": "Stems/Context Vox Riff Twice.wav",
+      "frames": 540000,
+      "channels": 2,
+      "sha256": "4b891b007fc9fff6db645c7fd36216f0df5d8b10ed6862372c7a103c62effa99",
+      "loop_start": 0,
+      "loop_end": 0,
+      "preroll_frames": 0
+    }
+  ],
+  "instruments": [
+    {
+      "id": "kick_deep",
+      "name": "Kick Deep",
+      "lane": "kick",
+      "mix_channel": "kick",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": true,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 36,
+          "lo": 36,
+          "hi": 36,
+          "layers": [
+            {
+              "vel": 25,
+              "rr": [0, 1]
+            },
+            {
+              "vel": 51,
+              "rr": [2, 3]
+            },
+            {
+              "vel": 76,
+              "rr": [4, 5]
+            },
+            {
+              "vel": 102,
+              "rr": [6, 7]
+            },
+            {
+              "vel": 127,
+              "rr": [8, 9]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rimshot",
+      "name": "Rimshot",
+      "lane": "perc",
+      "mix_channel": "rim",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 37,
+          "lo": 37,
+          "hi": 37,
+          "layers": [
+            {
+              "vel": 38,
+              "rr": [10, 11]
+            },
+            {
+              "vel": 76,
+              "rr": [12, 13]
+            },
+            {
+              "vel": 127,
+              "rr": [14, 15]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "clap_snare",
+      "name": "Clap Snare",
+      "lane": "snare",
+      "mix_channel": "clap",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": true,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 38,
+          "lo": 38,
+          "hi": 38,
+          "layers": [
+            {
+              "vel": 25,
+              "rr": [16, 17]
+            },
+            {
+              "vel": 51,
+              "rr": [18, 19]
+            },
+            {
+              "vel": 76,
+              "rr": [20, 21]
+            },
+            {
+              "vel": 102,
+              "rr": [22, 23]
+            },
+            {
+              "vel": 127,
+              "rr": [24, 25]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "conga",
+      "name": "Conga",
+      "lane": "perc",
+      "mix_channel": "perc",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 41,
+          "lo": 41,
+          "hi": 41,
+          "layers": [
+            {
+              "vel": 38,
+              "rr": [26, 27]
+            },
+            {
+              "vel": 76,
+              "rr": [28, 29]
+            },
+            {
+              "vel": 127,
+              "rr": [30, 31]
+            }
+          ]
+        },
+        {
+          "root": 43,
+          "lo": 43,
+          "hi": 43,
+          "layers": [
+            {
+              "vel": 38,
+              "rr": [32, 33]
+            },
+            {
+              "vel": 76,
+              "rr": [34, 35]
+            },
+            {
+              "vel": 127,
+              "rr": [36, 37]
+            }
+          ]
+        },
+        {
+          "root": 45,
+          "lo": 45,
+          "hi": 45,
+          "layers": [
+            {
+              "vel": 38,
+              "rr": [38, 39]
+            },
+            {
+              "vel": 76,
+              "rr": [40, 41]
+            },
+            {
+              "vel": 127,
+              "rr": [42, 43]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "closed_hat_deep",
+      "name": "Closed Hat Deep",
+      "lane": "hats",
+      "mix_channel": "hat",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "hats",
+        "role": "chokes",
+        "fade_us": 4000,
+        "curve": "cos2"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 42,
+          "lo": 42,
+          "hi": 42,
+          "layers": [
+            {
+              "vel": 25,
+              "rr": [44, 45, 46]
+            },
+            {
+              "vel": 51,
+              "rr": [47, 48, 49]
+            },
+            {
+              "vel": 76,
+              "rr": [50, 51, 52]
+            },
+            {
+              "vel": 102,
+              "rr": [53, 54, 55]
+            },
+            {
+              "vel": 127,
+              "rr": [56, 57, 58]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "open_hat_deep",
+      "name": "Open Hat Deep",
+      "lane": "hats",
+      "mix_channel": "hat",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "hats",
+        "role": "choked",
+        "fade_us": 4000,
+        "curve": "cos2"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 46,
+          "lo": 46,
+          "hi": 46,
+          "layers": [
+            {
+              "vel": 25,
+              "rr": [59, 60, 61]
+            },
+            {
+              "vel": 51,
+              "rr": [62, 63, 64]
+            },
+            {
+              "vel": 76,
+              "rr": [65, 66, 67]
+            },
+            {
+              "vel": 102,
+              "rr": [68, 69, 70]
+            },
+            {
+              "vel": 127,
+              "rr": [71, 72, 73]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bongo",
+      "name": "Bongo",
+      "lane": "perc",
+      "mix_channel": "perc",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 47,
+          "lo": 47,
+          "hi": 47,
+          "layers": [
+            {
+              "vel": 38,
+              "rr": [74, 75]
+            },
+            {
+              "vel": 76,
+              "rr": [76, 77]
+            },
+            {
+              "vel": 127,
+              "rr": [78, 79]
+            }
+          ]
+        },
+        {
+          "root": 48,
+          "lo": 48,
+          "hi": 48,
+          "layers": [
+            {
+              "vel": 38,
+              "rr": [80, 81]
+            },
+            {
+              "vel": 76,
+              "rr": [82, 83]
+            },
+            {
+              "vel": 127,
+              "rr": [84, 85]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shaker_deep",
+      "name": "Shaker Deep",
+      "lane": "perc",
+      "mix_channel": "shaker",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 54,
+          "lo": 54,
+          "hi": 54,
+          "layers": [
+            {
+              "vel": 51,
+              "rr": [86, 87, 88, 89]
+            },
+            {
+              "vel": 76,
+              "rr": [90, 91, 92, 93]
+            },
+            {
+              "vel": 102,
+              "rr": [94, 95, 96, 97]
+            },
+            {
+              "vel": 127,
+              "rr": [98, 99, 100, 101]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rubber_bass_clean",
+      "name": "Rubber Bass Clean",
+      "lane": "bass",
+      "mix_channel": "bass_ms",
+      "mode": "sustain_loop",
+      "align": "start",
+      "attack_us": 1000,
+      "release_us": 80000,
+      "gain_mdb": 1730,
+      "start_frames": 0,
+      "velocity_law": "pow15",
+      "interp": "sinc",
+      "mono": true,
+      "glide": {
+        "curve": "raised_cosine",
+        "us": 50000,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 31,
+          "lo": 0,
+          "hi": 37,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [102]
+            },
+            {
+              "vel": 127,
+              "rr": [103]
+            }
+          ]
+        },
+        {
+          "root": 38,
+          "lo": 38,
+          "hi": 42,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [104]
+            },
+            {
+              "vel": 127,
+              "rr": [105]
+            }
+          ]
+        },
+        {
+          "root": 43,
+          "lo": 43,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [106]
+            },
+            {
+              "vel": 127,
+              "rr": [107]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rubber_bass_warm",
+      "name": "Rubber Bass Warm",
+      "lane": "bass",
+      "mix_channel": "bass_ms",
+      "mode": "sustain_loop",
+      "align": "start",
+      "attack_us": 1000,
+      "release_us": 80000,
+      "gain_mdb": 2240,
+      "start_frames": 0,
+      "velocity_law": "pow15",
+      "interp": "sinc",
+      "mono": true,
+      "glide": {
+        "curve": "raised_cosine",
+        "us": 50000,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 31,
+          "lo": 0,
+          "hi": 37,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [108]
+            },
+            {
+              "vel": 127,
+              "rr": [109]
+            }
+          ]
+        },
+        {
+          "root": 38,
+          "lo": 38,
+          "hi": 42,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [110]
+            },
+            {
+              "vel": 127,
+              "rr": [111]
+            }
+          ]
+        },
+        {
+          "root": 43,
+          "lo": 43,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [112]
+            },
+            {
+              "vel": 127,
+              "rr": [113]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "keys_ep",
+      "name": "Keys EP",
+      "lane": "lead",
+      "mix_channel": "lead",
+      "mode": "gated",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 40000,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "pow15",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 55,
+          "lo": 0,
+          "hi": 61,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [114]
+            },
+            {
+              "vel": 127,
+              "rr": [115]
+            }
+          ]
+        },
+        {
+          "root": 62,
+          "lo": 62,
+          "hi": 66,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [116]
+            },
+            {
+              "vel": 127,
+              "rr": [117]
+            }
+          ]
+        },
+        {
+          "root": 67,
+          "lo": 67,
+          "hi": 73,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [118]
+            },
+            {
+              "vel": 127,
+              "rr": [119]
+            }
+          ]
+        },
+        {
+          "root": 74,
+          "lo": 74,
+          "hi": 78,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [120]
+            },
+            {
+              "vel": 127,
+              "rr": [121]
+            }
+          ]
+        },
+        {
+          "root": 79,
+          "lo": 79,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [122]
+            },
+            {
+              "vel": 127,
+              "rr": [123]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dub_stab_gm9",
+      "name": "Dub Stab Gm9",
+      "lane": "chords",
+      "mix_channel": "stab",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 55,
+          "lo": 0,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 64,
+              "rr": [124, 125]
+            },
+            {
+              "vel": 95,
+              "rr": [126, 127]
+            },
+            {
+              "vel": 127,
+              "rr": [128, 129]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vox_synth",
+      "name": "Vox Synth",
+      "lane": "vox",
+      "mix_channel": "vox_ms",
+      "mode": "gated",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 70000,
+      "gain_mdb": 6120,
+      "start_frames": 0,
+      "velocity_law": "pow15",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 55,
+          "lo": 0,
+          "hi": 61,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [130]
+            },
+            {
+              "vel": 127,
+              "rr": [131]
+            }
+          ]
+        },
+        {
+          "root": 62,
+          "lo": 62,
+          "hi": 66,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [132]
+            },
+            {
+              "vel": 127,
+              "rr": [133]
+            }
+          ]
+        },
+        {
+          "root": 67,
+          "lo": 67,
+          "hi": 73,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [134]
+            },
+            {
+              "vel": 127,
+              "rr": [135]
+            }
+          ]
+        },
+        {
+          "root": 74,
+          "lo": 74,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 76,
+              "rr": [136]
+            },
+            {
+              "vel": 127,
+              "rr": [137]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pad_warm",
+      "name": "Pad Warm",
+      "lane": "chords",
+      "mix_channel": "pad",
+      "mode": "sustain_loop",
+      "align": "start",
+      "attack_us": 2000,
+      "release_us": 20000,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": true,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 55,
+          "lo": 0,
+          "hi": 127,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [138]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_glass_ping_d6",
+      "name": "Accent Glass Ping D6",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -6000,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 48,
+          "lo": 48,
+          "hi": 48,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [139]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_dub_chord_cm9",
+      "name": "Accent Dub Chord Cm9",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -2000,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 49,
+          "lo": 49,
+          "hi": 49,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [140]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_reverse_chord_gm9",
+      "name": "Accent Reverse Chord Gm9",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "end",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -3000,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 50,
+          "lo": 50,
+          "hi": 50,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [141]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_organ_hit_gm7",
+      "name": "Accent Organ Hit Gm7",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -5000,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 51,
+          "lo": 51,
+          "hi": 51,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [142]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_noise_sweep_up",
+      "name": "Accent Noise Sweep Up",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "end",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": -4000,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 52,
+          "lo": 52,
+          "hi": 52,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [143]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_pluck_chord_dm7",
+      "name": "Accent Pluck Chord Dm7",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 53,
+          "lo": 53,
+          "hi": 53,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [144]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_zap_g4",
+      "name": "Accent Zap G4",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 54,
+          "lo": 54,
+          "hi": 54,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [145]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_vox_synth_gm",
+      "name": "Accent Vox Synth Gm",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 55,
+          "lo": 55,
+          "hi": 55,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [146]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "accent_rubber_stab_g1",
+      "name": "Accent Rubber Stab G1",
+      "lane": "accents",
+      "mix_channel": "accent",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 56,
+          "lo": 56,
+          "hi": 56,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [147]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "build_fill",
+      "name": "Build Fill",
+      "lane": "fx",
+      "mix_channel": "fx",
+      "mode": "one_shot",
+      "align": "end",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 48,
+          "lo": 48,
+          "hi": 48,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [148]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "riser",
+      "name": "Riser",
+      "lane": "fx",
+      "mix_channel": "fx",
+      "mode": "one_shot",
+      "align": "end",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 49,
+          "lo": 49,
+          "hi": 49,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [149]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "impact",
+      "name": "Impact",
+      "lane": "fx",
+      "mix_channel": "fx",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 50,
+          "lo": 50,
+          "hi": 50,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [150]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vox_chop_ooh_ah_g4",
+      "name": "Vox Chop Ooh Ah G4",
+      "lane": "vox",
+      "mix_channel": "vox",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 48,
+          "lo": 48,
+          "hi": 48,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [151]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vox_chop_ooh_ah_c5",
+      "name": "Vox Chop Ooh Ah C5",
+      "lane": "vox",
+      "mix_channel": "vox",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 49,
+          "lo": 49,
+          "hi": 49,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [152]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vox_chop_ah_d5",
+      "name": "Vox Chop Ah D5",
+      "lane": "vox",
+      "mix_channel": "vox",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 50,
+          "lo": 50,
+          "hi": 50,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [153]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vox_chop_stack_gm7",
+      "name": "Vox Chop Stack Gm7",
+      "lane": "vox",
+      "mix_channel": "vox",
+      "mode": "one_shot",
+      "align": "start",
+      "attack_us": 0,
+      "release_us": 0,
+      "gain_mdb": 0,
+      "start_frames": 0,
+      "velocity_law": "layer_only",
+      "interp": "sinc",
+      "mono": false,
+      "glide": {
+        "curve": "none",
+        "us": 0,
+        "dip_us": 0
+      },
+      "restrike_continues": false,
+      "choke": {
+        "group": "",
+        "role": "none",
+        "fade_us": 0,
+        "curve": "linear"
+      },
+      "duck_key": false,
+      "pan_cycle_pm": [],
+      "rr_block_16ths": 64,
+      "layered_with": "",
+      "zones": [
+        {
+          "root": 51,
+          "lo": 51,
+          "hi": 51,
+          "layers": [
+            {
+              "vel": 127,
+              "rr": [154]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "keymap": [
+    {
+      "ch": 1,
+      "keys": [7, 67],
+      "a": "rubber_bass_clean",
+      "b": "rubber_bass_warm",
+      "ab": "bass"
+    },
+    {
+      "ch": 2,
+      "keys": [31, 103],
+      "a": "keys_ep",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 4,
+      "keys": [31, 79],
+      "a": "dub_stab_gm9",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 5,
+      "keys": [31, 98],
+      "a": "vox_synth",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [48, 48],
+      "a": "accent_glass_ping_d6",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [49, 49],
+      "a": "accent_dub_chord_cm9",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [50, 50],
+      "a": "accent_reverse_chord_gm9",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [51, 51],
+      "a": "accent_organ_hit_gm7",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [52, 52],
+      "a": "accent_noise_sweep_up",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [53, 53],
+      "a": "accent_pluck_chord_dm7",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [54, 54],
+      "a": "accent_zap_g4",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [55, 55],
+      "a": "accent_vox_synth_gm",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 6,
+      "keys": [56, 56],
+      "a": "accent_rubber_stab_g1",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 7,
+      "keys": [48, 48],
+      "a": "build_fill",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 7,
+      "keys": [49, 49],
+      "a": "riser",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 7,
+      "keys": [50, 50],
+      "a": "impact",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 8,
+      "keys": [48, 48],
+      "a": "vox_chop_ooh_ah_g4",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 8,
+      "keys": [49, 49],
+      "a": "vox_chop_ooh_ah_c5",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 8,
+      "keys": [50, 50],
+      "a": "vox_chop_ah_d5",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 8,
+      "keys": [51, 51],
+      "a": "vox_chop_stack_gm7",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [36, 36],
+      "a": "kick_deep",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [37, 37],
+      "a": "rimshot",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [38, 38],
+      "a": "clap_snare",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [41, 41],
+      "a": "conga",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [42, 42],
+      "a": "closed_hat_deep",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [43, 43],
+      "a": "conga",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [45, 45],
+      "a": "conga",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [46, 46],
+      "a": "open_hat_deep",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [47, 47],
+      "a": "bongo",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [48, 48],
+      "a": "bongo",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 10,
+      "keys": [54, 54],
+      "a": "shaker_deep",
+      "b": "",
+      "ab": ""
+    },
+    {
+      "ch": 11,
+      "keys": [31, 79],
+      "a": "pad_warm",
+      "b": "",
+      "ab": ""
+    }
+  ],
+  "extras": [
+    {
+      "ch": 11,
+      "name": "Pad Warm",
+      "lane": "chords"
+    }
+  ],
+  "phrases": [
+    {
+      "lane": "bass",
+      "ch": 1,
+      "ab": "bass",
+      "mix_channel": "bass",
+      "gain_mdb": 0,
+      "throw": "live",
+      "stems": {
+        "a": 155,
+        "b": 156
+      },
+      "cycle_16ths": 32,
+      "tolerance_pm": 20,
+      "fade_us": 5000,
+      "fade_in_us": 500,
+      "ride": {
+        "cc74": [],
+        "cc71": []
+      },
+      "slices": [
+        {
+          "step": 2,
+          "key": 31,
+          "start": 0,
+          "end": 16830,
+          "fade": 16590,
+          "lead": 11250,
+          "holds": []
+        },
+        {
+          "step": 3,
+          "key": 43,
+          "start": 16830,
+          "end": 22500,
+          "fade": 22260,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 6,
+          "key": 34,
+          "start": 22500,
+          "end": 39330,
+          "fade": 39090,
+          "lead": 11250,
+          "holds": []
+        },
+        {
+          "step": 7,
+          "key": 36,
+          "start": 39330,
+          "end": 45000,
+          "fade": 44760,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 9,
+          "key": 38,
+          "start": 45000,
+          "end": 55530,
+          "fade": 55290,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 10,
+          "key": 38,
+          "start": 55530,
+          "end": 67500,
+          "fade": 67260,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 13,
+          "key": 41,
+          "start": 67500,
+          "end": 78030,
+          "fade": 77790,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 14,
+          "key": 43,
+          "start": 78030,
+          "end": 90000,
+          "fade": 89760,
+          "lead": 720,
+          "holds": [31]
+        },
+        {
+          "step": 17,
+          "key": 31,
+          "start": 90000,
+          "end": 100530,
+          "fade": 100290,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 18,
+          "key": 31,
+          "start": 100530,
+          "end": 106830,
+          "fade": 106590,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 19,
+          "key": 43,
+          "start": 106830,
+          "end": 112500,
+          "fade": 112260,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 22,
+          "key": 34,
+          "start": 112500,
+          "end": 129330,
+          "fade": 129090,
+          "lead": 11250,
+          "holds": []
+        },
+        {
+          "step": 23,
+          "key": 33,
+          "start": 129330,
+          "end": 135000,
+          "fade": 134760,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 25,
+          "key": 29,
+          "start": 135000,
+          "end": 157500,
+          "fade": 157260,
+          "lead": 6300,
+          "holds": [31]
+        },
+        {
+          "step": 30,
+          "key": 36,
+          "start": 157500,
+          "end": 180000,
+          "fade": 179760,
+          "lead": 11250,
+          "holds": [38]
+        }
+      ]
+    },
+    {
+      "lane": "bass",
+      "ch": 1,
+      "ab": "bass",
+      "mix_channel": "bass",
+      "gain_mdb": 0,
+      "throw": "live",
+      "stems": {
+        "a": 157,
+        "b": 158
+      },
+      "cycle_16ths": 32,
+      "tolerance_pm": 20,
+      "fade_us": 5000,
+      "fade_in_us": 500,
+      "ride": {
+        "cc74": [],
+        "cc71": []
+      },
+      "slices": [
+        {
+          "step": 1,
+          "key": 31,
+          "start": 0,
+          "end": 10530,
+          "fade": 10290,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 2,
+          "key": 31,
+          "start": 10530,
+          "end": 16830,
+          "fade": 16590,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 3,
+          "key": 31,
+          "start": 16830,
+          "end": 22500,
+          "fade": 22260,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 5,
+          "key": 31,
+          "start": 22500,
+          "end": 33030,
+          "fade": 32790,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 6,
+          "key": 34,
+          "start": 33030,
+          "end": 39330,
+          "fade": 39090,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 7,
+          "key": 31,
+          "start": 39330,
+          "end": 45000,
+          "fade": 44760,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 9,
+          "key": 31,
+          "start": 45000,
+          "end": 55530,
+          "fade": 55290,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 10,
+          "key": 36,
+          "start": 55530,
+          "end": 61830,
+          "fade": 61590,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 11,
+          "key": 31,
+          "start": 61830,
+          "end": 67500,
+          "fade": 67260,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 13,
+          "key": 31,
+          "start": 67500,
+          "end": 78030,
+          "fade": 77790,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 14,
+          "key": 38,
+          "start": 78030,
+          "end": 90000,
+          "fade": 89760,
+          "lead": 720,
+          "holds": [36]
+        },
+        {
+          "step": 17,
+          "key": 31,
+          "start": 90000,
+          "end": 100530,
+          "fade": 100290,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 18,
+          "key": 31,
+          "start": 100530,
+          "end": 106830,
+          "fade": 106590,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 19,
+          "key": 31,
+          "start": 106830,
+          "end": 112500,
+          "fade": 112260,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 21,
+          "key": 31,
+          "start": 112500,
+          "end": 123030,
+          "fade": 122790,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 22,
+          "key": 41,
+          "start": 123030,
+          "end": 135000,
+          "fade": 134760,
+          "lead": 720,
+          "holds": [38]
+        },
+        {
+          "step": 25,
+          "key": 31,
+          "start": 135000,
+          "end": 145530,
+          "fade": 145290,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 26,
+          "key": 36,
+          "start": 145530,
+          "end": 151830,
+          "fade": 151590,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 27,
+          "key": 31,
+          "start": 151830,
+          "end": 157500,
+          "fade": 157260,
+          "lead": 720,
+          "holds": []
+        },
+        {
+          "step": 29,
+          "key": 31,
+          "start": 157500,
+          "end": 168030,
+          "fade": 167790,
+          "lead": 6300,
+          "holds": []
+        },
+        {
+          "step": 30,
+          "key": 34,
+          "start": 168030,
+          "end": 180000,
+          "fade": 179760,
+          "lead": 720,
+          "holds": [31]
+        }
+      ]
+    },
+    {
+      "lane": "vox",
+      "ch": 5,
+      "ab": "",
+      "mix_channel": "vox",
+      "gain_mdb": 0,
+      "throw": "baked",
+      "stems": {
+        "a": 159,
+        "b": -1
+      },
+      "cycle_16ths": 64,
+      "tolerance_pm": 20,
+      "fade_us": 5000,
+      "fade_in_us": 500,
+      "ride": {
+        "cc74": [],
+        "cc71": []
+      },
+      "slices": [
+        {
+          "step": 34,
+          "key": 74,
+          "start": 190050,
+          "end": 212550,
+          "fade": 212310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 38,
+          "key": 70,
+          "start": 212550,
+          "end": 235050,
+          "fade": 234810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 42,
+          "key": 74,
+          "start": 235050,
+          "end": 252600,
+          "fade": 252360,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 45,
+          "key": 77,
+          "start": 252600,
+          "end": 280050,
+          "fade": 279810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 50,
+          "key": 75,
+          "start": 280050,
+          "end": 302550,
+          "fade": 302310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 54,
+          "key": 70,
+          "start": 302550,
+          "end": 325050,
+          "fade": 324810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 58,
+          "key": 72,
+          "start": 325050,
+          "end": 347550,
+          "fade": 347310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 62,
+          "key": 67,
+          "start": 347550,
+          "end": 540000,
+          "fade": 539760,
+          "lead": 1200,
+          "holds": []
+        }
+      ]
+    },
+    {
+      "lane": "vox",
+      "ch": 5,
+      "ab": "",
+      "mix_channel": "vox",
+      "gain_mdb": 1000,
+      "throw": "baked",
+      "stems": {
+        "a": 160,
+        "b": -1
+      },
+      "cycle_16ths": 64,
+      "tolerance_pm": 20,
+      "fade_us": 5000,
+      "fade_in_us": 500,
+      "ride": {
+        "cc74": [],
+        "cc71": []
+      },
+      "slices": [
+        {
+          "step": 2,
+          "key": 74,
+          "start": 10050,
+          "end": 32550,
+          "fade": 32310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 6,
+          "key": 70,
+          "start": 32550,
+          "end": 55050,
+          "fade": 54810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 10,
+          "key": 74,
+          "start": 55050,
+          "end": 72600,
+          "fade": 72360,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 13,
+          "key": 77,
+          "start": 72600,
+          "end": 100050,
+          "fade": 99810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 18,
+          "key": 75,
+          "start": 100050,
+          "end": 122550,
+          "fade": 122310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 22,
+          "key": 70,
+          "start": 122550,
+          "end": 145050,
+          "fade": 144810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 26,
+          "key": 72,
+          "start": 145050,
+          "end": 167550,
+          "fade": 167310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 30,
+          "key": 67,
+          "start": 167550,
+          "end": 190050,
+          "fade": 189810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 34,
+          "key": 74,
+          "start": 190050,
+          "end": 212550,
+          "fade": 212310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 38,
+          "key": 70,
+          "start": 212550,
+          "end": 235050,
+          "fade": 234810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 42,
+          "key": 74,
+          "start": 235050,
+          "end": 252600,
+          "fade": 252360,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 45,
+          "key": 77,
+          "start": 252600,
+          "end": 280050,
+          "fade": 279810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 50,
+          "key": 75,
+          "start": 280050,
+          "end": 302550,
+          "fade": 302310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 54,
+          "key": 70,
+          "start": 302550,
+          "end": 325050,
+          "fade": 324810,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 58,
+          "key": 72,
+          "start": 325050,
+          "end": 347550,
+          "fade": 347310,
+          "lead": 1200,
+          "holds": []
+        },
+        {
+          "step": 62,
+          "key": 67,
+          "start": 347550,
+          "end": 540000,
+          "fade": 539760,
+          "lead": 1200,
+          "holds": []
+        }
+      ]
+    }
+  ]
+}
