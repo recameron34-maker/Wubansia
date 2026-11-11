@@ -149,12 +149,16 @@ TEST_CASE ("the full file is SMF type 1 with a conductor and one track per lane"
 
 TEST_CASE ("region files are named by order kind and bars", "[gen][export]")
 {
+    // each seed draws its own form (arrange.h), so the names follow its sections
     const Song s = songFor ("FUT01", 7);
     REQUIRE (s.sections.size() >= 4);
     CHECK (regionFileName (s.sections[0]) == "01_intro_32bars.mid");
-    CHECK (regionFileName (s.sections[1]) == "02_groove_32bars.mid");
-    CHECK (regionFileName (s.sections[2]) == "03_build_8bars.mid");
-    CHECK (regionFileName (s.sections[3]) == "04_drop_32bars.mid");
+    for (const Section& sec : s.sections)
+    {
+        const std::string order = (sec.index + 1 < 10 ? "0" : "") + std::to_string (sec.index + 1);
+        CHECK (regionFileName (sec) == order + "_" + sec.kind + "_" + std::to_string (sec.bars) + "bars.mid");
+    }
+    CHECK (regionFileName (s.sections.back()) == (s.sections.size() < 10 ? "0" : "") + std::to_string (s.sections.size()) + "_outro_32bars.mid");
     CHECK (fullFileName (s) == "FUT01_seed7_134bpm_11A_full.mid");
     CHECK (fullFileName (songFor ("FUT03", 12)) == "FUT03_seed12_128bpm_6A_full.mid");
 }
@@ -257,8 +261,24 @@ TEST_CASE ("regions.json lists each region's file start length kind and lanes", 
         CHECK (tiled == sec.bars);
         const auto anywhere = r["lanes"].strings (0, 16);
         CHECK_FALSE (anywhere.empty());
+        // the one-bar dropouts inside it (test_gen_form.cpp checks each against the lanes' bars)
+        const json::Node dropouts = r["dropouts"];
+        CHECK (dropouts.isArray());
+        for (std::size_t k = 0; k < dropouts.size(); ++k)
+        {
+            const std::int32_t at = dropouts.at (k)["startBar"].int32 (0, 9999);
+            CHECK (at > sec.startBar);
+            CHECK (at < sec.startBar + sec.bars - 1); // never a section's first or last bar
+            CHECK (dropouts.at (k)["dawBar"].int32 (1, 9999) == at + 1);
+            CHECK (dropouts.at (k)["bars"].int32 (1, 1) == 1);
+            CHECK_FALSE (dropouts.at (k)["lanes"].strings (1, 16).empty());
+        }
     }
-    CHECK (regions.at (0)["blocks"].at (0)["lanes"].strings (0, 16) == std::vector<std::string> { "kick", "hats" });
+    // the mix-in starts on the kick and the hats (and the data ticks, in some songs): drums only
+    const auto first = regions.at (0)["blocks"].at (0)["lanes"].strings (0, 16);
+    CHECK (std::find (first.begin(), first.end(), "kick") != first.end());
+    for (const auto& id : first)
+        CHECK ((id == "kick" || id == "hats" || id == "shaker"));
     INFO (errors.first());
     CHECK_FALSE (errors.any());
     CHECK (regionsJson (s, Version::quantized).find ("\"version\": \"quantized\"") != std::string::npos);
@@ -312,8 +332,10 @@ TEST_CASE ("cutting at a section line gives exactly the first bars of the whole 
                 CHECK (midi::notesOf (b.tracks[t]) == head);
             }
         }
-        // and mid-section, everything that ends a beat before the cut is the same
-        const std::int32_t midBars = full.sections[0].bars + 16;
+        // and mid-section (8 bars into the groove, which is 16 bars or more), everything that ends a
+        // beat before the cut is the same
+        REQUIRE (full.sections[1].bars >= 16);
+        const std::int32_t midBars = full.sections[0].bars + 8;
         const Song mid = songFor (id, 21, midBars);
         for (std::size_t l = 0; l < full.lanes.size(); ++l)
         {

@@ -311,14 +311,19 @@ TEST_CASE ("styles: regions.json lists the new lanes and every region", "[gen][s
 TEST_CASE ("styles: regions.json gives the song's length and each region's ticks and lanes, in all four kits", "[gen][styles][export]")
 {
     // The fields a producer reads off regions.json, pinned by more than the snapshot hashes: the
-    // song's length (m:ss of its bars at the kit's tempo, the mixes ADR 0013 lists), each region's
-    // length in ticks, and its lanes, the union of its 8-bar blocks' lanes in track order.
-    for (const auto& [id, length] : { std::pair { "FUT01", "6:12" }, std::pair { "FUT02", "6:53" }, std::pair { "FUT03", "6:15" }, std::pair { "FUT04", "7:03" } })
+    // song's length (m:ss of its bars at the kit's tempo: each seed draws its form, 200 to 240 bars,
+    // 5:52 to 7:30 at the kits' tempos), each region's length in ticks, and its lanes, the union of
+    // its 8-bar blocks' lanes in track order.
+    for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
     {
         INFO (id);
         const Song s = songFor (id, 3);
+        CHECK (s.totalBars >= 200);
+        CHECK (s.totalBars <= 240);
         const std::int32_t seconds = s.totalBars * 240 / s.bpm; // 4 beats a bar, rounded down
-        CHECK (std::to_string (seconds / 60) + ":" + (seconds % 60 < 10 ? "0" : "") + std::to_string (seconds % 60) == length);
+        const std::string length = std::to_string (seconds / 60) + ":" + (seconds % 60 < 10 ? "0" : "") + std::to_string (seconds % 60);
+        CHECK (seconds >= 5 * 60 + 52);
+        CHECK (seconds <= 7 * 60 + 30);
         for (const Version v : { Version::feel, Version::quantized })
         {
             const auto parsed = json::parse (regionsJson (s, v));
@@ -411,6 +416,10 @@ TEST_CASE ("styles: a cut's files are the whole song's regions, the last one sho
                     memberOf (regions.back(), "bars").integer = 8;
                     memberOf (regions.back(), "lengthTicks").integer = 8 * 1920;
                     memberOf (regions.back(), "blocks").items.resize (1);
+                    // and none of its one-bar dropouts, which come before a 16-bar line of the section, after its first 8 bars
+                    for (auto& m : regions.back().members)
+                        if (m.key == "dropouts")
+                            m.value.items.clear();
                     auto& lanes = memberOf (regions.back(), "lanes").items; // the lanes of the block it keeps
                     lanes.clear();
                     for (std::size_t l = 0; l < whole.lanes.size(); ++l)

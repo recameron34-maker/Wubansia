@@ -597,7 +597,8 @@ TEST_CASE ("each lane swings its odd 16ths by its own amount", "[gen][feel]")
 TEST_CASE ("hat microtiming is 1/f: correlated residuals with a moderate spread", "[gen][feel]")
 {
     // A proxy for one property, on the hats track alone; the gate itself (G7, which reads the hats
-    // drum group, the shaker included) runs in test_gen_gates.cpp.
+    // drum group, the shaker included) runs in test_gen_gates.cpp. In the first drop and the grooves,
+    // which play the hats' own feel (no row of their own): a drawn drop can be 16 bars.
     for (const char* id : { "FUT01", "FUT03" })
         for (std::uint64_t seed = 1; seed <= 4; ++seed)
         {
@@ -610,7 +611,7 @@ TEST_CASE ("hat microtiming is 1/f: correlated residuals with a moderate spread"
             for (const Note& p : hats.perf)
             {
                 const Section& sec = s.sections[static_cast<std::size_t> (p.section)];
-                if (sec.kind != "drop" || p.tick == sec.startTick())
+                if ((sec.kind != "drop" && sec.kind != "groove") || p.tick == sec.startTick())
                     continue;
                 const double d = static_cast<double> (p.tick - p.step * ticksPerStep);
                 byPos[p.step % 32].push_back (d);

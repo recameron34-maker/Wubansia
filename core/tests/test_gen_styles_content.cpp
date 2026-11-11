@@ -3,6 +3,7 @@
 // per-step slides and mutations, the feel's tight rule, and one-chord (pedal) harmony.
 
 #include "gen/content.h"
+#include "gen/song.h"
 #include "gen/theory.h"
 #include "util/file_io.h"
 
@@ -216,47 +217,6 @@ TEST_CASE ("styles: track names give each lane its role in the metrics", "[gen][
         }
 }
 
-TEST_CASE ("styles: the new default forms are DJ-friendly extended mixes of 6 to 8 minutes", "[gen][styles][content]")
-{
-    for (const char* id : { "FUT02", "FUT04" })
-    {
-        INFO (id);
-        const Bundle b = bundleOf (id);
-        const Style& style = b.style;
-        std::int32_t bars = 0;
-        for (const auto& s : style.form)
-        {
-            CHECK (s.bars % 8 == 0);
-            CHECK (s.blocks.size() == static_cast<std::size_t> (s.bars / 8));
-            bars += s.bars;
-        }
-        const std::int32_t seconds = bars * 240 / b.kit.bpm;
-        CHECK (seconds >= 6 * 60);
-        CHECK (seconds <= 8 * 60);
-        REQUIRE (style.form.size() >= 3);
-        CHECK (style.form.front().kind == "intro");
-        CHECK (style.form.front().bars == 32);
-        CHECK (style.form.back().kind == "outro");
-        CHECK (style.form.back().bars == 32);
-        const auto isDrums = [&] (const std::string& lane) { return style.lanes[*style.laneIndex (lane)].kind == LaneKind::drums; };
-        for (const auto& lane : style.form.front().blocks.front())
-            CHECK (isDrums (lane)); // the mix-in starts with drums only...
-        for (const auto& lane : style.form.back().blocks.back())
-            CHECK (isDrums (lane)); // ...and the mix-out ends with drums only
-        for (std::size_t i = 1; i < style.form.front().blocks.size(); ++i)
-            CHECK (style.form.front().blocks[i].size() > style.form.front().blocks[i - 1].size()); // the intro adds lanes block by block
-        for (std::size_t i = 1; i < style.form.back().blocks.size(); ++i)
-            CHECK (style.form.back().blocks[i].size() < style.form.back().blocks[i - 1].size()); // the outro takes them away
-        std::set<std::string> kinds;
-        for (const auto& s : style.form)
-            kinds.insert (s.kind);
-        CHECK (kinds == std::set<std::string> { "intro", "groove", "build", "drop", "break", "drop2", "outro" });
-        // the kick enters first and leaves last: a DJ mixes on it
-        CHECK (std::find (style.form.front().blocks.front().begin(), style.form.front().blocks.front().end(), "kick") != style.form.front().blocks.front().end());
-        CHECK (std::find (style.form.back().blocks.back().begin(), style.form.back().blocks.back().end(), "kick") != style.form.back().blocks.back().end());
-    }
-}
-
 TEST_CASE ("styles: the loader reads the new engine fields", "[gen][styles][content]")
 {
     const Bundle t = bundleOf ("FUT04");
@@ -284,10 +244,18 @@ TEST_CASE ("styles: the loader reads the new engine fields", "[gen][styles][cont
     REQUIRE (bass.cc.size() == 1);
     CHECK (bass.cc.front().number == 74);
     CHECK (bass.cc.front().step == 120);
-    for (const auto& sec : t.style.form)
-        for (const auto& block : sec.blocks)
-            if (std::find (block.begin(), block.end(), "bass") != block.end())
-                CHECK (bass.cc.front().row (sec.kind) != nullptr);
+    const std::size_t bassLane = *t.style.laneIndex ("bass");
+    for (std::uint64_t seed = 0; seed < 16; ++seed)
+    {
+        Options o;
+        o.seed = seed;
+        const auto song = generate (t, o);
+        REQUIRE (song.ok());
+        for (const auto& sec : song.value.sections)
+            for (std::int32_t bar = 0; bar < sec.bars; ++bar)
+                if (sec.active (bassLane, bar))
+                    CHECK (bass.cc.front().row (sec.kind) != nullptr);
+    }
     const CcRow* build = bass.cc.front().row ("build");
     REQUIRE (build != nullptr);
     CHECK (build->to.lo > build->from.hi); // the build opens the filter

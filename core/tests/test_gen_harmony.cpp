@@ -758,7 +758,8 @@ TEST_CASE ("drop stabs stay in their register instead of drifting down with the 
     // Planed and quartal stabs led by nearest motion over a falling loop used to sink an octave per
     // cycle, into the sub's register. Each voicing's top window holds them: FUT01's drop voicings put
     // their top note in 62-79, FUT03's in 65-79, so no stack bottoms out under the pads' high-pass
-    // (about 100 Hz: G2, 55), and a drop's lowest notes span about an octave.
+    // (about 100 Hz: G2, 55), and the lowest notes of a drop's stacks (two notes or more: a single-note
+    // riff sits in the top window) span about an octave.
     for (const auto& [id, lowTop, highTop] : { std::tuple { "FUT01", 62, 79 }, std::tuple { "FUT03", 65, 79 } })
     {
         std::size_t stacks = 0, under = 0;
@@ -779,6 +780,8 @@ TEST_CASE ("drop stabs stay in their register instead of drifting down with the 
                 CHECK (*mx <= highTop);
                 ++stacks;
                 under += *mn < 55 ? 1u : 0u;
+                if (keys.size() < 2)
+                    continue;
                 lo = std::min (lo, *mn);
                 hi = std::max (hi, *mn);
             }

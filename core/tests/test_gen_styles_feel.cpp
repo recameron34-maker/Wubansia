@@ -218,13 +218,19 @@ TEST_CASE ("styles: each lane swings its odd 16ths by its own amount", "[gen][st
                     swings.insert (lane.swing);
             CHECK (swings.size() >= 3); // G8: 3 or more distinct swings among the non-anchor lanes
 
+            // the hats in the first drop and the grooves, which play the hats' own feel (no row of
+            // their own; a drawn drop can be 16 bars)
             const LaneOut& hats = laneOf (s, "hats");
             const FeelLane drop = b.feel.resolve ("hats", "drop");
+            const FeelLane groove = b.feel.resolve ("hats", "groove");
+            REQUIRE (groove.offset == drop.offset);
+            REQUIRE (groove.swing->lo == drop.swing->lo);
+            REQUIRE (groove.swing->hi == drop.swing->hi);
             std::vector<double> odd, even;
             for (const Note& p : hats.perf)
             {
                 const Section& sec = s.sections[static_cast<std::size_t> (p.section)];
-                if (sec.kind != "drop" || p.tick == sec.startTick())
+                if ((sec.kind != "drop" && sec.kind != "groove") || p.tick == sec.startTick())
                     continue;
                 const std::int32_t map = drop.offset ? (*drop.offset)[static_cast<std::size_t> (p.step % 32)] : 0;
                 (p.step % 2 ? odd : even).push_back (static_cast<double> (p.tick - p.step * ticksPerStep - map));
@@ -362,7 +368,9 @@ TEST_CASE ("styles: the first drop has 3 or more swing clusters as the metrics m
 
 TEST_CASE ("styles: hat and perc microtiming is 1/f, correlated with a moderate spread", "[gen][styles][feel]")
 {
-    // A proxy per track; the gate itself (G7 on the drum groups) runs in test_gen_gates.cpp.
+    // A proxy per track; the gate itself (G7 on the drum groups) runs in test_gen_gates.cpp. In the
+    // drops and the grooves, each position's mean taken per section kind (drop 2 can swing its own
+    // way): a drawn drop can be 16 bars, and drop 2's layer sits out drop 1 (FUT02's zaps).
     for (const char* id : kits)
         for (const char* laneId : { "hats", "perc" })
             for (std::uint64_t seed = 1; seed <= 4; ++seed)
@@ -370,23 +378,23 @@ TEST_CASE ("styles: hat and perc microtiming is 1/f, correlated with a moderate 
                 INFO (id << " " << laneId << " seed " << seed);
                 const Song s = songFor (id, seed);
                 const LaneOut& lane = laneOf (s, laneId);
-                std::map<std::int64_t, std::vector<double>> byPos;
-                std::vector<std::pair<std::int64_t, double>> raw;
+                std::map<std::pair<std::string, std::int64_t>, std::vector<double>> byPos;
+                std::vector<std::pair<std::pair<std::string, std::int64_t>, double>> raw;
                 for (const Note& p : lane.perf)
                 {
                     const Section& sec = s.sections[static_cast<std::size_t> (p.section)];
-                    if (!(sec.kind == "drop" || sec.kind == "drop2") || p.tick == sec.startTick())
+                    if (!(sec.kind == "drop" || sec.kind == "drop2" || sec.kind == "groove") || p.tick == sec.startTick())
                         continue;
                     const double d = static_cast<double> (p.tick - p.step * ticksPerStep);
-                    byPos[p.step % 32].push_back (d);
-                    raw.emplace_back (p.step, d);
+                    byPos[{ sec.kind, p.step % 32 }].push_back (d);
+                    raw.push_back ({ { sec.kind, p.step % 32 }, d });
                 }
-                std::map<std::int64_t, double> posMean;
+                std::map<std::pair<std::string, std::int64_t>, double> posMean;
                 for (const auto& [pos, v] : byPos)
                     posMean[pos] = mean (v);
                 std::vector<double> resid;
-                for (const auto& [step, d] : raw)
-                    resid.push_back (d - posMean[step % 32]);
+                for (const auto& [pos, d] : raw)
+                    resid.push_back (d - posMean[pos]);
                 REQUIRE (resid.size() > 100);
                 const double s1 = sd (resid);
                 CHECK (s1 > 1.5); // G7: residual SD 1.5-6 ticks

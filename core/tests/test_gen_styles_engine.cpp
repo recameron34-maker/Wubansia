@@ -788,6 +788,11 @@ TEST_CASE ("styles: fresh voicings repeat phrase by phrase", "[gen][styles][chor
                 for (std::size_t i = 0; i < phrases[k].size(); ++i)
                 {
                     INFO ("seed " << seed << " " << sec.kind << " phrase " << k << " chord " << i);
+                    // a chord pushed early out of a bar the pad sits out (a block or a dropout of the
+                    // form's lane moves) comes in on its line instead
+                    const auto barOf = [&sec] (std::int64_t tick) { return static_cast<std::int32_t> ((tick - sec.startTick()) / ticksPerBar); };
+                    if (!sec.active (li, barOf (phrases[k][i].start)) || !sec.active (li, barOf (phrases[0][i].start)))
+                        continue;
                     const auto first = stackAt (phrases[0][i].start);
                     REQUIRE (first.size() >= 3);
                     CHECK (stackAt (phrases[k][i].start) == first);

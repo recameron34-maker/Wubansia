@@ -31,7 +31,8 @@ namespace
         std::set<std::string_view> failing; // every other gate must pass
     };
 
-    // Part 1's verdicts on seeds 0-63, and why each failing gate fails:
+    // The verdicts on seeds 0-63 (part 1's, then S1b2a's form grammar: G10 passes on every style),
+    // and why each failing gate fails:
     // - G4, G5: no lead lane yet (the hook, S1b2); FUT02's arp counts as lead. FUT04's G5 also has no
     //   ghost windows: its sparse snare plays no ghosts.
     // - G7 on FUT01 and FUT03: the metric's hats group merges the hats track with the shaker (GM 54),
@@ -41,12 +42,14 @@ namespace
     //   the bass grooves against the kick). The swing tiers versus round 1's "every lane uses the kit's
     //   one swing" stay open for the S1b2 gating ADR.
     // - G1, G2 on FUT04: a one-chord pedal by design (an exemption or another measure, the same ADR).
-    // - G9, G10: no fills or transition gestures yet, one form per style (S1b2's fills and form grammar).
+    // - G9: no fills or transition gestures yet (S1b2's fills). The form grammar's one-bar dropouts
+    //   come before the drops' own 16-bar lines, inside them, not at section boundaries.
+    // - G10 passes: every seed draws its own form (S1b2a), some 60 distinct forms in 64 seeds per style.
     const Expected expected[] = {
-        { "FUT01", { "G4", "G5", "G7", "G9", "G10" } },
-        { "FUT02", { "G9", "G10" } },
-        { "FUT03", { "G4", "G5", "G7", "G9", "G10" } },
-        { "FUT04", { "G1", "G2", "G4", "G5", "G9", "G10" } },
+        { "FUT01", { "G4", "G5", "G7", "G9" } },
+        { "FUT02", { "G9" } },
+        { "FUT03", { "G4", "G5", "G7", "G9" } },
+        { "FUT04", { "G1", "G2", "G4", "G5", "G9" } },
     };
 }
 
@@ -99,6 +102,15 @@ TEST_CASE ("gates: the metric suite on 64 seeds per style, invariants and gates"
         {
             INFO (g.id << ": " << metrics::gateSummary (g.id, r["gating"][g.id]["result"]));
             CHECK (r["gating"][g.id].num ("pass") == (e.failing.contains (g.id) ? 0 : 1));
+        }
+        // G4 where it fails only for want of a lead lane: the bass and chords still make at least half
+        // their macro changes on phrase lines, with the lane moves inside the drops
+        const metrics::Value& g4 = r["gating"]["G4"]["result"];
+        for (const char* role : { "bass", "chords" })
+        {
+            INFO ("G4 " << role << ": " << g4[role].num ("on_phrase") << " of " << g4[role].num ("changes") << " on phrase lines");
+            CHECK (g4[role].num ("changes") > 0);
+            CHECK (2 * g4[role].num ("on_phrase") >= g4[role].num ("changes"));
         }
     }
 }

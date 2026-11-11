@@ -7,8 +7,8 @@
 // quantized/, the cut's folder must hold:
 // - its full file, one region per section that starts before the cut, regions.json, and nothing else;
 // - regions.json: the whole song's, with the cut's "bars" and "length" and its regions up to the one
-//   the cut ends, that one shortened to it ("file", "bars", "lengthTicks", "blocks" and the lanes of
-//   the blocks it keeps);
+//   the cut ends, that one shortened to it ("file", "bars", "lengthTicks", "blocks", the lanes of
+//   the blocks it keeps, and the one-bar "dropouts" before the cut);
 // - the region files before that one: the whole song's, byte for byte;
 // - the full file and that last region: the bytes the MIDI writer gives the whole song's head. Per
 //   lane track, the notes whose score onsets (in the whole song's quantized file) are before the cut,
@@ -463,6 +463,11 @@ namespace
         regionBars->integer = lastBars;
         ticks->integer = lastBars * ticksPerBar;
         blocks->items.resize (static_cast<std::size_t> (lastBars / 8));
+        if (json::Value* dropouts = memberOf (shortened, "dropouts")) // the one-bar dropouts before the cut
+            std::erase_if (dropouts->items, [&] (const json::Value& d) {
+                const json::Value* at = d.find ("startBar");
+                return at == nullptr || at->integer >= bars;
+            });
         std::set<std::string> playing; // the lanes of the blocks it keeps, then in track order
         for (const auto& b : blocks->items)
             if (const json::Value* l = b.find ("lanes"))

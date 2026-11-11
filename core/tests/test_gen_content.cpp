@@ -189,47 +189,6 @@ TEST_CASE ("both bundles use the GM drum notes inside 35-59 and the lanes of the
     }
 }
 
-TEST_CASE ("the default forms are DJ-friendly extended mixes of 6 to 8 minutes", "[gen][content]")
-{
-    for (const char* id : { "FUT01", "FUT03" })
-    {
-        INFO (id);
-        const auto b = loadBundle (contentDir, id);
-        REQUIRE (b.ok());
-        const Style& style = b.value.style;
-        std::int32_t bars = 0;
-        for (const auto& s : style.form)
-        {
-            CHECK (s.bars % 8 == 0);
-            CHECK (s.blocks.size() == static_cast<std::size_t> (s.bars / 8));
-            bars += s.bars;
-        }
-        // seconds = bars * 4 beats * 60 / bpm
-        const std::int32_t seconds = bars * 240 / b.value.kit.bpm;
-        CHECK (seconds >= 6 * 60);
-        CHECK (seconds <= 8 * 60);
-        REQUIRE (style.form.size() >= 3);
-        CHECK (style.form.front().kind == "intro");
-        CHECK (style.form.front().bars == 32);
-        CHECK (style.form.back().kind == "outro");
-        CHECK (style.form.back().bars == 32);
-        const std::set<std::string> drums = { "kick", "snare", "hats", "shaker", "perc" };
-        for (const auto& lane : style.form.front().blocks.front())
-            CHECK (drums.contains (lane));
-        for (const auto& lane : style.form.back().blocks.back())
-            CHECK (drums.contains (lane));
-        // the intro adds lanes block by block, the outro takes them away
-        for (std::size_t i = 1; i < style.form.front().blocks.size(); ++i)
-            CHECK (style.form.front().blocks[i].size() > style.form.front().blocks[i - 1].size());
-        for (std::size_t i = 1; i < style.form.back().blocks.size(); ++i)
-            CHECK (style.form.back().blocks[i].size() < style.form.back().blocks[i - 1].size());
-        std::set<std::string> kinds;
-        for (const auto& s : style.form)
-            kinds.insert (s.kind);
-        CHECK (kinds == std::set<std::string> { "intro", "groove", "build", "drop", "break", "drop2", "outro" });
-    }
-}
-
 TEST_CASE ("the kit loader refuses broken kits and says where", "[gen][content]")
 {
     const Texts t = texts ("fut01", "garage2step");
@@ -262,18 +221,9 @@ TEST_CASE ("the style loader refuses broken styles and says where", "[gen][conte
         u.style = replaced (u.style, from, to);
         return bundleError (u);
     };
-    // a section that isn't on 8-bar lines
-    CHECK_THAT (withStyle ("{ \"kind\": \"build\", \"bars\": 8,", "{ \"kind\": \"build\", \"bars\": 12,"), ContainsSubstring ("8"));
-    // the intro must start with drums only
-    CHECK_THAT (withStyle ("[\"kick\", \"hats\"],\n      [\"kick\", \"hats\", \"shaker\"],",
-                    "[\"kick\", \"bass\"],\n      [\"kick\", \"hats\", \"shaker\"],"),
-        ContainsSubstring ("drums only"));
-    // an unknown lane in a block
-    CHECK_THAT (withStyle ("[\"snare\", \"hats\", \"shaker\", \"perc\", \"chords\"] ] },\n    { \"kind\": \"drop\"",
-                    "[\"snare\", \"hats\", \"shakr\", \"perc\", \"chords\"] ] },\n    { \"kind\": \"drop\""),
-        ContainsSubstring ("shakr"));
+    // (the form grammar's refusals: test_gen_form.cpp)
     // an unknown section kind
-    CHECK_THAT (withStyle ("{ \"kind\": \"build\", \"bars\": 8,", "{ \"kind\": \"bridge\", \"bars\": 8,"), ContainsSubstring ("bridge"));
+    CHECK_THAT (withStyle ("\"build\": { \"energy\": 3,", "\"bridge\": { \"energy\": 3,"), ContainsSubstring ("bridge"));
     // a probability above 100
     CHECK_THAT (withStyle ("\"p\":   [100, 0, 0, 0,   0, 0,  6, 10,", "\"p\":   [101, 0, 0, 0,   0, 0,  6, 10,"), ContainsSubstring ("0 to 100"));
     // a grid of the wrong length
@@ -283,10 +233,8 @@ TEST_CASE ("the style loader refuses broken styles and says where", "[gen][conte
     // a cell that can hit with no velocity
     CHECK_THAT (withStyle ("\"vel\": [124, 0, 0, 0,   0, 0, 98, 100,", "\"vel\": [124, 0, 0, 0,   0, 0, 0, 100,"),
         ContainsSubstring ("velocity"));
-    // a lane active in a section kind its "use" has no grid for (the kick in the break)
-    CHECK_THAT (withStyle ("[\"hats\", \"chords\"],\n      [\"hats\", \"perc\", \"chords\"],",
-                    "[\"hats\", \"kick\", \"chords\"],\n      [\"hats\", \"perc\", \"chords\"],"),
-        ContainsSubstring ("break"));
+    // a lane the form plays in a section kind its "use" has no grid for (the kick in the break)
+    CHECK_THAT (withStyle ("\"break\": {\n        \"lanes\": [\"hats\",", "\"break\": {\n        \"lanes\": [\"kick\", \"hats\","), ContainsSubstring ("no grid for break"));
     // a voicing the palette names but nobody defines
     CHECK_THAT (withStyle ("\"intro\": [\"sus2\", \"fifths\"],", "\"intro\": [\"sus2\", \"fourths\"],"), ContainsSubstring ("fourths"));
     // harmonic rhythm units must sum to 4
@@ -295,76 +243,6 @@ TEST_CASE ("the style loader refuses broken styles and says where", "[gen][conte
     CHECK_THAT (withStyle ("\"follow\": \"kick\",", "\"follow\": \"kik\","), ContainsSubstring ("kik"));
     // a voice exclusive with itself would silence itself on every step it plays
     CHECK_THAT (withStyle ("\"exclusive\": [[\"snare\", \"ghost\"]],", "\"exclusive\": [[\"snare\", \"snare\"]],"), ContainsSubstring ("exclusive with itself"));
-}
-
-TEST_CASE ("the style loader keeps every form a DJ-friendly extended mix", "[gen][content]")
-{
-    // The mix-in: 32 bars from drums only, lanes only joining, one at least every 8 or 16 bars. The
-    // mix-out: 32 bars, lanes only leaving, one at least every 8 or 16 bars, ending on drums only.
-    const Texts t = texts ("fut01", "garage2step");
-    REQUIRE (bundleError (t).empty());
-    const auto withStyle = [&t] (std::string_view from, std::string_view to) {
-        Texts u = t;
-        u.style = replaced (u.style, from, to);
-        return bundleError (u);
-    };
-    const std::string intro = "{ \"kind\": \"intro\", \"bars\": 32, \"blocks\": [\n"
-                              "      [\"kick\", \"hats\"],\n"
-                              "      [\"kick\", \"hats\", \"shaker\"],\n"
-                              "      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"],\n"
-                              "      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"] ] },";
-    const std::string outro = "{ \"kind\": \"outro\", \"bars\": 32, \"blocks\": [\n"
-                              "      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"],\n"
-                              "      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"],\n"
-                              "      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"],\n"
-                              "      [\"kick\", \"hats\", \"shaker\"] ] }";
-    // a lane leaving in the mix-in
-    const std::string leaves = replaced (intro, "[\"kick\", \"hats\", \"shaker\"],", "[\"kick\", \"shaker\"],");
-    CHECK_THAT (withStyle (intro, leaves), ContainsSubstring ("form[0].blocks[1]"));
-    CHECK_THAT (withStyle (intro, leaves), ContainsSubstring ("\"hats\""));
-    // 24 bars without a lane joining
-    const std::string idle = replaced (replaced (intro, "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"],", "[\"kick\", \"hats\", \"shaker\"],"),
-        "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"] ]",
-        "[\"kick\", \"hats\", \"shaker\"] ]");
-    CHECK_THAT (withStyle (intro, idle), ContainsSubstring ("form[0].blocks[3]"));
-    // a 16-bar mix-in
-    CHECK_THAT (withStyle (intro, "{ \"kind\": \"intro\", \"bars\": 16, \"blocks\": [\n      [\"kick\", \"hats\"],\n      [\"kick\", \"hats\", \"shaker\"] ] },"),
-        ContainsSubstring ("32 bars"));
-    // a lane joining in the mix-out
-    const std::string joins = replaced (outro, "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"],", "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"chords\"],");
-    CHECK_THAT (withStyle (outro, joins), ContainsSubstring ("form[7].blocks[2]"));
-    CHECK_THAT (withStyle (outro, joins), ContainsSubstring ("\"chords\""));
-    // 24 bars without a lane leaving
-    const std::string stays = replaced (replaced (outro, "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"],", "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"],"),
-        "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"],",
-        "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"],");
-    CHECK_THAT (withStyle (outro, stays), ContainsSubstring ("form[7].blocks[2]"));
-    // a 24-bar mix-out
-    CHECK_THAT (withStyle (outro, "{ \"kind\": \"outro\", \"bars\": 24, \"blocks\": [\n      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"],\n      [\"kick\", \"hats\", \"shaker\"],\n      [\"kick\", \"hats\"] ] }"),
-        ContainsSubstring ("32 bars"));
-    // a mix-out whose last block keeps the bass: in every block, so lanes still only leave
-    const std::string bassStays = "{ \"kind\": \"outro\", \"bars\": 32, \"blocks\": [\n"
-                                  "      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"],\n"
-                                  "      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"],\n"
-                                  "      [\"kick\", \"hats\", \"shaker\", \"perc\", \"bass\"],\n"
-                                  "      [\"kick\", \"hats\", \"bass\"] ] }";
-    CHECK_THAT (withStyle (outro, bassStays), ContainsSubstring ("form[7].blocks[3]"));
-    CHECK_THAT (withStyle (outro, bassStays), ContainsSubstring ("drums only"));
-    // a form that doesn't start with an intro, or doesn't end with an outro
-    CHECK_THAT (withStyle (intro, replaced (intro, "\"kind\": \"intro\"", "\"kind\": \"groove\"")), ContainsSubstring ("form[0].kind"));
-    CHECK_THAT (withStyle (intro, replaced (intro, "\"kind\": \"intro\"", "\"kind\": \"groove\"")), ContainsSubstring ("starts with an intro"));
-    CHECK_THAT (withStyle (outro, replaced (outro, "\"kind\": \"outro\"", "\"kind\": \"groove\"")), ContainsSubstring ("form[7].kind"));
-    CHECK_THAT (withStyle (outro, replaced (outro, "\"kind\": \"outro\"", "\"kind\": \"groove\"")), ContainsSubstring ("ends with an outro"));
-    // a 40-bar mix-in: longer than 32 is refused too, not only shorter
-    const std::string longer = replaced (replaced (intro, "\"bars\": 32", "\"bars\": 40"), "\"bass\"] ] },", "\"bass\"],\n      [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"] ] },");
-    CHECK_THAT (withStyle (intro, longer), ContainsSubstring ("form[0].bars"));
-    CHECK_THAT (withStyle (intro, longer), ContainsSubstring ("32 bars long, not 40"));
-    // the shipped forms keep every rule, in all four styles
-    for (const auto& [kit, style] : { std::pair { "fut01", "garage2step" }, std::pair { "fut02", "sciclub" }, std::pair { "fut03", "futurehouse" }, std::pair { "fut04", "techno" } })
-    {
-        INFO (style);
-        CHECK (bundleError (texts (kit, style)).empty());
-    }
 }
 
 TEST_CASE ("the feel loader refuses broken feels and says where", "[gen][content]")

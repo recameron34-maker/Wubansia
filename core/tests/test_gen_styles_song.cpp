@@ -242,8 +242,12 @@ namespace
                 h.blocks.resize (static_cast<std::size_t> (h.bars / barsPerBlock));
                 sections.push_back (h);
             }
-        const auto sameSection = [] (const Section& a, const Section& b) {
-            return a.index == b.index && a.kind == b.kind && a.startBar == b.startBar && a.bars == b.bars && a.blocks == b.blocks;
+        const auto sameSection = [&whole] (const Section& a, const Section& b) {
+            bool same = a.index == b.index && a.kind == b.kind && a.startBar == b.startBar && a.bars == b.bars && a.blocks == b.blocks;
+            for (std::size_t l = 0; l < whole.lanes.size() && same; ++l) // the bars each lane plays, dropouts included
+                for (std::int32_t bar = 0; bar < a.bars && same; ++bar)
+                    same = a.active (l, bar) == b.active (l, bar);
+            return same;
         };
         if (cut.sections.size() != sections.size() || !std::equal (sections.begin(), sections.end(), cut.sections.begin(), sameSection))
             out.push_back (std::to_string (cut.sections.size()) + " sections, or not the whole song's (the last one shortened)");
@@ -436,7 +440,7 @@ TEST_CASE ("styles: an extended mix generates in under 50 ms per 128 bars", "[ge
     }
 }
 
-TEST_CASE ("styles: sections start on 8-bar lines, tile the song and make a 6 to 8 minute mix", "[gen][styles][song]")
+TEST_CASE ("styles: sections start on 8-bar lines, tile the song and make a 200 to 240 bar mix", "[gen][styles][song]")
 {
     for (const char* id : kits)
         for (std::uint64_t seed = 0; seed < 8; ++seed)
@@ -453,9 +457,8 @@ TEST_CASE ("styles: sections start on 8-bar lines, tile the song and make a 6 to
                 bar += sec.bars;
             }
             CHECK (bar == s.totalBars);
-            const std::int32_t seconds = s.totalBars * 240 / s.bpm;
-            CHECK (seconds >= 360);
-            CHECK (seconds <= 480);
+            CHECK (s.totalBars >= 200); // each seed draws its form (arrange.h)
+            CHECK (s.totalBars <= 240);
             CHECK (s.sections.front().kind == "intro");
             CHECK (s.sections.front().bars == 32);
             CHECK (s.sections.back().kind == "outro");
@@ -477,8 +480,9 @@ TEST_CASE ("styles: lanes play only in their active blocks and the mix edges are
                     const Section& sec = s.sections[static_cast<std::size_t> (n.section)];
                     const auto bar = static_cast<std::int32_t> (n.step / stepsPerBar) - sec.startBar;
                     CHECK (sec.active (li, bar));
-                    const std::int64_t blockEnd = (sec.startBar + (bar / barsPerBlock + 1) * barsPerBlock) * ticksPerBar;
-                    if (!sec.active (li, bar + barsPerBlock) || bar / barsPerBlock + 1 >= static_cast<std::int32_t> (sec.blocks.size()))
+                    const std::int32_t nextBlock = (bar / barsPerBlock + 1) * barsPerBlock;
+                    const std::int64_t blockEnd = (sec.startBar + nextBlock) * ticksPerBar;
+                    if (!sec.active (li, nextBlock) || bar / barsPerBlock + 1 >= static_cast<std::int32_t> (sec.blocks.size()))
                         CHECK (n.tick + n.length <= blockEnd); // nothing rings into a block the lane sits out
                 }
                 if (s.lanes[li].kind == LaneKind::drums)
@@ -877,10 +881,14 @@ TEST_CASE ("sci-fi club: four on the floor, claps on 2 and 4, open hats on the o
                 if (!isDrop (sec.kind))
                     continue;
                 ++dropBars;
-                CHECK (claps.contains (s0 + 4));
-                CHECK (claps.contains (s0 + 12));
-                for (const std::int64_t off : { 2, 6, 10, 14 })
-                    CHECK (opens.contains (s0 + off));
+                if (sec.active (laneIndexOf (s, "snare"), bar)) // where the lane plays: it can sit out a block or a bar of a drop
+                {
+                    CHECK (claps.contains (s0 + 4));
+                    CHECK (claps.contains (s0 + 12));
+                }
+                if (sec.active (laneIndexOf (s, "hats"), bar))
+                    for (const std::int64_t off : { 2, 6, 10, 14 })
+                        CHECK (opens.contains (s0 + off));
             }
     }
     CHECK (dropBars > 32 * 50);
@@ -1122,6 +1130,8 @@ TEST_CASE ("techno: 16th hats with open hats or rides on the offbeats", "[gen][s
                 continue;
             for (std::int32_t bar = 0; bar < sec.bars; ++bar)
             {
+                if (!sec.active (laneIndexOf (s, "hats"), bar))
+                    continue; // where the hats play: they can sit out a block of a drop
                 const std::int64_t s0 = (sec.startBar + bar) * stepsPerBar;
                 INFO ("seed " << seed << " bar " << sec.startBar + bar << " " << sec.kind);
                 ++bars;
@@ -1145,13 +1155,14 @@ TEST_CASE ("techno: 16th hats with open hats or rides on the offbeats", "[gen][s
     CHECK (rideBars * 100 >= drop2Bars * 90);
 }
 
-TEST_CASE ("techno: a sparse snare and clap in the drop, the full backbeat only in the second drop", "[gen][styles][techno]")
+TEST_CASE ("techno: a sparse snare and clap in the groove, none in the first drop, the full backbeat in the second", "[gen][styles][techno]")
 {
-    // Machine-hard techno: in the first drop the metal snare hits beat 4 of every second bar, a clap
+    // Machine-hard techno: in the groove the metal snare hits beat 4 of every second bar, a clap
     // sometimes doubles beat 4, and nothing else plays but a pickup in some turnaround bars; no
-    // swung ghost snares (that is house and garage programming). The second drop lifts to the full
-    // backbeat on 2 and 4.
-    std::size_t dropBars = 0, dropSteps = 0, dropTwos = 0, dropFours = 0, drop2Bars = 0, drop2Backbeats = 0, ghosts = 0;
+    // swung ghost snares (that is house and garage programming). The snare and clap are drop 2's
+    // layer (the form grammar): the first drop runs on the kick, rumble, hats, anvil and acid alone,
+    // and the second drop lifts to the full backbeat on 2 and 4.
+    std::size_t grooveBars = 0, grooveSteps = 0, grooveTwos = 0, grooveFours = 0, dropNotes = 0, drop2Bars = 0, drop2Backbeats = 0, ghosts = 0;
     for (std::uint64_t seed = 0; seed < 32; ++seed)
     {
         const Song s = songFor ("FUT04", seed);
@@ -1160,25 +1171,29 @@ TEST_CASE ("techno: a sparse snare and clap in the drop, the full backbeat only 
         for (const Note& n : s.lanes[li].score)
         {
             byStep[n.step].push_back (&n);
+            const std::string& kind = s.sections[static_cast<std::size_t> (n.section)].kind;
             // outside turnaround pickups, nothing quieter than the backbeat: no ghosts
-            if (!(n.flags & noteFlag::turn) && isDrop (s.sections[static_cast<std::size_t> (n.section)].kind))
+            if (!(n.flags & noteFlag::turn) && (isDrop (kind) || kind == "groove"))
                 ghosts += n.velocity < 64 ? 1u : 0u;
+            dropNotes += kind == "drop" ? 1u : 0u;
         }
         for (const Section& sec : s.sections)
             for (std::int32_t bar = 0; bar < sec.bars; ++bar)
             {
+                if (!sec.active (li, bar))
+                    continue; // a dropout, or a block the snare sits out
                 const std::int64_t s0 = (sec.startBar + bar) * stepsPerBar;
                 const auto snareAt = [&] (std::int64_t k) {
                     const auto it = byStep.find (s0 + k);
                     return it != byStep.end() && std::any_of (it->second.begin(), it->second.end(), [] (const Note* n) { return n->voice == 0; });
                 };
-                if (sec.kind == "drop")
+                if (sec.kind == "groove")
                 {
-                    ++dropBars;
-                    dropTwos += snareAt (4) ? 1u : 0u;
-                    dropFours += snareAt (12) ? 1u : 0u;
+                    ++grooveBars;
+                    grooveTwos += snareAt (4) ? 1u : 0u;
+                    grooveFours += snareAt (12) ? 1u : 0u;
                     for (std::int64_t k = 0; k < 16; ++k)
-                        dropSteps += byStep.contains (s0 + k) ? 1u : 0u;
+                        grooveSteps += byStep.contains (s0 + k) ? 1u : 0u;
                     if (bar % 2 == 1)
                         CHECK (snareAt (12)); // beat 4 of every second bar
                 }
@@ -1189,12 +1204,14 @@ TEST_CASE ("techno: a sparse snare and clap in the drop, the full backbeat only 
                 }
             }
     }
-    INFO (dropSteps << " snare-lane steps in " << dropBars << " drop bars, the snare on beat 2 in " << dropTwos << " and on beat 4 in " << dropFours << "; the backbeat in "
-                    << drop2Backbeats << " of " << drop2Bars << " drop 2 bars; " << ghosts << " ghosts");
-    REQUIRE (dropBars > 500);
-    CHECK (dropTwos == 0);
-    CHECK (dropFours * 2 == dropBars); // every second bar, no more
-    CHECK (dropSteps * 10 <= dropBars * 12); // sparse: at most 1.2 hits a bar, pickups included
+    INFO (grooveSteps << " snare-lane steps in " << grooveBars << " groove bars, the snare on beat 2 in " << grooveTwos << " and on beat 4 in " << grooveFours
+                      << "; the backbeat in " << drop2Backbeats << " of " << drop2Bars << " drop 2 bars; " << ghosts << " ghosts; " << dropNotes << " notes in the first drops");
+    REQUIRE (grooveBars > 500);
+    CHECK (grooveTwos == 0);
+    CHECK (grooveFours * 2 == grooveBars); // every second bar, no more
+    CHECK (grooveSteps * 10 <= grooveBars * 12); // sparse: at most 1.2 hits a bar, pickups included
+    CHECK (dropNotes == 0);
+    REQUIRE (drop2Bars > 500);
     CHECK (drop2Backbeats == drop2Bars);
     CHECK (ghosts == 0);
 }

@@ -72,7 +72,7 @@ TEST_CASE ("writeFiles refuses a regions folder that holds another song's region
     const auto feelJson = bytesOf (out / "feel" / "regions.json");
     const auto quantizedJson = bytesOf (out / "quantized" / "regions.json");
 
-    // The first 16 bars: one region, 01_intro_16bars.mid, which the full song's eight don't include.
+    // The first 16 bars: one region, 01_intro_16bars.mid, which the full song's regions don't include.
     const Song cut = songOf (1, 16);
     const auto refused = writeFiles (cut, out, true, true);
     REQUIRE_FALSE (refused.ok());
@@ -86,7 +86,7 @@ TEST_CASE ("writeFiles refuses a regions folder that holds another song's region
     CHECK (bytesOf (out / "feel" / "regions.json") == feelJson);
     CHECK (bytesOf (out / "quantized" / "regions.json") == quantizedJson);
     // and nothing was deleted
-    CHECK (std::filesystem::exists (out / "feel" / "regions" / "08_outro_32bars.mid"));
+    CHECK (std::filesystem::exists (out / "feel" / "regions" / regionFileName (full.sections.back())));
 
     // Only the version being written is checked: the quantized folder alone is clean for the cut.
     const auto other = freshFolder ("export_folders_other_quantized");
@@ -98,13 +98,15 @@ TEST_CASE ("writeFiles refuses a regions folder that holds another song's region
 
 TEST_CASE ("writeFiles refuses a folder that holds another seed of the same kit", "[gen][export][folders]")
 {
-    // Every seed of a kit has the same region names (one form per style), so the region check alone
-    // can't tell two seeds apart: the full file's name and regions.json do.
+    // Seeds of a kit can share region names (they carry no seed, and many seeds draw the same
+    // sections), so the region check alone can't tell two seeds apart: the full file's name and
+    // regions.json do.
     const auto out = freshFolder ("export_folders_seed");
     const Song one = songOf (1, 0);
     REQUIRE (writeFiles (one, out, true, true).ok());
     const auto feelJson = bytesOf (out / "feel" / "regions.json");
-    const auto drop = bytesOf (out / "feel" / "regions" / "04_drop_32bars.mid");
+    const std::string dropFile = regionFileName (one.sections[3]);
+    const auto drop = bytesOf (out / "feel" / "regions" / dropFile);
 
     const Song two = songOf (2, 0);
     const auto refused = writeFiles (two, out, true, true);
@@ -115,7 +117,7 @@ TEST_CASE ("writeFiles refuses a folder that holds another seed of the same kit"
     CHECK_FALSE (std::filesystem::exists (out / "feel" / "FUT01_seed2_134bpm_11A_full.mid"));
     CHECK_FALSE (std::filesystem::exists (out / "quantized" / "FUT01_seed2_134bpm_11A_full.mid"));
     CHECK (bytesOf (out / "feel" / "regions.json") == feelJson);
-    CHECK (bytesOf (out / "feel" / "regions" / "04_drop_32bars.mid") == drop);
+    CHECK (bytesOf (out / "feel" / "regions" / dropFile) == drop);
     CHECK (std::filesystem::exists (out / "feel" / "FUT01_seed1_134bpm_11A_full.mid"));
 
     // the other version's folder counts too: one --out folder is one song, in both versions
