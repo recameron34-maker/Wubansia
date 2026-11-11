@@ -141,6 +141,23 @@ def sounding(tracks, name, tick):
     return [key for on, off, key, _ in notes_in(tracks, name) if on <= tick < off]
 
 
+def drone(tracks, ln):
+    """The arp's drone in a line: its notes off the 3-3-2 accents (the full phrase plays them, the skeleton doesn't)."""
+    lo, hi = span(ln)
+    return [n for n in notes_in(tracks, 'Lead', lo, hi) if step_of(n[0], lo) % 16 not in SKELETON]
+
+
+def chords_in(tracks, lo, hi):
+    """The chords struck in [lo, hi) by the pad (its Dm9 on D3) and the laser chord stab, on channel 12 or as an
+    accent (its two files: Dm9 on D4, B-flat maj9 on B-flat 3)."""
+    k = Mi.kit_of(KIT)
+    name = {62: 'Dm9', 58: 'Bbmaj9'}
+    got = {'Dm9' for n in notes_in(tracks, 'Chords', lo, hi) if n[2] == 50}
+    got |= {name[n[2]] for n in notes_in(tracks, 'Laser Chord Stab', lo, hi)}
+    acc = {k.key_of('accents', 'LaserChordStab', z): name[z] for z in name}
+    return got | {acc[n[2]] for n in notes_in(tracks, 'Accents', lo, hi) if n[2] in acc}
+
+
 class TestExtendedMix(unittest.TestCase):
     """FUT02's own extended mix (PARTS['form']), both variants, on the exported files."""
 
@@ -196,58 +213,78 @@ class TestExtendedMix(unittest.TestCase):
 
     def test_the_drop_is_a_drop(self):
         """Audit B FUT02 must 1, the brief's bar: the drop's first line is not the groove's last. It brings the full
-        arp (the drone between the accents, which the groove leaves out), an impact on its first beat (the sub drop and
-        a glass ping) and the accents in both its 4-bar blocks, and in the vox mix the riff as notes, held back until
-        then but for the groove's one throw; the groove's last line has neither the drone nor an impact."""
+        arp (the drone between the accents, which the groove and the build leave out), an impact on its first beat (the
+        sub drop and a glass ping) and the accents in both its 4-bar blocks, and in the vox mix the riff as notes, held
+        back until then but for the groove's one throw; the groove's last line has neither the drone nor an impact.
+        The drop's second line keeps the full arp and the vox too ('the full arp and the vox in lines 1-2')."""
         k = Mi.kit_of(KIT)
         sub, ping = k.key_of('fx', 'SubDrop'), k.key_of('accents', 'GlassPing')
         for v in VARIANTS:
             R, tracks, _ = whole(KIT, v)
-            g, d = sec(R, 'Groove')['lines'][-1], sec(R, 'Drop')['lines'][0]
+            g, (d, d2) = sec(R, 'Groove')['lines'][-1], sec(R, 'Drop')['lines'][:2]
             for ln, hits in ((g, False), (d, True)):
                 lo, hi = span(ln)
-                drone = [n for n in notes_in(tracks, 'Lead', lo, hi) if step_of(n[0], lo) % 16 not in SKELETON]
                 impact = (sub in {n[2] for n in notes_in(tracks, 'FX', lo, lo + 1)}
                           and ping in {n[2] for n in notes_in(tracks, 'Accents', lo, lo + 1)})
-                self.assertEqual(hits, bool(drone), (v, ln['start_bar']))
+                self.assertEqual(hits, bool(drone(tracks, ln)), (v, ln['start_bar']))
                 self.assertEqual(hits, impact, (v, ln['start_bar']))
                 if hits:
                     for b in (lo, lo + 4 * BAR):
                         self.assertTrue(notes_in(tracks, 'Accents', b, b + 4 * BAR), (v, b // BAR + 1))
+            self.assertTrue(drone(tracks, d2), (v, d2['start_bar']))
             if v == 'vox':
                 lo, hi = span(d)
                 self.assertEqual(1, len(riff_notes(tracks, 0, lo)))
-                self.assertTrue(riff_notes(tracks, lo, hi))
+                for ln in (d, d2):
+                    self.assertTrue(riff_notes(tracks, *span(ln)), ln['start_bar'])
 
     def test_the_harmony_moves(self):
         """Audit B FUT02 must 2: in the vox mix the choir chords (Dm7, Dm9, B-flat maj7 over D, Am7: the Vox choir
-        chords phrase, as recorded) sing in both breaks; in both mixes the laser stab riff's Dm9 and B-flat maj9 move
-        the drop's harmony from its third line (its first two are the arp's and the vox's), and every break line keeps
-        a harmony of its own in the no-vox mix too (the pad, or the laser stabs)."""
+        chords phrase's notes, which the plugin plays on the vox synth multisample) sing in both breaks; in both mixes
+        the laser stab riff's Dm9 and B-flat maj9 move the drop's harmony from its third line (its first two are the
+        arp's and the vox's); and in the no-vox mix every break line moves between two chords of its own, the pad's (or
+        the laser stabs') Dm9 and the laser stabs' B-flat maj9 (review #9: one held Dm9 through break 1 was the
+        harmony that never moved)."""
         for v in VARIANTS:
             R, tracks, _ = whole(KIT, v)
             for name in ('Break', 'Break 2'):
                 s = sec(R, name)
                 self.assertEqual(CHOIR if v == 'vox' else set(), chord_groups(tracks, *span(s)), (v, name))
                 for ln in s['lines']:
-                    self.assertTrue(notes_in(tracks, 'Chords', *span(ln)) or
-                                    notes_in(tracks, 'Laser Chord Stab', *span(ln)), (v, ln['start_bar']))
+                    want = {'Dm9', 'Bbmaj9'} if v == 'novox' else {'Dm9'}
+                    self.assertLessEqual(want, chords_in(tracks, *span(ln)), (v, ln['start_bar']))
             for i, ln in enumerate(sec(R, 'Drop')['lines']):
                 keys = {n[2] for n in notes_in(tracks, 'Laser Chord Stab', *span(ln))}
                 self.assertEqual({58, 62} if i >= 2 else set(), keys, (v, ln['start_bar']))
 
-    def test_no_b_flat_stab_over_the_pad(self):
-        """The laser stab's B-flat maj9 (its root B-flat 3) never sounds over the pad, whose Dm9 holds A3 a semitone
-        under it in the low mids: where the stabs move the harmony the pad is out."""
+    def test_no_b_flat_over_the_pad_or_the_arp(self):
+        """Nothing sounds B-flat over the pad, whose Dm9 holds A3 and A4 a semitone under it and E5 a tritone over it:
+        not the laser stab's B-flat maj9 (its root B-flat 3), and not the choir's B-flat maj7/D (its B-flat 4 on the
+        loud 'ee'), under which the arp's call would also tick A4 and E5 (review #29). The choir sings over the pad
+        only on its Dm7 and Dm9 (every tone a tone of the pad's Dm9); its B-flat maj7/D and Am7 have neither the pad
+        nor the arp under them."""
         bb = Mi.kit_of(KIT).key_of('accents', 'LaserChordStab', 58)
+        dm9 = {n % 12 for n in Pd.CHORD}
         for v in VARIANTS:
             _, tracks, _ = whole(KIT, v)
             pad = [(on, off) for on, off, _, _ in notes_in(tracks, 'Chords')]
+            arp = [(on, off) for on, off, _, _ in notes_in(tracks, 'Lead')]
             stabs = [n for n in notes_in(tracks, 'Laser Chord Stab') if n[2] == 58]
             stabs += [n for n in notes_in(tracks, 'Accents') if n[2] == bb]
             self.assertTrue(stabs, v)
             for on, off, _, _ in stabs:
                 self.assertFalse([p for p in pad if p[0] < off and on < p[1]], (v, on // BAR + 1))
+            starts = {}
+            for on, off, key, _ in notes_in(tracks, 'Vox'):
+                starts.setdefault((on, off), set()).add(key)
+            choir = {span_: keys for span_, keys in starts.items() if len(keys) >= 3}
+            self.assertEqual(v == 'vox', bool(choir), v)
+            for (on, off), keys in choir.items():
+                under = [p for p in pad if p[0] < off and on < p[1]]
+                if {k % 12 for k in keys} <= dm9:
+                    continue
+                self.assertFalse(under, (v, on // BAR + 1, sorted(keys)))
+                self.assertFalse([a for a in arp if a[0] < off and on < a[1]], (v, on // BAR + 1, sorted(keys)))
 
     def test_break_2_is_filled(self):
         """Audit B FUT02 must 3: break 2 is no pad alone (two chord attacks in 8 bars): at least four notes start in
@@ -290,17 +327,37 @@ class TestExtendedMix(unittest.TestCase):
 
     def test_drop_2_plays_relay_the_vox_and_the_glass_melody(self):
         """Audit B FUT02 must 1: drop 2 is on the Relay line (the switch-up kept Orbit), with the glass melody on
-        channel 13 (its phrase's notes) and, in the vox mix, the vox; its last line strips the vox and the arp into the
-        outro (no vox or arp note starts there)."""
+        channel 13 (its phrase's notes) and, in the vox mix, the vox. Its first line opens on all three (review #31):
+        the sub drop on its downbeat, the glass melody and the vox's call from its first bars. Its last line strips the
+        vox and the arp into the outro (no vox or arp note starts there)."""
         glass = {m for _, m, _ in A.GLASS_MELODY}
+        sub = Mi.kit_of(KIT).key_of('fx', 'SubDrop')
         for v in VARIANTS:
             R, tracks, _ = whole(KIT, v)
             s = sec(R, 'Drop 2')
             self.assertEqual({'Relay'}, {ln['bass'] for ln in s['lines'] if 'bass' in ln}, v)
             self.assertEqual(glass, {n[2] for n in notes_in(tracks, 'Glass Ping', *span(s))}, v)
             self.assertEqual(v == 'vox', bool(riff_notes(tracks, *span(s))), v)
+            lo = span(s)[0]
+            self.assertIn(sub, [n[2] for n in notes_in(tracks, 'FX', lo, lo + 1)], v)
+            self.assertTrue(notes_in(tracks, 'Glass Ping', lo, lo + 2 * BAR), v)
+            self.assertEqual(v == 'vox', bool(riff_notes(tracks, lo, lo + 2 * BAR)), v)
             last = span(s['lines'][-1])
             self.assertFalse(notes_in(tracks, 'Vox', *last) + notes_in(tracks, 'Lead', *last), v)
+
+    def test_never_three_toplines(self):
+        """Review #7: the arp, the vox's riff and the glass melody share MIDI 69-89 and the same 3-3-2 accents. No bar
+        has all three; where the vox calls under the glass melody the arp sits out, and the glass is never a second or
+        a minor ninth from a riff note as it starts."""
+        for v in VARIANTS:
+            _, tracks, _ = whole(KIT, v)
+            for b in range(0, WHOLE, BAR):
+                parts = [bool(notes_in(tracks, 'Lead', b, b + BAR)), bool(riff_notes(tracks, b, b + BAR)),
+                         bool(notes_in(tracks, 'Glass Ping', b, b + BAR))]
+                self.assertLess(sum(parts), 3, (v, b // BAR + 1))
+            for on, _, key, _ in riff_notes(tracks):
+                near = [m for m in sounding(tracks, 'Glass Ping', on) if abs(m - key) % 12 in (1, 2)]
+                self.assertFalse(near, (v, on // BAR + 1, key))
 
     def test_the_arp_thins_where_the_vox_sings(self):
         """Audit B FUT02 nice 5: the arp and the vox share MIDI 69-84. In every bar where the vox sings more than the
@@ -366,7 +423,9 @@ class TestExtendedMix(unittest.TestCase):
     def test_the_arps_filter_ride(self):
         """The arp's CC74 ride (the plugin rides the arp's filter by it on its mix channel): held low in the groove (at
         most 40, about 3.1 kHz, where the loop's opens to 16 kHz), opening across the build from closed to fully open
-        (never closing on the way), and the loop's own ride in the drops, 4 bars at a time."""
+        (never closing on the way), the drop landing on it wide open (review #6: the build's sweep releases into the
+        drop, not onto a closed filter) and closing over its first line's second block into the loop's own ride, which
+        every later drop line plays, 4 bars at a time."""
         looped = ride(KIT, 'Lead', 74)
         for v in VARIANTS:
             R, tracks, _ = whole(KIT, v)
@@ -380,10 +439,17 @@ class TestExtendedMix(unittest.TestCase):
             self.assertEqual(sorted(bv), bv, v)
             self.assertLessEqual(bv[0], 8, v)
             self.assertEqual(127, bv[-1], v)
+            first = sec(R, 'Drop')['lines'][0]
+            lo, hi = span(first)
+            self.assertEqual(127, value_at(cc, lo), v)
+            self.assertEqual({127}, {value_at(cc, t) for t in range(lo, lo + 4 * BAR, 60)}, v)
+            down = [value_at(cc, t) for t in range(lo + 4 * BAR, hi, 60)]
+            self.assertEqual(sorted(down, reverse=True), down, v)
+            self.assertLessEqual(down[-1], 4, v)
             for name in ('Drop', 'Drop 2'):
                 for ln in sec(R, name)['lines']:
                     lo, hi = span(ln)
-                    if not notes_in(tracks, 'Lead', lo, hi):
+                    if ln['start_bar'] == first['start_bar'] or not notes_in(tracks, 'Lead', lo, hi):
                         continue
                     for t in range(lo, hi, 60):
                         self.assertEqual(value_at(looped, (t - lo) % (4 * BAR)), value_at(cc, t), (v, t // BAR + 1))
@@ -391,14 +457,27 @@ class TestExtendedMix(unittest.TestCase):
     def test_something_changes_at_every_line(self):
         """The brief's bar: every 8-bar line changes something before its last bar (its first 7 bars are not the line
         before's), every 16 bars the downbeat itself changes (a 16-bar half's first bar is not the bar 8 before it),
-        and at least 24 of the 28 lines differ in each mix."""
+        and at least 24 of the 28 lines differ in each mix. Every line with a clap or zaps ends on a fill, a
+        turnaround or the drums' silence (review #32: turnarounds every 8 bars where no fill falls), and a
+        turnaround's last bar is not its line's bar 4."""
+        drums = ('Kick', 'Clap', 'Hats', 'Perc')
         for v in VARIANTS:
-            _, tracks, _ = whole(KIT, v)
+            R, tracks, _ = whole(KIT, v)
+
+            def played(b):
+                return tuple((t, on, key) for t, on, _, key, _ in bar_notes(tracks, b, drums))
             bars_ = [bar_notes(tracks, b * BAR) for b in range(224)]
             bodies = [tuple(bars_[i:i + 7]) for i in range(0, 224, 8)]
             self.assertEqual([], [8 * i + 1 for i in range(1, 28) if bodies[i] == bodies[i - 1]], v)
             self.assertEqual([], [b + 1 for b in range(16, 224, 16) if bars_[b] == bars_[b - 8]], v)
             self.assertGreaterEqual(len({tuple(bars_[i:i + 8]) for i in range(0, 224, 8)}), 24, v)
+            for s in R['sections']:
+                for ln in s['lines']:
+                    if 'snare' in ln['lanes'] or 'perc' in ln['lanes']:
+                        self.assertIn(ln.get('end'), ('fill', 'turn', 'drop'), (v, ln['start_bar']))
+                    if ln.get('end') == 'turn':
+                        lo = span(ln)[0]
+                        self.assertNotEqual(played(lo + 3 * BAR), played(lo + 7 * BAR), (v, ln['start_bar']))
 
     def test_the_vox_throws_into_the_section_ends(self):
         """The riff's last note (A4) thrown (CC91 and CC94 at 127) on the 'and' of 4 of the groove's last bar, into
@@ -414,9 +493,10 @@ class TestExtendedMix(unittest.TestCase):
         self.assertNotIn('Vox', whole(KIT, 'novox')[1])
 
     def test_the_build_opens_the_arp_under_the_roll(self):
-        """The sci-fi club build, FUT02's: the arp plays through both its lines (its filter opening: the ride test),
-        and the kick and the bass sit out its last line under the clap roll and the 8-bar laser riser, which ends on
-        the drop's downbeat."""
+        """The sci-fi club build, FUT02's: the arp's skeleton plays through both its lines, its filter opening (the
+        ride test), and leaves its full 16ths, the drone, to the drop (review #6: the build had played the drop's arp
+        note for note); the kick and the bass sit out its last line under the clap roll and the 8-bar laser riser,
+        which ends on the drop's downbeat."""
         riser = Mi.kit_of(KIT).key_of('fx', 'LaserRiser')
         for v in VARIANTS:
             R, tracks, _ = whole(KIT, v)
@@ -424,11 +504,72 @@ class TestExtendedMix(unittest.TestCase):
             first, last = s['lines']
             for ln in s['lines']:
                 self.assertTrue(notes_in(tracks, 'Lead', *span(ln)), (v, ln['start_bar']))
+                self.assertFalse(drone(tracks, ln), (v, ln['start_bar']))
             for name in ('Kick', 'Bass', 'Drop Glide'):
                 self.assertFalse(notes_in(tracks, name, *span(last)), (v, name))
             self.assertTrue(notes_in(tracks, 'Kick', *span(first)), v)
             self.assertTrue([n for n in notes_in(tracks, 'FX', *span(last)) if n[2] == riser and n[1] == span(s)[1]],
                             v)
+
+    VOX = {97: 'loop', 105: 'loop', 121: 'call', 153: 'call', 161: 'call', 169: 'call', 177: 'answer'}
+
+    def test_the_vox_is_placed_line_by_line(self):
+        """Review #33, the brief's 'vox placement': the vox's modes line by line (the drop's first two lines the
+        loop's own pattern, then its call over the stabs' Dm9 bars, the call in break 2 and in drop 2 over the glass
+        and with the arp's skeleton, the answer to the arp's call), the choir in the breaks' first lines and break 1's
+        second, the throws into bars 64 and 128, and the vox nowhere else (not in the switch-up, not in the strip, not
+        in the no-vox mix)."""
+        R, tracks, _ = whole(KIT, 'vox')
+        lines = [ln for s in R['sections'] for ln in s['lines']]
+        self.assertEqual(self.VOX, {ln['start_bar']: ln['vox'] for ln in lines if ln.get('vox')})
+        sung = {ln['start_bar'] for ln in lines if notes_in(tracks, 'Vox', *span(ln))}
+        self.assertEqual(set(self.VOX) | {57, 65, 73, 145}, sung)
+        choir = {ln['start_bar'] for ln in lines if chord_groups(tracks, *span(ln))}
+        self.assertEqual({65, 73, 145}, choir)
+        self.assertEqual([(64, 69)], [(on // BAR + 1, key) for on, _, key, _ in notes_in(tracks, 'Vox', 56 * BAR,
+                                                                                            64 * BAR)])
+        self.assertNotIn('Vox', whole(KIT, 'novox')[1])
+
+    def test_the_cues_and_hits_land_on_their_targets(self):
+        """Review #38 and #12, the brief's 'accent synths as one-shots on their cues': in both mixes the sub drops on
+        the drops' downbeats (97, 161), the risers ending on them, the reverse chord ending on the switch-up's downbeat
+        out of the drums' silent bar, the resonant zap on that downbeat, the uplifter ending on drop 2's third line
+        (177), the B-flat maj9 stab cue on the 'and' of 4 of bars 40, 136 and 184; in the vox mix the switch-up's arp
+        stabs, answering the zaps (bars 130 and 134 on 16th 6, 138 and 142 on 16th 10, between the skeleton's
+        accents), where the vox loop's accents leave the arp stab out."""
+        k = Mi.kit_of(KIT)
+        acc = lambda item, zone=None: ('Accents', k.key_of('accents', item, zone))  # noqa: E731
+        fx = lambda item: ('FX', k.key_of('fx', item))  # noqa: E731
+        bar = lambda b, s=0: (b - 1) * BAR + at(KIT, s)  # noqa: E731
+        for v in VARIANTS:
+            _, tracks, _ = whole(KIT, v)
+            starts = {(t, n[2], n[0]) for t in ('FX', 'Accents') for n in notes_in(tracks, t)}
+            ends = {(t, n[2], n[1]) for t in ('FX', 'Accents') for n in notes_in(tracks, t)}
+            want_starts = [(fx('SubDrop'), bar(97)), (fx('SubDrop'), bar(161)), (acc('ResonantZap'), bar(129))]
+            want_starts += [(acc('LaserChordStab', 58), bar(b, 14)) for b in (40, 136, 184)]
+            if v == 'vox':
+                want_starts += [(acc('ArpStab'), bar(b, s)) for b, s in ((130, 6), (134, 6), (138, 10), (142, 10))]
+            want_ends = [(fx('LaserRiser'), bar(97)), (fx('LaserRiser'), bar(161)), (acc('ReverseChord'), bar(129)),
+                         (acc('NoiseUplifter'), bar(177))]
+            for (track, key), tick in want_starts:
+                self.assertIn((track, key, tick), starts, (v, track, key, tick // BAR + 1))
+            for (track, key), tick in want_ends:
+                self.assertIn((track, key, tick), ends, (v, track, key, tick // BAR + 1))
+
+    def test_the_no_vox_mix_answers_the_arps_call(self):
+        """Review #10: drop 2's third line is the arp's call (its odd bars) and the vox's answer (its even bars). The
+        no-vox mix has no vox, so its arp stabs answer there: something melodic starts on every bar's downbeat of that
+        line, the arp in the odd bars, an arp stab in the even ones, so the 16th arp never just stops every other bar
+        (audit B: that 'reads as broken')."""
+        stab = Mi.kit_of(KIT).key_of('accents', 'ArpStab')
+        R, tracks, _ = whole(KIT, 'novox')
+        lo = span(sec(R, 'Drop 2')['lines'][2])[0]
+        for j in range(8):
+            b = lo + j * BAR
+            if j % 2 == 0:
+                self.assertTrue(notes_in(tracks, 'Lead', b, b + 1), j)
+            else:
+                self.assertIn(stab, [n[2] for n in notes_in(tracks, 'Accents', b, b + 1)], j)
 
 
 if __name__ == '__main__':
