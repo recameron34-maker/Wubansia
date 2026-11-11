@@ -504,7 +504,7 @@ class TestExtendedMix(unittest.TestCase):
         """Review #23: drop 2's e-piano stab rhythm is a channel-4 phrase, so Wubansia plays it on the Stab A/B
         switch's sample, the Organ Stab by default; the kit README says so."""
         text = ' '.join(kit_files(KIT)['README.md'].decode().split())
-        self.assertIn('plays on the Stab A/B: the Organ Stab by default, the E Piano Stab on B', text)
+        self.assertIn('Wubansia plays it on the Stab A/B: the Organ Stab by default, the E Piano Stab on B', text)
 
     def test_something_changes_at_every_line(self):
         """The brief: no line repeats the line before it, not even in its first 7 bars (the change lands on the new
