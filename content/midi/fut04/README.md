@@ -91,7 +91,7 @@ Filter rides, every 60 ticks while they move (CC74 cutoff, CC71 resonance):
 - CC74 on channel 1 (Bass): the acid's ride: its cutoff x1 over bars 1-2, opening through bar 3, x2.6 on the fill bar's third beat, closed again by the downbeat; logarithmic, 0 = 5400 Hz to 127 = 14040 Hz.
 - CC71 on channel 1 (Bass): the acid's resonance: at rest over bars 1-2, rising over bar 3 to its top on the fill bar; linear, 0 = 0.9 to 127 = 0.96.
 
-Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 at its note-off, or sooner at the next note-on on its track that isn't thrown, so no other note takes the throw (the GS send controllers).
+Throws: a thrown note has CC91 (Space) and CC94 (Echo) at 127 on its tick, before its note-on, and back to 0 at its note-off, or sooner at the next note-on on its track that isn't thrown, so no other note takes the throw; every track on a channel that throws anywhere in these files starts with both at 0 on tick 0 (the GS send controllers).
 
 ## Lanes Wubansia plays from recorded phrases
 

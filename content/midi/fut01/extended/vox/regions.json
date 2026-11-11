@@ -456,6 +456,7 @@
           "hats": "thin",
           "vox": "call",
           "roll": "snare",
+          "roll_from": 95,
           "roll_bars": 2,
           "rise": {
             "lane": "Chords",
