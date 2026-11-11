@@ -54,6 +54,7 @@
 #include "mix/mixer.h"
 #include "rt/pending_slot.h"
 #include "rt/retire_fifo.h"
+#include "sampler/phrase_voice.h"
 #include "sampler/sampler.h"
 #include "sched/midi_router.h"
 #include "sched/scheduler.h"
@@ -94,17 +95,6 @@ namespace wubansia::engine
                 return prerollTime (kit.files[file].prerollFrames, key - zone.root);
             }
             return 0.0;
-        }
-
-        // Whether a phrase's notes play its slices: P6's playsSlices (sampler/phrase_voice.h on plugin-p6),
-        // the same formula, until that merges. With PhraseMode::automatic, while abs (host - kit) x 1000
-        // <= tolerance_pm x kit (the slack keeps exactly 2 % in).
-        inline bool playsSlices (const Phrase& phrase, std::int32_t kitBpm, double hostBpm, PhraseMode mode) noexcept
-        {
-            if (mode != PhraseMode::automatic || kitBpm <= 0 || ! (hostBpm > 0.0))
-                return false;
-            const auto kit = static_cast<double> (kitBpm);
-            return std::fabs (hostBpm - kit) * 1000.0 <= static_cast<double> (phrase.tolerancePm) * kit + 1.0e-6;
         }
 
         inline void raisePeak (std::atomic<float>& peak, float value) noexcept
@@ -273,7 +263,7 @@ namespace wubansia::engine
             const std::int64_t cycleLength = std::int64_t { std::max (1, phrase.cycle16ths) } * kMilliticksPerSixteenth;
             const std::int64_t cycle = util::floorDiv (onsetH, cycleLength);
             const std::uint32_t epoch = scheduler_.epoch();
-            auto decide = [&] { return detail::playsSlices (phrase, kit_->info.bpm, scheduler_.bpm(), controls.phrases); };
+            auto decide = [&] { return playsSlices (phrase, kit_->info.bpm, scheduler_.bpm(), controls.phrases); };
             if (p >= kMaxLatchedPhrases)
                 return decide();
             auto& latch = latches_[static_cast<std::size_t> (p)];
