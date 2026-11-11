@@ -26,8 +26,8 @@ integer nearest 128 BPM) and the key signature (FF 59: 2 flats, minor) on its fi
 | `FUT03_Phrase_RubberRiff_2bars.mid` | Rubber riff, on Rubber Bass Clean | channel 1 |
 | `FUT03_Phrase_VoxSynthRiff_2bars.mid` | Vox synth riff, Gm9 to Cm9, on Vox Synth | channel 5 |
 
-The extended mix: `extended/vox/` (with the vox synth) and `extended/novox/` (without), each a 224-bar mix in the
-genre's form, one region file per section, `regions.json` and a README.
+The extended mix: `extended/vox/` (with the vox synth) and `extended/novox/` (without), each a 224-bar mix in the kit's
+own form, one region file per section, `regions.json` and a README.
 
 ## Drums (channel 10)
 
