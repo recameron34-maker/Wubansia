@@ -281,6 +281,37 @@ TEST_CASE ("the installed content: a chosen folder's WAVs located, then read int
     CHECK (installed.locate (synManifest()).state == ContentState::missing);
 }
 
+TEST_CASE ("a raised cancel flag stops the content check and the reads within one file", "[content]")
+{
+    TempFolder temp;
+    const auto root = temp / "root";
+    const auto kitFolder = root.getChildFile ("syn01").getChildFile ("v1");
+    writeKit (kitFolder);
+    const auto locator = locatorFor ({}, {}, root, {});
+
+    std::atomic<bool> cancel { false };
+    const auto ready = locator.locate (synManifest(), &cancel);
+    REQUIRE (ready.state == ContentState::ready);
+
+    // Raised: the check stops before its first file, the folder isn't ready, and no other folder is tried.
+    cancel.store (true);
+    const auto stopped = locator.locate (synManifest(), &cancel);
+    CHECK (stopped.state != ContentState::ready);
+    CHECK (stopped.problem.containsIgnoreCase ("cancelled"));
+    CHECK (stopped.searched == juce::StringArray { kitFolder.getFullPathName() });
+
+    // InstalledContent hands the flag to the check and to the FileSampleSource that reads the samples.
+    UserSettings settings (temp / "settings.xml");
+    REQUIRE (settings.setContentFolder (root));
+    InstalledContent installed (ContentLocator::Places {}, settings);
+    CHECK (installed.locate (synManifest(), &cancel).state != ContentState::ready);
+    auto source = installed.open (synManifest(), ready, &cancel);
+    REQUIRE (source != nullptr);
+    const auto read = source->read (synManifest().files[0].path);
+    REQUIRE (! read.ok());
+    CHECK (engine::loadErrorOf (read.error) == engine::LoadError::cancelled);
+}
+
 TEST_CASE ("the plugin carries four kits, each with two manifests and four SMFs that read", "[content][embedded]")
 {
     const auto kits = EmbeddedContent::kits();

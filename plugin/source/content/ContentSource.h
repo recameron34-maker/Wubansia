@@ -14,6 +14,7 @@
 #include <juce_core/juce_core.h>
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -47,11 +48,14 @@ namespace wubansia
         virtual std::span<const KitSource> kits() const = 0;
 
         // Where kit's samples are: ready with the folder, or the first problem met, with every folder
-        // searched. The service thread: it reads the disk.
-        virtual ContentStatus locate (const engine::KitManifest& kit) = 0;
+        // searched. The service thread: it reads the disk. cancel, if given, is the service's: once raised,
+        // the check stops within one file and reports a problem the service drops ("cancelled: ...").
+        virtual ContentStatus locate (const engine::KitManifest& kit, const std::atomic<bool>* cancel = nullptr) = 0;
 
-        // What reads the samples of a kit locate () found ready. The service thread.
-        virtual std::unique_ptr<engine::SampleSource> open (const engine::KitManifest& kit, const ContentStatus& found) = 0;
+        // What reads the samples of a kit locate () found ready. The service thread. cancel, if given, stops
+        // a read within one chunk (P4's FileSampleSource), so a load gives way even on slow storage.
+        virtual std::unique_ptr<engine::SampleSource> open (const engine::KitManifest& kit, const ContentStatus& found,
+            const std::atomic<bool>* cancel = nullptr) = 0;
 
         // The folder chosen with "Choose content folder…": kept per user, never in project state. The
         // setter runs on the message thread and may write a settings file.

@@ -15,19 +15,19 @@ namespace wubansia
         return EmbeddedContent::sources();
     }
 
-    ContentStatus InstalledContent::locate (const engine::KitManifest& kit)
+    ContentStatus InstalledContent::locate (const engine::KitManifest& kit, const std::atomic<bool>* cancel)
     {
         std::call_once (systemPlaces, [this] {
             if (useSystemPlaces)
                 locator.setPlaces (ContentLocator::systemPlaces());
         });
         locator.setUserFolder (settings.contentFolder());
-        return locator.locate (kit);
+        return locator.locate (kit, cancel);
     }
 
-    std::unique_ptr<engine::SampleSource> InstalledContent::open (const engine::KitManifest&, const ContentStatus& found)
+    std::unique_ptr<engine::SampleSource> InstalledContent::open (const engine::KitManifest&, const ContentStatus& found, const std::atomic<bool>* cancel)
     {
-        return std::make_unique<engine::FileSampleSource> (toPath (found.folder));
+        return std::make_unique<engine::FileSampleSource> (toPath (found.folder), cancel);
     }
 
     juce::File InstalledContent::userFolder() const

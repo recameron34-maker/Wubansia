@@ -27,6 +27,7 @@
 
 #include <juce_core/juce_core.h>
 
+#include <atomic>
 #include <filesystem>
 #include <mutex>
 #include <string_view>
@@ -68,8 +69,10 @@ namespace wubansia
         // The content folders in search order, each once, leaving out the ones not set.
         std::vector<juce::File> roots() const;
 
-        // Where kit's samples are (see the top). searched lists every kit folder looked at, in order.
-        ContentStatus locate (const engine::KitManifest& kit) const;
+        // Where kit's samples are (see the top). searched lists every kit folder looked at, in order. cancel, if
+        // given and raised, stops the check within one file: the folder being checked is reported with the
+        // "cancelled: ..." problem and no other folder is tried.
+        ContentStatus locate (const engine::KitManifest& kit, const std::atomic<bool>* cancel = nullptr) const;
 
     private:
         mutable std::mutex mutex;

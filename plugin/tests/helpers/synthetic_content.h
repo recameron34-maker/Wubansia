@@ -3,7 +3,8 @@
 // Where the processor tests' kits come from: a ContentSourceFactory over P0's synthetic kit SYN01
 // (engine/testing/synthetic_kit.h), so every test plays a real Kit through the real engine without a
 // sample on disk. It can carry SYN01 under several ids (SYN01, SYN02... each with its own kit.json and
-// mix.json), report any content problem, read slowly, or hold every read until a test lets it go,
+// mix.json), report any content problem, check its folder or read slowly, or hold every read until a test
+// lets it go,
 // and it counts what the service asks of it.
 //
 //     auto content = std::make_unique<wubansia::test::SyntheticContent> ();
@@ -15,6 +16,7 @@
 
 #include "content/ContentSource.h"
 
+#include "kit/kit_builder.h"
 #include "kit/sample_source.h"
 #include "testing/manifest_json.h"
 #include "testing/synthetic_kit.h"
@@ -48,6 +50,9 @@ namespace wubansia::test
         std::vector<std::string> ids { "SYN01" };
         SyntheticSamples samples = SyntheticSamples::ready;
         std::chrono::milliseconds readDelay { 0 }; // per file read
+        // Per file locate () checks, through P4's checkKitFiles with the service's cancel flag, as a slow content
+        // folder would; 0: locate () reports at once.
+        std::chrono::milliseconds probeDelay { 0 };
     };
 
     class SyntheticContent final : public ContentSourceFactory
@@ -58,7 +63,7 @@ namespace wubansia::test
 
         SyntheticContent() : SyntheticContent (Options {}) {}
 
-        explicit SyntheticContent (Options options) : delay (options.readDelay), samples (options.samples)
+        explicit SyntheticContent (Options options) : delay (options.readDelay), probeDelay (options.probeDelay), samples (options.samples)
         {
             const auto& syn = engine::testing::syntheticContent();
             for (const auto& id : options.ids)
@@ -125,11 +130,12 @@ namespace wubansia::test
         std::atomic<int> reads { 0 }; // files read to the end
         std::atomic<int> readsStarted { 0 };
         std::atomic<int> locates { 0 };
+        std::atomic<int> probesStarted { 0 }; // files the slow check (probeDelay) started on
         std::atomic<int> opens { 0 };
 
         std::span<const KitSource> kits() const override { return sources; }
 
-        ContentStatus locate (const engine::KitManifest& kit) override
+        ContentStatus locate (const engine::KitManifest& kit, const std::atomic<bool>* cancel = nullptr) override
         {
             ++locates;
             ContentStatus status;
@@ -138,6 +144,34 @@ namespace wubansia::test
             switch (samples.load())
             {
                 case Samples::ready:
+                    if (probeDelay.count() > 0)
+                    {
+                        // Each file's header, slowly, as listed: the check stops within one file once cancel is raised.
+                        const auto checked = engine::checkKitFiles (
+                            kit,
+                            [&] (std::string_view path) -> util::Result<engine::WavInfo> {
+                                ++probesStarted;
+                                std::this_thread::sleep_for (probeDelay);
+                                for (const auto& f : kit.files)
+                                    if (f.path == path)
+                                    {
+                                        engine::WavInfo info;
+                                        info.channels = f.channels;
+                                        info.sampleRate = 48000;
+                                        info.frames = f.frames;
+                                        return util::Result<engine::WavInfo>::success (info);
+                                    }
+                                return util::Result<engine::WavInfo>::failure ("missing: " + std::string (path));
+                            },
+                            cancel);
+                        if (! checked.ok())
+                        {
+                            status.state = ContentState::failed;
+                            status.folder = folder;
+                            status.problem = juce::String (checked.error);
+                            break;
+                        }
+                    }
                     status.state = ContentState::ready;
                     status.folder = folder;
                     break;
@@ -164,7 +198,7 @@ namespace wubansia::test
             return status;
         }
 
-        std::unique_ptr<engine::SampleSource> open (const engine::KitManifest&, const ContentStatus&) override
+        std::unique_ptr<engine::SampleSource> open (const engine::KitManifest&, const ContentStatus&, const std::atomic<bool>* = nullptr) override
         {
             ++opens;
             return std::make_unique<Source> (*this);
@@ -227,6 +261,7 @@ namespace wubansia::test
         std::deque<Stored> stored;
         std::vector<KitSource> sources;
         std::atomic<std::chrono::milliseconds> delay;
+        const std::chrono::milliseconds probeDelay;
         std::atomic<Samples> samples;
         std::atomic<std::uint64_t> folders { 0 };
 

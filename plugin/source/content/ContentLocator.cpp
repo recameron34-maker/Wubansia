@@ -105,7 +105,7 @@ namespace wubansia
         return out;
     }
 
-    ContentStatus ContentLocator::locate (const engine::KitManifest& kit) const
+    ContentStatus ContentLocator::locate (const engine::KitManifest& kit, const std::atomic<bool>* cancel) const
     {
         ContentStatus status;
         const auto folderName = kitFolderName (kit.kit.id);
@@ -121,13 +121,21 @@ namespace wubansia
                 if (! candidate.isDirectory())
                     continue;
 
-                const engine::FileSampleSource source (toPath (candidate));
-                const auto checked = engine::checkKitFiles (kit, source);
+                const engine::FileSampleSource source (toPath (candidate), cancel);
+                const auto checked = engine::checkKitFiles (kit, source, cancel);
                 if (checked.ok())
                 {
                     status.state = ContentState::ready;
                     status.folder = candidate;
                     status.problem = {};
+                    return status;
+                }
+                if (engine::loadErrorOf (checked.error) == engine::LoadError::cancelled)
+                {
+                    // The caller gave way to a newer request (or the end): no other folder is tried.
+                    status.state = contentStateOf (engine::LoadError::cancelled);
+                    status.problem = problemText (juce::String::fromUTF8 (checked.error.data(), static_cast<int> (checked.error.size())));
+                    status.folder = candidate;
                     return status;
                 }
                 if (! firstProblem)

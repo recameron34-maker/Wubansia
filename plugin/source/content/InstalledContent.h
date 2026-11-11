@@ -23,8 +23,9 @@ namespace wubansia
         InstalledContent (ContentLocator::Places places, UserSettings& settings);
 
         std::span<const KitSource> kits() const override;
-        ContentStatus locate (const engine::KitManifest& kit) override;
-        std::unique_ptr<engine::SampleSource> open (const engine::KitManifest& kit, const ContentStatus& found) override;
+        ContentStatus locate (const engine::KitManifest& kit, const std::atomic<bool>* cancel = nullptr) override;
+        std::unique_ptr<engine::SampleSource> open (const engine::KitManifest& kit, const ContentStatus& found,
+            const std::atomic<bool>* cancel = nullptr) override;
         juce::File userFolder() const override;
         void setUserFolder (const juce::File& folder) override;
         std::uint64_t foldersGeneration() const noexcept override;

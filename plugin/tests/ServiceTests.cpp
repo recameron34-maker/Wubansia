@@ -202,6 +202,22 @@ TEST_CASE ("destroying the processor mid-load returns within 200 ms", "[service]
     CHECK (engine::KitCache::instance().find ("DST01", 1) == nullptr);
 }
 
+TEST_CASE ("destroying the processor mid-check of a slow content folder returns within 200 ms", "[service][content]")
+{
+    auto options = kits ({ "DSC01" });
+    options.probeDelay = std::chrono::milliseconds (50); // a content check of about 1.5 s, before any read
+    auto plugin = std::make_unique<SyntheticPlugin> (options);
+    test::prepare (**plugin, 48000.0, 512);
+    auto* content = plugin->content;
+    REQUIRE (test::waitFor ([&] { return content->probesStarted.load() >= 3; }));
+    REQUIRE ((*plugin)->kitService().loadInFlight());
+    REQUIRE (content->readsStarted.load() == 0);
+
+    const auto start = std::chrono::steady_clock::now();
+    plugin.reset();
+    CHECK (std::chrono::steady_clock::now() - start < test::limit (std::chrono::milliseconds (200)));
+}
+
 TEST_CASE ("an instance destroyed while another waits for its build leaves the other to finish", "[service]")
 {
     auto options = kits ({ "WTR01" });

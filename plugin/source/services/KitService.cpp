@@ -218,8 +218,8 @@ namespace wubansia
             return;
         }
 
-        // Where its samples are.
-        auto found = content.locate (entry->manifest);
+        // Where its samples are: the check gives way within one file to a newer request (or the end).
+        auto found = content.locate (entry->manifest, &cancel);
         if (cancelled())
             return; // a newer request (or the end) replaced it
         if (found.state != ContentState::ready)
@@ -230,7 +230,7 @@ namespace wubansia
         }
         setLoading (job, 0, &found);
 
-        auto source = content.open (entry->manifest, found);
+        auto source = content.open (entry->manifest, found, &cancel); // its reads give way within a chunk
         if (source == nullptr)
         {
             auto status = found;
@@ -343,7 +343,10 @@ namespace wubansia
             {
                 const std::lock_guard lock (mutex);
                 if (quit || pending)
-                    return; // a load goes first; the next idle pass carries on
+                {
+                    surveyed = false; // a load goes first; the next idle pass checks every kit again
+                    return;
+                }
                 if (onlyMissing && statuses[static_cast<std::size_t> (entry.index)].state != ContentState::missing)
                     continue;
                 isCurrent = current.kit == text (entry.id);
@@ -354,7 +357,12 @@ namespace wubansia
             // its content now ready reloads it.
             if (isCurrent && (currentState == ContentState::ready || currentState == ContentState::loading))
                 continue;
-            const auto found = content.locate (entry.manifest);
+            const auto found = content.locate (entry.manifest, &cancel);
+            if (cancelled())
+            {
+                surveyed = false; // a request (or the end) cut the check short: nothing to report, all again next pass
+                return;
+            }
             if (isCurrent)
             {
                 if (found.state == ContentState::ready)
