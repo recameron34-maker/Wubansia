@@ -25,7 +25,7 @@ from tools.sound.recipes.fut04 import accents as A, bass as B, context as C, con
 from tools.sound.recipes.fut04 import voxsynth as V
 
 RUMBLE = 35
-SNARE, CLOSED, OPEN, ANVIL, RIDE = 38, 42, 46, 47, 51
+KICK, SNARE, CLOSED, OPEN, ANVIL, RIDE = 36, 38, 42, 46, 47, 51
 # the acid's ride maps, the mix manifest's (plugin_mix.ride_points): CC74 the ride's cutoff multiplier on channel 1's
 # low-pass, 5400 Hz x 1.0-2.6 (channels.cc_value's law: round(127 ln(m) / ln(2.6))); CC71 the ladder's resonance
 # (channels.cc_linear). Both 0 at rest, where the samples play as they are
@@ -120,7 +120,16 @@ TURNS = {'big': {
              + [Note(s, RIDE, 0.5, v) for s, v in ((2, 1.0), (6, 0.8), (10, 1.0), (14, 1.0))]),
     'snare': [Note(s, SNARE, 0.5, v) for s, v in ((4, 1.0), (12, 0.8), (13, 0.2), (14, 0.4), (15, 0.6))],
     'perc': [Note(s, ANVIL, 0.5, v) for s, v in ((9, 1.0), (11, 0.4))]}}
+# the opening's turnaround (the kick alone, bars 1-8): the kick out on beat 4 of bar 8, as the loop's fill bar drops it,
+# the first phrase line a DJ counting in on the kick hears
+TURNS['kick'] = {'kick': [Note(s, KICK, 0.5, 1.0) for s in (0, 4, 8)]}
+# the break's (its first line's anvil pulse): beat 1 kept, then the anvil's pickup into the acid's return at 105
+TURNS['break'] = {'perc': [Note(s, ANVIL, 0.5, v) for s, v in ((0, 0.8), (9, 1.0), (11, 0.4), (13, 0.6), (15, 0.8))]}
+# the break's pulse (its first line, no kick): the anvil on beat 1, ringing, and a soft one on beat 3, the floor's clock
+# while the metal chords stab the off-beats and the vox sings the 'a's
+BREAK_ANVIL = [Note(0, ANVIL, 0.5, 0.8), Note(8, ANVIL, 0.5, 0.4)]
 VARIANTS = {'ride on 8ths': {'hats': RIDE_ON_8THS},
+            'break': {'perc': BREAK_ANVIL},
             'build': {'hats': HATS_16THS},
             'drop 2': {'hats': RIDE_ON_8THS, 'perc': ANVIL_8THS},
             'peak': {'hats': HATS_16THS, 'perc': ANVIL_8THS}}
@@ -133,6 +142,36 @@ SKELETON = [n for n in blips() if n[0] in (0, 4, 12, 16, 20, 28)]
 NOVOX_ANSWER = tuple(Hit(32 * k + 30, name, 1, gate=2, throw=True) for k, name in enumerate(
     ('AccentZapE5', 'AccentMetalChordEm', 'AccentZapE5', 'AccentMetalChordEm')))
 METAL, RAVE, ACID = 'Metal chords, Em Em Am Bm', 'Rave stab riff', 'Acid stab riff'
+
+
+def loop_hits(mode, blocks, metal_at=46):
+    """The loop's accents for a mode (context5.ACCENTS) in some of a line's 4-bar blocks, as the line's own hits; the
+    no-vox mix's thrown metal chord Em on `metal_at` (16ths of its block)."""
+    out = []
+    for b in blocks:
+        for at, name in C5.ACCENTS[mode]:
+            if at == 'end':
+                out.append(Hit(64 * (b + 1), name, 1, 'end'))
+            else:
+                step = metal_at if name == 'AccentMetalChordEm' else at
+                out.append(Hit(64 * b + step, name, 1, throw=at in C5.ACCENT_THROWS[mode]))
+    return tuple(out)
+
+
+def over_the_chords(blocks):
+    """The loop's accents over the metal chords (Em Em Am Bm): the vox mix's as the loop places them (the Em rave stab
+    on the Em bar), the no-vox mix's thrown metal chord Em moved from the Am bar's 'and' of 4, where it rang over the
+    Bm bar, to the Bm bar's (16th 62), so it anticipates the Em downbeat, as the loop's stab rule has it."""
+    return {'vox': loop_hits(C5.VOX, blocks), 'novox': loop_hits(C5.NOVOX, blocks, metal_at=62)}
+
+
+# the break's first line (no kick, the drone out for the vox): the metal chord Em struck on the cycle's two Em downbeats
+# (97, 101) in both mixes; without the vox, the vox chord Em held over them too (with it, its E3 and B3 would mask the
+# riff's); the loop's accents in its second block, over the chords
+BREAK_DOWNBEATS = (Hit(0, 'AccentMetalChordEm', 1), Hit(64, 'AccentMetalChordEm', 1))
+BREAK_HITS = {'vox': BREAK_DOWNBEATS + over_the_chords((1,))['vox'],
+              'novox': (BREAK_DOWNBEATS + (Hit(0, 'AccentVoxChordEm', 1), Hit(64, 'AccentVoxChordEm', 1))
+                        + over_the_chords((1,))['novox'])}
 DRUMS = 'kick rumble snare hats perc'
 
 
@@ -145,26 +184,31 @@ def ride(*mode):
 # The form (224 bars; the acid's CC74/CC71 value in brackets, 0 closed (the line as written) to 127 wide open (x2.6,
 # resonance 0.96)):
 # Intro 1-32, drums only: the kick alone (1-8); the rumble and the off-beat hats (9); the snare and the 16th hats (17);
-#   the anvil (25). A turnaround in every line but the first: at 8 bars the hats breathe on beat 4 and the anvil
-#   answers; at the 16-bar points a bigger one, the hats out for the bar's second half and the snare dragging in.
+#   the anvil (25). A turnaround in every line: in the first the kick drops out on beat 4 of bar 8; then at 8 bars the
+#   hats breathe on beat 4 and the anvil answers; at the 16-bar points a bigger one, the hats out for the bar's second
+#   half and the snare dragging in.
 # Groove 33-96: the acid enters closed, the recorded line at rest [0] (33); the drone (41) as the filter starts to
 #   open; the blips' call (49); the whole blip sequence, the stutter fill and a noise sweep into 65 (57); the metal
 #   chords Em Em Am Bm on the off-beats, the drone out to give them room, the blips back to their call (65); the drone
-#   under the chords, the blips' skeleton, the loop's accents in the second block (73); the ride on 8ths, the chords
-#   out, the whole sequence over the drone (81); the chords back, the skeleton, the vox's D4 thrown into the break
-#   with a reverse swell, the fill (89). The filter opens line by line as a hand rides it, not in even steps: barely
-#   at first [0-8], then pushing into the first fill [20-40], easing as the chords arrive [40-46], pushing again into
-#   the break [72-92].
-# Break 97-112: no drums: the floor falls away (the sub drop on 97); the vox riff over the metal chords, the drone out,
-#   the accents only in its second half, swelling into 105 (97); the drone back, the acid alone, closed and creeping
+#   under the chords, the blips' skeleton, the loop's accents in the second block (without the vox, their thrown
+#   metal chord Em on the Bm bar's 'and' of 4, anticipating the Em, not ringing over the Bm) (73); the ride on 8ths,
+#   the chords out, the whole sequence over the drone (81); the chords back, the skeleton, the vox's D4 thrown into the
+#   break with a reverse swell, the fill (89). The filter opens line by line as a hand rides it, not in even steps:
+#   barely at first [0-8], then pushing into the first fill [20-40], easing as the chords arrive [40-46], pushing again
+#   into the break [72-92].
+# Break 97-112: no kick: the floor falls away (the sub drop on 97); the vox riff over the metal chords, the drone out;
+#   the anvil alone keeps the beat (beat 1, a soft beat 3, a pickup into 105); the metal chord Em struck on the cycle's
+#   Em downbeats, 97 and 101, and without the vox the vox chord Em held over them; the accents in its second half,
+#   swelling into 105 (97); the drone back, the acid alone, closed and creeping
 #   open [0-24], the off-beat hats rising from 40% (105), into the build.
 # Build 113-128: the kick and the rumble back, the hats off-beat then the loop's, the anvil, the acid opening [24-80]
 #   (113); the hats on every 16th, rising from half, the iron riser, the acid wide open [127] over the last 2 bars, the
 #   anvil rolling on every 16th in 127 alone, the stutter fill alone in 128 (121).
 # Drop 129-160: the impact (sub drop and distorted chord) on 129; the snare back; the vox's loop pattern, the blips'
 #   skeleton, the drone out, the loop's accents (129); the rave stab riff over the drone, the drums out in 144 with the
-#   acid at the top of its ride and a noise sweep into 145 (137); the vox riff over the metal chords (145); the rave
-#   stab riff with the ride on 8ths and the skeleton, a reverse swell and the fill into drop 2 (153). The acid plays
+#   acid at the top of its ride and a noise sweep into 145 (137); the vox riff over the metal chords, the loop's
+#   accents as at 73 (145); the rave stab riff with the ride on 8ths and the skeleton, a reverse swell and the fill into
+#   drop 2 (153). The acid plays
 #   its loop ride all through: bars 3-4 of every 4 swell (the recorded Acid Line 1 Ride).
 # Drop 2 161-192: Acid Line 2, at rest [0] (the recorded line), the anvil on 8ths and the ride on 8ths, the acid stab
 #   riff over the drone, the impact (161); the filter opening [0-64], the blips' skeleton, a noise sweep into 177
@@ -176,7 +220,7 @@ def ride(*mode):
 #   the kick and the off-beat hats (217): not the intro reversed.
 FORM = (
     section('Intro', 'intro', (
-        line('kick'),
+        line('kick', end='turn', turn='kick'),
         line('kick rumble hats', hats='thin', end='turn', turn='big'),
         line('kick rumble snare hats', end='turn'),
         line(DRUMS, end='turn', turn='big'))),
@@ -187,12 +231,13 @@ FORM = (
         line(DRUMS + ' bass chords lead', ride=ride('ramp', 20, 40), end='fill', into='uplift'),
         line(DRUMS + ' bass lead', lead='call', phrases=(METAL,), ride=ride('ramp', 40, 46), end='turn', stab=True),
         line(DRUMS + ' bass chords lead', lead='skeleton', phrases=(METAL,), ride=ride('ramp', 46, 58),
-             accents='alternate', end='turn', turn='big'),
+             hits=over_the_chords((1,)), end='turn', turn='big'),
         line(DRUMS + ' bass chords lead', drums='ride on 8ths', ride=ride('ramp', 58, 72), end='turn', stab=True),
         line(DRUMS + ' bass lead', drums='ride on 8ths', lead='skeleton', phrases=(METAL,), ride=ride('ramp', 72, 92),
              throw=True, end='fill', into='swell'))),
     section('Break', 'break', (
-        line('vox', vox='riff', phrases=(METAL,), accents='alternate', downbeat='fall', cue='Vox'),
+        line('perc vox', drums='break', vox='riff', phrases=(METAL,), hits=BREAK_HITS, downbeat='fall', cue='Vox',
+             end='turn', turn='break'),
         line('hats bass chords', hats='thin', rise=('hats', 0.4, 1.0), ride=ride('ramp', 0, 24), accents='lead-in',
              end='turn', turn='big'))),
     section('Build', 'build', (
@@ -204,8 +249,8 @@ FORM = (
         line(DRUMS + ' bass lead vox', lead='skeleton', vox='loop', accents='loop', downbeat='impact',
              ride=ride('loop'), cue='Vox', end='turn', stab=True),
         line(DRUMS + ' bass chords', phrases=(RAVE,), ride=ride('loop'), end='drop', into='uplift'),
-        line(DRUMS + ' bass vox', vox='riff', phrases=(METAL,), accents='loop', ride=ride('loop'), cue='Vox',
-             end='turn'),
+        line(DRUMS + ' bass vox', vox='riff', phrases=(METAL,), hits=over_the_chords((0, 1)), ride=ride('loop'),
+             cue='Vox', end='turn'),
         line(DRUMS + ' bass chords lead', drums='ride on 8ths', lead='skeleton', phrases=(RAVE,), ride=ride('loop'),
              end='fill', into='swell'))),
     section('Drop 2', 'drop2', (
@@ -277,7 +322,8 @@ PARTS = dict(
                 what="the acid's resonance: at rest over bars 1-2, rising over bar 3 to its top on the fill bar",
                 values={name: res for name, (_, res) in RIDES.items()})],
     recorded={'bass': 'the Acid Line 1 Ride (`Loops/Acid Line 1 Ride Clean.wav` and Warm), its ride baked in; the '
-                      'other lines from `Loops/Acid Line 1` and `Acid Line 2`',
+                      'lines at rest (CC74 and CC71 at 0) from `Stems/Acid Line 1 Clean 4 Bars.wav` and '
+                      '`Stems/Acid Line 2 Clean 4 Bars.wav` and their Warm twins, each its 2-bar `Loops/` line twice',
               'lead': 'the Mod Blip Phrase (`Loops/Mod Blip Phrase.wav`), its ratchets included'},
     form=FORM,
 )

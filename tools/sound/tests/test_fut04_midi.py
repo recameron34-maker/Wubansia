@@ -19,6 +19,9 @@ KIT = 'FUT04'
 RIDE_CCS = (74, 71)
 OPEN_HAT, CLOSED_HAT, RIDE, ANVIL, SNARE, KICK, RUMBLE = 46, 42, 51, 47, 38, 36, 35
 STAB_SHAPE = {64: A.EM, 69: A.AM, 71: A.BM}          # the metal and rave stab chords by the root they're played on
+# the accents' pitches (channel 6, by key): the rave stab and the metal chord Em (E4 B4 E5 G5), the zap E5, the acid
+# stab E4 and its octave, the vox chord Em (E3 B3 E4 G4); the end-aligned swells and the impact's add9 chord left out
+ACCENT_SHAPE = {48: A.EM, 52: A.EM, 51: (76,), 53: (64, 76), 55: (52, 59, 64, 67)}
 
 
 class TestLoop(LoopCase, unittest.TestCase):
@@ -375,9 +378,9 @@ class TestExtendedMix(unittest.TestCase):
 
     def test_a_change_at_every_line(self):
         """Every 8-bar line differs from the one before in its first 7 bars (not only in its turnaround or fill);
-        26 or more of the 28 lines are distinct; every 16 bars the first bar of the new 16 differs from the first bar
-        of the 16 before; every line with drums but the mix's first and last ends on a fill, a turnaround, a drum drop
-        or a roll."""
+        all 28 lines are distinct; every 16 bars the first bar of the new 16 differs from the first bar of the 16
+        before; every line with drums but the mix's last ends on a fill, a turnaround, a drum drop or a roll (the first
+        too: the kick-only line's turnaround drops the kick on beat 4 of bar 8)."""
         for v in VARIANTS:
             R, tracks, _ = whole(KIT, v)
             bars = [set() for _ in range(224)]
@@ -389,13 +392,97 @@ class TestExtendedMix(unittest.TestCase):
             with self.subTest(variant=v):
                 for i in range(1, 28):
                     self.assertNotEqual(lines[i - 1][:7], lines[i][:7], 8 * i + 1)
-                self.assertGreaterEqual(len(set(lines)), 26)
+                self.assertEqual(28, len(set(lines)))
                 for b in range(16, 224, 16):
                     self.assertNotEqual(bars[b - 16], bars[b], b + 1)
                 lns = lines_of(R)
-                for ln in lns[1:-1]:
+                for ln in lns[:-1]:
                     if any(lane in ln['lanes'] for lane in ('kick', 'snare', 'hats', 'perc')):
                         self.assertTrue(ln.get('end') in ('fill', 'turn', 'drop') or ln.get('roll'), ln['start_bar'])
+
+    def test_the_outro_is_not_the_intro_reversed(self):
+        """Audit cross-kit issue 13: no outro line plays an intro line again (not even in its first 7 bars), and the
+        outro doesn't take the intro's lanes away in the order the intro brought them in; the last 8 bars are the kick
+        and the hats, not a solo kick."""
+        for v in VARIANTS:
+            R, tracks, _ = whole(KIT, v)
+            bars = [frozenset((name, on % BAR, key, vel) for name, t in tracks.items()
+                              for on, off, ch, key, vel in t['notes'] if on // BAR == b) for b in range(224)]
+            body = lambda first: tuple(bars[first - 1:first + 6])  # noqa: E731
+            intro, outro = R['sections'][0]['lines'], R['sections'][-1]['lines']
+            with self.subTest(variant=v):
+                self.assertFalse({body(ln['start_bar']) for ln in intro} & {body(ln['start_bar']) for ln in outro})
+                self.assertNotEqual([(ln['lanes'], ln.get('hats')) for ln in intro],
+                                    [(ln['lanes'], ln.get('hats')) for ln in reversed(outro)])
+                for bar in range(217, 225):
+                    self.assertTrue(notes_in(tracks, 'Kick', bar, bar) and notes_in(tracks, 'Hats', bar, bar), bar)
+
+    def test_the_first_line_turns_round(self):
+        """Audit B's turnaround every 8 bars, from the first line: the kick-only opening drops its kick on beat 4 of
+        bar 8 (the loop's own fill-bar gesture), every other bar of it four on the floor."""
+        for v in VARIANTS:
+            _, tracks, _ = whole(KIT, v)
+            steps = lambda bar: [step_in_bar(n[0]) for n in notes_in(tracks, 'Kick', bar, bar)]  # noqa: E731
+            with self.subTest(variant=v):
+                for bar in range(1, 8):
+                    self.assertEqual([0, 4, 8, 12], steps(bar), bar)
+                self.assertEqual([0, 4, 8], steps(8))
+
+    def test_the_break_keeps_the_beat(self):
+        """Audit B's cross-kit issue 9 ('no downbeat for 8 bars'): every bar of the break's first line, with no kick,
+        has an attack on a beat; the metal chord Em is struck on its two Em downbeats (97, 101) in both mixes; without
+        the vox, the vox chord Em is held over them (with the vox it would mask the riff's E3 and B3)."""
+        k = Mi.kit_of(KIT)
+        metal, voxchord = k.sound('AccentMetalChordEm')[1], k.sound('AccentVoxChordEm')[1]
+        for v in VARIANTS:
+            R, tracks, _ = whole(KIT, v)
+            lo = section(R, 'break')['start_bar']
+            with self.subTest(variant=v):
+                swells = {k.sound(n)[1] for n in ('AccentNoiseSweepE', 'AccentReverseHitEm')}   # they start silent
+                for bar in range(lo, lo + 8):
+                    beats = [n for t in tracks for n in notes_in(tracks, t, bar, bar) if step_in_bar(n[0]) % 4 == 0
+                             and not (t == 'Accents' and n[3] in swells)]
+                    self.assertTrue(beats, bar)
+                struck = [n[0] for n in tracks['Accents']['notes'] if n[3] == metal and n[0] % BAR == 0
+                          and bar_tick(lo) <= n[0] < bar_tick(lo + 8)]
+                self.assertEqual([bar_tick(lo), bar_tick(lo + 4)], struck)
+                held = [n[0] for n in tracks['Accents']['notes'] if n[3] == voxchord]
+                self.assertEqual([bar_tick(lo), bar_tick(lo + 4)] if v == 'novox' else [], held)
+
+    def test_no_accent_rings_against_the_moving_chords(self):
+        """Audit B's stab rule: an accent on the 'and' of 4 anticipates the next bar's chord. No accent (its own notes:
+        the Em stabs, the zap, the acid stab, the vox chord) still sounds where a metal or rave stab starts a chord a
+        semitone from it (the no-vox loop's thrown Em metal chord over the Bm bar), in either mix; the end-aligned
+        swells resolve into the bar they end on and aren't counted."""
+        for v in VARIANTS:
+            _, tracks, _ = whole(KIT, v)
+            stabs = [n for name in ('Metal Chord', 'Rave Stab') for n in tracks[name]['notes']]
+            for on, off, ch, key, vel in tracks['Accents']['notes']:
+                if key not in ACCENT_SHAPE:
+                    continue
+                for s in stabs:
+                    if on < s[0] < off:
+                        rub = [(a, c) for a in ACCENT_SHAPE[key] for c in STAB_SHAPE[s[3]] if (a - c) % 12 in (1, 11)]
+                        with self.subTest(variant=v, bar=on // BAR + 1, key=key, stab_bar=s[0] // BAR + 1):
+                            self.assertEqual([], rub)
+
+    def test_the_accents_on_their_cues(self):
+        """The accent synths as one-shots on their cues, in both mixes: the reverse swell into the break and drop 2
+        (ending on 97 and 161), the noise sweep into 65, 145 and 177, the rave stab on the 'and' of 4 that closes bars
+        40, 56, 72, 88, 136 and 168, and the sub drop as the floor falls away on 97."""
+        k = Mi.kit_of(KIT)
+        rave, sweep, swell = (k.sound(n)[1] for n in ('AccentRaveStabEm', 'AccentNoiseSweepE', 'AccentReverseHitEm'))
+        sub = k.sound('AccentSubDropE2')[1]
+        for v in VARIANTS:
+            _, tracks, _ = whole(KIT, v)
+            acc = tracks['Accents']['notes']
+            with self.subTest(variant=v):
+                ends = lambda key: {n[1] for n in acc if n[3] == key}  # noqa: E731
+                self.assertLessEqual({bar_tick(97), bar_tick(161)}, ends(swell))
+                self.assertLessEqual({bar_tick(65), bar_tick(145), bar_tick(177)}, ends(sweep))
+                self.assertLessEqual({bar_tick(b) + at(KIT, 14) for b in (40, 56, 72, 88, 136, 168)},
+                                     {n[0] for n in acc if n[3] == rave})
+                self.assertIn(bar_tick(97), [n[0] for n in tracks['FX']['notes'] if n[3] == sub])
 
     def test_the_fills_set_up_the_sections(self):
         """The stutter fill ends the groove's two halves, the build, the drop and drop 2 (into the break, the drop,

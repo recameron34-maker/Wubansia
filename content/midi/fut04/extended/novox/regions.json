@@ -126,7 +126,8 @@
         "50": "Accent Reverse Hit Em",
         "51": "Accent Zap E5",
         "52": "Accent Metal Chord Em",
-        "54": "Accent Dist Chord Em"
+        "54": "Accent Dist Chord Em",
+        "55": "Accent Vox Chord Em"
       }
     },
     {
@@ -205,7 +206,9 @@
           "bars": 8,
           "lanes": [
             "kick"
-          ]
+          ],
+          "end": "turn",
+          "turn": "kick"
         },
         {
           "start_bar": 9,
@@ -406,9 +409,26 @@
           "phrases": [
             "Metal chords, Em Em Am Bm"
           ],
-          "accents": "alternate",
           "end": "turn",
           "turn": "big",
+          "hits": [
+            [
+              78,
+              "AccentRaveStabEm"
+            ],
+            [
+              94,
+              "AccentZapE5"
+            ],
+            [
+              126,
+              "AccentMetalChordEm"
+            ],
+            [
+              128,
+              "AccentReverseHitEm"
+            ]
+          ],
           "ride": {
             "Bass": [
               "ramp",
@@ -494,6 +514,7 @@
       "file": "03_Break_16bars.mid",
       "lanes": [
         "hats",
+        "perc",
         "bass",
         "chords",
         "accents",
@@ -504,6 +525,7 @@
           "start_bar": 97,
           "bars": 8,
           "lanes": [
+            "perc",
             "chords",
             "accents",
             "fx"
@@ -511,7 +533,43 @@
           "phrases": [
             "Metal chords, Em Em Am Bm"
           ],
-          "accents": "alternate"
+          "drums": "break",
+          "end": "turn",
+          "turn": "break",
+          "hits": [
+            [
+              0,
+              "AccentMetalChordEm"
+            ],
+            [
+              64,
+              "AccentMetalChordEm"
+            ],
+            [
+              0,
+              "AccentVoxChordEm"
+            ],
+            [
+              64,
+              "AccentVoxChordEm"
+            ],
+            [
+              78,
+              "AccentRaveStabEm"
+            ],
+            [
+              94,
+              "AccentZapE5"
+            ],
+            [
+              126,
+              "AccentMetalChordEm"
+            ],
+            [
+              128,
+              "AccentReverseHitEm"
+            ]
+          ]
         },
         {
           "start_bar": 105,
@@ -541,12 +599,7 @@
           }
         }
       ],
-      "cues": [
-        {
-          "bar": 97,
-          "cue": "Vox"
-        }
-      ]
+      "cues": []
     },
     {
       "index": 4,
@@ -599,7 +652,8 @@
           "hats": "full",
           "bass": "AcidLine1",
           "roll": "perc",
-          "roll_bars": 2,
+          "roll_from": 127,
+          "roll_bars": 1,
           "rise": {
             "lane": "hats",
             "from_pm": 500,
@@ -715,8 +769,41 @@
           "phrases": [
             "Metal chords, Em Em Am Bm"
           ],
-          "accents": "loop",
           "end": "turn",
+          "hits": [
+            [
+              14,
+              "AccentRaveStabEm"
+            ],
+            [
+              30,
+              "AccentZapE5"
+            ],
+            [
+              62,
+              "AccentMetalChordEm"
+            ],
+            [
+              64,
+              "AccentReverseHitEm"
+            ],
+            [
+              78,
+              "AccentRaveStabEm"
+            ],
+            [
+              94,
+              "AccentZapE5"
+            ],
+            [
+              126,
+              "AccentMetalChordEm"
+            ],
+            [
+              128,
+              "AccentReverseHitEm"
+            ]
+          ],
           "ride": {
             "Bass": "loop"
           }
@@ -749,14 +836,6 @@
         }
       ],
       "cues": [
-        {
-          "bar": 129,
-          "cue": "Vox"
-        },
-        {
-          "bar": 145,
-          "cue": "Vox"
-        },
         {
           "bar": 160,
           "cue": "Fill"
@@ -928,14 +1007,6 @@
         }
       ],
       "cues": [
-        {
-          "bar": 177,
-          "cue": "Vox"
-        },
-        {
-          "bar": 185,
-          "cue": "Vox"
-        },
         {
           "bar": 192,
           "cue": "Fill"
