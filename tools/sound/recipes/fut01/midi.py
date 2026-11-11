@@ -11,8 +11,9 @@
   the groove on Low, the organ bass; a break on the Air Pad with the vox riff; an 8-bar garage build (the 2-step kick,
   the off-beat open hats and the tambourine on, the clap in 8ths then 16ths, the whole glitch fill from beat 3); the
   drop on the Bounce warp line with the vox riff; a 4x4 speed garage switch-up on the Speed line; break 2 with the
-  organ riff over the pad's slower F#m9 | Bm9; drop 2 with the organ riff as its new top line, the warp riff for 8
-  bars, then the organ bass stripping into 32 bars of drums to mix out on. The vox and the pluck trade calls and
+  organ riff over the pad's slower F#m9 | Bm9; drop 2 with the organ riff as its new top line, then the warp riff
+  rolling for 8 bars with the kick out and the vox riff back over it, then the organ bass stripping into 32 bars of
+  drums to mix out on. The vox and the pluck trade calls and
   answers; the drums turn round in every line that doesn't end on a fill, and a percussion element moves every 16 bars.
 Notes are (16th, MIDI note, length in 16ths, velocity 0-1, slide); a pitch dip is written as two slides, down and
 back.
@@ -110,10 +111,10 @@ BUSY = hits(((0, 0.45), (4, 0.4), (8, 0.45), (12, 0.4)), HAT)   # the closed hat
 
 # ------------------------------------------------------------------ harmony the extended mix adds
 PAD_V = 0.85
-PAD = {   # the Air Pad (channel 13): whole-bar chords, F#m9 on F#3, Bm9 on B3 (one file, one layer)
+PAD = {   # the Air Pad (channel 13): F#m9 on F#3, Bm9 on B3 (one file, one layer), a note per chord
     'main': [(BAR * b, (54, 59)[b % 2], BAR, PAD_V, False) for b in range(4)],          # F#m9 | Bm9, as the stabs
-    'slow': [(BAR * b, (54, 54, 59, 59)[b], BAR, PAD_V, False) for b in range(4)],      # F#m9 F#m9 | Bm9 Bm9
-}
+    'slow': [(0, 54, 2 * BAR, PAD_V, False), (2 * BAR, 59, 2 * BAR, PAD_V, False)],     # F#m9 for 2 bars, Bm9 for 2,
+}                                                                                       # each held, not restruck
 SLOW_STABS = [(s + BAR * b, z, v) for b, z in enumerate((54, 54, 59, 59)) for s, _, v in C.STABS_2[:4]
               if not (b == 3 and s == 14)]     # the stabs on break 2's slower harmony; as the loop's, none on the
                                                # 'and' of 4 of bar 4, where the fill plays
@@ -150,7 +151,11 @@ PARTS = dict(
         pick=LINE_NAMES['garage'],
         on={LINE_NAMES['organ']: 'Organ Bass'},       # the Low line is the organ bass's (channel 11)
         switch=LINE_NAMES['speed'],                   # the 4x4 switch-up's (Speed was written for the 4x4 kick)
-        note='The Low line plays the Organ Bass on channel 11, rooted as the warp bass (F#1, A1, C#2).',
+        # the README's note under the pitched instruments: the Low line's channel, and (the chords have no note of
+        # their own) where the e-piano stab rhythm phrase plays in Wubansia
+        note=('The Low line plays the Organ Bass on channel 11, rooted as the warp bass (F#1, A1, C#2). The E-piano '
+              "stab rhythm is written on channel 4 (the extended mix's 169-176), so Wubansia plays it on the Stab "
+              'A/B: the Organ Stab by default, the E Piano Stab on B.'),
     ),
     lead=dict(item='ChromePluck', name='Chrome pluck phrase', notes=[(s, n, ln, v, False) for s, n, ln, v in M.PHRASE]),
     chords=dict(items=('OrganStab', 'EPianoStab'), name='Organ stabs, F#m9 and Bm9',
@@ -184,7 +189,8 @@ PARTS = dict(
         dict(name='Warp riff', file='WarpRiff', on='bass', item='WarpClean', notes=line(R.WARP_RIFF), bars=2),
         dict(name='Pluck riff', file='PluckRiff', on='lead', item='ChromePluck', notes=list(R.PLUCK_RIFF), bars=4),
         dict(name='E-piano stab rhythm', file='EPianoStabRhythm', on='chords', item='EPianoStab', notes=R.stab_notes(),
-             bars=2),
+             bars=2,   # its chords on channel 3 too: each stab's m9 over its root, as chord_block() voices the organ's
+             voicing=[(s, z + d, R.STAB_LEN, v, False) for s, z, v in R.STAB_RHYTHM for d in Ky.SHAPE]),
         dict(name='Vox synth riff', file='VoxSynthRiff', on='vox', item='VoxSynth', notes=list(V.RIFF_NOTES), bars=2),
     ],
     rides=[dict(on='Bass', cc=74, law='log', lo=round(C.WOBBLE['base']), hi=round(WOBBLE_TOP), unit='Hz',
@@ -223,7 +229,7 @@ FORM = (
     # UK garage: the 2-step kick, the off-beat open hats and the tambourine on, the bass out, the stabs swelling, the
     # vox's call over the riser; the clap in 8ths, then 16ths up to the whole glitch fill on beat 3
     Mi.section('Build', 'build', (
-        Mi.line('kick snare hats perc chords vox', hats='thin', drums='tamb', vox='call', rise=('Chords', 0.55, 1.0),
+        Mi.line('kick snare hats perc chords vox', hats='thin', drums='tamb', vox='call', rise=('chords', 0.55, 1.0),
                 cue='Riser', end='fill', fill='GlitchFillLift', roll=ROLL),)),
     # the warp bass's Bounce and the whole vox riff from the sub drop, the pluck out; then its call under the riff; the
     # vox resting while the pluck plays its phrase over busy hats; the call and the answer, the drums out in bar 120
@@ -245,14 +251,16 @@ FORM = (
         Mi.line('pad', chords='slow', phrases=('Organ riff',), downbeat='sweep'),
         Mi.line('hats pad chords', chords='slow', hats='thin', rise=('hats', 0.4, 1.0), phrases=('Organ riff',),
                 cue='Riser', end='fill'))),
-    # the organ riff as the new top line, the vox answering it; the warp riff under the riff and the pluck's call; the
-    # organ riff alone over the e-piano stab rhythm; the vox calling, the pluck answering; then the organ bass alone
-    # with the drums, stripping into the outro
+    # the organ riff alone as the new top line (the vox rests: the riff never does, so the vox would stack on it, not
+    # answer it); then the kick out for 8 bars while the warp riff rolls (written with no kick, its roots on the
+    # downbeats), the whole vox riff back over it with the pluck's call; the organ riff over the e-piano stab rhythm
+    # (on Stab A/B: the Organ Stab by default); the vox calling, the pluck answering; then the organ bass alone with
+    # the drums, stripping into the outro
     Mi.section('Drop 2', 'drop2', (
-        Mi.line(GROOVE + ' chords vox', hats='busy', drums='alloy2', vox='answer', cue='Vox', phrases=('Organ riff',),
-                accents='loop', downbeat='impact', end='turn'),
-        Mi.line(DRUMS + ' chords lead vox', hats='busy', lead='call', vox='riff', phrases=('Warp riff',),
-                accents='loop', end='fill'),
+        Mi.line(GROOVE + ' chords', hats='busy', drums='alloy2', phrases=('Organ riff',), accents='loop',
+                downbeat='impact', end='turn'),
+        Mi.line('snare hats perc chords lead vox', hats='busy', lead='call', vox='riff', cue='Vox',
+                phrases=('Warp riff',), accents='loop', end='fill'),
         Mi.line(GROOVE + ' chords', drums='rims', phrases=('Organ riff', 'E-piano stab rhythm'), accents='alternate',
                 end='turn', turn='flam'),
         Mi.line(GROOVE + ' chords lead vox', hats='busy', lead='answer', vox='call', cue='Vox', accents='loop',

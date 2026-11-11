@@ -99,8 +99,8 @@ BASSES = ('Bass', 'Organ Bass')
 LEADS = ('Lead', 'Organ Lead')
 M9 = (0, 3, 7, 10, 14)              # the organ stab's and the Air Pad's m9 over the root they're played on
 # the vox in the vox mix, line by line (bars of the whole mix): the riff placed with intent
-VOX = {57: 'answer', 65: 'riff', 73: 'riff', 81: 'call', 89: 'riff', 97: 'riff', 113: 'answer', 153: 'answer',
-       161: 'riff', 177: 'call'}
+VOX = {57: 'answer', 65: 'riff', 73: 'riff', 81: 'call', 89: 'riff', 97: 'riff', 113: 'answer', 161: 'riff',
+       177: 'call'}
 
 
 @functools.lru_cache(maxsize=None)
@@ -277,22 +277,28 @@ class TestExtendedMix(unittest.TestCase):
                 self.assertIn((lo(89), sound_key('SubDrop')), {n[:3:2] for n in notes(v, 'FX', 89)})
 
     def test_the_air_pad_holds_both_breaks(self):
-        """Audit must-fix 4: the Air Pad (channel 13) under both breaks, a whole-bar chord from every bar's downbeat,
-        F#m9 on F#3 (54) or Bm9 on B3 (59), so break 2 has a downbeat in every bar; nowhere else (no pad under a
-        bass)."""
+        """Audit must-fix 4: the Air Pad (channel 13) under both breaks, a chord sounding through every bar's downbeat,
+        F#m9 on F#3 (54) or Bm9 on B3 (59): in break 1 a new chord every bar (F#m9 | Bm9, as the stabs); in break 2
+        each chord held for its 2 bars as one note (review #4: a same-key restart every bar would make a plain sampler
+        fade the pad in again mid-chord); nowhere else (no pad under a bass)."""
         for v in VARIANTS:
             pad = mix(v)[1].get('Air Pad', [])
             with self.subTest(variant=v):
                 for bar in list(range(65, 81)) + list(range(137, 153)):
-                    got = [n for n in pad if n[0] == lo(bar)]
-                    self.assertEqual(1, len(got), bar)
-                    self.assertIn(got[0][2], (54, 59))
-                    self.assertGreaterEqual(got[0][1] - got[0][0], 15 * 240)
+                    held = [n for n in pad if n[0] <= lo(bar) < n[1]]
+                    self.assertEqual(1, len(held), bar)
+                    self.assertIn(held[0][2], (54, 59))
+                self.assertEqual([(lo(b), (54, 59)[(b - 65) % 2], BAR) for b in range(65, 81)],
+                                 [(n[0], n[2], n[1] - n[0]) for n in pad if n[0] < lo(81)])
+                self.assertEqual([(lo(b), (54, 59)[(b - 137) // 2 % 2], 2 * BAR) for b in range(137, 153, 2)],
+                                 [(n[0], n[2], n[1] - n[0]) for n in pad if n[0] >= lo(137)])
                 self.assertFalse([n for n in pad if not (lo(65) <= n[0] < lo(81) or lo(137) <= n[0] < lo(153))])
 
     def test_drop_2_takes_the_organ_riff_as_its_new_top_line(self):
-        """Audit must-fix 1: break 2 brings in the 4-bar organ riff (channel 12) over the pad, and drop 2 plays it over
-        Bounce and the vox from its downbeat; the organ riff plays nowhere before break 2."""
+        """Audit must-fix 1: break 2 brings in the 4-bar organ riff (channel 12) over the pad, and drop 2 opens on it as
+        its top line over Bounce, the vox resting (review #3: the riff never rests, so a vox over it stacks two leads in
+        one octave rather than answering); the vox comes back at 161, where the organ riff is out. The organ riff plays
+        nowhere before break 2, and never with the vox."""
         organ = [(s, n) for s, n, _, _, _ in Rf.ORGAN_RIFF]
         for v in VARIANTS:
             with self.subTest(variant=v):
@@ -300,7 +306,11 @@ class TestExtendedMix(unittest.TestCase):
                 for first in (137, 153):
                     self.assertEqual(organ, phrase(v, 'Organ Lead', first, 4), first)
                 self.assertTrue(notes(v, 'Bass', 153, 160))
-                self.assertEqual(v == 'vox', bool(notes(v, 'Vox', 153, 160)))
+                self.assertFalse(notes(v, 'Vox', 153, 160))
+                self.assertEqual(v == 'vox', bool(notes(v, 'Vox', 161, 168)))
+                t = mix(v)[1]
+                self.assertFalse([a for a in t.get('Organ Lead', []) for b in t.get('Vox', [])
+                                  if a[0] < b[1] and b[0] < a[1]])
 
     def test_turnarounds_end_every_line_that_does_not_end_on_a_fill(self):
         """Audit must-fix 3: every line with drums ends on a fill, a turnaround or (once, into the switch-up) the drums
@@ -358,7 +368,8 @@ class TestExtendedMix(unittest.TestCase):
     def test_the_pluck_plays_around_the_vox(self):
         """Audit FUT01 NICE 8, a must in the brief: in every 2 bars where the vox plays, the pluck plays one bar at
         most (its call, or its answer to the vox's call) and never in the bar of the vox's second bar (the pluck's
-        C#5 against the vox's D5); no lead (the pluck, the organ riff) sounds a minor second from a vox note."""
+        C#5 against the vox's D5); one lead line at most under the vox (the organ riff never with it, review #3); no
+        lead sounds a minor second from a vox note."""
         t = mix('vox')[1]
         for first in range(33, 193, 2):
             vox = notes('vox', 'Vox', first, first + 1)
@@ -367,6 +378,7 @@ class TestExtendedMix(unittest.TestCase):
             with self.subTest(bars=first):
                 pluck = {n[0] // BAR + 1 for n in notes('vox', 'Lead', first, first + 1)}
                 self.assertLessEqual(len(pluck), 1)
+                self.assertFalse(notes('vox', 'Organ Lead', first, first + 1))
                 if notes('vox', 'Vox', first + 1):
                     self.assertNotIn(first + 1, pluck)
         rubs = [(a[0] // BAR + 1, name, a[2], b[2]) for name in LEADS for a in t.get(name, []) for b in t['Vox']
@@ -388,9 +400,10 @@ class TestExtendedMix(unittest.TestCase):
     def test_the_vox_riff_is_placed_with_intent(self):
         """Audit must-fix 5: the vox riff as notes, line by line: the answer to the pluck's call closing the groove, the
         whole riff over the pad in the break, its call over the build's riser, the whole riff from the drop's
-        downbeat, the answer again into the switch-up, the answer to the organ riff opening drop 2, the call to the
-        pluck's answer in its last full line; nothing in the intro, the switch-up, break 2, the strip or the outro, and
-        nothing at all in the no-vox mix (where the same lines play)."""
+        downbeat, the answer again into the switch-up, the whole riff back over drop 2's warp riff once the organ riff
+        has had drop 2's first line to itself, the call to the pluck's answer in its last full line; nothing in the
+        intro, the switch-up, break 2, drop 2's first line, the strip or the outro, and nothing at all in the no-vox
+        mix (where the same lines play)."""
         got = {ln['start_bar']: ln['vox'] for ln in lines() if ln.get('vox')}
         self.assertEqual(VOX, got)
         for ln in lines():
@@ -402,8 +415,10 @@ class TestExtendedMix(unittest.TestCase):
     def test_the_accents_are_notes_on_their_cues(self):
         """Audit must-fix 5, its accent rules: the sub drop and the alloy bell on the drop's, the switch-up's and drop
         2's downbeats; the chord sweep on both breaks' downbeats; the vox synth stab on 16th 6 of the switch-up's bars
-        2 and 6 of each line, a rave stab on the 'and' of 4 into its second line; the 8-bar riser ending on the drop
-        and on drop 2; a Fill cue's fill ending on the next downbeat; none of it in the first or last 32 bars."""
+        2 and 6 of each line, a rave stab on the 'and' of 4 into its second line; the reverse stab swelling into the
+        pluck's entry (49) and into the switch-up (121), the uplifter rising into the break (65) and into the build
+        (81), the organ hit on the 'and' of 4 of bar 56 (review #37); the 8-bar riser ending on the drop and on drop
+        2; a Fill cue's fill ending on the next downbeat; none of it in the first or last 32 bars."""
         for v in VARIANTS:
             t = mix(v)[1]
             acc = {n[:3:2] for n in t['Accents']}
@@ -417,6 +432,12 @@ class TestExtendedMix(unittest.TestCase):
                 for bar in (122, 126, 130, 134):
                     self.assertIn((lo(bar) + at(KIT, 6), sound_key('VoxSynthStab')), acc, bar)
                 self.assertIn((lo(128) + at(KIT, 14), sound_key('RaveStab')), acc)
+                self.assertIn((lo(56) + at(KIT, 14), sound_key('OrganHit')), acc)
+                acc_ends = {(n[1], n[2]) for n in t['Accents']}
+                for bar in (49, 121):
+                    self.assertIn((lo(bar), sound_key('ReverseStab')), acc_ends, bar)
+                for bar in (65, 81):
+                    self.assertIn((lo(bar), sound_key('NoiseUplifter')), acc_ends, bar)
                 ends = {(n[1], n[2]) for n in t['FX']}
                 for bar in (89, 153):
                     self.assertIn((lo(bar), sound_key('ShiftRiser')), ends, bar)
@@ -439,6 +460,51 @@ class TestExtendedMix(unittest.TestCase):
         self.assertTrue([on for on in drums if at(KIT, 56) <= on < at(KIT, 60)])
         self.assertLess(max(drums), at(KIT, 60))
         self.assertEqual([at(KIT, 60)], [n[0] for n in got['FX']['notes']])
+
+    def test_no_bass_note_lands_on_a_kick(self):
+        """Review #2: every bassline and bass phrase sits off the kick, as the warp line bounces in the 2-step kick's
+        gaps: no note on the Bass or the Organ Bass starts on a kick's tick, in either mix. The warp riff (written with
+        no kick) rolls alone under drop 2's second line, the kick out until 169."""
+        for v in VARIANTS:
+            t = mix(v)[1]
+            kicks = {n[0] for n in t['Kick']}
+            with self.subTest(variant=v):
+                self.assertFalse([(n[0] // BAR + 1, n[2]) for name in BASSES for n in t[name] if n[0] in kicks])
+                self.assertFalse(notes(v, 'Kick', 161, 168))
+                self.assertTrue(notes(v, 'Bass', 161, 168))
+                self.assertTrue(notes(v, 'Kick', 169))
+
+    def test_the_chord_voicing_follows_the_chords(self):
+        """Review #1 and #45: Chord voicing (channel 3, the chords for your own synth) plays wherever Chords plays,
+        drop 2's stab rhythm included (each stab's chord as the m9 shape over its root), and swells with it through
+        the build (rise on 'chords')."""
+        for v in VARIANTS:
+            got = bars_of(v)
+            with self.subTest(variant=v):
+                chords = {b for b, tr in got.items() if tr.get('Chords')}
+                voicing = {b for b, tr in got.items() if tr.get('Chord voicing')}
+                self.assertEqual(chords, voicing)
+                for on, _, root, _ in notes(v, 'Chords', 169, 176):
+                    shape = {n[2] for n in notes(v, 'Chord voicing', 169, 176) if n[0] == on}
+                    self.assertEqual({root + d for d in Ky.SHAPE}, shape, on)
+                means = [sum(n[3] for n in notes(v, 'Chord voicing', b)) / len(notes(v, 'Chord voicing', b))
+                         for b in range(81, 88)]
+                self.assertEqual(sorted(means), means)
+                self.assertLess(means[0], means[-1])
+
+    def test_no_vox_warp_stabs_replace_the_chord_stab(self):
+        """Review #5: in the no-vox mix the warp stab takes the chord stab's place (context5.STAB_DROP): no Chords
+        note starts on a warp stab's tick, the e-piano stab rhythm in 169-176 included."""
+        t = mix('novox')[1]
+        warp = {n[0] for n in t['Accents'] if n[2] == sound_key('WarpStab')}
+        self.assertTrue(warp)
+        self.assertFalse([n[0] // BAR + 1 for n in t['Chords'] if n[0] in warp])
+
+    def test_the_readme_says_where_the_stab_rhythm_plays(self):
+        """Review #23: drop 2's e-piano stab rhythm is a channel-4 phrase, so Wubansia plays it on the Stab A/B
+        switch's sample, the Organ Stab by default; the kit README says so."""
+        text = ' '.join(kit_files(KIT)['README.md'].decode().split())
+        self.assertIn('Wubansia plays it on the Stab A/B: the Organ Stab by default, the E Piano Stab on B', text)
 
     def test_something_changes_at_every_line(self):
         """The brief: no line repeats the line before it, not even in its first 7 bars (the change lands on the new

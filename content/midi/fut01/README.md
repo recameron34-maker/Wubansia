@@ -64,7 +64,7 @@ plays its zone's file repitched by the distance to its root.
 | 13 | Air Pad | Air Pad F#m9 | F#3 (54) | one layer |
 
 On channel 3, Chord voicing is the chords as single notes for your own synth; Wubansia ignores channel 3.
-The Low line plays the Organ Bass on channel 11, rooted as the warp bass (F#1, A1, C#2).
+The Low line plays the Organ Bass on channel 11, rooted as the warp bass (F#1, A1, C#2). The E-piano stab rhythm is written on channel 4 (the extended mix's 169-176), so Wubansia plays it on the Stab A/B: the Organ Stab by default, the E Piano Stab on B.
 
 ## One-key sounds (channels 6, 7 and 8)
 

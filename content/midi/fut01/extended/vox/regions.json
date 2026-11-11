@@ -354,7 +354,7 @@
           "cue": "Fill"
         },
         {
-          "bar": 57,
+          "bar": 58,
           "cue": "Vox"
         },
         {
@@ -456,10 +456,10 @@
           "hats": "thin",
           "vox": "call",
           "roll": "snare",
-          "roll_from": 95,
+          "roll_from": 87,
           "roll_bars": 2,
           "rise": {
-            "lane": "Chords",
+            "lane": "chords",
             "from_pm": 550,
             "to_pm": 1000
           },
@@ -595,7 +595,7 @@
           "cue": "Fill"
         },
         {
-          "bar": 113,
+          "bar": 114,
           "cue": "Vox"
         }
       ]
@@ -779,13 +779,11 @@
             "bass",
             "lead",
             "chords",
-            "vox",
             "accents",
             "fx"
           ],
           "hats": "busy",
           "bass": "Bounce",
-          "vox": "answer",
           "phrases": [
             "Organ riff"
           ],
@@ -797,7 +795,6 @@
           "start_bar": 161,
           "bars": 8,
           "lanes": [
-            "kick",
             "snare",
             "hats",
             "perc",
@@ -881,7 +878,7 @@
       ],
       "cues": [
         {
-          "bar": 153,
+          "bar": 161,
           "cue": "Vox"
         },
         {
