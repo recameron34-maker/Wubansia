@@ -1,6 +1,6 @@
 # 0022. Content location and delivery
 
-**Status:** Proposed, 2026-11-05 (draft, for the user's approval).
+**Status:** Accepted, 2026-11-11 (the user's "Go" on the v0.1 approvals list; proposed 2026-11-05).
 
 ## Context
 v0.1 plays the four round 5 kits from samples outside the plugin (ADR 0017). The plugin embeds each kit's two manifests and its MIDI, about 1 MB, so it builds, validates and shows its kits in CI without a single sample. Each kit's `kit.json` lists exactly the files it plays (`docs/plugin/manifest.md`, section 2.2): path, frames, channels and SHA-256. For the four kits that is 618 WAVs, 198 MB, out of about 333 MB in `content/samples` (Git LFS, ADR 0012): the reference loops (Club, Wet, dry, Low) aren't played, so they don't ship.

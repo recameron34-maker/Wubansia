@@ -1,6 +1,6 @@
 # 0017. Plugin v0.1: the round 5 kits in the plugin, ahead of the ROADMAP's order
 
-**Status:** Proposed, 2026-11-05 (draft, for the user's approval). The user asked: "Really nail the coolness of these and make sure to get the midis right; I'm over hearing the tests, give me the best version of it all in a plugin!"
+**Status:** Accepted, 2026-11-11 (the user's "Go" on the v0.1 approvals list; proposed 2026-11-05). The user asked: "Really nail the coolness of these and make sure to get the midis right; I'm over hearing the tests, give me the best version of it all in a plugin!"
 
 ## Context
 The ROADMAP runs S1 in order (ADR 0005): generator v2 (S1b2), the core kit (S1c), the dry engine (S1d), effects (S1e), the WebView UI (S1f), and the plugin in a DAW (S1g). The user wants a plugin now instead of more listening rounds.

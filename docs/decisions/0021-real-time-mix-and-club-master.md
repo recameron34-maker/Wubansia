@@ -1,6 +1,6 @@
 # 0021. The real-time mix and club master
 
-**Status:** Proposed, 2026-11-05 (draft, for the user's approval, with ADR 0017). It settles ADR 0014 §5 ("What the engine's master takes from this").
+**Status:** Accepted, 2026-11-11 (the user's "Go" on the v0.1 approvals list; proposed 2026-11-05). With ADR 0017. It settles ADR 0014 §5 ("What the engine's master takes from this").
 
 ## Context
 Each round 5 loop's sound is its mix and its club master: `sends.py` (Space, Echo, Resonator, the level duck), `master.py` (the club master), `phrase.pump_db` (the onset ducks) and `dsp48` (filters, oversampling, ADAA curves). All of it runs offline, "round the loop", in float64. The plugin has to play the same mix live, at the host's rate and block size, on the audio thread, from the kit's mix manifest (`<KIT>_mix.json`, P3; `docs/plugin/manifest.md` §3).

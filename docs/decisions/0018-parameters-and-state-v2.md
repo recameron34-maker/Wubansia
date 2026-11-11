@@ -1,6 +1,6 @@
 # 0018. Parameters and state version 2
 
-**Status:** Proposed, 2026-11-05 (draft, for the user's approval). Part of the plugin v0.1 plan (ADR 0017; packages P10, the parameter layout, and P9, the processor). Amends ADR 0002, whose state table (`stateVersion="1"`) and frozen tests change here. Nothing below reaches main or your Mac before you sign it off: the parameter IDs become permanent the moment a project is saved with v0.1.
+**Status:** Accepted, 2026-11-11 (the user's "Go" on the v0.1 approvals list; proposed 2026-11-05). Part of the plugin v0.1 plan (ADR 0017; packages P10, the parameter layout, and P9, the processor). Amends ADR 0002, whose state table (`stateVersion="1"`) and frozen tests change here. The parameter IDs become permanent the moment a project is saved with v0.1.
 
 ## Context
 M0 has one parameter, `master_gain` (version hint 1), and state version 1: the parameter tree with `stateVersion="1"`. v0.1 plays four kits with modes, A/B switches, ten lanes, three macros and a club master, all of which a DAW should automate and save; and a few settings that belong to the project but not to automation: which kit, which content version it was made with, the Standalone app's tempo, how MIDI in is routed, and whether phrase lanes play their recordings.

@@ -1,7 +1,6 @@
 # 0020. Kit manifests and phrase lanes: the lanes the recipes synthesize play their recorded stems
 
-**Status:** Proposed, 2026-11-05 (draft, for the user's approval; the derived stems approved by the lead for the
-build).
+**Status:** Accepted, 2026-11-11 (the user's "Go" on the v0.1 approvals list, the derived stems included; proposed 2026-11-05).
 
 ## Context
 Plugin v0.1 (ADR 0017) plays each round 5 kit's committed MIDI (MIDI v2, ADR 0019) through a C++ sampler and the
