@@ -94,8 +94,8 @@ namespace wubansia
         // last check of its folders.
         ContentStatus kitStatus (int index) const;
 
-        // The content folders changed: check every kit again, and reload the current kit unless it is
-        // ready. Any thread but the audio thread.
+        // The content folders changed: reload the current kit unless it is ready (its samples are in memory
+        // already); every kit's card is checked again on the next idle pass. Any thread but the audio thread.
         void contentChanged();
 
         // For tests and diagnostics: the references the service holds (one per publish the engine

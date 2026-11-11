@@ -114,6 +114,9 @@ namespace wubansia
         lastPlaying.store (false, std::memory_order_relaxed);
         prepared.store (true, std::memory_order_release);
 
+        // The kits' manifests, parsed here once, so a host that saves state from its audio thread never
+        // parses them there.
+        (void) service->catalog();
         queueFirstLoad();
     }
 

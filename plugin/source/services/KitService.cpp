@@ -103,7 +103,9 @@ namespace wubansia
         int version = 0;
         {
             const std::lock_guard lock (mutex);
-            if (lastKit.empty() || quit)
+            // Nothing asked for yet (the first load will look in the new folders), or the kit is already in
+            // memory and playing: the other kits' cards are checked again on the next idle pass.
+            if (lastKit.empty() || quit || current.content.state == ContentState::ready)
                 return;
             kit = lastKit;
             version = lastVersion;
