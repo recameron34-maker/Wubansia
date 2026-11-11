@@ -100,3 +100,58 @@ Your ratings, from the listening page (its store, read back on 2026-10-29):
 - Snare, hat and alloy hit stay as they are until you rate them.
 
 **Then:** you asked for four kits ("give me four kits"). The fix round for FUT01 runs together with three new first-listen kits, one per remaining direction (ADR 0010). They come back as round 2.
+
+## 2026-11-11 · v0.1 · build pr6-int (measured at f1a4276) · Listener: you · DAW: … (version, VST3/AU/CLAP) · Mac: … (chip, macOS) · Monitoring: … · Mono check: …
+
+v0.1 has no listening round (ADR 0017): this entry holds the fidelity numbers measured before anyone listens, and the DAW checklist for you.
+
+### A. Fidelity (measured at f1a4276, before anyone listens)
+
+Linux x86-64, Clang 18 release build, the samples installed from the four content zips (`tools/content/install.py`); `compare_render.py` against the round 5 masters, pass 2, 48 kHz, the plugin's look-back master, bass B unless named. **0 failing of 271 gated checks**; the known gaps are below. Each cell: LUFS-I / short-term / worst 1/3 octave / true peak / kick crest, in LU and dB against the round 5 loop.
+
+| Kit | Club loop, vox; no-vox | Wet loop, vox; no-vox | Dry A / Dry B | Phrase lanes, worst null (pass 1 / 2) | Sampled lanes, worst band | Song sections over the ceiling | Gaps, explained |
+|---|---|---|---|---|---|---|---|
+| FUT01 | +0.02 / +0.05 / −0.32 @ 50 Hz / +0.00 / +0.33; +0.01 / +0.03 / −0.26 @ 50 Hz / −0.00 / +0.23 | +0.01 / +0.02 / +0.11 @ 1 kHz / −0.01 / +0.20; +0.01 / +0.02 / +0.13 @ 1 kHz / −0.06 / +0.06 | pass / pass (worst +0.13 dB @ 1 kHz, crest +0.21) | bit-exact / −41.3 dB outside the 1 ms re-syncs (−35.8 over the whole pass) | −0.36 dB @ 50 Hz (bass A) | 0 of 36 (peak −1.02 dBTP) | the no-vox warp stab's release (known) |
+| FUT02 | −0.03 / +0.17 / +0.31 @ 794 Hz / +0.00 / +0.30; −0.07 / +0.13 / −0.34 @ 1 kHz / −0.00 / +0.27 | +0.02 / +0.07 / +0.36 @ 794 Hz / +0.04 / +0.37; −0.02 / +0.05 / −0.27 @ 5 kHz / +0.17 / +0.25 | pass / pass (worst +0.41 dB @ 794 Hz, crest +0.35) | −87.9 / −87.9 dB (−66.9 over the whole pass) | within 0.01 dB | 0 of 36 (peak −1.02 dBTP) | none |
+| FUT03 | +0.01 / +0.05 / +0.23 @ 2.5 kHz / +0.00 / +0.23; −0.01 / +0.04 / −0.11 @ 50 Hz / +0.00 / +0.22 | +0.01 / +0.03 / +0.17 @ 2.5 kHz / −0.03 / +0.17; −0.00 / +0.01 / −0.01 @ 198 Hz / +0.08 / +0.04 | pass / pass (worst +0.01 dB, crest +0.07) | −89.1 / −89.1 dB | within 0.01 dB | 0 of 36 (peak −1.02 dBTP) | none |
+| FUT04 | −0.06 / +0.10 / +0.56 @ 79 Hz / +0.00 / +0.24; −0.13 / +0.18 / +0.54 @ 79 Hz / +0.00 / +0.20 | +0.12 / +0.15 / +0.66 @ 79 Hz / +0.04 / +0.41; +0.09 / +0.11 / +0.66 @ 79 Hz / +0.04 / +0.39 | kick crest +0.56 dB on both (known); otherwise worst +0.66 dB @ 79 Hz | bit-exact / bit-exact outside the re-syncs (−49.7 over the whole pass) | within 0.01 dB | 0 of 28 (peak −1.02 dBTP) | the dry kick crest (known); +0.66 dB @ 79 Hz is P3's own margin (engine_ref +0.66) |
+
+Gates: ±0.3 LU, ±0.5 LU, ±0.75 dB, ±0.5 dB, ±0.5 dB; phrase lanes ≤ −40 dB; sampled lanes ±1 dB per 1/3 octave; sections ≤ −0.9 dBTP.
+
+Look-back master against master.py's exact one (same mix), vox; no-vox: FUT01 −0.01; −0.02 LU, FUT02 −0.02; −0.02, FUT03 +0.00; −0.02, FUT04 −0.01; −0.01; true peak 0.00 dB everywhere; worst band FUT01 −0.30 dB @ 50 Hz. Rates, resampled to 48 kHz: 44.1 and 96 kHz read −0.03 to +0.08 LU and +0.05 to +0.11 dB true peak against 48 kHz (P8's fixed-rate clip; FUT01's 96 kHz true peak was +0.55 dB before it).
+
+CPU at 48 kHz / 128 samples, 60-65 voices (about 50 held through MIDI in over the loop), every effect, on this shared Linux machine (not the macos-15 runner; gate 15 %): FUT01 11.4 %, FUT02 8.5 %, FUT03 8.6 %, FUT04 10.2 % of one core on average; p99 blocks 12.2-15.4 %; worst blocks 17.6-31.3 % (the stress's first block and the machine's load, as P12 found). The loops alone at 512 samples: 3.7-6.9 %. Your Mac: …
+
+Off the kit's tempo and the multisample path (past ±2 %, with phrases off, from MIDI in, and the Song cycles no table matches), against the at-tempo Club loop; the gate is ±0.3 LU and ±1.5 dB per 1/3 octave:
+- phrases off at the kit's tempo: +0.01 / −0.04 / +0.13 / +0.09 LU (FUT01-04); worst bands +0.83 dB @ 2 kHz, +1.03 @ 630 Hz, +1.21 @ 794 Hz, +1.02 @ 1.26 kHz;
+- ±3 %: loudness within +0.20 LU everywhere; three bands over 1.5 dB, accepted as known gaps: FUT04 at −3 % +1.73 dB @ 250 Hz (+1.50 @ 1.26 kHz), where the tempo (+0.7 to +1.0 dB @ 250 Hz at ±1 % on the stems) and the multisample (+0.69 at the kit's tempo) add up; FUT03 at −3 % +1.87 dB @ 794 Hz, the multisample path (+1.21 at the kit's tempo); FUT02 at +3 % −1.50 dB @ 50 Hz, a tempo effect on the kick (−0.52 with phrases off at the kit's tempo). FUT03's +2.01 dB @ 198 Hz at −3 % is a tempo effect on a lane without phrases, as it was before the calibration.
+- each phrase lane on its multisample, after its channel's inserts, as P2 measured it (content/plugin/README.md): levels within 0.7 dB of the stems; worst bands FUT01 pluck −3.7 dB @ 3.2 kHz, vox −2.1 @ 250 Hz; FUT02 bass −1.8 @ 99 Hz, arp −4.5 @ 794 Hz, vox +2.9 @ 250 Hz; FUT03 bass +2.7 @ 500 Hz, vox −4.3 @ 630 Hz; FUT04 bass −6.2 @ 16 kHz (the loop's ride; −0.9 dB, worst +2.1 at rest), lead −0.9 @ 99 Hz. The report's multisample lane rows read P12's dry taps, before the `_ms` channels' corrective EQ: informational only.
+
+Known gaps:
+- FUT01's no-vox warp stab rings 15-30 ms past its gate: it needs a release that ends on the note-off (a contract change).
+- FUT04's dry A/B kick crest (0.56 dB against 0.5): the engine's exact-tempo grid (338823.53 samples a loop) against the recipe's rounded 338824-sample loop puts the kick 1 sample off the bar-anchored stem on some beats.
+- FUT04's acid timbre steps where a ride cycle with a low CC plays the live-filtered multisample next to an at-rest stem cycle.
+- The three off-tempo bands above.
+- In the Song, some phrase-lane cycles play the multisample because no table matches them (`plugin_kit.py --report`): FUT04's bass under the arranged acid rides (26 cycles), FUT03's bass in bars 129-144 (8), FUT02's vox in bars 61-80, 125-128 and 145-152 (8).
+- FUT01's vox riff entering fresh carries the previous cycle's baked throw, 36 dB under the chops, over its first 0.6 s; FUT04's squelch ticks play the full acid sample for about 33 ms on the multisample path.
+
+### B. In your DAW (the checklist; not a listening test)
+- [ ] Loads in VST3 / AU / CLAP
+- [ ] Content found (status ready) after `install-macos.sh`
+- [ ] Loop in sync from bar 1, wraps without a click
+- [ ] Song from any bar (chased)
+- [ ] The kit's tempo, ±1 %, ±5 % (phrase lanes tagged recorded or multisample)
+- [ ] Vox/no-vox and A/B mid-bar
+- [ ] Lane levels and mutes
+- [ ] Space, Echo, Pump, Club
+- [ ] Automation both ways
+- [ ] Save/reopen identical
+- [ ] Offline bounce right after opening
+- [ ] Drag MIDI (Loop, Song, a lane) into a track
+- [ ] CPU meter
+- [ ] Editor open/close ×10
+
+### C. What you said
+Your words, per kit: keep, or fix (what, where).
+
+### D. Action

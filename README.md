@@ -19,7 +19,7 @@ Two downloads: the macOS zip from CI (`Wubansia-macOS-<commit>.zip`: the VST3, A
 
 [`dist/INSTALL.md`](dist/INSTALL.md), also in the zip, says what the script does, how to do it by hand, and what to try if something's wrong. From a clone instead: `git lfs install && git lfs pull --include 'content/samples/**'`, then `python3 tools/content/install.py --from-repo` puts the samples where the plugin looks, and `python3 tools/content/pack.py --kit FUT01 --out <folder>` makes a content zip ([ADR 0022](docs/decisions/0022-content-location-and-delivery.md)).
 
-**Status:** planning. The next step is milestone M0 in the roadmap: an empty plugin that builds in CI and loads in a DAW.
+**Status:** v0.1: the four round 5 kits play in the plugin, in sync with your DAW (ADR 0017). Install it as above, then run the DAW checklist in [`docs/listening.md`](docs/listening.md). What comes next is in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 To start with Claude Code, open this repo and say:
 
