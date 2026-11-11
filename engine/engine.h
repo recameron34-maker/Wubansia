@@ -170,6 +170,7 @@ namespace wubansia::engine
         double tailSeconds() const noexcept;
 
         const Telemetry& telemetry() const noexcept { return telemetry_; }
+        Telemetry& telemetry() noexcept { return telemetry_; } // a reader that takes hits and peaks (exchange)
 
     private:
         struct Impl; // engine.cpp's: the scheduler, router, voices, mixer...

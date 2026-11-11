@@ -95,7 +95,7 @@ namespace wubansia
     Snapshot ControllerImpl::snapshot()
     {
         // The telemetry is the engine's; reading it takes the hits and peaks (Telemetry's contract).
-        auto& telemetry = const_cast<engine::Telemetry&> (processor.player.telemetry());
+        auto& telemetry = processor.player.telemetry();
         engine::Controls controls;
         processor.raw.read (controls);
 
