@@ -1279,7 +1279,8 @@ class TestInstallMacos(Case):
                    env={'HOME': str(self.home), 'TMPDIR': str(self.tmpdir), 'CDPATH': '.:/nonexistent'},
                    cwd=self.downloads)
         self.assertOk(proc)
-        self.assertEqual(proc.stdout.splitlines()[0], f'Wubansia installer, from {self.pkg}')
+        # bash starts from the physical working directory, so on macOS the folder under /var reads as /private/var.
+        self.assertEqual(proc.stdout.splitlines()[0], f'Wubansia installer, from {self.pkg.resolve()}')
         self.assertIn('would copy Wubansia.vst3', proc.stdout)
 
     @unittest.skipUnless(ON_MAC or ON_LINUX, 'macOS, or Linux with stand-ins')
