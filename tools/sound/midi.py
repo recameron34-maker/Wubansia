@@ -1113,6 +1113,17 @@ def rolled(k, lane_notes, roll, until, keep=True):
         return []
     key = main_key(lane_notes)
     top = max(n.vel for n in lane_notes)
+    start = (LINE - 1 - roll['bars']) * BAR
+    steps = roll_steps(roll, until)
+    lo, hi = roll.get('ramp', (0.55, 1.0))
+    n = len(steps)
+    out = [Note(s, key, 0.5, top * (lo + (hi - lo) * i / max(1, n - 1))) for i, s in enumerate(steps)]
+    return sorted([x for x in lane_notes if keep and x.step < start] + out)
+
+
+def roll_steps(roll, until):
+    """The 16ths a roll hits (rolled()): every so many over the roll['bars'] bars before the line's last bar, then in
+    the last bar every roll['last'] 16ths (default: the last rate) up to `until`."""
     last_bar = (LINE - 1) * BAR
     start = last_bar - roll['bars'] * BAR
     steps, at = [], start
@@ -1121,12 +1132,16 @@ def rolled(k, lane_notes, roll, until, keep=True):
         at += bars_ * BAR
     if at != last_bar:
         raise ValueError(f'a roll of {roll["bars"]} bars schedules {(at - start) // BAR} bars: {roll["every"]}')
-    steps += range(last_bar, LINE * BAR, roll.get('last', roll['every'][-1][1]))
-    steps = [s for s in steps if s < until]
-    lo, hi = roll.get('ramp', (0.55, 1.0))
-    n = len(steps)
-    out = [Note(s, key, 0.5, top * (lo + (hi - lo) * i / max(1, n - 1))) for i, s in enumerate(steps)]
-    return sorted([x for x in lane_notes if keep and x.step < start] + out)
+    last = roll['last'] if 'last' in roll else roll['every'][-1][1]
+    steps += range(last_bar, LINE * BAR, last)
+    return [s for s in steps if s < until]
+
+
+def roll_bars(k, ln):
+    """The bars of its line a roll plays (0-7): up to the fill's start, so not the last bar where the fill starts on
+    its downbeat (FUT04's stutter fill), but where it starts later in it (FUT01's glitch fill from 16th 12)."""
+    until = (LINE - 1) * BAR + fill_start(k, ln) if ln.get('end') == 'fill' else LINE * BAR
+    return sorted({int(s // BAR) for s in roll_steps(ln['roll'], until)})
 
 
 PICKUP = ((13, 0.45), (14, 0.6), (15, 0.75))   # a default turnaround: the last beat's 'e', 'and' and 'a', rising
@@ -1590,8 +1605,10 @@ def line_info(k, ln, got, start, variant='vox'):
     if phrase_on:
         info['phrases'] = [name for name in ln['phrases'] if name in {ph['name'] for ph in phrase_on.values()}]
     if ln.get('roll'):
+        played = roll_bars(k, ln)
         info['roll'] = ln['roll']['lane']
-        info['roll_bars'] = ln['roll']['bars'] + 1
+        info['roll_from'] = start + (played[0] if played else LINE - 1 - ln['roll']['bars'])
+        info['roll_bars'] = len(played)
     if 'rise' in ln:
         info['rise'] = {'lane': ln['rise'][0], 'from_pm': round(ln['rise'][1] * 1000),
                         'to_pm': round(ln['rise'][2] * 1000)}
@@ -1969,8 +1986,11 @@ def describe_line(k, ln, info, got, variant):
     if ln.get('phrases_rest') and info.get('end') == 'fill' and on:
         words_.append('the phrases rest from the fill')
     if info.get('roll'):
-        lane, bars_ = k.snare_name().lower() if info['roll'] == 'snare' else info['roll'], info['roll_bars']
-        words_.append(f"the {lane} rolls over the line's last {bars_} bars up to the fill, rising hit by hit")
+        lane = k.snare_name().lower() if info['roll'] == 'snare' else info['roll']
+        a, z = info['roll_from'], info['roll_from'] + info['roll_bars'] - 1
+        over = f'bar {a}' if a == z else f'bars {a}-{z}'
+        words_.append(f"the {lane} rolls over {over}{' up to the fill' if info.get('end') == 'fill' else ''}, rising "
+                      f"hit by hit")
     if info.get('rise'):
         r = info['rise']
         words_.append(f"the {r['lane']} rise from {r['from_pm'] / 10:g}% to {r['to_pm'] / 10:g}% velocity")
