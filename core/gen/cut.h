@@ -12,8 +12,9 @@
 //   whole song's.
 // - the controllers before the cut stay.
 // - the sections that start before the cut stay, the last one shortened to the cut, its blocks
-//   too, so the export writes the whole song's regions with the last one shortened (its file name,
-//   its marker and its regions.json entry give the new length); one harmony per section stays.
+//   and its one-bar dropouts too, so the export writes the whole song's regions with the last one
+//   shortened (its file name, its marker and its regions.json entry give the new length); one
+//   harmony per section stays.
 // - the turnaround bars, the salient changes and the chord spans before the cut stay, a span that
 //   crosses it ended by it.
 // Integer work only, and linear in the song's size.

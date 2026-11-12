@@ -230,8 +230,8 @@ namespace wubansia::gen
         const std::string advice = ". Write each song to its own --out folder, or empty that folder first.";
 
         // First, before anything is written: the folder must hold no other song. Region names carry
-        // no seed (03_drop_32bars.mid) and every seed of a kit has the same ones, so another song's
-        // files left there would look like part of this one. In both version folders, written or
+        // no seed (03_drop_32bars.mid) and seeds of a kit share many of them (each draws its form
+        // from one grammar), so another song's files left there would look like part of this one. In both version folders, written or
         // not (one --out folder is one song): no full file but this song's, and a regions.json only
         // of this song (its kit and seed). Nothing is ever deleted.
         const std::string full = fullFileName (song);
