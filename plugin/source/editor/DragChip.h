@@ -5,6 +5,7 @@
 // into a DAW's arrangement. A click without a drag shows the file instead, for hosts that don't take
 // drops from plug-in windows.
 
+#include "Controls.h"
 #include "EditorModel.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -53,7 +54,8 @@ namespace wubansia::editor
         bool hover = false, pressed = false, dragging = false, failed = false, compact = false;
     };
 
-    // The strip of song-wide chips: the loop, the song and each phrase file.
+    // The strip of song-wide chips: the loop, the song and each phrase file, and the 1 drum track switch (ADR 0025),
+    // which the Loop and Song drags follow. The switch is the person's setting, kept by the Controller.
     class DragStrip : public juce::Component
     {
     public:
@@ -64,6 +66,7 @@ namespace wubansia::editor
         void paint (juce::Graphics&) override;
 
         DragChip loop, song;
+        LedButton drums { "1 drum track" };
         int numPhraseChips() const noexcept { return phraseChips.size(); }
         DragChip* phraseChip (int index) const noexcept { return phraseChips[index]; }
 

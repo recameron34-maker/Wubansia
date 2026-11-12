@@ -114,22 +114,25 @@ namespace wubansia::editor
         auto content = area.reduced (compact ? 5.0f : 7.0f, 2.0f);
         const auto glyph = content.removeFromLeft (juce::jmin (compact ? 12.0f : 14.0f, content.getHeight())).withSizeKeepingCentre (11.0f, 11.0f);
         draw::midiGlyph (g, glyph, enabled ? (failed ? colours::warning : accent) : colours::textFaint);
-        content.removeFromLeft (compact ? 4.0f : 5.0f);
 
-        g.setFont (uiFont (compact ? 9.5f : 10.5f, true, 0.06f));
+        g.setFont (labelFont());
         g.setColour (! enabled ? colours::textFaint : (failed ? colours::warning : colours::text.withAlpha (0.9f)));
         const auto shown = failed ? juce::String (compact ? "!" : "Couldn't write") : (compact ? juce::String ("MIDI") : text);
-        g.drawFittedText (shown, content.toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+        g.drawFittedText (shown, labelArea().toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
     }
 
     juce::Font DragChip::labelFont() const
     {
-        return juce::Font (juce::FontOptions()); // not yet
+        return uiFont (compact ? 9.5f : 10.5f, true, 0.06f);
     }
 
     juce::Rectangle<float> DragChip::labelArea() const
     {
-        return {}; // not yet
+        // Right of the MIDI glyph, as paint () lays the chip out.
+        auto content = getLocalBounds().toFloat().reduced (1.5f).reduced (compact ? 5.0f : 7.0f, 2.0f);
+        content.removeFromLeft (juce::jmin (compact ? 12.0f : 14.0f, content.getHeight()));
+        content.removeFromLeft (compact ? 4.0f : 5.0f);
+        return content;
     }
 
     DragStrip::DragStrip (Controller& c)
@@ -140,16 +143,25 @@ namespace wubansia::editor
         setComponentID ("drag");
         loop.setComponentID ("drag_loop");
         loop.setTooltip ("Drag the 4-bar loop into your DAW as MIDI: the vox switch picks the vox or no-vox file, muted lanes "
-                         "are left out. Click to show the file.");
+                         "are left out, and 1 drum track puts its drums on one track. Click to show the file.");
         song.setComponentID ("drag_song");
         song.setTooltip ("Drag the 224-bar extended mix into your DAW as MIDI, with its section markers: the vox switch picks the "
-                         "file, muted lanes are left out. Click to show the file.");
+                         "file, muted lanes are left out, and 1 drum track puts its drums on one track. Click to show the file.");
+        drums.setComponentID ("drag_drums");
+        drums.setTooltip ("1 drum track. Lit: the Loop and Song drags bring all their drums as one track, Drums (channel 10, the same "
+                          "notes), for one Drum Rack in Live or one Drum Machine Designer in Logic; every other instrument keeps its "
+                          "own track. Off: one track per drum part. Kept for your user, not saved in the project.");
+        drums.onClick = [this] { controller.setDragDrumsOnOneTrack (drums.getToggleState()); };
         addAndMakeVisible (loop);
         addAndMakeVisible (song);
+        addAndMakeVisible (drums);
     }
 
     void DragStrip::update (const EditorModel& model)
     {
+        // The person's setting, which another instance may change too: shown as it is every tick.
+        drums.setToggleState (model.dragDrumsOnOneTrack, juce::dontSendNotification);
+
         if (model.phraseFiles == files && model.kit.id == kitId)
             return;
 
@@ -172,10 +184,12 @@ namespace wubansia::editor
     void DragStrip::resized()
     {
         auto area = getLocalBounds().reduced (8, 5);
-        area.removeFromLeft (116); // the engraved label
-        loop.setBounds (area.removeFromLeft (92));
+        area.removeFromLeft (72); // the engraved label
+        loop.setBounds (area.removeFromLeft (80));
         area.removeFromLeft (6);
-        song.setBounds (area.removeFromLeft (92));
+        song.setBounds (area.removeFromLeft (80));
+        area.removeFromLeft (6);
+        drums.setBounds (area.removeFromLeft (120));
         area.removeFromLeft (18);
 
         if (phraseChips.isEmpty())
@@ -191,16 +205,15 @@ namespace wubansia::editor
 
     juce::Rectangle<float> DragStrip::labelArea() const
     {
-        return {}; // not yet
+        return getLocalBounds().toFloat().reduced (10.0f, 5.0f).withWidth (64.0f);
     }
 
     void DragStrip::paint (juce::Graphics& g)
     {
-        auto area = getLocalBounds().toFloat().reduced (10.0f, 5.0f);
-        draw::engraved (g, "Drag MIDI", area.removeFromLeft (110.0f), juce::Justification::centredLeft, 9.5f);
+        draw::engraved (g, "Drag MIDI", labelArea(), juce::Justification::centredLeft, 9.5f);
         if (! phraseChips.isEmpty())
         {
-            const auto x = (float) song.getRight() + 9.0f;
+            const auto x = (float) drums.getRight() + 9.0f;
             g.setColour (juce::Colours::white.withAlpha (0.08f));
             g.fillRect (juce::Rectangle<float> (1.0f, (float) getHeight() * 0.5f).withCentre ({ x, (float) getHeight() * 0.5f }));
         }

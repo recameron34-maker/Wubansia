@@ -156,20 +156,22 @@ namespace wubansia::editor
         const auto ledRadius = juce::jmin (4.6f, area.getHeight() * 0.19f);
         draw::led (g, { area.getX() + area.getHeight() * 0.5f + 1.0f, area.getCentreY() }, ledRadius, accent, on ? 1.0f : 0.0f);
 
-        g.setFont (uiFont (juce::jmin (12.0f, area.getHeight() * 0.42f), true, 0.08f));
+        g.setFont (labelFont());
         g.setColour (! isEnabled() ? colours::textFaint : (on ? colours::text : colours::textDim));
-        g.drawText (getButtonText().toUpperCase(), area.withTrimmedLeft (area.getHeight() * 0.5f + ledRadius + 7.0f).withTrimmedRight (6.0f),
-            juce::Justification::centred, true);
+        g.drawText (getButtonText().toUpperCase(), labelArea().translated (0.0f, isButtonDown ? 0.6f : 0.0f), juce::Justification::centred, true);
     }
 
     juce::Font LedButton::labelFont() const
     {
-        return juce::Font (juce::FontOptions()); // not yet
+        return uiFont (juce::jmin (12.0f, getLocalBounds().toFloat().reduced (2.0f).getHeight() * 0.42f), true, 0.08f);
     }
 
     juce::Rectangle<float> LedButton::labelArea() const
     {
-        return {}; // not yet
+        // Right of the LED, as paintButton () draws it.
+        const auto area = getLocalBounds().toFloat().reduced (2.0f);
+        const auto ledRadius = juce::jmin (4.6f, area.getHeight() * 0.19f);
+        return area.withTrimmedLeft (area.getHeight() * 0.5f + ledRadius + 7.0f).withTrimmedRight (6.0f);
     }
 
     AbSwitch::AbSwitch (const juce::String& name)

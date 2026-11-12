@@ -250,6 +250,7 @@ namespace wubansia
         m.midiInMode = controller.midiInMode();
         m.midiInLane = controller.midiInLane();
         m.phraseMode = controller.phraseMode();
+        m.dragDrumsOnOneTrack = controller.dragDrumsOnOneTrack();
         m.phraseFiles = controller.phraseFiles();
 
         if (playModeParameter != nullptr)
