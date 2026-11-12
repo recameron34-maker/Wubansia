@@ -53,13 +53,9 @@ namespace wubansia::editor
         chooseButton.setComponentID ("content_folder");
         chooseButton.setTooltip ("Point Wubansia at the folder that holds the kits' sample folders (fut01, fut02...). "
                                  "It's remembered for you, not saved in projects.");
-        chooseButton.onClick = [this]
-        {
-            if (chooseFolder != nullptr)
-                chooseFolder ([this] (const juce::File& folder) { controller.setContentFolder (folder); });
-        };
+        chooseButton.onClick = [this] { chooseContentFolder(); };
         closeButton.setComponentID ("content_close");
-        closeButton.setTooltip ("Hide this panel; the Samples button brings it back");
+        closeButton.setTooltip (utf8 ("Hide this panel; Content\xe2\x80\xa6 in the Samples drawer brings it back"));
         closeButton.onClick = [this]
         {
             if (onClose != nullptr)
@@ -71,6 +67,12 @@ namespace wubansia::editor
     }
 
     ContentPanel::~ContentPanel() = default;
+
+    void ContentPanel::chooseContentFolder()
+    {
+        if (chooseFolder != nullptr)
+            chooseFolder ([this] (const juce::File& folder) { controller.setContentFolder (folder); });
+    }
 
     void ContentPanel::update (const EditorModel& model)
     {
