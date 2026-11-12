@@ -27,7 +27,8 @@ namespace wubansia
           modePanel (controller),
           abPanel(),
           dragStrip (controller),
-          contentPanel (controller)
+          contentPanel (controller),
+          samplesPanel (controller)
     {
         setLookAndFeel (&lookAndFeel);
         setOpaque (true);
@@ -60,6 +61,7 @@ namespace wubansia
         for (auto* component : std::initializer_list<juce::Component*> { &abPanel, &fxPanel, &dragStrip })
             content.addAndMakeVisible (component);
         content.addChildComponent (contentPanel);
+        content.addChildComponent (samplesPanel);
         addAndMakeVisible (content);
 
         bindParameters (audioProcessor);

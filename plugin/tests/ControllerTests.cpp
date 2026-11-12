@@ -16,6 +16,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <functional>
 #include <utility>
 
 using Catch::Matchers::WithinAbs;
@@ -84,6 +85,40 @@ namespace
             return {};
         const auto* data = static_cast<const std::uint8_t*> (block.getData());
         return std::vector<std::uint8_t> (data, data + block.getSize());
+    }
+
+    // The editor's one component with this ID, as the editor tests find them.
+    template <class T>
+    T& component (juce::Component& root, const juce::String& id)
+    {
+        std::vector<juce::Component*> found;
+        std::function<void (juce::Component&)> walk = [&] (juce::Component& parent)
+        {
+            for (auto* child : parent.getChildren())
+            {
+                if (child->getComponentID() == id)
+                    found.push_back (child);
+                walk (*child);
+            }
+        };
+        walk (root);
+        INFO ("component " << id);
+        REQUIRE (found.size() == 1);
+        auto* typed = dynamic_cast<T*> (found.front());
+        REQUIRE (typed != nullptr);
+        return *typed;
+    }
+
+    // A left click at a component's middle.
+    void clickOn (juce::Component& c)
+    {
+        const auto at = c.getLocalBounds().toFloat().getCentre();
+        const auto now = juce::Time::getCurrentTime();
+        const juce::MouseEvent event (juce::Desktop::getInstance().getMainMouseSource(), at, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier),
+            juce::MouseInputSource::defaultPressure, juce::MouseInputSource::defaultOrientation, juce::MouseInputSource::defaultRotation,
+            juce::MouseInputSource::defaultTiltX, juce::MouseInputSource::defaultTiltY, &c, &c, now, at, now, 1, false);
+        c.mouseDown (event);
+        c.mouseUp (event);
     }
 }
 
@@ -501,6 +536,57 @@ TEST_CASE ("the editor on the real processor: it opens, shows the kits, and clos
         juce::Image image (juce::Image::ARGB, editor->getWidth(), editor->getHeight(), true, juce::SoftwareImageType());
         juce::Graphics g (image);
         editor->paintEntireComponent (g, false);
+    });
+    CHECK (plugin->getActiveEditor() == nullptr);
+}
+
+TEST_CASE ("the drawer on the real processor: it lists the kit's sounds, plays one and copies its file", "[controller][editor][sounds]")
+{
+    SyntheticPlugin plugin (twoKits ("DRW01", "DRW02"));
+    TempFolder samples;
+    auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+    controller.setSamplesFolderForTesting (samples.folder);
+    test::prepareWithKit (*plugin);
+
+    test::withEditor (*plugin, [&] (juce::AudioProcessorEditor& base) {
+        auto* editor = dynamic_cast<PluginEditor*> (&base);
+        REQUIRE (editor != nullptr);
+        editor->tick();
+        clickOn (component<juce::Button> (*editor, "samples"));
+        editor->tick();
+        REQUIRE (editor->isSamplesPanelShown());
+        auto& drawer = component<editor::SamplesPanel> (*editor, "samples_drawer");
+        juce::Array<juce::File> revealed;
+        drawer.revealFile = [&revealed] (const juce::File& file) { revealed.add (file); };
+        drawer.startDrag = [] (const juce::File&, juce::Component&) { return true; };
+
+        // The synthetic kit has no Accents: the drawer opens on its first category, FX, which holds the riser.
+        CHECK (drawer.browsedKit() == "DRW01");
+        CHECK (drawer.category() == SoundCategory::fx);
+        REQUIRE (drawer.numRows() == 1);
+        auto& riser = component<editor::SoundRow> (*editor, "sound_row_0");
+        CHECK (riser.look().name == "Riser");
+        CHECK_FALSE (riser.look().dimmed);
+
+        // A press plays it, through the sound thread.
+        clickOn (riser);
+        CHECK (controller.auditionState().latest != 0u);
+        CHECK (controller.auditionState().problem.isEmpty());
+        CHECK (plugin->soundService().started());
+
+        // The tile names the copy; a click makes it, byte for byte, and shows it.
+        auto& tile = component<editor::SoundDragTile> (*editor, "sound_drag");
+        CHECK (tile.fileName() == "Riser - DRW01 128 Gm 6A.wav");
+        clickOn (tile);
+        REQUIRE (revealed.size() == 1);
+        CHECK (revealed[0] == samples.folder.getChildFile ("DRW01 Synthetic 01").getChildFile ("Riser - DRW01 128 Gm 6A.wav"));
+        CHECK (bytesOf (revealed[0]) == engine::testing::syntheticContent().wavs[(std::size_t) synFile ("FX/Riser.wav")]);
+
+        // Closing the drawer stops it.
+        clickOn (component<juce::Button> (*editor, "samples_close"));
+        CHECK_FALSE (editor->isSamplesPanelShown());
+        CHECK (controller.auditionState().sounding == 0u);
+        CHECK_FALSE (controller.auditionState().waiting);
     });
     CHECK (plugin->getActiveEditor() == nullptr);
 }
