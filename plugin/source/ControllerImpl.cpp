@@ -8,6 +8,7 @@
 #include "sounds/SampleExport.h"
 
 #include <algorithm>
+#include <utility>
 
 namespace wubansia
 {
@@ -31,6 +32,42 @@ namespace wubansia
             if (juce::String::fromUTF8 (entry.id.data(), static_cast<int> (entry.id.size())) == processor.settings().kit)
                 return controller.status();
             return processor.kitService().kitStatus (entry.index);
+        }
+
+        // A sound's kit entry and its ready content folder, for a copy or an audition; or why there's none, for people.
+        struct SoundSource
+        {
+            const KitCatalog::Entry* entry = nullptr; // nullptr: see problem
+            ContentStatus found;
+            juce::String problem;
+        };
+
+        SoundSource sourceOf (const Controller& controller, const PluginProcessor& processor, const SoundRef& sound)
+        {
+            SoundSource source;
+            const auto* entry = entryOf (processor, sound.kit);
+            if (entry == nullptr || ! entry->ok())
+            {
+                source.problem = "this build of Wubansia has no kit " + sound.kit;
+                return source;
+            }
+            if (sound.file < 0 || static_cast<std::size_t> (sound.file) >= entry->manifest.files.size())
+            {
+                source.problem = sound.kit + " lists no file " + juce::String (sound.file);
+                return source;
+            }
+
+            // Only from a folder the service found ready: kit.json's files, checked.
+            source.found = contentOf (controller, processor, *entry);
+            if (source.found.state != ContentState::ready || source.found.folder == juce::File())
+            {
+                source.problem = source.found.state == ContentState::loading ? sound.kit + "'s samples aren't ready yet"
+                                 : source.found.problem.isNotEmpty()        ? problemText (source.found.problem)
+                                                                            : sound.kit + "'s samples aren't installed";
+                return source;
+            }
+            source.entry = entry;
+            return source;
         }
     }
 
@@ -64,6 +101,9 @@ namespace wubansia
         const auto* entry = entryOf (processor, id);
         if (entry == nullptr)
             return; // not a kit this build carries
+
+        // A kit chosen stops the Samples drawer's audition (ADR 0024).
+        processor.sounds->stop();
 
         // Already there, or on its way: nothing to do. A kit whose load failed loads again.
         const auto status = processor.kitService().status();
@@ -243,39 +283,44 @@ namespace wubansia
         return entry != nullptr ? entry->sounds : std::vector<SoundInfo> {};
     }
 
-    std::uint32_t ControllerImpl::audition (const SoundRef&) { return 0; } // not yet
+    std::uint32_t ControllerImpl::audition (const SoundRef& sound)
+    {
+        const auto source = sourceOf (*this, processor, sound);
+        if (source.entry == nullptr)
+        {
+            processor.sounds->refuse (source.problem); // what plays stops, and the drawer says why
+            return 0;
+        }
+        SoundService::Request request;
+        request.kit = sound.kit;
+        request.contentVersion = source.entry->info.contentVersion;
+        request.found = source.found;
+        request.file = source.entry->manifest.files[static_cast<std::size_t> (sound.file)];
+        return processor.sounds->audition (std::move (request));
+    }
 
-    void ControllerImpl::stopAudition() {}
+    void ControllerImpl::stopAudition()
+    {
+        processor.sounds->stop();
+    }
 
-    AuditionState ControllerImpl::auditionState() const { return {}; }
+    AuditionState ControllerImpl::auditionState() const
+    {
+        return processor.sounds->status();
+    }
 
     SoundExport ControllerImpl::exportSound (const SoundRef& sound)
     {
         SoundExport result;
-        const auto* entry = entryOf (processor, sound.kit);
-        if (entry == nullptr || ! entry->ok())
+        const auto source = sourceOf (*this, processor, sound);
+        if (source.entry == nullptr)
         {
-            result.problem = "this build of Wubansia has no kit " + sound.kit;
-            return result;
-        }
-        if (sound.file < 0 || static_cast<std::size_t> (sound.file) >= entry->manifest.files.size())
-        {
-            result.problem = sound.kit + " lists no file " + juce::String (sound.file);
+            result.problem = source.problem;
             return result;
         }
 
-        // Only from a folder the service found ready: kit.json's files, checked.
-        const auto found = contentOf (*this, processor, *entry);
-        if (found.state != ContentState::ready || found.folder == juce::File())
-        {
-            result.problem = found.state == ContentState::loading ? sound.kit + "'s samples aren't ready yet"
-                             : found.problem.isNotEmpty()        ? problemText (found.problem)
-                                                                 : sound.kit + "'s samples aren't installed";
-            return result;
-        }
-
-        const auto& file = entry->manifest.files[static_cast<std::size_t> (sound.file)];
-        const auto copy = sounds::exportCopy (*processor.content, found, entry->info, file, samplesFolder());
+        const auto& file = source.entry->manifest.files[static_cast<std::size_t> (sound.file)];
+        const auto copy = sounds::exportCopy (*processor.content, source.found, source.entry->info, file, samplesFolder());
         result.file = copy.file;
         result.problem = juce::String::fromUTF8 (copy.problem.data(), static_cast<int> (copy.problem.size()));
         return result;
