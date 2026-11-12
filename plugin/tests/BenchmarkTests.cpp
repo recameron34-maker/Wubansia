@@ -156,6 +156,9 @@ TEST_CASE ("the plugin at 48 kHz / 128 samples, 64 voices and every effect, take
         CHECK (load.voices > 32.0);
         CHECK (load.mean <= gate);
 
+        // From rest again (prepare resets the voices; the kit stays), as the first run started: a second run straight on
+        // starts with every voice busy and costs more whatever plays on top.
+        test::prepare (*plugin, 48000.0, 128);
         Auditioning audition (*plugin, "SYN01", longestFile (*plugin, "SYN01"));
         const auto withAudition = measure (*plugin, 128.0, 20.0, std::ref (audition));
         report ("SYN01 with an audition playing", withAudition);
@@ -186,6 +189,7 @@ TEST_CASE ("the plugin at 48 kHz / 128 samples, 64 voices and every effect, take
             CHECK (load.voices > 32.0);
             CHECK (load.mean <= gate);
 
+            test::prepare (plugin, 48000.0, 128); // from rest again, as the first run started
             Auditioning audition (plugin, kit, longestFile (plugin, kit));
             const auto withAudition = measure (plugin, bpm, 20.0, std::ref (audition));
             report ((kit + " with an audition playing").toRawUTF8(), withAudition);
