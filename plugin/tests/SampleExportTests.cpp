@@ -135,7 +135,8 @@ TEST_CASE ("export names: the installed name first, then the kit's id, tempo, ke
     {
         CAPTURE (e.kit, e.sound);
         const auto& entry = kitEntry (e.kit);
-        const auto& sound = named (sounds::soundsOf (entry.manifest), e.sound);
+        const auto kitSounds = sounds::soundsOf (entry.manifest);
+        const auto& sound = named (kitSounds, e.sound);
         REQUIRE (sound.defaultFile < (int) sound.files.size());
         const auto& file = entry.manifest.files[(std::size_t) sound.files[(std::size_t) sound.defaultFile].file];
         CHECK (file.path == e.path);

@@ -346,7 +346,8 @@ TEST_CASE ("the default file: the top layer's first round robin, on the kit's to
     SECTION ("files: zones low to high, layers soft to hard, then round robins")
     {
         const auto& kit = manifestOf ("FUT01");
-        const auto& kick = named (sounds::soundsOf (kit), "Kick Split");
+        const auto fut01 = sounds::soundsOf (kit);
+        const auto& kick = named (fut01, "Kick Split");
         std::vector<juce::String> labels;
         for (const auto& f : kick.files)
             labels.push_back (f.label);
@@ -355,7 +356,7 @@ TEST_CASE ("the default file: the top layer's first round robin, on the kit's to
                    "Kick Split v3 rr2", "Kick Split v4 rr1", "Kick Split v4 rr2", "Kick Split v5 rr1", "Kick Split v5 rr2" });
         CHECK (kick.defaultFile == 8);
 
-        const auto& pluck = named (sounds::soundsOf (kit), "Chrome Pluck");
+        const auto& pluck = named (fut01, "Chrome Pluck");
         REQUIRE (pluck.files.size() == 18);
         CHECK (pluck.files.front().label == "Chrome Pluck C4 v1");
         CHECK (pluck.files[1].label == "Chrome Pluck C4 v2");
