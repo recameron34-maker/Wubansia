@@ -4,18 +4,21 @@
 // (docs/midi-map.md, "Files per kit") and written to the drag cache folder.
 //
 // ControllerImpl::writeDragFile (P9) calls writeDragFile () below with the current kit's info, its
-// embedded MIDI files (EmbeddedContent::midiFiles), the play mode, the vox switch and the lane mutes,
-// and returns the file it gives (juce::File () on failure); ControllerImpl::phraseFiles () returns
-// phraseFiles (). Message thread only: it reads and writes files.
+// embedded MIDI files (EmbeddedContent::midiFiles), the play mode, the vox switch, the lane mutes and
+// the person's drum option (UserSettings), and returns the file it gives (juce::File () on failure);
+// ControllerImpl::phraseFiles () returns phraseFiles (). Message thread only: it reads and writes files.
 //
-//     const dragout::DragState state { mode, voxSynth ? engine::Variant::vox : engine::Variant::novox, mutedLanes };
+//     const dragout::DragState state { mode, voxSynth ? engine::Variant::vox : engine::Variant::novox, mutedLanes, drumsOnOneTrack };
 //     const auto file = dragout::writeDragFile (kitInfo, midiFiles, state, request);
 //     return file.ok() ? file.value : juce::File(); // file.error says why, for a log
 //
-// What each DragWhat gives (core/midi/track_select.h cuts the files, byte for byte):
+// What each DragWhat gives (core/midi/track_select.h cuts the files, byte for byte, and merges drums):
 // - loop: the vox switch's Loop file (<KIT>_Loop_Vox_4bars.mid or <KIT>_Loop_NoVox_4bars.mid), less the
-//   tracks of muted lanes. With nothing muted it is that file as it is.
-// - song: the vox switch's extended mix (<KIT>_ExtendedMix_Vox_224bars.mid or _NoVox_), the same way.
+//   tracks of muted lanes. With nothing muted it is that file as it is. With drumsOnOneTrack and two or
+//   more drum tracks left (Kick, Rumble, Snare, Clap, Snare/Clap, Hats, Perc), those become one track,
+//   Drums, where the first was (track_select.h's mergeTracks); every other track stays byte for byte.
+// - song: the vox switch's extended mix (<KIT>_ExtendedMix_Vox_224bars.mid or _NoVox_), the same way,
+//   drums on one track included.
 // - lane: the conductor and that lane's tracks from the current mode's files (Song: the extended
 //   mixes; Loop and Off: the Loop files), whatever the mutes. The vox switch picks the file where the
 //   lane differs between the two (the accents, the vox); where it doesn't, the vox file gives it, so a
@@ -23,22 +26,26 @@
 //   with the switch off), the other file does. A lane with tracks in neither can't be dragged.
 // - phrase: the named file (one of phraseFiles (); any of the kit's own <KIT>_ files), byte for byte,
 //   whatever the mutes.
-// Every kept track is kept whole, with the conductor (tempo, 4/4, key, and in a Song the section
-// markers and cues), so the dragged MIDI is the music Wubansia plays. A track's lane comes from its
-// name (engine/kit/channel_map.h's trackLane: channels.py's TRACKS and the kit's extras); a track no
-// lane claims stays in Loop and Song drags and is never in a lane drag.
+// Lane and phrase drags never merge drums. Every kept track is kept whole, but drums merged on one
+// track, with the conductor (tempo, 4/4, key, and in a Song the section markers and cues), so the
+// dragged MIDI is the music Wubansia plays. A track's lane comes from its name
+// (engine/kit/channel_map.h's trackLane: channels.py's TRACKS and the kit's extras); a track no lane
+// claims stays in Loop and Song drags and is never in a lane drag.
 //
 // Names are "<KIT> <Title> <BPM> <Key> <Camelot> - <what>.mid", for example
 //     FUT01 Alloy Signal 134 F#m 11A - Loop.mid
 //     FUT01 Alloy Signal 134 F#m 11A - Song NoVox (no Kick, Warp Bass).mid
+//     FUT01 Alloy Signal 134 F#m 11A - Song NoVox (1 drum track, no Clap, Warp Bass).mid
 //     FUT01 Alloy Signal 134 F#m 11A - Warp Bass Song.mid
 //     FUT01 Alloy Signal 134 F#m 11A - Phrase Organ Riff 4 bars.mid
 // The key is short ("F# minor" is F#m, "Bb major" Bbmaj); a lane is named by the kit's label for it;
-// "NoVox" marks the no-vox file; "(no ...)" lists the muted lanes whose tracks a Loop or Song drag
-// left out. Only letters, digits, spaces and # ( ) , - . _ survive from the kit's strings, so a name
-// is safe on macOS, Windows and Linux. The same drag always gives the same name and bytes, and drags
-// that give different files get different names (DragOutTests checks it for the four kits; a lane
-// label reading like "Loop" or "Phrase ..." would break it).
+// "NoVox" marks the no-vox file. In brackets, "1 drum track" marks drums merged on one track, and
+// "no ..." lists the muted lanes whose tracks a Loop or Song drag left out; with at most one drum
+// track left nothing merges, so the name has no "1 drum track". Only letters, digits, spaces and
+// # ( ) , - . _ survive from the kit's strings, so a name is safe on macOS, Windows and Linux. The same
+// drag always gives the same name and bytes, and drags that give different files get different names
+// (DragOutTests checks it for the four kits; a lane label reading like "Loop" or "Phrase ..." would
+// break it).
 //
 // The cache folder keeps the newest kKeepFiles .mid files: a DAW imports a dropped MIDI file, and
 // the newest stay for any drop still in flight.

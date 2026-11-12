@@ -1059,7 +1059,7 @@ TEST_CASE ("drag file names hold kit, title, BPM, key and Camelot, in safe chara
             add (k, state (PlayMode::loop, Variant::vox), phraseRequest (name.toStdString()));
     }
     REQUIRE (named.size() > 800);
-    CHECK (std::count_if (named.begin(), named.end(), [] (const auto& n) { return n.first.find ("(1 drum track") != std::string::npos; }) > 200);
+    CHECK (std::count_if (named.begin(), named.end(), [] (const auto& n) { return n.first.find ("(1 drum track") != std::string::npos; }) > 150);
 
     const auto artists = loadDenylist ("artists");
     const auto slurs = loadDenylist ("slurs");

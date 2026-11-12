@@ -175,6 +175,17 @@ namespace wubansia::dragout
             return DragResult::success ({ std::move (name), std::move (bytes.value) });
         }
 
+        // Whether 1 drum track puts a track on the merged track (ADR 0025): its name has the drums role in kTracks.
+        bool isDrumTrack (std::string_view name)
+        {
+            for (const auto& t : engine::kTracks)
+                if (t.name == name)
+                    return t.role == engine::ChannelRole::drums;
+            return false;
+        }
+
+        constexpr std::string_view kDrumTrackName = "Drums";
+
         // Loop or Song: the vox switch's file less the muted lanes' tracks.
         DragResult wholeDrag (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state, bool song)
         {
@@ -196,18 +207,35 @@ namespace wubansia::dragout
             if (kept.empty())
                 return DragResult::failure ("every lane with tracks in " + source.value.name + " is muted");
 
+            // 1 drum track: the kept drum tracks, in file order, become one track where the first was.
+            std::vector<int> drums;
+            if (state.drumsOnOneTrack)
+                for (const int i : kept)
+                    if (isDrumTrack (source.value.tracks[static_cast<std::size_t> (i)].name))
+                        drums.push_back (i);
+            const bool merge = drums.size() >= 2;
+
             std::string what = song ? "Song" : "Loop";
             if (state.variant == engine::Variant::novox)
                 what += " NoVox";
+            std::string marks = merge ? "1 drum track" : "";
             if (left != 0)
             {
                 std::string labels;
                 for (std::size_t lane = 0; lane < static_cast<std::size_t> (engine::kLanes); ++lane)
                     if ((left & (1u << lane)) != 0)
                         labels += (labels.empty() ? "" : ", ") + laneLabel (kit, lane);
-                what += " (no " + labels + ")";
+                marks += (marks.empty() ? "no " : ", no ") + labels;
             }
-            return cut (source.value, kept, fileName (kit, what));
+            if (!marks.empty())
+                what += " (" + marks + ")";
+            if (!merge)
+                return cut (source.value, kept, fileName (kit, what));
+
+            auto bytes = midi::mergeTracks (source.value.file->bytes, kept, drums, kDrumTrackName);
+            if (!bytes.ok())
+                return DragResult::failure (source.value.name + ": can't put the drums on one track: " + bytes.error);
+            return DragResult::success ({ fileName (kit, what), std::move (bytes.value) });
         }
 
         // One lane's tracks from the mode's files: see the header.
