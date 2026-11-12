@@ -30,6 +30,12 @@ namespace wubansia
         return std::make_unique<engine::FileSampleSource> (toPath (found.folder), cancel);
     }
 
+    util::Result<std::vector<std::uint8_t>> InstalledContent::readFile (const ContentStatus&, std::string_view path)
+    {
+        // Tests first: ADR 0024's readFile arrives with its implementation.
+        return util::Result<std::vector<std::uint8_t>>::failure ("unreadable: " + std::string (path) + ": not implemented yet");
+    }
+
     juce::File InstalledContent::userFolder() const
     {
         return settings.contentFolder();

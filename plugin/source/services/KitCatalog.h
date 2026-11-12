@@ -1,9 +1,10 @@
 #pragma once
 
 // The kits a ContentSourceFactory carries, parsed once (P9): each kit's two manifests (P4's parsers),
-// its KitInfo as buildKit fills it, the card the editor shows, its Song sections, and its MIDI files as
-// drag-out takes them. The kit service loads from it on its thread; the controller reads it on the
-// message thread; it never changes after it is made.
+// its KitInfo as buildKit fills it, the card the editor shows, its Song sections, its MIDI files as
+// drag-out takes them, and its sounds as the Samples drawer lists them (ADR 0024). The kit service
+// loads from it on its thread; the controller reads it on the message thread; it never changes after
+// it is made.
 
 #include "Controller.h"
 #include "content/ContentSource.h"
@@ -39,6 +40,7 @@ namespace wubansia
             KitCard card; // its content status left as it starts (missing): the service knows it
             std::array<std::vector<SectionInfo>, 2> sections; // the Song's, by engine::Variant
             std::vector<dragout::MidiFile> midiFiles; // the kit's MIDI files, as drag-out takes them
+            std::vector<SoundInfo> sounds; // sounds::soundsOf (manifest); empty when the manifests don't parse
 
             bool ok() const noexcept { return error.empty(); }
         };

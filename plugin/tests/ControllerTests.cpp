@@ -1,15 +1,22 @@
 // ControllerImpl (ControllerImpl.h): the editor's API over the real processor, on the synthetic kit.
 // The kit cards, kit selection and its status, the snapshot the editor polls, the Song's sections, the
 // MIDI-in and phrase settings reaching the engine, drag-out from the kit's embedded MIDI, the content
-// folder, and the real editor (P10's) on it.
+// folder, the Samples drawer's sounds, copies and samples folder (ADR 0024), and the real editor
+// (P10's) on it.
 
 #include "PluginEditor.h"
+#include "content/ContentLocator.h"
+#include "content/UserSettings.h"
+#include "dragout/DragFiles.h"
 #include "helpers/test_helpers.h"
+#include "sounds/SampleExport.h"
 
 #include "midi/reader.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <utility>
 
 using Catch::Matchers::WithinAbs;
 using namespace wubansia;
@@ -34,6 +41,50 @@ namespace
         ~DragFolder() { folder.deleteRecursively(); }
         juce::File folder;
     };
+
+    // A fresh temp folder, made now and deleted with this.
+    struct TempFolder
+    {
+        TempFolder() : folder (juce::File::getSpecialLocation (juce::File::tempDirectory).getNonexistentChildFile ("WubansiaControllerTest", "", false))
+        {
+            folder.createDirectory();
+        }
+        ~TempFolder() { folder.deleteRecursively(); }
+        juce::File folder;
+    };
+
+    // What the processor tells its host.
+    struct HostListener final : juce::AudioProcessorListener
+    {
+        void audioProcessorParameterChanged (juce::AudioProcessor*, int, float) override {}
+
+        void audioProcessorChanged (juce::AudioProcessor*, const ChangeDetails& details) override
+        {
+            if (details.nonParameterStateChanged)
+                ++stateChanges;
+        }
+
+        int stateChanges = 0;
+    };
+
+    // The synthetic kit's index of the file at path.
+    int synFile (std::string_view path)
+    {
+        const auto& files = engine::testing::syntheticContent().kit.files;
+        for (std::size_t i = 0; i < files.size(); ++i)
+            if (files[i].path == path)
+                return (int) i;
+        return -1;
+    }
+
+    std::vector<std::uint8_t> bytesOf (const juce::File& file)
+    {
+        juce::MemoryBlock block;
+        if (! file.loadFileAsData (block))
+            return {};
+        const auto* data = static_cast<const std::uint8_t*> (block.getData());
+        return std::vector<std::uint8_t> (data, data + block.getSize());
+    }
 }
 
 TEST_CASE ("the kit cards come from the kits' manifests, with their content status", "[controller]")
@@ -231,6 +282,169 @@ TEST_CASE ("the chosen content folder goes to the person's settings and reloads 
     plugin->controller().setContentFolder (folder);
     CHECK (plugin.content->userFolder() == folder);
     CHECK (test::waitForStatus (*plugin, ContentState::ready));
+}
+
+TEST_CASE ("sounds: every embedded kit's, with no samples needed", "[controller][sounds]")
+{
+    // The plugin's own four kits, before any prepare: the manifests it carries are enough.
+    PluginProcessor plugin;
+    auto& controller = plugin.controller();
+    const std::pair<const char*, std::size_t> kits[] { { "FUT01", 35 }, { "FUT02", 37 }, { "FUT03", 36 }, { "FUT04", 32 } };
+    for (const auto& [kit, count] : kits)
+    {
+        CAPTURE (kit);
+        const auto sounds = controller.sounds (kit);
+        CHECK (sounds.size() == count);
+        const auto* entry = plugin.kitService().catalog().find (kit);
+        REQUIRE (entry != nullptr);
+        CHECK (sounds == entry->sounds);
+    }
+    CHECK (controller.sounds ("NOPE").empty());
+    CHECK_FALSE (plugin.kitService().started()); // no thread, no content check
+
+    // The synthetic kits: SYN01's 13 sounds under each id.
+    SyntheticPlugin synthetic (twoKits ("SND01", "SND02"));
+    const auto sounds = synthetic->controller().sounds ("SND02");
+    REQUIRE (sounds.size() == 13);
+    CHECK (sounds.front().id == "SND02/kick_a");
+    CHECK (sounds.back().id == "SND02/Loops/Lead Phrase.wav");
+    CHECK (synthetic.content->fileReads.load() == 0);
+}
+
+TEST_CASE ("exportSound copies the kit's file into the samples folder; a second call writes nothing", "[controller][sounds]")
+{
+    SyntheticPlugin plugin (twoKits ("XPT01", "XPT02"));
+    TempFolder samples;
+    auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+    controller.setSamplesFolderForTesting (samples.folder);
+    CHECK (controller.samplesFolder() == samples.folder);
+    test::prepareWithKit (*plugin);
+    REQUIRE (controller.status().state == ContentState::ready);
+
+    const auto riser = synFile ("FX/Riser.wav");
+    const auto& wav = engine::testing::syntheticContent().wavs[(std::size_t) riser];
+    const auto first = controller.exportSound ({ "XPT01", riser });
+    INFO (first.problem);
+    REQUIRE (first.file.existsAsFile());
+    CHECK (first.problem.isEmpty());
+    CHECK (first.file == samples.folder.getChildFile ("XPT01 Synthetic 01").getChildFile ("Riser - XPT01 128 Gm 6A.wav"));
+    CHECK (bytesOf (first.file) == wav);
+
+    const juce::Time past (2001, 0, 1, 12, 0, 0, 0, false);
+    REQUIRE (first.file.setLastModificationTime (past));
+    const auto second = controller.exportSound ({ "XPT01", riser });
+    CHECK (second.file == first.file);
+    CHECK (second.file.getLastModificationTime() == past); // nothing written
+
+    // A kit other than the one playing, once the service has found its samples.
+    REQUIRE (test::waitFor ([&] { return controller.kits()[1].content.state == ContentState::ready; }));
+    const auto other = controller.exportSound ({ "XPT02", riser });
+    INFO (other.problem);
+    CHECK (other.file == samples.folder.getChildFile ("XPT02 Synthetic 02").getChildFile ("Riser - XPT02 128 Gm 6A.wav"));
+    CHECK (bytesOf (other.file) == wav);
+
+    // Nothing to copy: a kit this build doesn't carry, a file the kit doesn't list.
+    const auto unknown = controller.exportSound ({ "NOPE", riser });
+    CHECK (unknown.file == juce::File());
+    CHECK (unknown.problem.contains ("NOPE"));
+    for (const auto file : { -1, 30 })
+    {
+        const auto none = controller.exportSound ({ "XPT01", file });
+        CHECK (none.file == juce::File());
+        CHECK (none.problem.isNotEmpty());
+    }
+    CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 2); // the two kits' folders
+}
+
+TEST_CASE ("exportSound is refused, with the reason, while the kit's samples aren't there", "[controller][sounds]")
+{
+    SyntheticContent::Options options;
+    options.ids = { "MIS01" };
+    options.samples = SyntheticContent::Samples::missing;
+    SyntheticPlugin plugin (options);
+    TempFolder samples;
+    auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+    controller.setSamplesFolderForTesting (samples.folder);
+    const auto riser = synFile ("FX/Riser.wav");
+
+    // Before the first content check: not found yet.
+    const auto early = controller.exportSound ({ "MIS01", riser });
+    CHECK (early.file == juce::File());
+    CHECK (early.problem.isNotEmpty());
+
+    test::prepare (*plugin, 48000.0, 512);
+    REQUIRE (test::waitForStatus (*plugin, ContentState::missing));
+    const auto refused = controller.exportSound ({ "MIS01", riser });
+    CHECK (refused.file == juce::File());
+    CHECK (refused.problem.contains ("no content folder holds MIS01"));
+    CHECK (plugin.content->fileReads.load() == 0); // never read
+    CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 0);
+}
+
+TEST_CASE ("setSamplesFolder is kept for the person, never in the project, and refuses the content and drag folders", "[controller][sounds]")
+{
+    SyntheticPlugin plugin (twoKits ("SMP01", "SMP02"));
+    TempFolder temp;
+    DragFolder drag;
+    UserSettings settings (temp.folder.getChildFile ("settings.xml"));
+    auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+    controller.setUserSettingsForTesting (settings);
+    controller.setDragFolderForTesting (drag.folder);
+    HostListener host;
+    plugin->addListener (&host);
+
+    CHECK (controller.samplesFolder() == sounds::defaultSamplesFolder()); // nothing chosen yet
+
+    const auto mine = temp.folder.getChildFile ("My Samples"); // not there yet: made
+    CHECK (controller.setSamplesFolder (mine));
+    CHECK (mine.isDirectory());
+    CHECK (controller.samplesFolder() == mine);
+    CHECK (UserSettings (settings.file()).samplesFolder() == mine); // in the person's settings file
+    CHECK (host.stateChanges == 0); // never the project's
+
+    juce::MemoryBlock state;
+    plugin->getStateInformation (state);
+    const auto xml = juce::AudioProcessor::getXmlFromBinary (state.getData(), (int) state.getSize());
+    REQUIRE (xml != nullptr);
+    CHECK_FALSE (xml->hasAttribute ("samples_folder"));
+    CHECK_FALSE (xml->toString().contains (mine.getFullPathName()));
+
+    // The content folders (the kit's, and the root that holds it), the installers' content folder and the drag
+    // cache, and anything inside them, are refused, and nothing changes.
+    test::prepareWithKit (*plugin); // the service has searched SMP01's folder
+    const auto kitFolder = SyntheticContent::folderOf ("SMP01");
+    const auto contentRoot = kitFolder.getParentDirectory();
+    const juce::File refusals[] { kitFolder, kitFolder.getChildFile ("Mine"), contentRoot, contentRoot.getChildFile ("Samples"),
+        ContentLocator::platformDefaultFolder(), ContentLocator::platformDefaultFolder().getChildFile ("Samples"), drag.folder,
+        drag.folder.getChildFile ("Samples"), dragout::cacheFolder(), dragout::cacheFolder().getChildFile ("Samples") };
+    for (const auto& refused : refusals)
+    {
+        CAPTURE (refused.getFullPathName().toStdString());
+        CHECK_FALSE (controller.setSamplesFolder (refused));
+        CHECK (controller.samplesFolder() == mine);
+    }
+    CHECK_FALSE (kitFolder.getChildFile ("Mine").exists());
+
+    // The content folder chosen with "Choose content folder…" too.
+    const auto chosenContent = temp.folder.getChildFile ("Chosen Content");
+    controller.setContentFolder (chosenContent);
+    CHECK_FALSE (controller.setSamplesFolder (chosenContent));
+    CHECK_FALSE (controller.setSamplesFolder (chosenContent.getChildFile ("Samples")));
+
+    // A folder that can't be made: a file is in the way.
+    const auto blocker = temp.folder.getChildFile ("a file");
+    REQUIRE (blocker.replaceWithText ("not a folder"));
+    CHECK_FALSE (controller.setSamplesFolder (blocker));
+    CHECK_FALSE (controller.setSamplesFolder (blocker.getChildFile ("Samples")));
+    CHECK (controller.samplesFolder() == mine);
+    CHECK (settings.samplesFolder() == mine);
+
+    // juce::File () goes back to the default.
+    CHECK (controller.setSamplesFolder ({}));
+    CHECK (controller.samplesFolder() == sounds::defaultSamplesFolder());
+    CHECK (UserSettings (settings.file()).samplesFolder() == juce::File());
+    CHECK (host.stateChanges == 0);
+    plugin->removeListener (&host);
 }
 
 TEST_CASE ("the editor on the real processor: it opens, shows the kits, and closes", "[controller][editor]")

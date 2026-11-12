@@ -3,6 +3,7 @@
 #include "ParameterIds.h"
 #include "PluginProcessor.h"
 #include "content/ContentLocator.h"
+#include "content/UserSettings.h"
 #include "dragout/DragFiles.h"
 
 namespace wubansia
@@ -217,5 +218,30 @@ namespace wubansia
         const auto folder = dragFolder != juce::File() ? dragFolder : dragout::cacheFolder();
         const auto file = dragout::writeDragFile (entry->info, entry->midiFiles, state, request, folder);
         return file.ok() ? file.value : juce::File();
+    }
+
+    UserSettings& ControllerImpl::settingsFile() const
+    {
+        return userSettings != nullptr ? *userSettings : UserSettings::instance();
+    }
+
+    std::vector<SoundInfo> ControllerImpl::sounds (const juce::String&) const
+    {
+        return {}; // tests first: ADR 0024's catalog arrives with its implementation
+    }
+
+    SoundExport ControllerImpl::exportSound (const SoundRef&)
+    {
+        return {};
+    }
+
+    juce::File ControllerImpl::samplesFolder() const
+    {
+        return {};
+    }
+
+    bool ControllerImpl::setSamplesFolder (const juce::File&)
+    {
+        return false;
     }
 }

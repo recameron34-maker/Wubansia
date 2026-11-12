@@ -70,4 +70,14 @@ namespace wubansia
         changes.fetch_add (1, std::memory_order_acq_rel);
         return saved;
     }
+
+    juce::File UserSettings::samplesFolder() const
+    {
+        return {}; // tests first: ADR 0024's samples_folder arrives with its implementation
+    }
+
+    bool UserSettings::setSamplesFolder (const juce::File&)
+    {
+        return false;
+    }
 }
