@@ -275,13 +275,16 @@ namespace
         }
     };
 
-    // Whether a click at the middle of a component lands in the drawer instead.
+    // Whether a click at the middle of a component lands in the drawer instead. It asks the zoomed face the
+    // drawer sits on: the editor itself is only visible once a host puts it in a window.
     bool coveredByDrawer (PluginEditor& editor, juce::Component& component)
     {
         auto& drawer = get<editor::SamplesPanel> (editor, "samples_drawer");
-        const auto centre = editor.getLocalPoint (&component, component.getLocalBounds().getCentre());
-        auto* hit = editor.getComponentAt (centre);
-        return hit != nullptr && (hit == &drawer || drawer.isParentOf (hit));
+        auto* face = drawer.getParentComponent();
+        REQUIRE (face != nullptr);
+        auto* hit = face->getComponentAt (face->getLocalPoint (&component, component.getLocalBounds().getCentre()));
+        REQUIRE (hit != nullptr);
+        return hit == &drawer || drawer.isParentOf (hit);
     }
 }
 
@@ -990,6 +993,8 @@ TEST_CASE ("the Samples button opens the drawer over the lanes, A/B and FX; the 
             editor.setZoom (2.0f);
             CHECK (editor.getWidth() == 2240);
             CHECK (drawer.getBounds() == juce::Rectangle<int> (20, 246, 1080, 396));
+            CHECK (editor.getLocalPoint (&drawer, juce::Point<int> (0, 0)) == juce::Point<int> (40, 492));
+            CHECK (editor.getLocalPoint (&drawer, juce::Point<int> (1080, 396)) == juce::Point<int> (2200, 1284));
             CHECK (coveredByDrawer (editor, lane (editor, engine::Lane::snare)));
             CHECK_FALSE (coveredByDrawer (editor, get<juce::Component> (editor, "drag")));
             editor.setZoom (1.0f);
