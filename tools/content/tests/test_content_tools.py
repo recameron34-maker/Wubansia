@@ -10,6 +10,9 @@ samples or a C++ build, so CI runs it on Linux and on the macOS runner (there on
 install-macos.sh runs for real only on macOS. On Linux these tests run its --dry-run against a fake home folder, and a
 real run with stand-ins for the macOS-only commands on PATH (uname says Darwin; xattr, codesign and killall log what
 they're asked); the plugin half of that runs only on Linux, because on a Mac it would write /Applications.
+
+dist/INSTALL.md, which ships in the macOS zip, is held to the script, and its "Samples into your DAW" to the plugin's
+Samples drawer (ADR 0024): the words on screen, the folder and the names the copies get, and what an uninstall keeps.
 """
 import contextlib
 import hashlib
@@ -1447,6 +1450,101 @@ class TestDocs(unittest.TestCase):
         self.assertIn('Library/Audio/Plug-Ins', script)
         self.assertIn(KF.ZIP_ROOT, script)
         self.assertIn(KF.SUMS, script)
+
+
+# ------------------------------------------------------------------ INSTALL.md and the Samples drawer (ADR 0024)
+
+PLUGIN_SOURCE = REPO / 'plugin' / 'source'
+SAMPLES_PANEL = PLUGIN_SOURCE / 'editor' / 'SamplesPanel.cpp'
+PLUGIN_EDITOR = PLUGIN_SOURCE / 'PluginEditor.cpp'
+SOUND_CATALOG = PLUGIN_SOURCE / 'sounds' / 'SoundCatalog.cpp'
+SAMPLE_EXPORT = PLUGIN_SOURCE / 'sounds' / 'SampleExport.cpp'
+EXPORT_TESTS = REPO / 'plugin' / 'tests' / 'SampleExportTests.cpp'
+
+
+def md_section(text, heading):
+    """The body of a Markdown '## heading' section, up to the next '## ' heading, with its line breaks and indents
+    read as single spaces, so a phrase reads the same however the lines wrap; None when there is none."""
+    m = re.search(rf'^## {re.escape(heading)}[ \t]*\n(.*?)(?=^## |\Z)', text, re.M | re.S)
+    return ' '.join(m.group(1).split()) if m else None
+
+
+def md_code(text, heading):
+    """The fenced code blocks of a Markdown '## heading' section, as written."""
+    m = re.search(rf'^## {re.escape(heading)}[ \t]*\n(.*?)(?=^## |\Z)', text, re.M | re.S)
+    return ''.join(re.findall(r'^```\n(.*?)^```', m.group(1), re.M | re.S)) if m else ''
+
+
+def cpp_text(*paths):
+    """C++ sources as text, with the UTF-8 escape they spell '…' with read as the character."""
+    return ''.join(p.read_text(encoding='utf-8') for p in paths).replace('\\xe2\\x80\\xa6', '…')
+
+
+class TestSamplesDocs(unittest.TestCase):
+    """dist/INSTALL.md's "Samples into your DAW" says what the plugin does: the drawer's own words, the folder and
+    the names exportCopy () writes, and an uninstall that leaves the copies projects use (ADR 0024)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = INSTALL_MD.read_text(encoding='utf-8')
+        cls.samples = md_section(cls.text, 'Samples into your DAW')
+
+    def test_it_says_how_to_bring_samples_into_live_and_logic(self):
+        self.assertIsNotNone(self.samples, 'INSTALL.md has no "## Samples into your DAW"')
+        for needed in (
+                # Live plays a dropped file where it is: Collect All and Save copies it, Places finds the folder again.
+                'Collect All and Save', 'Places',
+                # Logic: copies into the project, the 48 kHz files in a 44.1 kHz project, and auditions while stopped.
+                'Copy audio files into project', 'Convert audio file sample rate when importing', '44.1 kHz',
+                'selected or armed'):
+            with self.subTest(needed=needed):
+                self.assertIn(needed, self.samples)
+
+    def test_the_drawers_words_are_the_plugins_own(self):
+        self.assertIsNotNone(self.samples, 'INSTALL.md has no "## Samples into your DAW"')
+        code = cpp_text(SAMPLES_PANEL, PLUGIN_EDITOR)
+        for words in ('Show in Finder', 'Change…', 'Content…', 'Choose content folder…', 'Drags save to',
+                      'Ends on the beat: put its end on the downbeat', 'before its beat: slide it',
+                      'recorded notes: pick one in File',
+                      "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed"):
+            with self.subTest(words=words):
+                self.assertIn(words, self.samples)
+                self.assertIn(words, code)
+
+        # The rail's seven categories, in the drawer's order (sounds::categoryName).
+        names = re.findall(r'case SoundCategory::\w+: return "([^"]+)";',
+                           re.search(r'categoryName \(SoundCategory category\)(.*?)\n    \}', SOUND_CATALOG.read_text(encoding='utf-8'), re.S).group(1))
+        self.assertEqual(names, ['Accents', 'FX', 'Vox', 'Synths', 'Bass', 'Drums', 'Loops'])
+        self.assertIn(', '.join(names[:-1]) + ' and ' + names[-1], self.samples)
+
+    def test_the_folder_and_the_names_are_the_ones_the_copies_get(self):
+        self.assertIsNotNone(self.samples, 'INSTALL.md has no "## Samples into your DAW"')
+        # sounds::defaultSamplesFolder (): <the user's Music folder>/Wubansia/Samples, ~/Music on a Mac.
+        self.assertIn('getSpecialLocation (juce::File::userMusicDirectory).getChildFile ("Wubansia").getChildFile ("Samples")',
+                      SAMPLE_EXPORT.read_text(encoding='utf-8'))
+        # The example is a name SampleExportTests pins to kitFolderName () and exportName () on FUT01's kit.json.
+        self.assertIn('"FUT01 Alloy Signal", "Rave Stab v2 - FUT01 134 F#m 11A.wav"', EXPORT_TESTS.read_text(encoding='utf-8'))
+        self.assertIn('~/Music/Wubansia/Samples/FUT01 Alloy Signal/Rave Stab v2 - FUT01 134 F#m 11A.wav', self.samples)
+
+    def test_uninstalling_leaves_the_copies_projects_use(self):
+        where = md_section(self.text, 'Where everything goes')
+        uninstall = md_section(self.text, 'Uninstall')
+        self.assertIsNotNone(where)
+        self.assertIsNotNone(uninstall)
+        self.assertIn('~/Music/Wubansia/Samples', where)
+        self.assertRegex(where, r'settings\.xml`: [^.]*samples folder')
+        commands = md_code(self.text, 'Uninstall')
+        self.assertIn('rm -rf', commands)
+        self.assertNotIn('Music', commands)  # projects still refer to the files the drawer copied
+        self.assertIn('~/Music/Wubansia/Samples', uninstall)
+
+    def test_it_names_no_artist(self):
+        try:
+            from tools.sound import denylist
+        except ImportError:  # pragma: no cover
+            self.skipTest('tools/sound/denylist.py is not importable')
+        for name in ('artists', 'slurs'):
+            self.assertFalse(denylist.hits(self.text, denylist.load(name)), name)
 
 
 if __name__ == '__main__':
