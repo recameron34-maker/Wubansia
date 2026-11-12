@@ -195,12 +195,14 @@ TEST_CASE ("master_gain applies to auditions; mono output folds them", "[audio][
 
         REQUIRE (plugin->controller().audition ({ "AUD03", riser }) > 0u);
         REQUIRE (waitForOffer (*plugin));
-        const auto out = test::render (*plugin, 8 * kBlock, kBlock);
+        const auto out = test::render (*plugin, 90000 + 2 * kBlock, kBlock); // the whole riser: it starts quietly
         for (int ch = 0; ch < 2; ++ch)
         {
             const float* x = channel (*clip, ch);
-            CHECK (mismatches (out, ch, 0, 8 * kBlock, [x, gain] (int i) { return (0.5f * x[i]) * gain; }) == 0);
+            CHECK (mismatches (out, ch, 0, 90000, [x, gain] (int i) { return (0.5f * x[i]) * gain; }) == 0);
         }
+        CHECK (test::peakOf (out) > 0.01f);
+        CHECK (test::silent (out, 90000));
         plugin->setPlayHead (nullptr);
     }
 
@@ -216,12 +218,13 @@ TEST_CASE ("master_gain applies to auditions; mono output folds them", "[audio][
 
         REQUIRE (plugin->controller().audition ({ "AUD04", riser }) > 0u);
         REQUIRE (waitForOffer (*plugin));
-        const auto out = test::render (*plugin, 8 * kBlock, kBlock);
+        const auto out = test::render (*plugin, 90000 + 2 * kBlock, kBlock); // the whole riser: it starts quietly
         REQUIRE (out.getNumChannels() == 1);
         const float* l = channel (*clip, 0);
         const float* r = channel (*clip, 1);
-        CHECK (mismatches (out, 0, 0, 8 * kBlock, [l, r] (int i) { return 0.5f * (0.5f * (l[i] + r[i])); }) == 0);
+        CHECK (mismatches (out, 0, 0, 90000, [l, r] (int i) { return 0.5f * (0.5f * (l[i] + r[i])); }) == 0);
         CHECK (test::peakOf (out) > 0.01f);
+        CHECK (test::silent (out, 90000));
         plugin->setPlayHead (nullptr);
     }
 }
