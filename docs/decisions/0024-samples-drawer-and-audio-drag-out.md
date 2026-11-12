@@ -20,7 +20,7 @@ What the code fixed before the design:
 ## Decision
 
 ### Scope and entry
-1. **v0.2, ahead of S1b2.** It touches only `plugin/`, `engine/audition/` and docs; ADR 0017 set the precedent for pulling work forward. S1b2 (PR #6) carries on untouched.
+1. **v0.2, ahead of S1b2.** It touches only `plugin/`, `engine/audition/` and docs (with a test of `dist/INSTALL.md` in `tools/content/tests`); ADR 0017 set the precedent for pulling work forward. S1b2 (PR #6) carries on untouched.
 2. **The header's Samples button opens the drawer** (component ID `samples` kept, its LED lit while open). The drag strip has no room, and it is the user's own word for the feature.
 3. **The drawer covers the lanes, A/B and FX**: (20, 246), 1080 × 396 inside the zoomed content. The editor stays 1120 × 700; the header, display, transport, section strip and MIDI drag strip stay usable.
 4. **All four kits are browsable; one sound plays at a time.** Kit chips browse another kit without changing what plays or the project.
@@ -41,10 +41,10 @@ What the code fixed before the design:
 
 ### Export (`plugin/source/sounds/SampleExport.h`)
 15. **The copy is the installed file, byte for byte**, checked against `kit.json`'s size and SHA-256 before anything is written, with no `smpl`, `acid` or `LIST` chunk. All 618 installed files hold only `fmt ` and `data` and pass the check.
-16. **The folder is `<Music>/Wubansia/Samples/<KIT> <Title>/`**: flat (one file, one path, even when it shows in two categories), changeable, and never trimmed or deleted by Wubansia. Live and Logic reference dropped audio where it sits.
+16. **The folder is `<Music>/Wubansia/Samples/<KIT> <Title>/`**: flat (one file, one path, even when it shows in two categories), changeable, and never trimmed or deleted by Wubansia. Live, and Logic unless it copies files into the project, reference dropped audio where it sits.
 17. **Names are `<installed name> - <KIT> <BPM> <Key> <Camelot>[ c<N>].wav`**, frozen once released: `Rave Stab v2 - FUT01 134 F#m 11A.wav`. The sound comes first because drum pads and Simpler show the start of a name; ` c<N>` marks content version N from 2 on.
 18. **A copy is written only where no file of that name exists.** One with the same bytes is reused untouched; one with other bytes (edited in a DAW) is never touched and the copy takes the next name, `(2)`, `(3)`… Nothing is overwritten or deleted, and names follow content, so rival instances write the same bytes.
-19. **The drag copies synchronously inside `mouseDrag`**, then calls `performExternalDragDropOfFiles ({ file }, false, &source)` with no callback; a click on the tile copies and reveals the file. One file per drag. The largest file, FUT03's 4.3 MB 8-bar riser, is expected to take about 25 ms; step 1 copied all 140 default files of the four kits in under a second.
+19. **The drag copies synchronously inside `mouseDrag`**, then calls `performExternalDragDropOfFiles ({ file }, false, &source)` with no callback; a click on the tile copies and reveals the file. One file per drag. Copying the largest file, FUT03's 4.3 MB 8-bar riser, takes 22-24 ms on the Linux machine that built it (BenchmarkTests' budget is 100 ms), and all 140 default files of the four kits copy in under a second.
 20. **`ContentSourceFactory::readFile (found, path)` returns a listed file's bytes**, so copies and auditions run on the synthetic kit in tests and the SHA-256 check has bytes to hash.
 
 ### State and API
@@ -83,7 +83,8 @@ What the code fixed before the design:
 - `settings.xml` gains `samples_folder`; projects don't change.
 - The names freeze with v0.2. `#` in names (`F#m`, `F#4`) through drag URLs and inside Live and Logic is unverified; the fallback (sharps spelled `s`) is a one-line change, safe only before release.
 - The samples folder only grows: at most 618 files, 204.5 MB, per content version if every file is taken. Uninstalling leaves it in place.
-- Not verified here (no Mac, no DAW): drops into Live 12 and Logic (AU, VST3, CLAP), writing `~/Music` from Logic's AU host, the Logic hint in real use, how auditions sound, and drags on Windows and Linux. They become v0.2's checklist in `docs/listening.md`; Show in Finder works whatever the host.
+- Not verified here (no Mac, no DAW): drops into Live 12 and Logic (AU, VST3, CLAP), which keys each host passes to the drawer, writing `~/Music` from Logic's AU host, Show in Finder and the folder chooser on a Mac, the Logic hint in real use, how auditions sound, and drags on Windows and Linux. All but the last are v0.2's DAW checklist in `docs/listening.md`, open until the user reports them; Windows and Linux wait until they are back in scope. Show in Finder is the way round a host that refuses drops.
+- `dist/INSTALL.md`'s "Samples into your DAW" says how to use the drawer and what to set in Live and Logic, and its Uninstall leaves the samples folder. `TestSamplesDocs` (`tools/content/tests`) holds that section to the drawer's words, the samples folder and the export names.
 - CI has no TSan job: the audition's TSan run is local (step 2).
 
 ## Alternatives
