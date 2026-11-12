@@ -701,8 +701,9 @@ namespace wubansia::editor
         audition = model.audition;
         refreshChips();
 
-        // It follows the kit that plays until a chip picks another.
-        if (! chipPicked && playingKit.isNotEmpty() && playingKit != browsed)
+        // It follows the kit that plays until a chip picks another; never in the middle of an OS drag (Windows runs
+        // one in a modal loop, timer and all), which would delete the row the drag started from.
+        if (! chipPicked && ! handingOver && playingKit.isNotEmpty() && playingKit != browsed)
             browse (playingKit);
 
         if (message.until != 0 && static_cast<int> (juce::Time::getMillisecondCounter() - message.until) >= 0)
@@ -956,7 +957,10 @@ namespace wubansia::editor
         if (! kitReady() || selectedSound() == nullptr)
             return false;
         const auto file = exportSelected();
-        return file != juce::File() && startDrag != nullptr && startDrag (file, source);
+        if (file == juce::File() || startDrag == nullptr)
+            return false;
+        const juce::ScopedValueSetter<bool> handing (handingOver, true);
+        return startDrag (file, source);
     }
 
     void SamplesPanel::reveal()

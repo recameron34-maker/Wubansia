@@ -1403,6 +1403,23 @@ TEST_CASE ("a 4-pixel drag exports once and hands that one WAV to the OS; a clic
             CHECK (c.exportRequests.size() == 3);
             CHECK (os.dragged.size() == 2);
             CHECK (os.revealed.size() == 1);
+
+            // While the OS runs the drag (Windows in a modal loop, the editor's timer ticking), the drawer holds still,
+            // keeping the row the drag started from; a kit chosen meanwhile is followed once the drag is over.
+            auto followedDuringDrag = true;
+            drawer.startDrag = [&] (const juce::File& file, juce::Component&)
+            {
+                os.dragged.add (file);
+                c.selectKit ("FUT02");
+                editor.tick();
+                followedDuringDrag = drawer.browsedKit() != "FUT01";
+                return true;
+            };
+            drag (soundRow (editor, 1), 6.0f);
+            CHECK (os.dragged.size() == 3);
+            CHECK_FALSE (followedDuringDrag);
+            editor.tick();
+            CHECK (drawer.browsedKit() == "FUT02");
         });
 }
 
