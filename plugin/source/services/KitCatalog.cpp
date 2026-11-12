@@ -1,5 +1,7 @@
 #include "services/KitCatalog.h"
 
+#include "sounds/SoundCatalog.h"
+
 #include "midi/reader.h"
 #include "sched/timeline_builder.h"
 
@@ -138,7 +140,10 @@ namespace wubansia
             }
 
             if (e.ok())
+            {
                 e.info = kitInfoOf (e.manifest, e.index);
+                e.sounds = sounds::soundsOf (e.manifest);
+            }
             else
             {
                 e.info.id = e.id;
