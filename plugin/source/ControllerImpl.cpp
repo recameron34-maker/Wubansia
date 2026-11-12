@@ -5,6 +5,9 @@
 #include "content/ContentLocator.h"
 #include "content/UserSettings.h"
 #include "dragout/DragFiles.h"
+#include "sounds/SampleExport.h"
+
+#include <algorithm>
 
 namespace wubansia
 {
@@ -19,6 +22,15 @@ namespace wubansia
         {
             const auto* raw = apvts.getRawParameterValue (id);
             return raw != nullptr && raw->load (std::memory_order_relaxed) >= 0.5f;
+        }
+
+        // Where a kit's samples stand: the current kit's load (status ()), or the service's last check of another
+        // kit, which its idle survey fills.
+        ContentStatus contentOf (const Controller& controller, const PluginProcessor& processor, const KitCatalog::Entry& entry)
+        {
+            if (juce::String::fromUTF8 (entry.id.data(), static_cast<int> (entry.id.size())) == processor.settings().kit)
+                return controller.status();
+            return processor.kitService().kitStatus (entry.index);
         }
     }
 
@@ -225,23 +237,106 @@ namespace wubansia
         return userSettings != nullptr ? *userSettings : UserSettings::instance();
     }
 
-    std::vector<SoundInfo> ControllerImpl::sounds (const juce::String&) const
+    std::vector<SoundInfo> ControllerImpl::sounds (const juce::String& kit) const
     {
-        return {}; // tests first: ADR 0024's catalog arrives with its implementation
+        const auto* entry = entryOf (processor, kit);
+        return entry != nullptr ? entry->sounds : std::vector<SoundInfo> {};
     }
 
-    SoundExport ControllerImpl::exportSound (const SoundRef&)
+    SoundExport ControllerImpl::exportSound (const SoundRef& sound)
     {
-        return {};
+        SoundExport result;
+        const auto* entry = entryOf (processor, sound.kit);
+        if (entry == nullptr || ! entry->ok())
+        {
+            result.problem = "this build of Wubansia has no kit " + sound.kit;
+            return result;
+        }
+        if (sound.file < 0 || static_cast<std::size_t> (sound.file) >= entry->manifest.files.size())
+        {
+            result.problem = sound.kit + " lists no file " + juce::String (sound.file);
+            return result;
+        }
+
+        // Only from a folder the service found ready: kit.json's files, checked.
+        const auto found = contentOf (*this, processor, *entry);
+        if (found.state != ContentState::ready || found.folder == juce::File())
+        {
+            result.problem = found.state == ContentState::loading ? sound.kit + "'s samples aren't ready yet"
+                             : found.problem.isNotEmpty()        ? problemText (found.problem)
+                                                                 : sound.kit + "'s samples aren't installed";
+            return result;
+        }
+
+        const auto& file = entry->manifest.files[static_cast<std::size_t> (sound.file)];
+        const auto copy = sounds::exportCopy (*processor.content, found, entry->info, file, samplesFolder());
+        result.file = copy.file;
+        result.problem = juce::String::fromUTF8 (copy.problem.data(), static_cast<int> (copy.problem.size()));
+        return result;
     }
 
     juce::File ControllerImpl::samplesFolder() const
     {
-        return {};
+        if (samplesFolderOverride != juce::File())
+            return samplesFolderOverride;
+        const auto chosen = settingsFile().samplesFolder();
+        return chosen != juce::File() ? chosen : sounds::defaultSamplesFolder();
     }
 
-    bool ControllerImpl::setSamplesFolder (const juce::File&)
+    bool ControllerImpl::setSamplesFolder (const juce::File& folder)
     {
-        return false;
+        if (folder == juce::File())
+        {
+            settingsFile().setSamplesFolder ({}); // back to the default
+            return true;
+        }
+
+        // Never a content folder (installers expect only their files there, and a DAW writes beside what it
+        // takes) or the drag cache, which is trimmed and purgeable (ADR 0024).
+        const auto inside = [&folder] (const juce::File& place) { return place != juce::File() && (folder == place || folder.isAChildOf (place)); };
+        const auto folders = contentFolders();
+        if (std::any_of (folders.begin(), folders.end(), inside) || inside (dragout::cacheFolder()) || inside (dragFolder))
+            return false;
+        if (folder.createDirectory().failed())
+            return false;
+
+        settingsFile().setSamplesFolder (folder); // kept even if settings.xml can't be written, until the process ends
+        return true;
+    }
+
+    std::vector<juce::File> ControllerImpl::contentFolders() const
+    {
+        std::vector<juce::File> folders;
+        const auto add = [&folders] (const juce::File& f) {
+            if (f != juce::File() && std::find (folders.begin(), folders.end(), f) == folders.end())
+                folders.push_back (f);
+        };
+
+        // Where the locator looks, even before its first check: the chosen folder, $WUBANSIA_CONTENT_DIR, the
+        // installers' folder and Debug's checkout.
+        add (processor.content->userFolder());
+        const auto places = ContentLocator::systemPlaces();
+        add (places.environment);
+        add (places.platformDefault);
+        add (places.debug);
+
+        // The root that holds every kit folder a kit's last check searched: <root>/<kit>/v<N> or <root>/<kit>.
+        for (const auto& entry : processor.kitService().catalog().entries())
+        {
+            const auto kitFolder = ContentLocator::kitFolderName (entry.id);
+            for (const auto& path : contentOf (*this, processor, entry).searched)
+            {
+                if (! juce::File::isAbsolutePath (path))
+                    continue;
+                const juce::File searched (path);
+                if (searched.getFileName().equalsIgnoreCase (kitFolder))
+                    add (searched.getParentDirectory());
+                else if (searched.getParentDirectory().getFileName().equalsIgnoreCase (kitFolder))
+                    add (searched.getParentDirectory().getParentDirectory());
+                else
+                    add (searched);
+            }
+        }
+        return folders;
     }
 }

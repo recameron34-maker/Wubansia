@@ -60,6 +60,10 @@ namespace wubansia
     private:
         UserSettings& settingsFile() const;
 
+        // The content folders a samples folder must stay out of: the places the locator looks (ADR 0022), and the
+        // root of every kit folder the service has searched.
+        std::vector<juce::File> contentFolders() const;
+
         PluginProcessor& processor;
         juce::File dragFolder;
         juce::File samplesFolderOverride;
