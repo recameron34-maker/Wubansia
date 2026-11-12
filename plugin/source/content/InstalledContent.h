@@ -1,9 +1,9 @@
 #pragma once
 
 // The plugin's own ContentSourceFactory (P9): the kits embedded in the binary (EmbeddedContent), their
-// samples found by a ContentLocator and read by P4's FileSampleSource, and the content folder kept in
-// the person's UserSettings. Constructing it reads nothing: the settings file is read on the service
-// thread's first locate ().
+// samples found by a ContentLocator and read by P4's FileSampleSource (readFile: a listed file's bytes,
+// for the Samples drawer, ADR 0024), and the content folder kept in the person's UserSettings.
+// Constructing it reads nothing: the settings file is read on the service thread's first locate ().
 
 #include "content/ContentLocator.h"
 #include "content/ContentSource.h"
