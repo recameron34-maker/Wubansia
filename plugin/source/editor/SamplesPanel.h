@@ -218,13 +218,15 @@ namespace wubansia::editor
         };
 
         // The browsed kit and what it holds.
-        const std::vector<SoundInfo>& soundsOf (const juce::String& kit);
+        const std::vector<SoundInfo>& soundsOf (const juce::String& kit); // asks the Controller the first time
+        const std::vector<SoundInfo>* listOf (const juce::String& kit) const; // nullptr until asked
         const KitCard* cardOf (const juce::String& kit) const;
         ContentStatus contentOf (const juce::String& kit) const;
         bool kitReady() const;
         const SoundInfo* selectedSound() const;
         int chosenFile (const SoundInfo&) const; // into its files
         SoundRef refOf (const SoundInfo&) const;
+        juce::String tileName() const;
 
         // What the person does.
         void browse (const juce::String& kit);
@@ -247,11 +249,16 @@ namespace wubansia::editor
         // What it shows.
         bool auditioning() const; // the last audition plays, or waits for the host
         juce::String auditionMessage() const;
+        juce::String kitMessage() const; // "Looking for FUT03's samples..."
+        juce::Colour statusTone() const;
         void setMessage (const juce::String& text, juce::Colour tone, int forMs = 0);
+        void focusList();
         void refresh();
+        void refreshChips();
         void refreshRows();
         void refreshDetail();
         void layOutList();
+        void layOutFooter();
 
         Controller& controller;
         LookAndFeel look; // the browsed kit's accent; outlives every component below
@@ -287,7 +294,11 @@ namespace wubansia::editor
         juce::File exported; // the last copy, so the tile names it as written
         juce::File samplesFolder;
 
+        juce::StringArray fileBoxSound; // the kit and sound whose files the File box lists
+        juce::String painted; // what paint () last drew of the text, to repaint only on a change
+
         juce::OwnedArray<KitChip> chips;
+        juce::StringArray chipKits;
         std::array<std::unique_ptr<CategoryButton>, kSoundCategories> categories;
         SoundList list { *this };
         juce::Viewport viewport;
