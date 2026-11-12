@@ -369,6 +369,75 @@ namespace wubansia::editor
                 g.fillEllipse (juce::Rectangle<float> (r * 0.24f, r * 0.24f).withCentre (p));
             }
         }
+
+        void rubber (juce::Graphics& g, juce::Rectangle<float> area, float corner, bool down, bool over, juce::Colour light, float lit)
+        {
+            if (down)
+                area = area.translated (0.0f, 0.6f);
+
+            g.setColour (juce::Colours::black.withAlpha (0.55f));
+            g.fillRoundedRectangle (area.translated (0.0f, down ? 0.6f : 1.4f).expanded (0.6f), corner + 0.6f);
+
+            if (lit > 0.0f)
+            {
+                g.setColour (light.withAlpha (0.22f * lit));
+                g.fillRoundedRectangle (area.expanded (2.5f), corner + 2.5f);
+                g.setGradientFill (juce::ColourGradient::vertical (light.brighter (0.25f), area.getY(), light.darker (0.35f), area.getBottom()));
+            }
+            else
+            {
+                const auto top = juce::Colour (over ? 0xff353a42 : 0xff2d3138);
+                g.setGradientFill (juce::ColourGradient::vertical (top, area.getY(), juce::Colour (0xff1b1e22), area.getBottom()));
+            }
+            g.fillRoundedRectangle (area, corner);
+
+            g.setGradientFill (juce::ColourGradient::vertical (juce::Colours::white.withAlpha (lit > 0.0f ? 0.35f : 0.10f), area.getY(),
+                juce::Colours::white.withAlpha (0.0f), area.getCentreY()));
+            g.drawRoundedRectangle (area.reduced (0.5f), corner, 1.0f);
+            g.setColour (juce::Colours::black.withAlpha (0.6f));
+            g.drawRoundedRectangle (area.expanded (0.4f), corner + 0.4f, 0.8f);
+        }
+
+        juce::Path playGlyph (juce::Rectangle<float> box)
+        {
+            const auto size = box.getWidth();
+            juce::Path p;
+            p.addTriangle (box.getX() + size * 0.1f, box.getY(), box.getX() + size * 0.1f, box.getBottom(), box.getRight(), box.getCentreY());
+            return p;
+        }
+
+        juce::Path stopGlyph (juce::Rectangle<float> box)
+        {
+            const auto size = box.getWidth();
+            juce::Path p;
+            p.addRoundedRectangle (box.reduced (size * 0.06f), size * 0.08f);
+            return p;
+        }
+
+        juce::Path folderGlyph (juce::Rectangle<float> box)
+        {
+            const auto size = box.getWidth();
+            juce::Path p;
+            p.startNewSubPath (box.getX(), box.getY() + size * 0.15f);
+            p.lineTo (box.getX() + size * 0.38f, box.getY() + size * 0.15f);
+            p.lineTo (box.getX() + size * 0.5f, box.getY() + size * 0.3f);
+            p.lineTo (box.getRight(), box.getY() + size * 0.3f);
+            p.lineTo (box.getRight(), box.getBottom() - size * 0.05f);
+            p.lineTo (box.getX(), box.getBottom() - size * 0.05f);
+            p.closeSubPath();
+            return p;
+        }
+
+        void grip (juce::Graphics& g, juce::Rectangle<float> area, juce::Colour colour)
+        {
+            const auto dot = juce::jmin (area.getWidth() / 3.0f, area.getHeight() / 5.0f);
+            const auto columns = area.withSizeKeepingCentre (dot * 3.0f, dot * 5.0f);
+            g.setColour (colour);
+            for (int row = 0; row < 3; ++row)
+                for (int column = 0; column < 2; ++column)
+                    g.fillEllipse (juce::Rectangle<float> (dot, dot).withPosition (columns.getX() + (float) column * dot * 2.0f,
+                        columns.getY() + (float) row * dot * 2.0f));
+        }
     }
 
     LookAndFeel::LookAndFeel()
@@ -386,6 +455,10 @@ namespace wubansia::editor
         setColour (juce::TooltipWindow::textColourId, colours::text);
         setColour (juce::TooltipWindow::backgroundColourId, colours::plateBottom);
         setColour (juce::TooltipWindow::outlineColourId, juce::Colour (0xff3a3f48));
+        // Scroll bars (the Samples drawer's list; a Viewport has no colours of its own): a slim grey thumb on no track.
+        setColour (juce::ScrollBar::backgroundColourId, juce::Colours::transparentBlack);
+        setColour (juce::ScrollBar::trackColourId, colours::recess);
+        setColour (juce::ScrollBar::thumbColourId, juce::Colour (0xff4b515b));
         setAccent (accentColour);
     }
 
@@ -606,8 +679,20 @@ namespace wubansia::editor
         return uiFont (14.0f);
     }
 
+    namespace
+    {
+        bool isQuiet (const juce::Button& button) { return button.getProperties()["quiet"]; }
+    }
+
     void LookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& button, const juce::Colour&, bool isMouseOverButton, bool isButtonDown)
     {
+        if (isQuiet (button))
+        {
+            const auto area = button.getLocalBounds().toFloat().reduced (1.5f);
+            draw::rubber (g, area, juce::jmin (6.0f, area.getHeight() * 0.5f), isButtonDown, isMouseOverButton && button.isEnabled(), accentColour, 0.0f);
+            return;
+        }
+
         auto area = button.getLocalBounds().toFloat().reduced (1.5f);
         if (isButtonDown)
             area = area.translated (0.0f, 0.6f);
@@ -626,14 +711,34 @@ namespace wubansia::editor
 
     void LookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& button, bool, bool isButtonDown)
     {
-        g.setFont (getTextButtonFont (button, button.getHeight()));
-        g.setColour (juce::Colour (0xff0e1013));
-        g.drawText (button.getButtonText(), button.getLocalBounds().toFloat().translated (0.0f, isButtonDown ? 0.6f : 0.0f),
-            juce::Justification::centred, true);
+        const auto font = getTextButtonFont (button, button.getHeight());
+        const auto quiet = isQuiet (button);
+        const auto colour = quiet ? (button.isEnabled() ? colours::text : colours::textFaint) : juce::Colour (0xff0e1013);
+        auto area = button.getLocalBounds().toFloat().translated (0.0f, isButtonDown ? 0.6f : 0.0f);
+
+        // An icon before the text, the pair centred.
+        const auto icon = button.getProperties()["icon"].toString();
+        if (icon == "play" || icon == "folder")
+        {
+            const auto size = juce::jmin (11.0f, font.getHeight() * 0.85f);
+            const auto gap = 6.0f;
+            const auto textWidth = juce::jmin (juce::GlyphArrangement::getStringWidth (font, button.getButtonText()), area.getWidth() - size - gap - 16.0f);
+            const auto left = area.getCentreX() - (size + gap + textWidth) * 0.5f;
+            const auto box = juce::Rectangle<float> (size, size).withPosition (left, area.getCentreY() - size * 0.5f);
+            g.setColour (quiet && button.isEnabled() && icon == "folder" ? accentColour : colour);
+            g.fillPath (icon == "play" ? draw::playGlyph (box) : draw::folderGlyph (box));
+            area = juce::Rectangle<float> (left + size + gap, area.getY(), textWidth + 1.0f, area.getHeight());
+        }
+
+        g.setFont (font);
+        g.setColour (colour);
+        g.drawText (button.getButtonText(), area, juce::Justification::centred, true);
     }
 
-    juce::Font LookAndFeel::getTextButtonFont (juce::TextButton&, int buttonHeight)
+    juce::Font LookAndFeel::getTextButtonFont (juce::TextButton& button, int buttonHeight)
     {
+        if (isQuiet (button))
+            return uiFont (juce::jmin (12.5f, (float) buttonHeight * 0.5f), true, 0.02f);
         return uiFont (juce::jmin (13.5f, (float) buttonHeight * 0.45f), true, 0.02f);
     }
 

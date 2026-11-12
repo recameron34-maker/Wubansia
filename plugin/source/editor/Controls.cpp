@@ -3,38 +3,6 @@
 
 namespace wubansia::editor
 {
-    namespace
-    {
-        // The dark rubber body every button shares; lit buttons glow in their colour.
-        void rubber (juce::Graphics& g, juce::Rectangle<float> area, float corner, bool down, bool over, juce::Colour light, float lit)
-        {
-            if (down)
-                area = area.translated (0.0f, 0.6f);
-
-            g.setColour (juce::Colours::black.withAlpha (0.55f));
-            g.fillRoundedRectangle (area.translated (0.0f, down ? 0.6f : 1.4f).expanded (0.6f), corner + 0.6f);
-
-            if (lit > 0.0f)
-            {
-                g.setColour (light.withAlpha (0.22f * lit));
-                g.fillRoundedRectangle (area.expanded (2.5f), corner + 2.5f);
-                g.setGradientFill (juce::ColourGradient::vertical (light.brighter (0.25f), area.getY(), light.darker (0.35f), area.getBottom()));
-            }
-            else
-            {
-                const auto top = juce::Colour (over ? 0xff353a42 : 0xff2d3138);
-                g.setGradientFill (juce::ColourGradient::vertical (top, area.getY(), juce::Colour (0xff1b1e22), area.getBottom()));
-            }
-            g.fillRoundedRectangle (area, corner);
-
-            g.setGradientFill (juce::ColourGradient::vertical (juce::Colours::white.withAlpha (lit > 0.0f ? 0.35f : 0.10f), area.getY(),
-                juce::Colours::white.withAlpha (0.0f), area.getCentreY()));
-            g.drawRoundedRectangle (area.reduced (0.5f), corner, 1.0f);
-            g.setColour (juce::Colours::black.withAlpha (0.6f));
-            g.drawRoundedRectangle (area.expanded (0.4f), corner + 0.4f, 0.8f);
-        }
-    }
-
     Knob::Knob()
         : juce::Slider (juce::Slider::RotaryVerticalDrag, juce::Slider::NoTextBox)
     {
@@ -97,7 +65,7 @@ namespace wubansia::editor
     {
         const auto on = getToggleState();
         const auto area = getLocalBounds().toFloat().reduced (2.5f);
-        rubber (g, area, 5.0f, isButtonDown, isMouseOver && isEnabled(), light, on ? 1.0f : 0.0f);
+        draw::rubber (g, area, 5.0f, isButtonDown, isMouseOver && isEnabled(), light, on ? 1.0f : 0.0f);
 
         g.setFont (uiFont (juce::jmin (13.0f, area.getHeight() * 0.55f), true, 0.06f));
         g.setColour (on ? juce::Colour (0xff1d1606) : (isEnabled() ? colours::textDim : colours::textFaint));
@@ -140,7 +108,7 @@ namespace wubansia::editor
         const auto accent = accentOf (*this);
         auto area = getLocalBounds().toFloat().reduced (2.0f);
         const auto corner = area.getHeight() * 0.5f;
-        rubber (g, area, corner, isButtonDown, isMouseOver && isEnabled(), accent, 0.0f);
+        draw::rubber (g, area, corner, isButtonDown, isMouseOver && isEnabled(), accent, 0.0f);
         if (isButtonDown)
             area = area.translated (0.0f, 0.6f);
 
@@ -332,7 +300,7 @@ namespace wubansia::editor
         const auto accent = accentOf (*this);
         const auto on = getToggleState();
         auto area = getLocalBounds().toFloat().reduced (2.0f);
-        rubber (g, area, 5.0f, isButtonDown, isMouseOver && isEnabled(), accent, on ? 0.85f : 0.0f);
+        draw::rubber (g, area, 5.0f, isButtonDown, isMouseOver && isEnabled(), accent, on ? 0.85f : 0.0f);
         if (isButtonDown)
             area = area.translated (0.0f, 0.6f);
 
@@ -344,19 +312,13 @@ namespace wubansia::editor
         switch (icon)
         {
             case Icon::play:
-                p.addTriangle (box.getX() + size * 0.1f, box.getY(), box.getX() + size * 0.1f, box.getBottom(), box.getRight(), box.getCentreY());
+                p = draw::playGlyph (box);
                 break;
             case Icon::stop:
-                p.addRoundedRectangle (box.reduced (size * 0.06f), size * 0.08f);
+                p = draw::stopGlyph (box);
                 break;
             case Icon::folder:
-                p.startNewSubPath (box.getX(), box.getY() + size * 0.15f);
-                p.lineTo (box.getX() + size * 0.38f, box.getY() + size * 0.15f);
-                p.lineTo (box.getX() + size * 0.5f, box.getY() + size * 0.3f);
-                p.lineTo (box.getRight(), box.getY() + size * 0.3f);
-                p.lineTo (box.getRight(), box.getBottom() - size * 0.05f);
-                p.lineTo (box.getX(), box.getBottom() - size * 0.05f);
-                p.closeSubPath();
+                p = draw::folderGlyph (box);
                 break;
             case Icon::close:
             case Icon::plus:
