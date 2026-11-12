@@ -114,6 +114,11 @@ namespace wubansia::test
         juce::File samplesFolderChosen; // what samplesFolder () gives; exportSound writes into <it>/<kit>/
         bool exportFails = false;
         bool refuseSamplesFolder = false; // setSamplesFolder () says no, as for a content or drag folder
+        // What auditionState () gives. audition () sets it as a host running blocks would: the next ticket, sounding at
+        // once; with auditionFails set, 0 and a problem. stopAudition () clears sounding. Tests may set it directly
+        // (waiting, hostSilent...).
+        AuditionState auditionStatus;
+        bool auditionFails = false;
 
         // What the editor asked for. Tests read these.
         juce::StringArray selectedKits;
@@ -125,6 +130,8 @@ namespace wubansia::test
         mutable int soundsCalls = 0; // sounds (): the editor should ask once per kit it shows, not every tick
         std::vector<SoundRef> exportRequests;
         juce::Array<juce::File> samplesFolderRequests;
+        std::vector<SoundRef> auditions; // audition () requests, in order
+        int stops = 0; // stopAudition () calls
 
         std::vector<KitCard> kits() const override { return kitCards; }
         juce::String currentKit() const override { return current; }
@@ -217,6 +224,33 @@ namespace wubansia::test
             const auto it = soundLists.find (kit);
             return it != soundLists.end() ? it->second : std::vector<SoundInfo> {};
         }
+
+        std::uint32_t audition (const SoundRef& sound) override
+        {
+            auditions.push_back (sound);
+            if (auditionFails)
+            {
+                auditionStatus.sounding = 0;
+                auditionStatus.waiting = false;
+                auditionStatus.hostSilent = false;
+                auditionStatus.problem = "the fake can't play " + sound.kit + " file " + juce::String (sound.file);
+                return 0;
+            }
+            const auto ticket = auditionStatus.latest + 1;
+            auditionStatus = {};
+            auditionStatus.latest = ticket;
+            auditionStatus.sounding = ticket;
+            return ticket;
+        }
+
+        void stopAudition() override
+        {
+            ++stops;
+            auditionStatus.sounding = 0;
+            auditionStatus.waiting = false;
+        }
+
+        AuditionState auditionState() const override { return auditionStatus; }
 
         // Writes a tiny WAV (4 frames of 24-bit silence, 48 kHz mono) named for the file, "<label> - <KIT>.wav", into
         // <samplesFolderChosen>/<KIT>/; fails, writing nothing, when exportFails is set.

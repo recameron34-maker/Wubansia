@@ -148,6 +148,16 @@ namespace wubansia
         friend bool operator== (const SoundRef&, const SoundRef&) = default;
     };
 
+    // Where the auditions stand (audition () gives each request a ticket).
+    struct AuditionState
+    {
+        std::uint32_t sounding = 0; // the ticket playing now; 0 when none
+        std::uint32_t latest = 0; // the last ticket audition () gave
+        bool waiting = false; // latest is being read, or waits for the host's next block
+        bool hostSilent = false; // latest waited 300 ms for a block and was dropped: the host runs no audio
+        juce::String problem; // why latest (or a request turned down) can't play, for people
+    };
+
     struct SoundExport
     {
         juce::File file; // the copy; juce::File () on failure
@@ -189,6 +199,11 @@ namespace wubansia
         // Samples (ADR 0024). sounds () reads the embedded manifests, so it needs no samples; an unknown kit
         // has none.
         virtual std::vector<SoundInfo> sounds (const juce::String& kit) const = 0;
+        // Plays the file dry from its start, on top of whatever plays, replacing the last audition (which fades out
+        // over 5 ms). Its ticket, or 0 when it can't (auditionState () says why); a request turned down stops what plays.
+        virtual std::uint32_t audition (const SoundRef& sound) = 0;
+        virtual void stopAudition() = 0; // every audition so far stops, fading out over 5 ms
+        virtual AuditionState auditionState() const = 0;
         // The file's copy in samplesFolder (), made if missing: the installed bytes, checked against kit.json.
         // Synchronous file I/O, like writeDragFile: the OS drag must start inside the mouse event.
         virtual SoundExport exportSound (const SoundRef& sound) = 0;

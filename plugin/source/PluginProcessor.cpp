@@ -15,6 +15,7 @@ namespace wubansia
           raw (apvts),
           content (std::make_unique<InstalledContent>()),
           service (std::make_unique<KitService> (player, *content)),
+          sounds (std::make_unique<SoundService> (*content, auditions)),
           controllerImpl (*this)
     {
         // Nothing else: no file is read and no thread starts until the first prepareToPlay or
@@ -30,10 +31,12 @@ namespace wubansia
 
     void PluginProcessor::setContentForTesting (std::unique_ptr<ContentSourceFactory> replacement, const juce::String& kit)
     {
-        jassert (replacement != nullptr && ! service->started());
+        jassert (replacement != nullptr && ! service->started() && ! sounds->started());
+        sounds.reset();
         service.reset();
         content = std::move (replacement);
         service = std::make_unique<KitService> (player, *content);
+        sounds = std::make_unique<SoundService> (*content, auditions);
         if (kit.isNotEmpty())
         {
             const std::lock_guard lock (stateMutex);

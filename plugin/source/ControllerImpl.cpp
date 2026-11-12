@@ -243,6 +243,12 @@ namespace wubansia
         return entry != nullptr ? entry->sounds : std::vector<SoundInfo> {};
     }
 
+    std::uint32_t ControllerImpl::audition (const SoundRef&) { return 0; } // not yet
+
+    void ControllerImpl::stopAudition() {}
+
+    AuditionState ControllerImpl::auditionState() const { return {}; }
+
     SoundExport ControllerImpl::exportSound (const SoundRef& sound)
     {
         SoundExport result;

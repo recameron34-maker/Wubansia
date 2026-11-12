@@ -23,8 +23,10 @@
 #include "State.h"
 #include "content/ContentSource.h"
 #include "services/KitService.h"
+#include "services/SoundService.h"
 #include "transport/InternalTransport.h"
 
+#include "audition/audition_player.h"
 #include "engine.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -99,6 +101,8 @@ namespace wubansia
         // For the Controller and the tests.
         const KitService& kitService() const noexcept { return *service; }
         const engine::Telemetry& telemetry() const noexcept { return player.telemetry(); }
+        const engine::AuditionPlayer& auditionPlayer() const noexcept { return auditions; }
+        const SoundService& soundService() const noexcept { return *sounds; }
         StateOnly settings() const;
 
         juce::AudioProcessorValueTreeState apvts;
@@ -117,7 +121,9 @@ namespace wubansia
         Parameters::RawParameters raw;
         std::unique_ptr<ContentSourceFactory> content;
         engine::Engine player;
+        engine::AuditionPlayer auditions; // ADR 0024: the Samples drawer's clips
         std::unique_ptr<KitService> service; // after the engine and content: it uses both, so it goes first
+        std::unique_ptr<SoundService> sounds; // after content and auditions, which it uses: it goes first
         ControllerImpl controllerImpl;
         InternalTransport transport;
 

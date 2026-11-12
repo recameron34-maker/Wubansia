@@ -44,6 +44,9 @@ namespace wubansia
         juce::File writeDragFile (const DragRequest& request) override;
 
         std::vector<SoundInfo> sounds (const juce::String& kit) const override;
+        std::uint32_t audition (const SoundRef& sound) override;
+        void stopAudition() override;
+        AuditionState auditionState() const override;
         SoundExport exportSound (const SoundRef& sound) override;
         juce::File samplesFolder() const override;
         bool setSamplesFolder (const juce::File& folder) override;

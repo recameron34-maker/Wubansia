@@ -1,7 +1,7 @@
 // ControllerImpl (ControllerImpl.h): the editor's API over the real processor, on the synthetic kit.
 // The kit cards, kit selection and its status, the snapshot the editor polls, the Song's sections, the
 // MIDI-in and phrase settings reaching the engine, drag-out from the kit's embedded MIDI, the content
-// folder, the Samples drawer's sounds, copies and samples folder (ADR 0024), and the real editor
+// folder, the Samples drawer's sounds, auditions, copies and samples folder (ADR 0024), and the real editor
 // (P10's) on it.
 
 #include "PluginEditor.h"
@@ -379,6 +379,43 @@ TEST_CASE ("exportSound is refused, with the reason, while the kit's samples are
     CHECK (refused.problem.contains ("no content folder holds MIS01"));
     CHECK (plugin.content->fileReads.load() == 0); // never read
     CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 0);
+}
+
+TEST_CASE ("audition is refused, with the reason, while the kit's samples aren't there", "[controller][sounds][audition]")
+{
+    SyntheticContent::Options options;
+    options.ids = { "MIS02" };
+    options.samples = SyntheticContent::Samples::missing;
+    SyntheticPlugin plugin (options);
+    auto& controller = plugin->controller();
+    const auto riser = synFile ("FX/Riser.wav");
+
+    // Before the first content check: not found yet.
+    CHECK (controller.audition ({ "MIS02", riser }) == 0u);
+    CHECK (controller.auditionState().problem.isNotEmpty());
+
+    test::prepare (*plugin, 48000.0, 512);
+    REQUIRE (test::waitForStatus (*plugin, ContentState::missing));
+    CHECK (controller.audition ({ "MIS02", riser }) == 0u);
+    const auto state = controller.auditionState();
+    CHECK (state.problem.contains ("no content folder holds MIS02"));
+    CHECK (state.latest == 0u);
+    CHECK (state.sounding == 0u);
+    CHECK_FALSE (state.waiting);
+    CHECK_FALSE (state.hostSilent);
+
+    // Nothing to play: a kit this build doesn't carry, a file the kit doesn't list.
+    CHECK (controller.audition ({ "NOPE", riser }) == 0u);
+    CHECK (controller.auditionState().problem.contains ("NOPE"));
+    for (const auto file : { -1, 30 })
+    {
+        CHECK (controller.audition ({ "MIS02", file }) == 0u);
+        CHECK (controller.auditionState().problem.contains ("MIS02"));
+    }
+
+    CHECK (plugin.content->fileReads.load() == 0); // never read
+    CHECK_FALSE (plugin->auditionPlayer().offered());
+    CHECK_FALSE (plugin->soundService().started()); // nothing to read, so no thread
 }
 
 TEST_CASE ("setSamplesFolder is kept for the person, never in the project, and refuses the content and drag folders", "[controller][sounds]")

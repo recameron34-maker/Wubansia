@@ -82,7 +82,7 @@ TEST_CASE ("the fake controller shows what a test sets and records what the edit
     }
 }
 
-TEST_CASE ("the fake records sounds and exports, and writes a tiny WAV", "[controller][sounds]")
+TEST_CASE ("the fake records sounds, auditions, stops and exports, and writes a tiny WAV", "[controller][sounds]")
 {
     wubansia::test::FakeController fake;
     wubansia::Controller& controller = fake;
@@ -134,6 +134,40 @@ TEST_CASE ("the fake records sounds and exports, and writes a tiny WAV", "[contr
         CHECK (failed.file == juce::File());
         CHECK (failed.problem.isNotEmpty());
         CHECK (fake.exportRequests.size() == 2);
+    }
+
+    SECTION ("auditions and stops: recorded, a ticket each that sounds at once, or the problem")
+    {
+        const wubansia::SoundRef rave { "FUT01", 166 };
+        CHECK (controller.auditionState().latest == 0u);
+        const auto first = controller.audition (rave);
+        CHECK (first > 0u);
+        auto state = controller.auditionState();
+        CHECK (state.latest == first);
+        CHECK (state.sounding == first);
+        CHECK_FALSE (state.waiting);
+        CHECK_FALSE (state.hostSilent);
+        CHECK (state.problem.isEmpty());
+
+        const auto second = controller.audition ({ "FUT01", 165 });
+        CHECK (second > first);
+        CHECK (controller.auditionState().sounding == second);
+        controller.stopAudition();
+        CHECK (controller.auditionState().sounding == 0u);
+        CHECK (controller.auditionState().latest == second);
+        CHECK (fake.stops == 1);
+
+        fake.auditionFails = true;
+        CHECK (controller.audition ({ "FUT02", 109 }) == 0u);
+        CHECK (controller.auditionState().problem.isNotEmpty());
+        CHECK (controller.auditionState().sounding == 0u);
+        REQUIRE (fake.auditions.size() == 3);
+        CHECK (fake.auditions[0] == rave);
+        CHECK (fake.auditions[2] == wubansia::SoundRef { "FUT02", 109 });
+
+        // What the editor sees is whatever a test sets: a host that runs no blocks, say.
+        fake.auditionStatus.hostSilent = true;
+        CHECK (controller.auditionState().hostSilent);
     }
 
     SECTION ("the samples folder: chosen, refused, back to the default")
