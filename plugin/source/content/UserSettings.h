@@ -58,10 +58,14 @@ namespace wubansia
     private:
         void loadLocked() const;
 
+        // Writes the file with attribute set to chosen's path (removed for juce::File ()), keeping the rest.
+        bool saveLocked (const char* attribute, const juce::File& chosen) const;
+
         const juce::File settingsFile;
         mutable std::mutex mutex;
         mutable bool loaded = false;
         mutable juce::File folder;
+        mutable juce::File samples;
         std::atomic<std::uint64_t> changes { 0 };
         mutable std::atomic<std::uint64_t> reads { 0 };
     };
