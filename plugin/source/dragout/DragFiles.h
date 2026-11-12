@@ -82,6 +82,14 @@ namespace wubansia::dragout
     // The drag cache folder keeps this many .mid files, the newest.
     inline constexpr int kKeepFiles = 32;
 
+    // text in safe characters: every character but letters, digits, spaces and # ( ) , - . _ made a space,
+    // runs of spaces one space, and none at either end, so a file name is safe on macOS, Windows and Linux.
+    // The Samples drawer's export names use it too (ADR 0024).
+    std::string safeName (std::string_view text);
+
+    // "<note> minor" or "<note> major" (docs/plugin/manifest.md) as F#m or Bbmaj; anything else as it is.
+    std::string shortKey (std::string_view key);
+
     // A kit's Loop and Song files (docs/midi-map.md).
     std::string loopFileName (std::string_view kitId, engine::Variant variant); // "FUT01_Loop_Vox_4bars.mid"
     std::string songFileName (std::string_view kitId, engine::Variant variant); // "FUT01_ExtendedMix_NoVox_224bars.mid"
