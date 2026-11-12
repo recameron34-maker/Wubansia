@@ -5,6 +5,7 @@
 // into a DAW's arrangement. A click without a drag shows the file instead, for hosts that don't take
 // drops from plug-in windows.
 
+#include "Controls.h"
 #include "EditorModel.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -25,6 +26,10 @@ namespace wubansia::editor
         // A compact chip (in a lane strip, under the lane's name) just says MIDI.
         void setCompact (bool shouldBeCompact);
         bool hasFailed() const noexcept { return failed; }
+
+        // The label's font and the area it's fitted into (squeezed to 0.8 at most, then cut), so tests can check it fits.
+        juce::Font labelFont() const;
+        juce::Rectangle<float> labelArea() const;
 
         // Writes the file and starts the external drag; false if either fails. mouseDrag calls it.
         bool beginDrag();
@@ -49,7 +54,8 @@ namespace wubansia::editor
         bool hover = false, pressed = false, dragging = false, failed = false, compact = false;
     };
 
-    // The strip of song-wide chips: the loop, the song and each phrase file.
+    // The strip of song-wide chips: the loop, the song and each phrase file, and the 1 drum track switch (ADR 0025),
+    // which the Loop and Song drags follow. The switch is the person's setting, kept by the Controller.
     class DragStrip : public juce::Component
     {
     public:
@@ -60,8 +66,12 @@ namespace wubansia::editor
         void paint (juce::Graphics&) override;
 
         DragChip loop, song;
+        LedButton drums { "1 drum track" };
         int numPhraseChips() const noexcept { return phraseChips.size(); }
         DragChip* phraseChip (int index) const noexcept { return phraseChips[index]; }
+
+        // Where the engraved "Drag MIDI" is drawn, so tests can check it fits.
+        juce::Rectangle<float> labelArea() const;
 
     private:
         Controller& controller;

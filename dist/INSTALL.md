@@ -191,6 +191,35 @@ On Windows the content folder is `%APPDATA%\Wubansia Audio\Wubansia\Content`, an
 `python3 tools/content/install.py --from-zip <zip>`. On both, drags from the Samples drawer save to
 `Wubansia/Samples` in your Music folder.
 
+## Drag MIDI into Live or Logic
+
+The **Drag MIDI** strip along the bottom of Wubansia's window hands your DAW the kit's MIDI: **Loop** (the 4-bar
+loop), **Song** (the 224-bar extended mix, with a marker at each section), each phrase chip, and each lane's **MIDI**
+chip. Drag a chip onto your DAW, or click it to show the file. Every instrument is its own track, so a dropped Loop or
+Song gives one DAW track per instrument; the vox switch picks the file, and muted lanes are left out.
+
+**1 drum track**, the switch next to Song, puts the drums on one track instead. Lit, a Loop or Song drag brings the
+kick, snare or clap, hats and percussion as one track, Drums, on channel 10 with the same notes, ready for one drum
+rack, and every other instrument keeps its own track. The file's name says so:
+`FUT01 Alloy Signal 134 F#m 11A - Song (1 drum track).mid`. Wubansia remembers the switch for your user, in
+`settings.xml`, in every project. The notes are the kit's drum map: C1 (36) kick, C#1 (37) rim, D1 (38) clap or
+snare, F#1 and A#1 (42 and 46) closed and open hat, D#2 (51) ride, the rest of the percussion as the kit's MIDI README
+lists it, and B0 (35) for FUT04's rumble. A lane's MIDI chip still gives that lane's own tracks.
+
+### In Ableton Live
+- Drop the Song on the track that holds your Drum Rack: the drums come in as one clip there, the other instruments on
+  the tracks after it.
+- The rack shows the pads from C1 to D#2: scroll its pad overview for B0 (the rumble) and F#2 (54).
+- Put the closed and open hats (42 and 46) in one choke group, and leave the ride (51) out of it.
+- A sample dropped on a pad plays as a one-shot: set the rumble pad's Simpler to Gate, so the note's length gates it.
+
+### In Logic Pro
+- Drop the Song on a Drum Machine Designer track: the drums are one region on it.
+- For FUT04's rumble, set a pad's input note to B0 and its Quick Sampler to Classic, so the note's length gates it.
+- Put the hats in one choke group.
+
+Not yet checked in Live or Logic: where the other instruments land, and these pad settings.
+
 ## If something's wrong
 
 - **Your DAW doesn't list Wubansia.** Make it rescan its plug-ins. In Logic, open Logic Pro > Settings > Plug-in

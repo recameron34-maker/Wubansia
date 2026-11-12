@@ -8,6 +8,7 @@
 // not the project's, and don't.
 
 #include "Controller.h"
+#include "content/UserSettings.h"
 
 #include <vector>
 
@@ -41,6 +42,12 @@ namespace wubansia
         void setPhraseMode (engine::PhraseMode mode) override;
 
         juce::StringArray phraseFiles() const override;
+        bool dragDrumsOnOneTrack() const override;
+        void setDragDrumsOnOneTrack (bool on) override;
+
+        // The settings file that keeps the drum option: UserSettings::instance () unless a test sets another.
+        void setDragSettingsForTesting (UserSettings& settings) { dragSettings = &settings; }
+
         juce::File writeDragFile (const DragRequest& request) override;
 
         std::vector<SoundInfo> sounds (const juce::String& kit) const override;
@@ -68,6 +75,8 @@ namespace wubansia
         std::vector<juce::File> contentFolders() const;
 
         PluginProcessor& processor;
+        UserSettings& dragSettingsFile() const;
+        UserSettings* dragSettings = nullptr;
         juce::File dragFolder;
         juce::File samplesFolderOverride;
         UserSettings* userSettings = nullptr;

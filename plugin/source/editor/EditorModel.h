@@ -41,6 +41,7 @@ namespace wubansia::editor
         engine::MidiInMode midiInMode = engine::MidiInMode::multi;
         engine::Lane midiInLane = engine::Lane::kick;
         engine::PhraseMode phraseMode = engine::PhraseMode::automatic;
+        bool dragDrumsOnOneTrack = false; // the drag strip's 1 drum track switch (ADR 0025)
         juce::StringArray phraseFiles;
         AuditionState audition; // the Samples drawer's last audition (ADR 0024)
 

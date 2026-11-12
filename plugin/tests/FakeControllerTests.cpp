@@ -63,6 +63,20 @@ TEST_CASE ("the fake controller shows what a test sets and records what the edit
         CHECK (controller.phraseMode() == wubansia::engine::PhraseMode::off);
     }
 
+    SECTION ("the drag strip's drum option: requests recorded, the value shown")
+    {
+        CHECK_FALSE (controller.dragDrumsOnOneTrack());
+        controller.setDragDrumsOnOneTrack (true);
+        CHECK (controller.dragDrumsOnOneTrack());
+        controller.setDragDrumsOnOneTrack (false);
+        CHECK_FALSE (controller.dragDrumsOnOneTrack());
+        CHECK (fake.drumOptionRequests == std::vector<bool> { true, false });
+
+        fake.drumsOneTrack = true; // as another instance would light it
+        CHECK (controller.dragDrumsOnOneTrack());
+        CHECK (fake.drumOptionRequests.size() == 2);
+    }
+
     SECTION ("drag-out writes one file per drag")
     {
         wubansia::DragRequest request;

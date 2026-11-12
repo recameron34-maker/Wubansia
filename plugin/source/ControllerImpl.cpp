@@ -252,6 +252,22 @@ namespace wubansia
         return dragout::phraseFiles (entry->id, entry->midiFiles);
     }
 
+    bool ControllerImpl::dragDrumsOnOneTrack() const
+    {
+        return dragSettingsFile().dragDrumsOnOneTrack();
+    }
+
+    void ControllerImpl::setDragDrumsOnOneTrack (bool on)
+    {
+        // The person's, not the project's: no changeSettings, so the host isn't told the project changed.
+        dragSettingsFile().setDragDrumsOnOneTrack (on);
+    }
+
+    UserSettings& ControllerImpl::dragSettingsFile() const
+    {
+        return dragSettings != nullptr ? *dragSettings : UserSettings::instance();
+    }
+
     juce::File ControllerImpl::writeDragFile (const DragRequest& request)
     {
         const auto* entry = entryOf (processor, processor.settings().kit);
@@ -266,6 +282,7 @@ namespace wubansia
         for (std::size_t lane = 0; lane < ParameterIds::laneMute.size(); ++lane)
             if (on (processor.apvts, ParameterIds::laneMute[lane]))
                 state.mutedLanes |= 1u << lane;
+        state.drumsOnOneTrack = dragSettingsFile().dragDrumsOnOneTrack();
 
         const auto folder = dragFolder != juce::File() ? dragFolder : dragout::cacheFolder();
         const auto file = dragout::writeDragFile (entry->info, entry->midiFiles, state, request, folder);
