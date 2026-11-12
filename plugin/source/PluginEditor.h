@@ -72,6 +72,7 @@ namespace wubansia
         void layOut();
         void refreshModel();
         void showContentPanel (bool show);
+        void showSamplesPanel (bool show); // the drawer and the install panel never show together
 
         Controller& controller;
         const bool standalone;

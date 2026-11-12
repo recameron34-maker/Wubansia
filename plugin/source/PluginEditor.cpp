@@ -38,10 +38,11 @@ namespace wubansia
         backdrop.setInterceptsMouseClicks (false, false);
         content.addAndMakeVisible (backdrop);
 
+        // The Samples button opens the Samples drawer (ADR 0024); the install panel is behind its Content... button.
         samplesButton.setComponentID ("samples");
-        samplesButton.setTooltip ("Where this kit's samples come from, and how to install them");
+        samplesButton.setTooltip ("Browse every kit's sounds, hear them, and drag them into your DAW as WAV files");
         samplesButton.setClickingTogglesState (false);
-        samplesButton.onClick = [this] { showContentPanel (! contentPanel.isVisible()); };
+        samplesButton.onClick = [this] { showSamplesPanel (! samplesPanel.isVisible()); };
 
         zoomBox.setComponentID ("zoom");
         zoomBox.setTooltip ("Window size");
@@ -53,6 +54,9 @@ namespace wubansia
             lanes[(std::size_t) i] = std::make_unique<editor::LaneStrip> (static_cast<engine::Lane> (i), controller);
 
         contentPanel.onClose = [this] { showContentPanel (false); };
+        samplesPanel.onClose = [this] { showSamplesPanel (false); };
+        samplesPanel.onShowContent = [this] { showContentPanel (true); };
+        samplesPanel.chooseContentFolder = [this] { contentPanel.chooseContentFolder(); };
 
         for (auto* component : std::initializer_list<juce::Component*> { &kitPanel, &samplesButton, &zoomBox, &lcd, &transport, &modePanel, &sectionStrip })
             content.addAndMakeVisible (component);
@@ -78,6 +82,8 @@ namespace wubansia
     PluginEditor::~PluginEditor()
     {
         stopTimer();
+        if (samplesPanel.isVisible())
+            controller.stopAudition(); // the drawer's sound ends with the window it plays from
         attachments.clear(); // before the controls they hold callbacks on
         setLookAndFeel (nullptr);
     }
@@ -198,6 +204,9 @@ namespace wubansia
         // The A/B choices and the FX and master.
         area.removeFromTop (8);
         auto bottom = area.removeFromTop (112);
+
+        // The Samples drawer covers the lanes, A/B and FX: (20, 246), 1080 x 396.
+        samplesPanel.setBounds (laneArea.withBottom (bottom.getBottom()));
         abPanel.setBounds (bottom.removeFromLeft (340));
         bottom.removeFromLeft (10);
         fxPanel.setBounds (bottom);
@@ -268,6 +277,7 @@ namespace wubansia
         const auto key = state.kit.id + "/" + juce::String ((int) state.content.state);
         if (show)
         {
+            showSamplesPanel (false);
             contentOpenedByHand = true;
             contentDismissedFor.clear();
         }
@@ -277,6 +287,30 @@ namespace wubansia
             contentDismissedFor = key;
         }
         contentPanel.setVisible (show);
+        if (show)
+            contentPanel.toFront (false);
+    }
+
+    void PluginEditor::showSamplesPanel (bool show)
+    {
+        if (show != samplesPanel.isVisible())
+        {
+            if (show)
+            {
+                // The install panel goes; it comes back by itself once the drawer closes if the kit still can't play
+                // and the person hasn't closed it.
+                contentOpenedByHand = false;
+                contentPanel.setVisible (false);
+                samplesPanel.open (state);
+                samplesPanel.setVisible (true);
+                samplesPanel.toFront (false);
+            }
+            else
+            {
+                samplesPanel.setVisible (false);
+                controller.stopAudition(); // closing the drawer stops what it plays
+            }
+        }
         samplesButton.setToggleState (show, juce::dontSendNotification);
     }
 
@@ -307,19 +341,21 @@ namespace wubansia
         fxPanel.update (state);
         dragStrip.update (state);
         contentPanel.update (state);
+        samplesPanel.update (state);
 
-        // The content panel opens by itself while the kit can't play, until the person closes it.
+        // The content panel opens by itself while the kit can't play, until the person closes it; never while the
+        // Samples drawer is open, whose banner says the same.
         const auto key = state.kit.id + "/" + juce::String ((int) state.content.state);
         if (contentDismissedFor.isNotEmpty() && contentDismissedFor != key)
             contentDismissedFor.clear();
-        const auto show = contentOpenedByHand || (isProblem (state.content.state) && contentDismissedFor.isEmpty());
+        const auto show = ! samplesPanel.isVisible() && (contentOpenedByHand || (isProblem (state.content.state) && contentDismissedFor.isEmpty()));
         if (show != contentPanel.isVisible())
         {
             contentPanel.setVisible (show);
             if (show)
                 contentPanel.toFront (false);
         }
-        samplesButton.setToggleState (show, juce::dontSendNotification);
+        samplesButton.setToggleState (samplesPanel.isVisible(), juce::dontSendNotification);
     }
 
     void PluginEditor::Backdrop::paint (juce::Graphics& g)
