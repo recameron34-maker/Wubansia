@@ -58,6 +58,14 @@ What the code fixed before the design:
 - **Export names are never hidden files and always fit**: a leading dot is dropped, and an installed name is cut so the whole name stays within 196 characters before ` (k)` and `.wav` (the longest today is 46).
 - **`readFile` holds a path to the manifests' own rule** (`engine::contentPathProblem`) before touching the disk, caps the size at `FileSampleSource::kMaxFileBytes`, and words its errors as `FileSampleSource` does.
 
+### Settled in the code (step 2)
+- **The playing clip fades out where it plays.** A stop that comes while a replaced clip is still fading would otherwise wait for that fade or cut it short. So the player keeps a fade on the playing clip too: a stop fades it out from the next block's first sample, and if a new clip replaces it mid-fade it moves to the fading slot with its fade. A new offer still waits only while a replaced clip fades out (5 ms).
+- **A request that can't play stops what plays.** `audition ()` replaces what plays, so when the new file is refused (bytes that aren't `kit.json`'s, a read error, samples that aren't there, an unknown kit or file) the last audition fades out too, and `auditionState ().problem` says why. The Controller's refusals reach the sound service through `SoundService::refuse ()`, which the spec's API lacked.
+- **A stopped ticket no longer counts as sounding**: `auditionState ().sounding` is 0 as soon as `stopAudition ()`, `selectKit ()` or a failure stops it, while the clip fades out over the next block.
+- **The host's reset and silent blocks let the offer go as well** as the clips in hand. A prepare at another rate lets clips made for the old rate go at the next block; at the same rate they play on.
+- **The sound thread sleeps while it has nothing out**: it wakes every 50 ms only while the player holds one of its clips, and otherwise only for a request, a stop or its end.
+- **`makeAuditionClip` refuses** a rate that isn't positive, finite and at most 768 kHz, and a file that isn't 48 kHz mono or stereo with frames × channels samples.
+
 ## Consequences
 - The plugin gains `plugin/source/sounds/` and, in step 2, `engine/audition/` and a sound thread per processor, started by the first audition (never by a constructor, so host scans start nothing). No new dependency and no CMake change: the source folders are globbed.
 - `settings.xml` gains `samples_folder`; projects don't change.
