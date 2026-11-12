@@ -40,6 +40,9 @@ instrument, and the sound on each key of channels 6, 7 and 8.
 - 35: FUT04's rumble, a 2-bar loop gated by its note's length (its own track, Rumble, on the kick lane).
 - Drum notes are 120-tick triggers: play them as one-shots, so the samples ring out (a gated pad would cut the open
   hats).
+- One track for a drum rack (ADR 0025): with the drag strip's 1 drum track switch lit, a Loop or Song drag carries the
+  drum tracks as one track, Drums, where the first of them was, every note as it is and note-offs first on a tick; the
+  other tracks don't change. A lane drag still gives the lane's own tracks.
 
 ## Conventions
 - **Roots.** Every pitched sample is triggered at its musical root: root each file at its MIDI number. The sample names
@@ -104,6 +107,9 @@ file's name, the tempo, 4/4, the key, and in the extended mixes a marker (FF 06)
 (FF 07) at every riser, fill and, in the vox mix only, vox entry (on the bar where the line's vox comes in). The cues
 are labels for the reader: the notes play.
 
+A Loop or Song drag with 1 drum track lit carries one track named Drums in place of Kick, Rumble, Snare, Clap,
+Snare/Clap, Hats and Perc. It isn't a TRACKS name: it spans four lanes, and no file here holds it.
+
 ## Files per kit
 - `<KIT>_Loop_Vox_4bars.mid` and `<KIT>_Loop_NoVox_4bars.mid`: the kit's context loop as its club master plays it,
   lane by lane, with the vox synth or without.
@@ -134,10 +140,13 @@ engineer replaces these with the kit's own form.
   their channels. For Wubansia, drag one lane at a time from its drag strip, or set Wubansia's MIDI input to one lane
   (Lane mode). To play a whole multi-track file into Wubansia, give each clip its own MIDI track, set that track's
   "MIDI To" to Wubansia's track and its channel to the clip's channel from the table above, and arm or monitor them.
-  For your own instruments, put a sampler on each track and root every sample at its MIDI number.
+  For your own instruments, put a sampler on each track and root every sample at its MIDI number. With 1 drum track
+  lit, the drums come as one clip: drop the Song on a track holding a Drum Rack with the kit's drums on the notes
+  above.
 - **Logic Pro.** File > Open on a whole-mix file brings its tempo, key and section markers with it (an import doesn't).
   Imported tracks keep their channels: on Wubansia's track, set the MIDI input to Multi (channels as above), or to one
-  lane. For your own instruments, one software instrument track per MIDI track.
+  lane. For your own instruments, one software instrument track per MIDI track. With 1 drum track lit, drop the Song
+  on a Drum Machine Designer track: the drums are one region on it.
 - **Empty tracks.** A loop file carries only the tracks that play in it. Every region of an extended mix carries the
   same tracks in the same order, empty or not: if a DAW leaves an empty track out, move the clips under it onto the
   tracks of the same name.

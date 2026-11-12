@@ -34,7 +34,7 @@ v0.1 has no listening round. The fidelity report stands in for one: `python3 too
 Gates: ±0.3 LU, ±0.5 LU, ±0.75 dB, ±0.5 dB, ±0.5 dB; phrase lanes ≤ −40 dB; sampled lanes ±1 dB per 1/3 octave; sections ≤ −0.9 dBTP.
 Look-back master against master.py's exact one, per kit: LUFS-I …, true peak … · CPU at 48 kHz / 128 samples, 64 voices, every effect: … % of one core (macos-15 runner; gate 15 %) · your Mac: …
 ### B. In your DAW (the checklist; not a listening test)
-Loads in VST3 / AU / CLAP · content found (status ready) · Loop in sync from bar 1, wraps without a click · Song from any bar (chased) · the kit's tempo, ±1 %, ±5 % (phrase lanes tagged recorded or multisample) · vox/no-vox and A/B mid-bar · lane levels and mutes · Space, Echo, Pump, Club · automation both ways · save/reopen identical · offline bounce right after opening · drag MIDI (Loop, Song, a lane) into a track · CPU meter · editor open/close ×10
+Loads in VST3 / AU / CLAP · content found (status ready) · Loop in sync from bar 1, wraps without a click · Song from any bar (chased) · the kit's tempo, ±1 %, ±5 % (phrase lanes tagged recorded or multisample) · vox/no-vox and A/B mid-bar · lane levels and mutes · Space, Echo, Pump, Club · automation both ways · save/reopen identical · offline bounce right after opening · drag MIDI (Loop, Song, a lane) into a track · CPU meter · editor open/close ×10 · 1 drum track: a Song onto a Drum Rack (Live) and a Drum Machine Designer (Logic) track
 ### C. What you said
 Your words, per kit: keep, or fix (what, where).
 ### D. Action

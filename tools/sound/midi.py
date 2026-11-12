@@ -1943,7 +1943,7 @@ The extended mix: `{EXTENDED}/vox/` (with the vox synth) and `{EXTENDED}/novox/`
 
 ## Drums (channel 10)
 
-A drum rack with the kit's samples on these notes (C1 = 36): 120-tick triggers, so play them as one-shots.
+A drum rack with the kit's samples on these notes (C1 = 36): 120-tick triggers, so play them as one-shots. Wubansia's drag strip gives them as one track, Drums, for one drum rack when its 1 drum track switch is lit.
 
 | Note | Sample | Track |
 |---|---|---|
