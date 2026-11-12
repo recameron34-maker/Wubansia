@@ -2009,6 +2009,7 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
             save (editor, "FUT01-samples-accents.png");
             save (editor, "FUT01-samples-accents-1x.png", 1);
 
+            c.auditionStatus.sounding = 0; // Rave Stab has ended
             click (get<editor::KitChip> (editor, "samples_kit_FUT02"));
             editor.tick();
             REQUIRE (drawer.bannerText().isNotEmpty());
