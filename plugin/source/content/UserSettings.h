@@ -55,6 +55,8 @@ namespace wubansia
 
     private:
         void loadLocked() const;
+        // Writes the file with attribute set to value (removed when value is empty), keeping whatever else it holds.
+        bool saveAttributeLocked (const char* attribute, const juce::String& value) const;
 
         const juce::File settingsFile;
         mutable std::mutex mutex;
@@ -62,5 +64,6 @@ namespace wubansia
         mutable juce::File folder;
         std::atomic<std::uint64_t> changes { 0 };
         mutable std::atomic<std::uint64_t> reads { 0 };
+        mutable bool dragDrums = false;
     };
 }
