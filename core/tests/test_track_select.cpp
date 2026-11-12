@@ -755,7 +755,7 @@ TEST_CASE ("every committed content/midi file's drum tracks merge into one track
         CHECK (sorted (textsButNames (m)) == sorted (texts));
         bool channel10 = true;
         for (const auto& e : m.events)
-            channel10 = channel10 && (! e.isChannel() || e.channel() == 9);
+            channel10 = channel10 && (!e.isChannel() || e.channel() == 9);
         CHECK (channel10);
         CHECK (offsBeforeOns (m));
         CHECK (m.endTick == end);
@@ -777,7 +777,7 @@ TEST_CASE ("every committed content/midi file's drum tracks merge into one track
             if (drum && static_cast<int> (i) != drums.front())
                 continue;
             REQUIRE (o < outChunks.value.size());
-            if (! drum)
+            if (!drum)
                 CHECK (chunkOf (merged.value, outChunks.value[o]) == chunkOf (smf, in.value[i]));
             ++o;
         }
