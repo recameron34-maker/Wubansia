@@ -113,4 +113,14 @@ namespace wubansia::midi
             }
         return R::success (std::move (out));
     }
+
+    util::Result<std::vector<std::uint8_t>> mergeTracks (std::span<const std::uint8_t> smf, std::span<const int> trackIndices,
+        std::span<const int> mergeIndices, std::string_view name)
+    {
+        (void) smf;
+        (void) trackIndices;
+        (void) mergeIndices;
+        (void) name;
+        return util::Result<std::vector<std::uint8_t>>::failure ("mergeTracks: not yet");
+    }
 }

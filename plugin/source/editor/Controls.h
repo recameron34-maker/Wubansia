@@ -70,6 +70,10 @@ namespace wubansia::editor
     public:
         explicit LedButton (const juce::String& label);
 
+        // The label's font and where it's drawn (upper case, centred) while the button is up, so tests can check it fits.
+        juce::Font labelFont() const;
+        juce::Rectangle<float> labelArea() const;
+
         void paintButton (juce::Graphics&, bool isMouseOver, bool isButtonDown) override;
         void mouseDown (const juce::MouseEvent& e) override;
         void mouseUp (const juce::MouseEvent& e) override;

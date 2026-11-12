@@ -217,6 +217,122 @@ TEST_CASE ("drag-out: the kit's own MIDI, cut to the request, into the drag fold
     CHECK (controller.writeDragFile (phrase) == juce::File());
 }
 
+TEST_CASE ("drag-out: 1 drum track gives the Loop's and Song's drums as one track, kept in the person's settings", "[controller][dragout]")
+{
+    SyntheticPlugin plugin (twoKits ("DRM01", "DRM02"));
+    DragFolder drag;
+    auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+    controller.setDragFolderForTesting (drag.folder);
+    const auto& syn = engine::testing::syntheticContent();
+
+    using Bytes = std::vector<std::uint8_t>;
+    const auto bytesOf = [] (const juce::File& file) {
+        juce::MemoryBlock block;
+        REQUIRE (file.loadFileAsData (block));
+        const auto* p = static_cast<const std::uint8_t*> (block.getData());
+        return Bytes (p, p + block.getSize());
+    };
+    const auto read = [] (const Bytes& bytes) {
+        auto r = midi::readSmf (bytes);
+        INFO (r.error);
+        REQUIRE (r.ok());
+        return r.value;
+    };
+    const auto namesOf = [] (const midi::File& file) {
+        std::vector<std::string> names;
+        for (const auto& t : file.tracks)
+            names.push_back (midi::trackName (t));
+        return names;
+    };
+
+    DragRequest loop;
+    DragRequest song;
+    song.what = DragWhat::song;
+    DragRequest kickLane;
+    kickLane.what = DragWhat::lane;
+    DragRequest phrase;
+    phrase.what = DragWhat::phrase;
+    phrase.phraseFile = "DRM01_Phrase_Lead_2bars.mid"; // the synthetic kit's phrase file holds the loop, drums and all
+
+    // Off, the default: the vox Loop file as it is.
+    CHECK_FALSE (controller.dragDrumsOnOneTrack());
+    CHECK (bytesOf (controller.writeDragFile (loop)) == syn.smfs[0]);
+    const auto laneOff = bytesOf (controller.writeDragFile (kickLane));
+    const auto phraseOff = bytesOf (controller.writeDragFile (phrase));
+
+    // Lit: kept in the person's settings file (here the test's own), never in the project.
+    controller.setDragDrumsOnOneTrack (true);
+    CHECK (controller.dragDrumsOnOneTrack());
+    CHECK (plugin.settings->file().loadFileAsString().contains ("drag_drums_one_track=\"1\""));
+
+    // Kick, Snare and Hats become one track, Drums, after the conductor; every other track stays.
+    const auto checkMerged = [&] (const DragRequest& request, const Bytes& source, const juce::String& what, std::size_t markers) {
+        const auto file = controller.writeDragFile (request);
+        REQUIRE (file.existsAsFile());
+        CHECK (file.getFileName().endsWith (" - " + what + " (1 drum track).mid"));
+        const auto bytes = bytesOf (file);
+        const auto merged = read (bytes);
+        const auto original = read (source);
+        const auto originalNames = namesOf (original);
+        REQUIRE (originalNames.size() == 11);
+        CHECK (std::vector<std::string> (originalNames.begin() + 1, originalNames.begin() + 4) == std::vector<std::string> { "Kick", "Snare", "Hats" });
+        CHECK (namesOf (merged) == std::vector<std::string> { originalNames[0], "Drums", "Bass", "Lead", "Chord voicing", "Chords", "Pad", "Vox", "FX" });
+        REQUIRE (merged.tracks.size() == 9);
+
+        // The three tracks' notes, by tick, channel and key.
+        std::vector<midi::Note> drums;
+        for (std::size_t i = 1; i <= 3; ++i)
+        {
+            const auto notes = midi::notesOf (original.tracks[i]);
+            drums.insert (drums.end(), notes.begin(), notes.end());
+        }
+        std::stable_sort (drums.begin(), drums.end(), [] (const midi::Note& a, const midi::Note& b) {
+            if (a.tick != b.tick)
+                return a.tick < b.tick;
+            return a.channel != b.channel ? a.channel < b.channel : a.key < b.key;
+        });
+        CHECK (midi::notesOf (merged.tracks[1]) == drums);
+        for (const auto& e : merged.tracks[1].events)
+            if (e.isChannel())
+                CHECK (e.channel() == 9); // channel 10
+        for (std::size_t i = 2; i < merged.tracks.size(); ++i)
+            CHECK (merged.tracks[i] == original.tracks[i + 2]);
+        CHECK (midi::markersOf (merged).size() == markers);
+        return bytes;
+    };
+    const auto mergedLoop = checkMerged (loop, syn.smfs[0], "Loop", 0);
+    checkMerged (song, syn.smfs[2], "Song", 3);
+
+    // Lane and phrase drags don't change.
+    CHECK (bytesOf (controller.writeDragFile (kickLane)) == laneOff);
+    CHECK (bytesOf (controller.writeDragFile (phrase)) == phraseOff);
+    CHECK (phraseOff == syn.smfs[0]);
+
+    // Snare and hats muted: one drum track is left, so the drag is the plain one.
+    test::setParameter (*plugin, ParameterIds::laneMute[1], 1.0f);
+    test::setParameter (*plugin, ParameterIds::laneMute[2], 1.0f);
+    const auto lone = controller.writeDragFile (loop);
+    CHECK (lone.getFileName().endsWith (" - Loop (no Snare, Hats).mid"));
+    CHECK (namesOf (read (bytesOf (lone))) == std::vector<std::string> { namesOf (read (syn.smfs[0]))[0], "Kick", "Bass", "Lead", "Chord voicing", "Chords", "Pad", "Vox", "FX" });
+    test::setParameter (*plugin, ParameterIds::laneMute[1], 0.0f);
+    test::setParameter (*plugin, ParameterIds::laneMute[2], 0.0f);
+
+    // Every instance shares the person's settings: a second plugin on the same ones sees the option.
+    SyntheticPlugin other (twoKits ("DRM01", "DRM02"));
+    auto& otherController = static_cast<ControllerImpl&> (other->controller());
+    otherController.setDragSettingsForTesting (*plugin.settings);
+    otherController.setDragFolderForTesting (drag.folder);
+    CHECK (otherController.dragDrumsOnOneTrack());
+    CHECK (bytesOf (otherController.writeDragFile (loop)) == mergedLoop);
+
+    // Off again: the plain file.
+    controller.setDragDrumsOnOneTrack (false);
+    CHECK_FALSE (controller.dragDrumsOnOneTrack());
+    CHECK_FALSE (otherController.dragDrumsOnOneTrack());
+    CHECK_FALSE (plugin.settings->file().loadFileAsString().contains ("drag_drums_one_track"));
+    CHECK (bytesOf (controller.writeDragFile (loop)) == syn.smfs[0]);
+}
+
 TEST_CASE ("the chosen content folder goes to the person's settings and reloads the kit", "[controller][content]")
 {
     SyntheticContent::Options options;

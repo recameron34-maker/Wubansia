@@ -664,6 +664,142 @@ TEST_CASE ("drag chips write their MIDI file and hand it to the OS", "[editor]")
         });
 }
 
+namespace
+{
+    // FUT01's five phrase files, the most any kit has, in the order phraseFiles () gives them.
+    juce::StringArray fut01PhraseFiles()
+    {
+        return { "FUT01_Phrase_EPianoStabRhythm_2bars.mid", "FUT01_Phrase_OrganRiff_4bars.mid", "FUT01_Phrase_PluckRiff_4bars.mid",
+            "FUT01_Phrase_VoxSynthRiff_2bars.mid", "FUT01_Phrase_WarpRiff_2bars.mid" };
+    }
+
+    // The drag strip's 1 drum track switch, or nullptr after a failed check: a failed REQUIRE inside withEditor would
+    // leave the editor ticking after its test.
+    editor::LedButton* drumSwitch (PluginEditor& editor)
+    {
+        const auto found = findAll (editor, "drag_drums");
+        CHECK (found.size() == 1);
+        auto* drums = found.size() == 1 ? dynamic_cast<editor::LedButton*> (found.front()) : nullptr;
+        CHECK (drums != nullptr);
+        return drums;
+    }
+}
+
+TEST_CASE ("the drag strip's 1 drum track switch asks the Controller and follows it", "[editor]")
+{
+    Rig rig;
+    rig.controller.phraseFileNames = fut01PhraseFiles();
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto* found = drumSwitch (editor);
+            if (found == nullptr)
+                return;
+            auto& drums = *found;
+            CHECK (drums.getButtonText() == "1 drum track");
+            CHECK (drums.isEnabled());
+            CHECK_FALSE (drums.getToggleState());
+            CHECK_FALSE (editor.model().dragDrumsOnOneTrack);
+            CHECK_THAT (drums.getTooltip().toStdString(), ContainsSubstring ("Drum Rack") && ContainsSubstring ("Drum Machine Designer"));
+
+            click (drums);
+            CHECK (rig.controller.drumOptionRequests == std::vector<bool> { true });
+            editor.tick();
+            CHECK (drums.getToggleState());
+            CHECK (editor.model().dragDrumsOnOneTrack);
+
+            // Another instance turned it off: dark at the next tick, with nothing asked.
+            rig.controller.drumsOneTrack = false;
+            editor.tick();
+            CHECK_FALSE (drums.getToggleState());
+            CHECK_FALSE (editor.model().dragDrumsOnOneTrack);
+            CHECK (rig.controller.drumOptionRequests.size() == 1);
+
+            // Lit, the Loop and Song chips ask for the same files as ever: the option is the Controller's to apply.
+            rig.controller.drumsOneTrack = true;
+            editor.tick();
+            juce::Array<juce::File> dragged;
+            auto& loop = get<editor::DragChip> (editor, "drag_loop");
+            auto& song = get<editor::DragChip> (editor, "drag_song");
+            for (auto* chip : { &loop, &song })
+                chip->startDrag = [&] (const juce::File& file, juce::Component&)
+                {
+                    dragged.add (file);
+                    return true;
+                };
+            CHECK (loop.beginDrag());
+            CHECK (song.beginDrag());
+            REQUIRE (rig.controller.dragRequests.size() == 2);
+            CHECK (rig.controller.dragRequests[0] == wubansia::DragRequest { wubansia::DragWhat::loop, engine::Lane::kick, {} });
+            CHECK (rig.controller.dragRequests[1] == wubansia::DragRequest { wubansia::DragWhat::song, engine::Lane::kick, {} });
+            CHECK_THAT (loop.getTooltip().toStdString(), ContainsSubstring ("1 drum track puts its drums on one track"));
+            CHECK_THAT (song.getTooltip().toStdString(), ContainsSubstring ("1 drum track puts its drums on one track"));
+            for (const auto& file : dragged)
+                file.deleteFile();
+        });
+}
+
+TEST_CASE ("the drag strip fits the switch between Song and the phrase chips, every label in full at 100 %", "[editor]")
+{
+    Rig rig;
+    rig.controller.phraseFileNames = fut01PhraseFiles();
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            editor.setZoom (1.0f);
+            editor.tick();
+            auto& strip = get<editor::DragStrip> (editor, "drag");
+            auto& loop = get<editor::DragChip> (editor, "drag_loop");
+            auto& song = get<editor::DragChip> (editor, "drag_song");
+            auto* found = drumSwitch (editor);
+            if (found == nullptr)
+                return;
+            auto& drums = *found;
+            REQUIRE (strip.numPhraseChips() == 5);
+
+            // Loop, Song, the switch, then the phrase chips: none overlapping, all inside the strip.
+            std::vector<juce::Component*> parts { &loop, &song, &drums };
+            for (int i = 0; i < strip.numPhraseChips(); ++i)
+                parts.push_back (strip.phraseChip (i));
+            for (std::size_t i = 0; i < parts.size(); ++i)
+            {
+                INFO (parts[i]->getComponentID());
+                CHECK (parts[i]->getParentComponent() == &strip);
+                CHECK (strip.getLocalBounds().contains (parts[i]->getBounds()));
+                for (std::size_t j = i + 1; j < parts.size(); ++j)
+                    CHECK_FALSE (parts[i]->getBounds().intersects (parts[j]->getBounds()));
+            }
+            CHECK (drums.getX() >= song.getRight());
+            for (int i = 0; i < strip.numPhraseChips(); ++i)
+            {
+                CHECK (strip.phraseChip (i)->getX() >= drums.getRight());
+                CHECK (strip.phraseChip (i)->getWidth() >= 125);
+            }
+
+            // Every label reads in full, in the font and area its paint code uses.
+            const auto width = [] (const juce::Font& font, const juce::String& text) { return juce::GlyphArrangement::getStringWidth (font, text); };
+            const auto engraved = editor::uiFont (9.5f, true, 0.12f); // draw::engraved's font, at the strip's 9.5 px
+            CHECK (width (engraved, "DRAG MIDI") <= strip.labelArea().getWidth());
+            CHECK (strip.labelArea().getRight() <= (float) loop.getX());
+            CHECK (width (drums.labelFont(), "1 DRUM TRACK") <= drums.labelArea().getWidth());
+            CHECK (drums.labelFont().getHeight() >= 10.0f);
+            for (auto* chip : { &loop, &song })
+            {
+                INFO (chip->label());
+                CHECK (width (chip->labelFont(), chip->label()) <= chip->labelArea().getWidth());
+            }
+
+            // The four FUT01 phrase titles that fit today still fit, squeezed to 0.8 at most ("E Piano Stab Rhythm" was
+            // already cut).
+            for (int i = 1; i < strip.numPhraseChips(); ++i)
+            {
+                const auto* chip = strip.phraseChip (i);
+                INFO (chip->label());
+                CHECK (width (chip->labelFont(), chip->label()) * 0.8f < chip->labelArea().getWidth());
+            }
+        });
+}
+
 TEST_CASE ("in a host the transport offers Preview", "[editor]")
 {
     Rig rig;

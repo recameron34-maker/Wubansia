@@ -423,6 +423,11 @@ TEST_CASE ("a state-only change tells the host the project changed", "[state]")
     controller.setTransport (true, 120.0);
     controller.setTransport (false, 120.0);
     controller.setContentFolder (juce::File::getSpecialLocation (juce::File::tempDirectory));
+    // Nor is the drag strip's drum option (ADR 0025), the person's (here in the test's own settings file).
+    const auto before = saveState (*plugin);
+    controller.setDragDrumsOnOneTrack (true);
+    CHECK (controller.dragDrumsOnOneTrack());
+    CHECK (saveState (*plugin) == before);
     CHECK (host.stateChanges == 4);
 
     plugin->removeListener (&host);

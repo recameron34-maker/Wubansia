@@ -162,6 +162,16 @@ namespace wubansia::editor
             juce::Justification::centred, true);
     }
 
+    juce::Font LedButton::labelFont() const
+    {
+        return juce::Font (juce::FontOptions()); // not yet
+    }
+
+    juce::Rectangle<float> LedButton::labelArea() const
+    {
+        return {}; // not yet
+    }
+
     AbSwitch::AbSwitch (const juce::String& name)
         : juce::Button (name)
     {

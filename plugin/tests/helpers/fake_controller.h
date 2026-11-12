@@ -71,6 +71,7 @@ namespace wubansia::test
         engine::MidiInMode midiMode = engine::MidiInMode::multi;
         engine::Lane midiLane = engine::Lane::kick;
         engine::PhraseMode phrases = engine::PhraseMode::automatic;
+        bool drumsOneTrack = false; // what dragDrumsOnOneTrack () gives; another instance may change it
         juce::StringArray phraseFileNames;
         juce::File dragFolder; // where writeDragFile writes
         bool dragFails = false;
@@ -80,6 +81,7 @@ namespace wubansia::test
         juce::Array<juce::File> contentFolders;
         std::vector<std::pair<bool, double>> transportRequests; // (playing, bpm)
         std::vector<bool> previewRequests;
+        std::vector<bool> drumOptionRequests; // setDragDrumsOnOneTrack () calls, in order
         std::vector<DragRequest> dragRequests;
         int snapshotsTaken = 0;
 
@@ -144,6 +146,14 @@ namespace wubansia::test
 
         engine::PhraseMode phraseMode() const override { return phrases; }
         void setPhraseMode (engine::PhraseMode mode) override { phrases = mode; }
+
+        bool dragDrumsOnOneTrack() const override { return drumsOneTrack; }
+
+        void setDragDrumsOnOneTrack (bool on) override
+        {
+            drumOptionRequests.push_back (on);
+            drumsOneTrack = on;
+        }
 
         juce::StringArray phraseFiles() const override { return phraseFileNames; }
 

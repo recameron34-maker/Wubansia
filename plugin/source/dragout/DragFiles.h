@@ -70,6 +70,7 @@ namespace wubansia::dragout
         engine::PlayMode mode = engine::PlayMode::loop; // a lane drag takes its tracks from this mode's files
         engine::Variant variant = engine::Variant::vox; // the vox switch
         std::uint32_t mutedLanes = 0; // a bit per engine::Lane (engine::laneBit): left out of Loop and Song
+        bool drumsOnOneTrack = false; // Loop and Song: the drum tracks as one track, Drums (ADR 0025)
     };
 
     // A drag's file before it is written.

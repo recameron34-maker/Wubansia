@@ -44,6 +44,15 @@ namespace wubansia
         // How many times the file was read: once at most, for tests.
         std::uint64_t fileReads() const noexcept { return reads.load (std::memory_order_acquire); }
 
+        // Whether the drag strip's 1 drum track switch is lit (ADR 0025): Loop and Song drags give their drum tracks as
+        // one track. Off unless the file says drag_drums_one_track="1". Reads the file once.
+        bool dragDrumsOnOneTrack() const;
+
+        // Lights the switch or turns it off, and saves the file at once, keeping whatever else it holds. generation ()
+        // stays: the content folders don't change. False when the file couldn't be written: the choice still holds
+        // until the process ends.
+        bool setDragDrumsOnOneTrack (bool on);
+
     private:
         void loadLocked() const;
 

@@ -46,6 +46,17 @@ namespace wubansia
         return folder;
     }
 
+    bool UserSettings::dragDrumsOnOneTrack() const
+    {
+        return false; // not yet
+    }
+
+    bool UserSettings::setDragDrumsOnOneTrack (bool on)
+    {
+        juce::ignoreUnused (on); // not yet
+        return false;
+    }
+
     bool UserSettings::setContentFolder (const juce::File& chosen)
     {
         bool saved = false;

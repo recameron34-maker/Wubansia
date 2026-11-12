@@ -249,8 +249,9 @@ class TestFiles(unittest.TestCase):
 
     def test_the_readmes(self):
         """The kit's README names every file, its channel and what it plays, the roots as MIDI numbers, the keys of
-        channels 6-8, the vox synth's vowels by velocity, and which lanes Wubansia plays from recorded phrases; the
-        extended READMEs name every file of their folder and say which octave names they use."""
+        channels 6-8, the vox synth's vowels by velocity, and which lanes Wubansia plays from recorded phrases; its drum
+        section names the drag strip's 1 drum track switch (ADR 0025); the extended READMEs name every file of their
+        folder and say which octave names they use."""
         for kit in KITS:
             text = kit_files(kit)['README.md'].decode()
             k = Mi.kit_of(kit)
@@ -261,6 +262,9 @@ class TestFiles(unittest.TestCase):
                 for words in ('channel 10', 'channel 1', 'channel 4', 'channel 3', 'MIDI number', 'C4 = 60',
                               'recorded', 'CC74', 'FF 59'):
                     self.assertIn(words, text)
+                drum_part = text.split('## Drums (channel 10)', 1)[1].split('\n## ', 1)[0]
+                for words in ('1 drum track', 'Drums'):     # ADR 0025: the drag strip's drums on one track
+                    self.assertIn(words, drum_part)
                 for role in ('accents', 'fx'):
                     for key, sound in k.keymap(role).items():
                         self.assertIn(f'| {key} |', text)

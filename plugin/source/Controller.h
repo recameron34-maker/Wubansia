@@ -132,6 +132,10 @@ namespace wubansia
 
         // MIDI drag-out: one file per drag.
         virtual juce::StringArray phraseFiles() const = 0; // the current kit's phrase files, for their chips
+        // Whether Loop and Song drags give their drum tracks as one track, Drums (ADR 0025). Kept per user in
+        // settings.xml, never in project state: setting it doesn't mark the project changed.
+        virtual bool dragDrumsOnOneTrack() const = 0;
+        virtual void setDragDrumsOnOneTrack (bool on) = 0;
         // Writes the file to drag into the drag cache folder and returns it; juce::File() on failure.
         virtual juce::File writeDragFile (const DragRequest& request) = 0;
     };

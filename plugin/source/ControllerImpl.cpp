@@ -199,6 +199,21 @@ namespace wubansia
         return dragout::phraseFiles (entry->id, entry->midiFiles);
     }
 
+    bool ControllerImpl::dragDrumsOnOneTrack() const
+    {
+        return false; // not yet
+    }
+
+    void ControllerImpl::setDragDrumsOnOneTrack (bool on)
+    {
+        juce::ignoreUnused (on); // not yet
+    }
+
+    UserSettings& ControllerImpl::dragSettingsFile() const
+    {
+        return dragSettings != nullptr ? *dragSettings : UserSettings::instance();
+    }
+
     juce::File ControllerImpl::writeDragFile (const DragRequest& request)
     {
         const auto* entry = entryOf (processor, processor.settings().kit);

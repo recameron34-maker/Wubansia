@@ -264,12 +264,13 @@ namespace
         return r;
     }
 
-    dragout::DragState state (PlayMode mode, Variant variant, std::uint32_t muted = 0)
+    dragout::DragState state (PlayMode mode, Variant variant, std::uint32_t muted = 0, bool drumsOnOneTrack = false)
     {
         dragout::DragState s;
         s.mode = mode;
         s.variant = variant;
         s.mutedLanes = muted;
+        s.drumsOnOneTrack = drumsOnOneTrack;
         return s;
     }
 
@@ -304,6 +305,44 @@ namespace
     std::string sourceName (const KitContent& k, DragWhat what, Variant v)
     {
         return what == DragWhat::song ? dragout::songFileName (k.info.id, v) : dragout::loopFileName (k.info.id, v);
+    }
+
+    // The tracks 1 drum track puts on one track (ADR 0025): the names with the drums role in channel_map.h's kTracks.
+    bool isDrumTrack (const std::string& name)
+    {
+        static const std::set<std::string> drums { "Kick", "Rumble", "Snare", "Clap", "Snare/Clap", "Hats", "Perc" };
+        return drums.count (name) != 0;
+    }
+
+    // Notes by tick, channel and key, as notesOf () gives one track's.
+    std::vector<midi::Note> byTick (std::vector<midi::Note> notes)
+    {
+        std::stable_sort (notes.begin(), notes.end(), [] (const midi::Note& a, const midi::Note& b) {
+            if (a.tick != b.tick)
+                return a.tick < b.tick;
+            return a.channel != b.channel ? a.channel < b.channel : a.key < b.key;
+        });
+        return notes;
+    }
+
+    // Whether every note-off on a tick comes before every note-on on it (docs/midi-map.md, "On a tick").
+    bool offsBeforeOns (const midi::Track& track)
+    {
+        std::int64_t tick = -1;
+        bool onSeen = false;
+        for (const auto& e : track.events)
+        {
+            if (e.tick != tick)
+            {
+                tick = e.tick;
+                onSeen = false;
+            }
+            if (e.isNoteOn())
+                onSeen = true;
+            else if (e.isNoteOff() && onSeen)
+                return false;
+        }
+        return true;
     }
 
     // The source's chunks whose lane is `lane`.
@@ -578,6 +617,201 @@ TEST_CASE ("the vox switch picks the Loop and Song file", "[dragout]")
     }
 }
 
+TEST_CASE ("the Loop and Song files' drum tracks follow the conductor, on channel 10, notes only, no key shared", "[dragout]")
+{
+    // What 1 drum track relies on: the merged track takes the first drum track's place, right after the conductor.
+    for (const auto& k : kits())
+        for (const auto what : { DragWhat::loop, DragWhat::song })
+            for (const auto v : { Variant::vox, Variant::novox })
+            {
+                INFO (k.info.id << " " << (what == DragWhat::song ? "song" : "loop") << " " << variantName (v));
+                const auto file = read (k.bytesOf (sourceName (k, what, v)));
+                std::vector<std::size_t> drums;
+                for (std::size_t i = 1; i < file.tracks.size(); ++i)
+                    if (isDrumTrack (midi::trackName (file.tracks[i])))
+                        drums.push_back (i);
+                REQUIRE (drums.size() >= 4);
+                for (std::size_t j = 0; j < drums.size(); ++j)
+                    CHECK (drums[j] == j + 1);
+
+                std::map<int, std::string> keyTrack; // each key's drum track
+                for (const auto i : drums)
+                {
+                    const auto name = midi::trackName (file.tracks[i]);
+                    for (const auto& e : file.tracks[i].events)
+                    {
+                        if (! e.isChannel())
+                            continue;
+                        INFO (name << " event at tick " << e.tick);
+                        CHECK (e.channel() == 9);
+                        CHECK ((e.kind() == midi::status::noteOn || e.kind() == midi::status::noteOff)); // no CC, program change or bend
+                        const auto owner = keyTrack.emplace (e.data1, name).first->second;
+                        CHECK (owner == name);
+                    }
+                }
+            }
+}
+
+TEST_CASE ("1 drum track: a Loop or Song drag's kept drum tracks become one track, Drums, the rest byte for byte", "[dragout]")
+{
+    // Nothing muted, each lane alone, every lane but one, and a few mixes: the muted lanes' tracks are gone first.
+    std::vector<std::uint32_t> mutes { 0u, 0b0000000101u, 0b1010101010u, 0b0101010101u, 0b0110011001u };
+    for (const auto lane : allLanes)
+    {
+        mutes.push_back (engine::laneBit (lane));
+        mutes.push_back (everyLane & ~engine::laneBit (lane));
+    }
+
+    int merged = 0, plain = 0;
+    for (const auto& k : kits())
+        for (const auto what : { DragWhat::loop, DragWhat::song })
+            for (const auto v : { Variant::vox, Variant::novox })
+            {
+                const auto& source = k.bytesOf (sourceName (k, what, v));
+                const auto sourceChunks = chunksOf (source);
+                const auto sourceNames = trackNames (source);
+                const auto sourceFile = read (source);
+
+                for (const auto muted : mutes)
+                {
+                    INFO (k.info.id << " " << (what == DragWhat::song ? "song" : "loop") << " " << variantName (v) << " muted " << muted);
+                    DragRequest request;
+                    request.what = what;
+                    const auto off = dragout::makeDragFile (k.info, k.files, state (PlayMode::loop, v, muted), request);
+                    const auto on = dragout::makeDragFile (k.info, k.files, state (PlayMode::loop, v, muted, true), request);
+
+                    std::vector<std::size_t> keptDrums, keptOthers; // in file order
+                    for (std::size_t i = 1; i < sourceChunks.tracks.size(); ++i)
+                        if (! isMuted (muted, laneOf (k, sourceNames[i])))
+                            (isDrumTrack (sourceNames[i]) ? keptDrums : keptOthers).push_back (i);
+
+                    if (keptDrums.size() < 2)
+                    {
+                        // Nothing to merge: the drag without the switch, name and bytes, or its error.
+                        ++plain;
+                        CHECK (on.ok() == off.ok());
+                        CHECK (on.error == off.error);
+                        CHECK (on.value.name == off.value.name);
+                        CHECK (on.value.bytes == off.value.bytes);
+                        continue;
+                    }
+                    INFO (on.error);
+                    REQUIRE (on.ok());
+                    REQUIRE (off.ok());
+                    ++merged;
+
+                    // The conductor, the merged track, then every other kept track byte for byte, in file order.
+                    const auto cut = chunksOf (on.value.bytes);
+                    REQUIRE (cut.tracks.size() == 2 + keptOthers.size());
+                    CHECK (cut.tracks[0] == sourceChunks.tracks[0]);
+                    for (std::size_t j = 0; j < keptOthers.size(); ++j)
+                        CHECK (cut.tracks[2 + j] == sourceChunks.tracks[keptOthers[j]]);
+                    CHECK (headerTrackCount (on.value.bytes) == static_cast<int> (cut.tracks.size()));
+                    auto header = cut.header; // the source's but for the track count
+                    header[10] = sourceChunks.header[10];
+                    header[11] = sourceChunks.header[11];
+                    CHECK (header == sourceChunks.header);
+
+                    // Drums: every kept drum track's notes as they were, on channel 10, and nothing else but its name.
+                    const auto parsed = read (on.value.bytes);
+                    REQUIRE (parsed.tracks.size() == cut.tracks.size());
+                    const auto& drums = parsed.tracks[1];
+                    CHECK (midi::trackName (drums) == "Drums");
+                    std::vector<midi::Note> notes;
+                    for (const auto i : keptDrums)
+                    {
+                        const auto n = midi::notesOf (sourceFile.tracks[i]);
+                        notes.insert (notes.end(), n.begin(), n.end());
+                    }
+                    CHECK (midi::notesOf (drums) == byTick (notes));
+                    int names = 0, others = 0;
+                    for (const auto& e : drums.events)
+                    {
+                        if (e.isMeta (midi::meta::trackName))
+                            ++names;
+                        else if (e.status != 0x99 && e.status != 0x89)
+                            ++others;
+                    }
+                    CHECK (names == 1);
+                    CHECK (others == 0);
+                    CHECK (drums.endTick == sourceFile.tracks[0].endTick);
+                    CHECK (offsBeforeOns (drums));
+
+                    // The name: "1 drum track" first among the marks, then the muted lanes as without the switch.
+                    std::string gone; // the muted lanes' labels that lose tracks, in lane order
+                    for (const auto lane : allLanes)
+                        if ((muted & engine::laneBit (lane)) != 0 && ! laneChunks (k, source, lane).empty())
+                            gone += (gone.empty() ? "" : ", ") + k.info.laneLabels[static_cast<std::size_t> (lane)];
+                    const auto stem = k.prefix() + (what == DragWhat::song ? "Song" : "Loop") + (v == Variant::novox ? " NoVox" : "");
+                    CHECK (on.value.name == stem + " (1 drum track" + (gone.empty() ? "" : ", no " + gone) + ").mid");
+                    CHECK (off.value.name == stem + (gone.empty() ? "" : " (no " + gone + ")") + ".mid");
+                }
+            }
+    CHECK (merged > 100);
+    CHECK (plain > 50);
+}
+
+TEST_CASE ("1 drum track's file names, spelled out", "[dragout]")
+{
+    const auto name = [] (std::string_view id, DragWhat what, Variant v, std::uint32_t muted) {
+        DragRequest request;
+        request.what = what;
+        return drag (kit (id), state (PlayMode::loop, v, muted, true), request).name;
+    };
+    CHECK (name ("FUT01", DragWhat::song, Variant::vox, 0) == "FUT01 Alloy Signal 134 F#m 11A - Song (1 drum track).mid");
+    CHECK (name ("FUT01", DragWhat::song, Variant::novox, engine::laneBit (Lane::snare) | engine::laneBit (Lane::bass))
+           == "FUT01 Alloy Signal 134 F#m 11A - Song NoVox (1 drum track, no Clap, Warp Bass).mid");
+    CHECK (name ("FUT04", DragWhat::loop, Variant::vox, engine::laneBit (Lane::perc)) == "FUT04 Furnace Code 136 Em 9A - Loop (1 drum track, no Anvil).mid");
+    // Only Zap is left: one drum track, so the plain file.
+    CHECK (name ("FUT02", DragWhat::song, Variant::vox, engine::laneBit (Lane::kick) | engine::laneBit (Lane::snare) | engine::laneBit (Lane::hats))
+           == "FUT02 Orbit Relay 130 Dm 7A - Song (no Kick, Clap, Hats).mid");
+}
+
+TEST_CASE ("1 drum track gives the vox and no-vox files the same Drums track", "[dragout]")
+{
+    for (const auto& k : kits())
+        for (const auto what : { DragWhat::loop, DragWhat::song })
+        {
+            INFO (k.info.id << " " << (what == DragWhat::song ? "song" : "loop"));
+            DragRequest request;
+            request.what = what;
+            const auto vox = drag (k, state (PlayMode::loop, Variant::vox, 0, true), request);
+            const auto novox = drag (k, state (PlayMode::loop, Variant::novox, 0, true), request);
+            CHECK (trackNames (vox.bytes)[1] == "Drums");
+            CHECK (chunksOf (vox.bytes).tracks[1] == chunksOf (novox.bytes).tracks[1]);
+            CHECK (vox.name != novox.name);
+        }
+}
+
+TEST_CASE ("1 drum track leaves lane and phrase drags as they are", "[dragout]")
+{
+    for (const auto& k : kits())
+        for (const auto mode : { PlayMode::loop, PlayMode::song, PlayMode::off })
+            for (const auto v : { Variant::vox, Variant::novox })
+            {
+                INFO (k.info.id << " mode " << static_cast<int> (mode) << " " << variantName (v));
+                std::vector<DragRequest> requests;
+                for (const auto lane : allLanes)
+                    requests.push_back (laneRequest (lane));
+                for (const auto& phrase : dragout::phraseFiles (k.info.id, k.files))
+                    requests.push_back (phraseRequest (phrase.toStdString()));
+                for (const auto& request : requests)
+                {
+                    INFO ("lane " << static_cast<int> (request.lane) << " phrase " << request.phraseFile);
+                    const auto off = dragout::makeDragFile (k.info, k.files, state (mode, v), request);
+                    const auto on = dragout::makeDragFile (k.info, k.files, state (mode, v, 0, true), request);
+                    CHECK (on.ok() == off.ok());
+                    CHECK (on.error == off.error);
+                    CHECK (on.value.name == off.value.name);
+                    CHECK (on.value.bytes == off.value.bytes);
+                }
+            }
+
+    // FUT04's kick lane keeps its Kick and Rumble apart.
+    CHECK (trackNames (drag (kit ("FUT04"), state (PlayMode::loop, Variant::vox, 0, true), laneRequest (Lane::kick)).bytes)
+           == std::vector<std::string> { "FUT04 Furnace Code, 136 BPM, E minor, loop, Vox", "Kick", "Rumble" });
+}
+
 TEST_CASE ("a lane drag holds the conductor and that lane's tracks from the current mode's file", "[dragout]")
 {
     SECTION ("FUT01's bass in Song mode is the extended mix's Bass and Organ Bass (a kit extra)")
@@ -787,8 +1021,8 @@ TEST_CASE ("drag file names hold kit, title, BPM, key and Camelot, in safe chara
         CHECK (denylistHits ("FUT01 Alloy Signal 134 F#m 11A - Warp Bass.mid", list).empty());
     }
 
-    // Every name the four kits give: Loop and Song in both variants under several mutes, every
-    // lane in both modes and variants, every phrase file.
+    // Every name the four kits give: Loop and Song in both variants under several mutes, with 1 drum
+    // track off and on, every lane in both modes and variants, every phrase file.
     std::vector<std::pair<std::string, const KitContent*>> named;
     std::map<std::string, Bytes> byName;
     const auto add = [&] (const KitContent& k, const dragout::DragState& s, const DragRequest& r) {
@@ -805,17 +1039,18 @@ TEST_CASE ("drag file names hold kit, title, BPM, key and Camelot, in safe chara
         for (const auto v : { Variant::vox, Variant::novox })
         {
             for (const auto what : { DragWhat::loop, DragWhat::song })
-            {
-                DragRequest r;
-                r.what = what;
-                add (k, state (PlayMode::loop, v), r);
-                add (k, state (PlayMode::loop, v, 0b1111100000u), r);
-                for (const auto lane : allLanes)
+                for (const bool drums : { false, true })
                 {
-                    add (k, state (PlayMode::loop, v, engine::laneBit (lane)), r);
-                    add (k, state (PlayMode::loop, v, everyLane & ~engine::laneBit (lane)), r);
+                    DragRequest r;
+                    r.what = what;
+                    add (k, state (PlayMode::loop, v, 0, drums), r);
+                    add (k, state (PlayMode::loop, v, 0b1111100000u, drums), r);
+                    for (const auto lane : allLanes)
+                    {
+                        add (k, state (PlayMode::loop, v, engine::laneBit (lane), drums), r);
+                        add (k, state (PlayMode::loop, v, everyLane & ~engine::laneBit (lane), drums), r);
+                    }
                 }
-            }
             for (const auto mode : { PlayMode::loop, PlayMode::song })
                 for (const auto lane : allLanes)
                     add (k, state (mode, v), laneRequest (lane));
@@ -823,7 +1058,8 @@ TEST_CASE ("drag file names hold kit, title, BPM, key and Camelot, in safe chara
         for (const auto& name : dragout::phraseFiles (k.info.id, k.files))
             add (k, state (PlayMode::loop, Variant::vox), phraseRequest (name.toStdString()));
     }
-    REQUIRE (named.size() > 400);
+    REQUIRE (named.size() > 800);
+    CHECK (std::count_if (named.begin(), named.end(), [] (const auto& n) { return n.first.find ("(1 drum track") != std::string::npos; }) > 200);
 
     const auto artists = loadDenylist ("artists");
     const auto slurs = loadDenylist ("slurs");
@@ -966,5 +1202,13 @@ TEST_CASE ("a drag gives the same name and bytes every time", "[dragout]")
         const auto b = drag (k, s, songRequest());
         CHECK (a.name == b.name);
         CHECK (a.bytes == b.bytes);
+
+        // With 1 drum track: the merge too.
+        const auto d = state (PlayMode::song, Variant::novox, engine::laneBit (Lane::hats) | engine::laneBit (Lane::fx), true);
+        const auto c = drag (k, d, songRequest());
+        const auto e = drag (k, d, songRequest());
+        CHECK_THAT (c.name, ContainsSubstring ("(1 drum track, no "));
+        CHECK (c.name == e.name);
+        CHECK (c.bytes == e.bytes);
     }
 }

@@ -5,6 +5,7 @@
 
 #include "ParameterIds.h"
 #include "PluginProcessor.h"
+#include "content/UserSettings.h"
 #include "helpers/allocation_counter.h" // WUBANSIA_SANITIZED
 #include "helpers/synthetic_content.h"
 
@@ -23,7 +24,9 @@ namespace wubansia::test
     // A time limit for a test, ten times longer under a sanitizer (TSan slows everything 5-15 times).
     inline constexpr std::chrono::milliseconds limit (std::chrono::milliseconds ms) { return WUBANSIA_SANITIZED ? ms * 10 : ms; }
 
-    // A processor whose kits are the synthetic content's, playing its first kit, and that content.
+    // A processor whose kits are the synthetic content's, playing its first kit, and that content. Its drag settings
+    // (the drum option, ADR 0025) are a settings file of its own in the temp folder, deleted with it: no processor test
+    // reads or writes the person's settings.xml for them.
     struct SyntheticPlugin
     {
         explicit SyntheticPlugin (SyntheticContent::Options options = {})
@@ -33,11 +36,17 @@ namespace wubansia::test
             content = owned.get();
             processor = std::make_unique<PluginProcessor>();
             processor->setContentForTesting (std::move (owned), first);
+            static_cast<ControllerImpl&> (processor->controller()).setDragSettingsForTesting (*settings);
         }
+
+        ~SyntheticPlugin() { settings->file().deleteFile(); }
 
         PluginProcessor& operator*() { return *processor; }
         PluginProcessor* operator->() { return processor.get(); }
 
+        // Declared before the processor, so it outlives it. A name no other test process picks (ctest may run them at once).
+        std::unique_ptr<UserSettings> settings = std::make_unique<UserSettings> (juce::File::getSpecialLocation (juce::File::tempDirectory)
+                .getNonexistentChildFile ("WubansiaTestSettings " + juce::Uuid().toString(), ".xml", false));
         std::unique_ptr<PluginProcessor> processor;
         SyntheticContent* content = nullptr; // owned by the processor
     };

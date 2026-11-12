@@ -247,6 +247,55 @@ TEST_CASE ("the chosen content folder is kept in the person's settings file", "[
     CHECK (UserSettings (file).contentFolder() == juce::File());
 }
 
+TEST_CASE ("the drag strip's drum option is kept in the person's settings file, beside the content folder", "[content][dragout]")
+{
+    TempFolder temp;
+    const auto file = (temp / "Wubansia Audio").getChildFile ("settings.xml");
+    const auto chosen = temp / "My Samples";
+    const auto attributes = [&file]
+    {
+        const auto xml = juce::XmlDocument::parse (file);
+        REQUIRE (xml != nullptr);
+        return std::pair { xml->hasAttribute ("drag_drums_one_track") ? xml->getStringAttribute ("drag_drums_one_track") : juce::String ("(none)"),
+            xml->getStringAttribute ("content_folder") };
+    };
+
+    {
+        UserSettings settings (file);
+        CHECK_FALSE (settings.dragDrumsOnOneTrack()); // off by default, with no file at all
+        REQUIRE (settings.setContentFolder (chosen));
+        const auto generation = settings.generation();
+
+        CHECK (settings.setDragDrumsOnOneTrack (true));
+        CHECK (settings.dragDrumsOnOneTrack());
+        CHECK (attributes() == std::pair { juce::String ("1"), chosen.getFullPathName() });
+        CHECK (settings.generation() == generation); // the content folders didn't change
+        CHECK (settings.fileReads() == 1);
+    }
+    {
+        UserSettings again (file);
+        CHECK (again.dragDrumsOnOneTrack());
+        CHECK (again.contentFolder() == chosen);
+        CHECK (again.setDragDrumsOnOneTrack (false));
+        CHECK_FALSE (again.dragDrumsOnOneTrack());
+    }
+    CHECK (attributes() == std::pair { juce::String ("(none)"), chosen.getFullPathName() }); // gone, the folder kept
+    CHECK_FALSE (UserSettings (file).dragDrumsOnOneTrack());
+    CHECK (UserSettings (file).contentFolder() == chosen);
+
+    // Only "1" lights it; any other value, or another root tag, reads as off.
+    for (const auto* value : { "true", "0", "" })
+    {
+        INFO ("drag_drums_one_track=\"" << value << "\"");
+        REQUIRE (file.replaceWithText ("<WubansiaSettings drag_drums_one_track=\"" + juce::String (value) + "\"/>"));
+        CHECK_FALSE (UserSettings (file).dragDrumsOnOneTrack());
+    }
+    REQUIRE (file.replaceWithText ("<OtherSettings drag_drums_one_track=\"1\"/>"));
+    CHECK_FALSE (UserSettings (file).dragDrumsOnOneTrack());
+    REQUIRE (file.replaceWithText ("<WubansiaSettings drag_drums_one_track=\"1\"/>"));
+    CHECK (UserSettings (file).dragDrumsOnOneTrack());
+}
+
 TEST_CASE ("the installed content: a chosen folder's WAVs located, then read into a Kit", "[content]")
 {
     TempFolder temp;

@@ -122,6 +122,16 @@ namespace wubansia::editor
         g.drawFittedText (shown, content.toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
     }
 
+    juce::Font DragChip::labelFont() const
+    {
+        return juce::Font (juce::FontOptions()); // not yet
+    }
+
+    juce::Rectangle<float> DragChip::labelArea() const
+    {
+        return {}; // not yet
+    }
+
     DragStrip::DragStrip (Controller& c)
         : loop (c, { DragWhat::loop, engine::Lane::kick, {} }, "Loop"),
           song (c, { DragWhat::song, engine::Lane::kick, {} }, "Song"),
@@ -177,6 +187,11 @@ namespace wubansia::editor
             chip->setBounds (area.removeFromLeft (width));
             area.removeFromLeft (gap);
         }
+    }
+
+    juce::Rectangle<float> DragStrip::labelArea() const
+    {
+        return {}; // not yet
     }
 
     void DragStrip::paint (juce::Graphics& g)

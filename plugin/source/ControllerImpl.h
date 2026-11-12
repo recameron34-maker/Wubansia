@@ -8,6 +8,7 @@
 // project's, and doesn't.
 
 #include "Controller.h"
+#include "content/UserSettings.h"
 
 namespace wubansia
 {
@@ -38,6 +39,12 @@ namespace wubansia
         void setPhraseMode (engine::PhraseMode mode) override;
 
         juce::StringArray phraseFiles() const override;
+        bool dragDrumsOnOneTrack() const override;
+        void setDragDrumsOnOneTrack (bool on) override;
+
+        // The settings file that keeps the drum option: UserSettings::instance () unless a test sets another.
+        void setDragSettingsForTesting (UserSettings& settings) { dragSettings = &settings; }
+
         juce::File writeDragFile (const DragRequest& request) override;
 
         // Where writeDragFile () writes: dragout::cacheFolder () unless a test sets another.
@@ -45,6 +52,8 @@ namespace wubansia
 
     private:
         PluginProcessor& processor;
+        UserSettings& dragSettingsFile() const;
+        UserSettings* dragSettings = nullptr;
         juce::File dragFolder;
     };
 }

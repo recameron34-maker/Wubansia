@@ -26,6 +26,10 @@ namespace wubansia::editor
         void setCompact (bool shouldBeCompact);
         bool hasFailed() const noexcept { return failed; }
 
+        // The label's font and the area it's fitted into (squeezed to 0.8 at most, then cut), so tests can check it fits.
+        juce::Font labelFont() const;
+        juce::Rectangle<float> labelArea() const;
+
         // Writes the file and starts the external drag; false if either fails. mouseDrag calls it.
         bool beginDrag();
 
@@ -62,6 +66,9 @@ namespace wubansia::editor
         DragChip loop, song;
         int numPhraseChips() const noexcept { return phraseChips.size(); }
         DragChip* phraseChip (int index) const noexcept { return phraseChips[index]; }
+
+        // Where the engraved "Drag MIDI" is drawn, so tests can check it fits.
+        juce::Rectangle<float> labelArea() const;
 
     private:
         Controller& controller;
