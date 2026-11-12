@@ -1,9 +1,9 @@
 #pragma once
 
 // The plugin's own ContentSourceFactory (P9): the kits embedded in the binary (EmbeddedContent), their
-// samples found by a ContentLocator and read by P4's FileSampleSource, and the content folder kept in
-// the person's UserSettings. Constructing it reads nothing: the settings file is read on the service
-// thread's first locate ().
+// samples found by a ContentLocator and read by P4's FileSampleSource (readFile: a listed file's bytes,
+// for the Samples drawer, ADR 0024), and the content folder kept in the person's UserSettings.
+// Constructing it reads nothing: the settings file is read on the service thread's first locate ().
 
 #include "content/ContentLocator.h"
 #include "content/ContentSource.h"
@@ -26,6 +26,7 @@ namespace wubansia
         ContentStatus locate (const engine::KitManifest& kit, const std::atomic<bool>* cancel = nullptr) override;
         std::unique_ptr<engine::SampleSource> open (const engine::KitManifest& kit, const ContentStatus& found,
             const std::atomic<bool>* cancel = nullptr) override;
+        util::Result<std::vector<std::uint8_t>> readFile (const ContentStatus& found, std::string_view path) override;
         juce::File userFolder() const override;
         void setUserFolder (const juce::File& folder) override;
         std::uint64_t foldersGeneration() const noexcept override;

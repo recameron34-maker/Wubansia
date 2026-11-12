@@ -17,6 +17,7 @@
 #include "editor/LookAndFeel.h"
 #include "editor/ModePanel.h"
 #include "editor/PollingAttachment.h"
+#include "editor/SamplesPanel.h"
 #include "editor/SectionStrip.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -52,6 +53,7 @@ namespace wubansia
 
         const editor::EditorModel& model() const noexcept { return state; }
         bool isContentPanelShown() const noexcept { return contentPanel.isVisible(); }
+        bool isSamplesPanelShown() const noexcept { return samplesPanel.isVisible(); }
 
     private:
         class Backdrop : public juce::Component
@@ -70,6 +72,7 @@ namespace wubansia
         void layOut();
         void refreshModel();
         void showContentPanel (bool show);
+        void showSamplesPanel (bool show); // the drawer and the install panel never show together
 
         Controller& controller;
         const bool standalone;
@@ -90,6 +93,7 @@ namespace wubansia
         editor::FxPanel fxPanel;
         editor::DragStrip dragStrip;
         editor::ContentPanel contentPanel;
+        editor::SamplesPanel samplesPanel;
         juce::TooltipWindow tooltips { this, 650 };
 
         // After the controls they bind, so they go first.

@@ -34,22 +34,6 @@ namespace wubansia::dragout
                    || c == '-' || c == '.' || c == '_';
         }
 
-        // text with every other character a space, runs of spaces one space, and none at either end.
-        std::string safe (std::string_view text)
-        {
-            std::string out;
-            for (const char c : text)
-            {
-                const char d = isSafe (c) ? c : ' ';
-                if (d == ' ' && (out.empty() || out.back() == ' '))
-                    continue;
-                out += d;
-            }
-            while (!out.empty() && out.back() == ' ')
-                out.pop_back();
-            return out;
-        }
-
         std::string_view baseName (std::string_view path)
         {
             const auto slash = path.find_last_of ("/\\");
@@ -71,31 +55,18 @@ namespace wubansia::dragout
             return nullptr;
         }
 
-        // "<note> minor" or "<note> major" (docs/plugin/manifest.md) as F#m or Bbmaj; anything else as it is.
-        std::string shortKey (std::string_view key)
-        {
-            const auto isNote = [] (std::string_view n) {
-                return (n.size() == 1 || (n.size() == 2 && (n[1] == '#' || n[1] == 'b'))) && n[0] >= 'A' && n[0] <= 'G';
-            };
-            constexpr std::array<std::pair<std::string_view, std::string_view>, 2> modes { { { " minor", "m" }, { " major", "maj" } } };
-            for (const auto& [mode, mark] : modes)
-                if (endsWith (key, mode) && isNote (key.substr (0, key.size() - mode.size())))
-                    return std::string (key.substr (0, key.size() - mode.size())) + std::string (mark);
-            return std::string (key);
-        }
-
         std::string laneLabel (const engine::KitInfo& kit, std::size_t lane)
         {
-            auto label = safe (kit.laneLabels[lane]);
+            auto label = safeName (kit.laneLabels[lane]);
             return label.empty() ? std::string (kLaneNames[lane]) : label;
         }
 
         // "<KIT> <Title> <BPM> <Key> <Camelot> - <what>.mid", in safe characters.
         std::string fileName (const engine::KitInfo& kit, const std::string& what)
         {
-            auto stem = safe (kit.id + " " + kit.title + " " + std::to_string (kit.bpm) + " " + shortKey (kit.key) + " " + kit.camelot + " - " + what);
+            auto stem = safeName (kit.id + " " + kit.title + " " + std::to_string (kit.bpm) + " " + shortKey (kit.key) + " " + kit.camelot + " - " + what);
             if (stem.size() > kMaxStem)
-                stem = safe (std::string_view (stem).substr (0, kMaxStem));
+                stem = safeName (std::string_view (stem).substr (0, kMaxStem));
             return stem + ".mid";
         }
 
@@ -258,6 +229,33 @@ namespace wubansia::dragout
                 stem.remove_prefix (kit.id.size() + 1);
             return DragResult::success ({ fileName (kit, words (stem)), std::vector<std::uint8_t> (file->bytes.begin(), file->bytes.end()) });
         }
+    }
+
+    std::string safeName (std::string_view text)
+    {
+        std::string out;
+        for (const char c : text)
+        {
+            const char d = isSafe (c) ? c : ' ';
+            if (d == ' ' && (out.empty() || out.back() == ' '))
+                continue;
+            out += d;
+        }
+        while (!out.empty() && out.back() == ' ')
+            out.pop_back();
+        return out;
+    }
+
+    std::string shortKey (std::string_view key)
+    {
+        const auto isNote = [] (std::string_view n) {
+            return (n.size() == 1 || (n.size() == 2 && (n[1] == '#' || n[1] == 'b'))) && n[0] >= 'A' && n[0] <= 'G';
+        };
+        constexpr std::array<std::pair<std::string_view, std::string_view>, 2> modes { { { " minor", "m" }, { " major", "maj" } } };
+        for (const auto& [mode, mark] : modes)
+            if (endsWith (key, mode) && isNote (key.substr (0, key.size() - mode.size())))
+                return std::string (key.substr (0, key.size() - mode.size())) + std::string (mark);
+        return std::string (key);
     }
 
     std::string loopFileName (std::string_view kitId, engine::Variant variant)

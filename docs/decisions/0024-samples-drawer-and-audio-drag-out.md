@@ -1,0 +1,98 @@
+# 0024. The Samples drawer: browse, hear and drag every kit's sounds (v0.2)
+
+**Status:** Accepted (2026-11-12). The user asked for the feature and took the spec's three defaults, which they can still change before v0.2 ships:
+- **dry samples now**: the drawer hears and drags each file exactly as installed; renders "as heard in the kit" (Space, Echo, the kit's level) come with M6's audio export;
+- **the kit's own note spelling** in file names: middle C is C4, so `Chrome Pluck F#4 v2` is the note Live and Logic call F#3 (the File box's tooltip says so). Names freeze once v0.2 ships, so this one can change only until then;
+- **the header's Samples button opens the drawer**: the install panel moves behind the drawer's "Content…" button, and still opens by itself when the current kit's samples are missing.
+
+## Context
+v0.1 (ADR 0017) plays four kits whose 618 samples are 48 kHz / 24-bit WAVs, each listed in its kit's `kit.json` with its frames, channels and SHA-256 (ADR 0022). The user wants to look through those sounds, hear them, and drag the ones they like into Live or Logic as WAV files.
+
+Three designs were written and scored out of 60 against six criteria: a producer's (40: all kits, variants, multi-file drags, renders through the kit's FX), a safety-first one (47: a JUCE-free real-time core with tickets and retire-once accounting, offline renders bit-identical), and a minimal one (42: the current kit only, from the header's button). This decision is the safety design's engine and real-time core, the minimal design's scope and entry point, and the producer touches that cost little: all four kits, sound-first names and a folder the person can change.
+
+What the code fixed before the design:
+- the drag strip has no room for another button (FUT01's five phrase chips fill its 740 px);
+- `engine/` allows no JUCE at all (ADR 0017's rule test), so the audition player is plain C++;
+- `ContentSourceFactory::open (…)->read (path)` gives decoded audio, which can't be checked against a SHA-256;
+- macOS starts an OS drag only inside the current mouse event (`juce_Windowing_mac.mm`);
+- the synthetic kit's "ready" folder is empty: the tests' content serves its audio from memory.
+
+## Decision
+
+### Scope and entry
+1. **v0.2, ahead of S1b2.** It touches only `plugin/`, `engine/audition/` and docs (with a test of `dist/INSTALL.md` in `tools/content/tests`); ADR 0017 set the precedent for pulling work forward. S1b2 (PR #6) carries on untouched.
+2. **The header's Samples button opens the drawer** (component ID `samples` kept, its LED lit while open). The drag strip has no room, and it is the user's own word for the feature.
+3. **The drawer covers the lanes, A/B and FX**: (20, 246), 1080 × 396 inside the zoomed content. The editor stays 1120 × 700; the header, display, transport, section strip and MIDI drag strip stay usable.
+4. **All four kits are browsable; one sound plays at a time.** Kit chips browse another kit without changing what plays or the project.
+
+### Catalog (`plugin/source/sounds/SoundCatalog.h`)
+5. **Built in C++ from the embedded `kit.json` alone**: no sidecar file, no Python generator, nothing to drift.
+6. **One sound per distinct instrument file set.** Instruments that share their files merge into the more "flair" category of the two; each phrase stem is a Loop. FUT02's two Glass Pings, FUT04's three accent twins and FUT01's Glitch Fill Lift Beat 4 aren't separate sounds.
+7. **Seven categories**: Accents, FX, Vox, Synths (the lead and chords lanes), Bass, Drums, Loops. The four kits have 35, 37, 36 and 32 sounds, which reach all 618 files.
+8. **The default file** is the top velocity layer's first round robin, from the lowest zone rooted on the kit's tonic (pitched instruments; else the middle zone) or the first zone (one-key instruments): what the kit's loops play. A File box reaches every file.
+
+### Audition (step 2)
+9. **A dry clip player, summed after the engine and before master_gain**: you hear exactly what you drop, untouched by lane mutes, ducks, sends, A/B, CC120/123 or kit swaps.
+10. **Clips own their audio and are made on a sound thread, one per processor.** The player and the clip maker live in `engine/audition/`, JUCE-free, resampling with the voices' `SincBank`. No clip refers to a Kit.
+11. **The real-time protocol**: clips in through a `PendingSlot` (latest wins), back through a `RetireFifo` of 8; stops are tickets (`stopUpTo`), and a `sounding ()` atomic reports the ticket playing. The audio thread never frees anything, and every clip comes back exactly once.
+12. **Offline renders and bypassed blocks never play an audition, and an idle player touches nothing**, so a bounce stays bit-identical (RenderTests).
+13. **A host that runs no blocks gets a hint, not a stale click**: an offer no block took within 300 ms is withdrawn and the drawer shows Logic's hint.
+14. **A fixed −6 dB, then master_gain; the sound starts at once**, with no bar sync (that is M6).
+
+### Export (`plugin/source/sounds/SampleExport.h`)
+15. **The copy is the installed file, byte for byte**, checked against `kit.json`'s size and SHA-256 before anything is written, with no `smpl`, `acid` or `LIST` chunk. All 618 installed files hold only `fmt ` and `data` and pass the check.
+16. **The folder is `<Music>/Wubansia/Samples/<KIT> <Title>/`**: flat (one file, one path, even when it shows in two categories), changeable, and never trimmed or deleted by Wubansia. Live, and Logic unless it copies files into the project, reference dropped audio where it sits.
+17. **Names are `<installed name> - <KIT> <BPM> <Key> <Camelot>[ c<N>].wav`**, frozen once released: `Rave Stab v2 - FUT01 134 F#m 11A.wav`. The sound comes first because drum pads and Simpler show the start of a name; ` c<N>` marks content version N from 2 on.
+18. **A copy is written only where no file of that name exists.** One with the same bytes is reused untouched; one with other bytes (edited in a DAW) is never touched and the copy takes the next name, `(2)`, `(3)`… Nothing is overwritten or deleted, and names follow content, so rival instances write the same bytes.
+19. **The drag copies synchronously inside `mouseDrag`**, then calls `performExternalDragDropOfFiles ({ file }, false, &source)` with no callback; a click on the tile copies and reveals the file. One file per drag. Copying the largest file, FUT03's 4.3 MB 8-bar riser, takes 22-24 ms on the Linux machine that built it (BenchmarkTests' budget is 100 ms), and all 140 default files of the four kits copy in under a second.
+20. **`ContentSourceFactory::readFile (found, path)` returns a listed file's bytes**, so copies and auditions run on the synthetic kit in tests and the SHA-256 check has bytes to hash.
+
+### State and API
+21. **No new state**: no parameter, no state attribute (ADR 0018 is untouched). The selection is UI-only, like the zoom. The samples folder is per user, `settings.xml`'s `samples_folder`, and setting it doesn't move the content generation.
+22. **The Controller gains seven calls**: `sounds`, `exportSound`, `samplesFolder`, `setSamplesFolder` (step 1) and `audition`, `stopAudition`, `auditionState` (step 2). The drawer is a native panel behind them; S1f's WebView calls the same and keeps a native drag tile, since JavaScript can't start an OS file drag.
+
+### Settled in the code (step 1)
+- **Writes check themselves before the rename.** `File::replaceWithData` ignores a failed write and would rename a short temporary file into place, so `exportCopy` writes the same hidden temporary file (`TemporaryFile`, unbuffered), checks the write and the file's size, and only then renames it into place. No fsync and no platform-specific rename (decision 18 stands).
+- **The size `kit.json` implies** is that of the content's only layout: 44 bytes of RIFF, `fmt ` (PCM, 24-bit) and `data` headers, the audio, and a pad byte when the audio's length is odd (75 of the 618 files). A content version with another layout would change this rule with it.
+- **`setSamplesFolder` also refuses the places the locator looks** (the chosen content folder, `$WUBANSIA_CONTENT_DIR`, the installers' content folder, Debug's checkout) before any content check has run, besides the root of every kit folder already searched and the drag cache. `juce::File ()` goes back to the default.
+- **Export names are never hidden files and always fit**: a leading dot is dropped, and an installed name is cut so the whole name stays within 196 characters before ` (k)` and `.wav` (the longest today is 46).
+- **`readFile` holds a path to the manifests' own rule** (`engine::contentPathProblem`) before touching the disk, caps the size at `FileSampleSource::kMaxFileBytes`, and words its errors as `FileSampleSource` does.
+
+### Settled in the code (step 2)
+- **The playing clip fades out where it plays.** A stop that comes while a replaced clip is still fading would otherwise wait for that fade or cut it short. So the player keeps a fade on the playing clip too: a stop fades it out from the next block's first sample, and if a new clip replaces it mid-fade it moves to the fading slot with its fade. A new offer still waits only while a replaced clip fades out (5 ms).
+- **A request that can't play stops what plays.** `audition ()` replaces what plays, so when the new file is refused (bytes that aren't `kit.json`'s, a read error, samples that aren't there, an unknown kit or file) the last audition fades out too, and `auditionState ().problem` says why. The Controller's refusals reach the sound service through `SoundService::refuse ()`, which the spec's API lacked.
+- **A stopped ticket no longer counts as sounding**: `auditionState ().sounding` is 0 as soon as `stopAudition ()`, `selectKit ()` or a failure stops it, while the clip fades out over the next block.
+- **The host's reset and silent blocks let the offer go as well** as the clips in hand. A prepare at another rate lets clips made for the old rate go at the next block; at the same rate they play on.
+- **The sound thread sleeps while it has nothing out**: it wakes every 50 ms only while the player holds one of its clips, and otherwise only for a request, a stop or its end.
+- **`makeAuditionClip` refuses** a rate that isn't positive, finite and at most 768 kHz, and a file that isn't 48 kHz mono or stereo with frames × channels samples.
+
+### Settled in the code (step 3)
+- **The drawer takes the browsed kit's colour.** It has its own LookAndFeel, so its rim, rows, buttons, File menu and scroll bar follow the kit browsed; each chip keeps its own kit's colour, and the rest of the editor the playing kit's.
+- **A kit that can't play yet** (looked for, loading, missing, wrong files) shows its rows dimmed: a press selects one but plays nothing, and nothing drags. The banner or the status line says why, so no refusal is needed. The File box still lists the files and the tile still names them.
+- **The tile names the file before anything is copied**, built with the same `sounds::exportName` that `exportCopy` uses, from the kit's card (checked for all 618 files). After a copy it names the copy as written, ` (2)` and all.
+- **The status line, in order:** the browsed kit's "Looking for…" or "Loading… 42 %" (nothing plays or drags until the samples are in); then the last action's words ("Saved …" for 3 s, a failed copy or a refused folder until the next action); then the audition's ("Couldn't play …", the Logic hint). Browsing another kit clears them; Stop and Esc stop the sound and put them away.
+- **Esc is taken only when there is something to stop or put away**; otherwise it reaches the host. Return on the focused tile shows the file, as its press action does, and buttons take Return as JUCE buttons do; the list takes only Up, Down and Return.
+- **The drawer holds still during an OS drag.** Windows runs the drag in a modal loop with the editor's timer ticking, so the follow rule waits until the drag is over rather than rebuild the row the drag started from.
+- **The playing kit's own chip follows it again**; another chip stops the following until the drawer next opens. A category the browsed kit lacks shows its first one, and the category picked holds for the next kit and the next opening, while the editor is open.
+- **The install panel and the drawer:** opening the drawer hides the install panel; once the drawer closes, the install panel opens by itself again while the kit can't play, unless the person closed it. The banner's "Choose content folder…" runs the install panel's chooser (`ContentPanel::chooseContentFolder ()`). The Samples button's LED now follows the drawer only.
+- **A refused samples folder says why**: "Couldn't save drags to <folder>: it's inside a content folder or the drag cache, or it can't be made. Choose another folder." That covers a content folder chosen as broad as a home folder.
+- **Words the spec left open:** Bass's tooltip is "The basses, every recorded note and layer"; a sound that fits none of the four hints (Rave Stab: one note, not end-aligned, no lead-in, not a loop) shows none.
+
+## Consequences
+- The plugin gains `plugin/source/sounds/` and, in step 2, `engine/audition/` and a sound thread per processor, started by the first audition (never by a constructor, so host scans start nothing). No new dependency and no CMake change: the source folders are globbed.
+- `settings.xml` gains `samples_folder`; projects don't change.
+- The names freeze with v0.2. `#` in names (`F#m`, `F#4`) through drag URLs and inside Live and Logic is unverified; the fallback (sharps spelled `s`) is a one-line change, safe only before release.
+- The samples folder only grows: at most 618 files, 204.5 MB, per content version if every file is taken. Uninstalling leaves it in place.
+- Not verified here (no Mac, no DAW): drops into Live 12 and Logic (AU, VST3, CLAP), which keys each host passes to the drawer, writing `~/Music` from Logic's AU host, Show in Finder and the folder chooser on a Mac, the Logic hint in real use, how auditions sound, and drags on Windows and Linux. All but the last are v0.2's DAW checklist in `docs/listening.md`, open until the user reports them; Windows and Linux wait until they are back in scope. Show in Finder is the way round a host that refuses drops.
+- `dist/INSTALL.md`'s "Samples into your DAW" says how to use the drawer and what to set in Live and Logic, and its Uninstall leaves the samples folder. `TestSamplesDocs` (`tools/content/tests`) holds that section to the drawer's words, the samples folder and the export names.
+- CI has no TSan job: the audition's TSan run is local (step 2).
+
+## Alternatives
+- **A `*_sounds.json` sidecar per kit** (producer design): a Python generator and a CMake glob, for the one fact the manifests lack (the pitch of FUT01's and FUT02's one-key accents), which the names don't need.
+- **Renders through the kit's Space and Echo, and multi-file drags**: an offline engine render, a WAV writer and a render-before-drag UI; that is M6's audio export. Multi-file drops are untested in both DAWs.
+- **An asynchronous drag that shows "Preparing…"** (safety design): the drag would only start at the next mouse move once the file is ready.
+- **Platform renames, fsyncs and free-space checks** (safety design): JUCE's temporary file and rename already make each write atomic.
+- **The current kit only, kit-first names, a clip that holds its Kit** (minimal design): names like `FUT01 Alloy Signal 134 F#m 11A - …` all read "FUT01 Alloy Sig…" on a Drum Rack pad, and a retired clip could keep a 50-90 MB Kit alive with the editor closed.
+- **`smpl` and `acid` chunks**: no DAW is shown to need them, and they change the bytes, so they would need a new name or folder. Decide after the Mac checks.
+- **Category subfolders**: one file would have two paths when it shows in two categories.
+- **A Sounds toggle on the drag strip**: no room.

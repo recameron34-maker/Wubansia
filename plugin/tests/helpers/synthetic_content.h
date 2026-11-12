@@ -5,7 +5,8 @@
 // sample on disk. It can carry SYN01 under several ids (SYN01, SYN02... each with its own kit.json and
 // mix.json), report any content problem, check its folder or read slowly, or hold every read until a test
 // lets it go,
-// and it counts what the service asks of it.
+// and it counts what the service asks of it. readFile () serves the synthetic WAVs' bytes from memory
+// (they match the manifest's SHA-256), and can serve one file with a byte flipped (alteredPath).
 //
 //     auto content = std::make_unique<wubansia::test::SyntheticContent> ();
 //     auto& syn = *content;
@@ -67,6 +68,9 @@ namespace wubansia::test
         // Where the slow check also records what it did, for a test that reads it after the processor (which owns
         // the content) is gone.
         std::shared_ptr<SyntheticProbeLog> probeLog;
+        // A kit.json path whose readFile () bytes have one byte flipped, as a damaged or edited install would:
+        // the same size, another SHA-256. "" for none.
+        std::string alteredPath;
     };
 
     class SyntheticContent final : public ContentSourceFactory
@@ -77,7 +81,8 @@ namespace wubansia::test
 
         SyntheticContent() : SyntheticContent (Options {}) {}
 
-        explicit SyntheticContent (Options options) : delay (options.readDelay), probeDelay (options.probeDelay), probeLog (options.probeLog), samples (options.samples)
+        explicit SyntheticContent (Options options)
+            : delay (options.readDelay), probeDelay (options.probeDelay), probeLog (options.probeLog), alteredPath (options.alteredPath), samples (options.samples)
         {
             const auto& syn = engine::testing::syntheticContent();
             for (const auto& id : options.ids)
@@ -146,6 +151,7 @@ namespace wubansia::test
         std::atomic<int> locates { 0 };
         std::atomic<int> probesStarted { 0 }; // files the slow check (probeDelay) started on
         std::atomic<int> opens { 0 };
+        std::atomic<int> fileReads { 0 }; // readFile () calls
 
         std::span<const KitSource> kits() const override { return sources; }
 
@@ -222,6 +228,41 @@ namespace wubansia::test
             return std::make_unique<Source> (*this);
         }
 
+        // The synthetic WAV at path, as its samples setting has it: ready, the file's bytes (alteredPath's with a
+        // byte flipped); missing and failed, the reader's errors; LFS pointers, a pointer file's text; mismatch,
+        // the bytes with a byte flipped. Never held by hold (): only kit loads are.
+        util::Result<std::vector<std::uint8_t>> readFile (const ContentStatus& found, std::string_view path) override
+        {
+            using R = util::Result<std::vector<std::uint8_t>>;
+            ++fileReads;
+            const auto& syn = engine::testing::syntheticContent();
+            const auto shown = std::string (path);
+            if (found.folder == juce::File())
+                return R::failure ("missing: " + shown + ": no content folder holds the kit");
+            const auto folder = found.folder.getFullPathName().toStdString();
+            const auto samplesNow = samples.load();
+            if (samplesNow == Samples::missing)
+                return R::failure ("missing: " + shown + ": no such file in " + folder);
+            if (samplesNow == Samples::failed)
+                return R::failure ("unreadable: " + shown + ": it can't be opened");
+            for (std::size_t i = 0; i < syn.kit.files.size(); ++i)
+            {
+                if (syn.kit.files[i].path != path)
+                    continue;
+                if (samplesNow == Samples::lfsPointers)
+                {
+                    const std::string pointer = "version https://git-lfs.github.com/spec/v1\noid sha256:" + syn.kit.files[i].sha256 + "\nsize "
+                                                + std::to_string (syn.wavs[i].size()) + "\n";
+                    return R::success (std::vector<std::uint8_t> (pointer.begin(), pointer.end()));
+                }
+                auto bytes = syn.wavs[i];
+                if (samplesNow == Samples::mismatch || path == alteredPath)
+                    bytes.back() ^= 0x01;
+                return R::success (std::move (bytes));
+            }
+            return R::failure ("missing: " + shown + ": no such file in " + folder);
+        }
+
         juce::File userFolder() const override
         {
             const std::lock_guard lock (holdMutex);
@@ -281,6 +322,7 @@ namespace wubansia::test
         std::atomic<std::chrono::milliseconds> delay;
         const std::chrono::milliseconds probeDelay;
         const std::shared_ptr<SyntheticProbeLog> probeLog;
+        const std::string alteredPath;
         std::atomic<Samples> samples;
         std::atomic<std::uint64_t> folders { 0 };
 

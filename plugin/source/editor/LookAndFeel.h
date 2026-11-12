@@ -69,6 +69,18 @@ namespace wubansia::editor
 
         // A small MIDI-file glyph for the drag chips.
         void midiGlyph (juce::Graphics&, juce::Rectangle<float> area, juce::Colour colour);
+
+        // The dark rubber body every button shares; a lit one (lit > 0) glows in its light.
+        void rubber (juce::Graphics&, juce::Rectangle<float> area, float corner, bool down, bool over, juce::Colour light, float lit);
+
+        // Icons drawn as paths, so they never depend on a font's symbols, each filling a square box: a play
+        // triangle, a stop square and a folder.
+        juce::Path playGlyph (juce::Rectangle<float> box);
+        juce::Path stopGlyph (juce::Rectangle<float> box);
+        juce::Path folderGlyph (juce::Rectangle<float> box);
+
+        // Six dots in two columns: "drag me by this".
+        void grip (juce::Graphics&, juce::Rectangle<float> area, juce::Colour colour);
     }
 
     class LookAndFeel : public juce::LookAndFeel_V4
@@ -99,7 +111,9 @@ namespace wubansia::editor
             const juce::String& shortcutKeyText, const juce::Drawable* icon, const juce::Colour* textColour) override;
         juce::Font getPopupMenuFont() override;
 
-        // Text buttons are the lit action buttons ("Choose content folder...").
+        // Text buttons are the lit action buttons ("Choose content folder..."). One whose "quiet" property is
+        // set is a dark rubber button instead (the Samples drawer's Show in Finder, Change..., Content...), and
+        // an "icon" property of "play" or "folder" draws that icon before the text.
         void drawButtonBackground (juce::Graphics&, juce::Button&, const juce::Colour& backgroundColour, bool isMouseOverButton,
             bool isButtonDown) override;
         void drawButtonText (juce::Graphics&, juce::TextButton&, bool isMouseOverButton, bool isButtonDown) override;

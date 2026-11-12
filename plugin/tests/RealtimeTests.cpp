@@ -1,7 +1,8 @@
 // CLAUDE.md's audio-thread rules, as the tests can see them: processBlock allocates nothing and frees
 // nothing, with the player in Song mode on the host's transport, live notes, a SysEx, parameter changes,
-// and across a kit adoption. The counter (helpers/allocation_counter.h) sees malloc and free on Linux,
-// operator new and delete elsewhere; locks are left to TSan and, in M3, the realtime sanitizer.
+// across a kit adoption, and with the Samples drawer's auditions (ADR 0024). The counter
+// (helpers/allocation_counter.h) sees malloc and free on Linux, operator new and delete elsewhere; locks
+// are left to TSan and, in M3, the realtime sanitizer.
 
 #include "helpers/allocation_counter.h"
 #include "helpers/test_helpers.h"
@@ -147,6 +148,56 @@ TEST_CASE ("processBlock neither allocates nor frees", "[realtime]")
         CHECK (plugin->telemetry().kitIndex.load() == 1);
         for (int i = 0; i < 50; ++i)
             REQUIRE (block().none());
+    }
+
+    SECTION ("auditions: offered, replaced, stopped, finished, bypassed and offline")
+    {
+        // The sound thread allocates the clips and frees them; the audio thread only takes, plays and lets them go.
+        auto& controller = plugin->controller();
+        const auto& auditions = plugin->auditionPlayer();
+        const auto offer = [&] (int file) {
+            REQUIRE (controller.audition ({ "SYN01", file }) > 0u);
+            REQUIRE (test::waitFor ([&] { return auditions.offered(); }));
+        };
+        test::setParameter (*plugin, ParameterIds::playMode, 1.0f);
+        head.play (128.0, 0.0);
+
+        offer (28); // FX/Riser.wav: taken, then plays
+        CHECK (block().none());
+        CHECK (auditions.sounding() > 0u);
+        for (int i = 0; i < 4; ++i)
+            CHECK (block().none());
+
+        offer (29); // Loops/Lead Phrase.wav replaces it: the riser fades out
+        CHECK (block().none());
+        CHECK (block().none());
+
+        controller.stopAudition(); // fades out
+        CHECK (block().none());
+        CHECK (block().none());
+        CHECK (auditions.sounding() == 0u);
+
+        offer (9); // Drums/Closed Hat rr1.wav, 4800 frames: it ends
+        for (int i = 0; i < 12; ++i)
+            CHECK (block().none());
+        CHECK (auditions.sounding() == 0u);
+
+        offer (28); // bypassed: let go unplayed
+        {
+            allocations::Scope scope;
+            plugin->processBlockBypassed (buffer, midi);
+            CHECK (scope.counts().none());
+        }
+        CHECK_FALSE (auditions.offered());
+        CHECK (block().none());
+
+        plugin->setNonRealtime (true); // an offline render: the same
+        offer (28);
+        CHECK (block().none());
+        CHECK_FALSE (auditions.offered());
+        CHECK (auditions.sounding() == 0u);
+        plugin->setNonRealtime (false);
+        CHECK (block().none());
     }
 
     plugin->setPlayHead (nullptr);

@@ -281,6 +281,62 @@ TEST_CASE ("the installed content: a chosen folder's WAVs located, then read int
     CHECK (installed.locate (synManifest()).state == ContentState::missing);
 }
 
+TEST_CASE ("readFile gives a listed file's bytes from the kit's folder and refuses paths that leave it", "[content][sounds]")
+{
+    TempFolder temp;
+    const auto root = temp / "root";
+    const auto kitFolder = root.getChildFile ("syn01").getChildFile ("v1");
+    writeKit (kitFolder);
+    UserSettings settings (temp / "settings.xml");
+    ContentLocator::Places places;
+    places.platformDefault = root;
+    InstalledContent installed (places, settings);
+    const auto found = installed.locate (synManifest());
+    REQUIRE (found.state == ContentState::ready);
+    REQUIRE (found.folder == kitFolder);
+
+    // Every listed file, byte for byte as installed.
+    for (std::size_t i = 0; i < synManifest().files.size(); ++i)
+    {
+        const auto& path = synManifest().files[i].path;
+        CAPTURE (path);
+        const auto bytes = installed.readFile (found, path);
+        INFO (bytes.error);
+        REQUIRE (bytes.ok());
+        CHECK (bytes.value == syn::syntheticContent().wavs[i]);
+    }
+
+    // Paths that would leave the kit's folder, or aren't kit paths, are refused before the disk is touched, even
+    // where a file waits at the end of them.
+    REQUIRE (root.getChildFile ("syn01").getChildFile ("x.wav").replaceWithText ("outside the kit's folder"));
+    REQUIRE (root.getChildFile ("x.wav").replaceWithText ("outside the kit's folder"));
+    for (const auto* path : { "../x.wav", "../../x.wav", "Drums/../../x.wav", "./Drums/Kick A.wav", "/x.wav", "Drums\\Kick A.wav",
+             "C:/x.wav", "Drums//Kick A.wav", "Drums/Kick A.aif", "" })
+    {
+        CAPTURE (path);
+        const auto refused = installed.readFile (found, path);
+        CHECK_FALSE (refused.ok());
+        CHECK (refused.error.rfind ("missing: ", 0) == 0);
+        CHECK (refused.value.empty());
+    }
+
+    // A listed file that is gone, a folder in its place, and a kit that wasn't found.
+    const auto& gone = synManifest().files[3].path;
+    REQUIRE (fileIn (kitFolder, 3).deleteFile());
+    auto missing = installed.readFile (found, gone);
+    CHECK_FALSE (missing.ok());
+    CHECK (missing.error.rfind ("missing: " + gone + ": ", 0) == 0);
+    REQUIRE (fileIn (kitFolder, 3).createDirectory().wasOk());
+    const auto folder = installed.readFile (found, gone);
+    CHECK_FALSE (folder.ok());
+    CHECK (folder.error.rfind ("unreadable: " + gone + ": ", 0) == 0);
+    ContentStatus nowhere;
+    nowhere.state = ContentState::missing;
+    const auto noFolder = installed.readFile (nowhere, synManifest().files[0].path);
+    CHECK_FALSE (noFolder.ok());
+    CHECK (noFolder.error.rfind ("missing: ", 0) == 0);
+}
+
 TEST_CASE ("a raised cancel flag stops the content check and the reads within one file", "[content]")
 {
     TempFolder temp;

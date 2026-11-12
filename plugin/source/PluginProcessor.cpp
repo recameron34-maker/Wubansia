@@ -15,6 +15,7 @@ namespace wubansia
           raw (apvts),
           content (std::make_unique<InstalledContent>()),
           service (std::make_unique<KitService> (player, *content)),
+          sounds (std::make_unique<SoundService> (*content, auditions)),
           controllerImpl (*this)
     {
         // Nothing else: no file is read and no thread starts until the first prepareToPlay or
@@ -24,16 +25,20 @@ namespace wubansia
 
     PluginProcessor::~PluginProcessor()
     {
-        // The service first: it stops its thread and drops its Kits while the engine still exists.
+        // The services first: they stop their threads and drop their Kits and clips while the engine and the audition
+        // player still exist. ~AuditionPlayer then deletes the clips it still holds.
+        sounds.reset();
         service.reset();
     }
 
     void PluginProcessor::setContentForTesting (std::unique_ptr<ContentSourceFactory> replacement, const juce::String& kit)
     {
-        jassert (replacement != nullptr && ! service->started());
+        jassert (replacement != nullptr && ! service->started() && ! sounds->started());
+        sounds.reset();
         service.reset();
         content = std::move (replacement);
         service = std::make_unique<KitService> (player, *content);
+        sounds = std::make_unique<SoundService> (*content, auditions);
         if (kit.isNotEmpty())
         {
             const std::lock_guard lock (stateMutex);
@@ -105,6 +110,7 @@ namespace wubansia
 
         player.prepare (rate, preparedBlock, outputs);
         setLatencySamples (player.latencySamples());
+        auditions.prepare (rate); // clips are made for this rate from now on (ADR 0024)
 
         masterGain.reset (rate, 0.02); // 20 ms ramps, so gain changes never click
         masterGain.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (raw.masterGainDb(), Parameters::minDb));
@@ -179,9 +185,12 @@ namespace wubansia
             return;
         bypassed = false;
 
-        // 2. The host's reset (or releaseResources): every voice and tail silent at once.
+        // 2. The host's reset (or releaseResources): every voice, tail and audition silent at once.
         if (resetPending.exchange (false, std::memory_order_acq_rel))
+        {
             player.reset();
+            auditions.reset();
+        }
 
         // 3. The offline wait.
         waitForKitOffline();
@@ -243,6 +252,18 @@ namespace wubansia
             }
         }
 
+        // 7b. The Samples drawer's audition (ADR 0024): dry, on top of the engine, under master_gain; never in an
+        //     offline render. With nothing playing it touches nothing. It keeps no buffers, so it takes the whole block.
+        if (outputs > 0)
+        {
+            float* out[2] { buffer.getWritePointer (0), outputs > 1 ? buffer.getWritePointer (1) : nullptr };
+            auditions.process (out, outputs, numSamples, isNonRealtime());
+        }
+        else
+        {
+            auditions.process (nullptr, 0, numSamples, true); // no output to play into: let every clip go
+        }
+
         // 8. master_gain, through M0's smoother.
         masterGain.setTargetValue (juce::Decibels::decibelsToGain (raw.masterGainDb(), Parameters::minDb));
         masterGain.applyGain (buffer, numSamples);
@@ -263,6 +284,7 @@ namespace wubansia
             player.reset(); // once, when the bypass starts
             bypassed = true;
         }
+        auditions.process (nullptr, 0, buffer.getNumSamples(), true); // every block: an audition offered now never plays
         lastPlaying.store (false, std::memory_order_relaxed);
     }
 

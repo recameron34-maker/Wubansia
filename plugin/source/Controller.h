@@ -5,10 +5,13 @@
 // (P9) implements it over the processor; plugin/tests/helpers/fake_controller.h fakes it, so the
 // editor can be built and tested without an engine.
 //
-// Every call comes from the message thread and returns at once: a kit load, a content check or a
-// drag file that takes time is queued on the service thread, and status () and snapshot () report
-// on it. The state-only settings set here (the kit, the content folder, the Standalone tempo, the
-// MIDI-in mode and the phrase mode) mark the host's project as changed.
+// Every call comes from the message thread and returns at once: a kit load or a content check that
+// takes time is queued on the service thread, and status () and snapshot () report on it. Two calls
+// read and write files before they return, because the OS drag they start must begin inside its
+// mouse event: writeDragFile () (a MIDI file) and exportSound () (a sample, tens of milliseconds for the
+// largest). The state-only settings set here (the kit, the Standalone tempo, the MIDI-in mode and the
+// phrase mode) mark the host's project as changed; the content and samples folders are the person's,
+// kept in their settings file, and don't.
 
 #include "engine.h"
 
@@ -103,6 +106,64 @@ namespace wubansia
         friend bool operator== (const DragRequest&, const DragRequest&) = default;
     };
 
+    // The Samples drawer (ADR 0024): every kit's sounds, from its embedded kit.json.
+    enum class SoundCategory : std::uint8_t { accents, fx, vox, synths, bass, drums, loops };
+    inline constexpr int kSoundCategories = 7;
+
+    // One recorded file of a sound.
+    struct SoundFile
+    {
+        int file = -1; // index into the kit's kit.json files
+        juce::String label; // the installed name without folder and ".wav": "Chrome Pluck F#4 v2"
+        double seconds = 0.0; // frames / 48000
+        int channels = 0; // 1 or 2
+
+        friend bool operator== (const SoundFile& a, const SoundFile& b)
+        {
+            return a.file == b.file && a.label == b.label && juce::exactlyEqual (a.seconds, b.seconds) && a.channels == b.channels;
+        }
+    };
+
+    struct SoundInfo
+    {
+        juce::String id; // "FUT01/rave_stab"; a loop: "FUT01/Loops/Chrome Pluck Phrase.wav"
+        juce::String name; // "Rave Stab"; a leading "Accent " dropped: "Dub Chord Cm9"
+        SoundCategory category = SoundCategory::accents;
+        std::vector<SoundFile> files; // zones low to high, then layers soft to hard, then round robins
+        int defaultFile = 0; // into files
+        bool endAligned = false; // align: end, its last frame is the beat
+        int bars = 0; // the default file's whole bars at the kit's tempo (within 1 ms), else 0
+        int loopBars = 0; // a loop's cycle (cycle_16ths / 16); 0 for one-shots
+        int leadInMs = 0; // the default file's pre-roll, rounded
+
+        friend bool operator== (const SoundInfo&, const SoundInfo&) = default;
+    };
+
+    // One file of one kit: what plays, drags and is shown in the Finder.
+    struct SoundRef
+    {
+        juce::String kit; // "FUT01"
+        int file = -1; // into that kit's kit.json files
+
+        friend bool operator== (const SoundRef&, const SoundRef&) = default;
+    };
+
+    // Where the auditions stand (audition () gives each request a ticket).
+    struct AuditionState
+    {
+        std::uint32_t sounding = 0; // the ticket playing now; 0 when none
+        std::uint32_t latest = 0; // the last ticket audition () gave
+        bool waiting = false; // latest is being read, or waits for the host's next block
+        bool hostSilent = false; // latest waited 300 ms for a block and was dropped: the host runs no audio
+        juce::String problem; // why latest (or a request turned down) can't play, for people
+    };
+
+    struct SoundExport
+    {
+        juce::File file; // the copy; juce::File () on failure
+        juce::String problem; // for people: why there is no copy
+    };
+
     class Controller
     {
     public:
@@ -134,5 +195,21 @@ namespace wubansia
         virtual juce::StringArray phraseFiles() const = 0; // the current kit's phrase files, for their chips
         // Writes the file to drag into the drag cache folder and returns it; juce::File() on failure.
         virtual juce::File writeDragFile (const DragRequest& request) = 0;
+
+        // Samples (ADR 0024). sounds () reads the embedded manifests, so it needs no samples; an unknown kit
+        // has none.
+        virtual std::vector<SoundInfo> sounds (const juce::String& kit) const = 0;
+        // Plays the file dry from its start, on top of whatever plays, replacing the last audition (which fades out
+        // over 5 ms). Its ticket, or 0 when it can't (auditionState () says why); a request turned down stops what plays.
+        virtual std::uint32_t audition (const SoundRef& sound) = 0;
+        virtual void stopAudition() = 0; // every audition so far stops, fading out over 5 ms
+        virtual AuditionState auditionState() const = 0;
+        // The file's copy in samplesFolder (), made if missing: the installed bytes, checked against kit.json.
+        // Synchronous file I/O, like writeDragFile: the OS drag must start inside the mouse event.
+        virtual SoundExport exportSound (const SoundRef& sound) = 0;
+        virtual juce::File samplesFolder() const = 0; // the chosen folder, else <Music>/Wubansia/Samples
+        // Kept per user, never in project state; juce::File () goes back to the default. False, and nothing
+        // changes, for a folder inside a content folder or the drag cache, or one that can't be made.
+        virtual bool setSamplesFolder (const juce::File& folder) = 0;
     };
 }

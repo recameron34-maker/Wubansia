@@ -181,14 +181,25 @@ namespace wubansia::test
         bool present = true;
     };
 
-    // Creates the editor as a host does (without a native window), runs the test code, then deletes it.
+    // Creates the editor as a host does (without a native window), runs the test code, then deletes it, however
+    // the code ends: a failed REQUIRE throws, and an editor left behind would go on ticking against a processor
+    // that's gone.
     inline void withEditor (PluginProcessor& p, const std::function<void (juce::AudioProcessorEditor&)>& testCode)
     {
         auto* editor = p.createEditorAndMakeActive();
         jassert (editor != nullptr);
+        struct Closer
+        {
+            PluginProcessor& owner;
+            juce::AudioProcessorEditor* opened;
+
+            ~Closer()
+            {
+                owner.editorBeingDeleted (opened);
+                delete opened;
+            }
+        } closer { p, editor };
         testCode (*editor);
-        p.editorBeingDeleted (editor);
-        delete editor;
     }
 
     inline bool allFinite (const juce::AudioBuffer<float>& buffer)

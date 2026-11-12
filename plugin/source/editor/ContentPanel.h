@@ -33,6 +33,10 @@ namespace wubansia::editor
         std::function<void (std::function<void (const juce::File&)>)> chooseFolder;
         std::function<void()> onClose;
 
+        // What "Choose content folder..." does, here or in the Samples drawer's banner: chooseFolder, then the
+        // folder picked goes to the Controller.
+        void chooseContentFolder();
+
         juce::TextButton chooseButton;
         IconButton closeButton { "Close", IconButton::Icon::close };
 

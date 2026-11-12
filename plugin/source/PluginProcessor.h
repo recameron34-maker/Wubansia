@@ -9,22 +9,29 @@
 // - any thread but the audio thread: getStateInformation and setStateInformation (some hosts call them
 //   off the message thread);
 // - the kit service's thread: kit loads (services/KitService.h);
+// - the sound thread: the Samples drawer's audition clips (services/SoundService.h, ADR 0024), started by
+//   the first audition;
 // - audio thread: processBlock, which in order (the design's): stops denormals and clears the buffer;
-//   acts on a reset; in an offline render only, waits for a kit load in flight (ADR 0005 D5: 1 ms
-//   steps, 30 s per load at most; never in real time, never when content is missing); reads the
-//   controls; resolves the transport (the host's, or the internal one); copies the MIDI into a fixed
-//   array of 3-byte messages (no SysEx); runs the engine in pieces no longer than the prepared block;
-//   applies master_gain through its 20 ms smoother; and leaves the transport for the editor.
+//   acts on a reset (the engine's voices and the audition); in an offline render only, waits for a kit
+//   load in flight (ADR 0005 D5: 1 ms steps, 30 s per load at most; never in real time, never when
+//   content is missing); reads the controls; resolves the transport (the host's, or the internal one);
+//   copies the MIDI into a fixed array of 3-byte messages (no SysEx); runs the engine in pieces no longer
+//   than the prepared block; adds the Samples drawer's audition, dry, over the whole block (7b; never in
+//   an offline render, and with none playing it touches nothing); applies master_gain through its 20 ms
+//   smoother; and leaves the transport for the editor. A bypassed block lets every audition go unplayed.
 //
-// The first prepareToPlay or setStateInformation queues the first kit load; nothing before.
+// The first prepareToPlay or setStateInformation queues the first kit load; nothing before. The sound
+// thread waits for the first audition.
 
 #include "ControllerImpl.h"
 #include "Parameters.h"
 #include "State.h"
 #include "content/ContentSource.h"
 #include "services/KitService.h"
+#include "services/SoundService.h"
 #include "transport/InternalTransport.h"
 
+#include "audition/audition_player.h"
 #include "engine.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -89,8 +96,9 @@ namespace wubansia
         // The editor's API.
         Controller& controller() noexcept { return controllerImpl; }
 
-        // Replaces where the kits come from (the synthetic kit in tests), and the kit a new instance
-        // plays (FUT01) when kit isn't empty. Only before the first prepareToPlay or setStateInformation.
+        // Replaces where the kits come from (the synthetic kit in tests), with the kit and sound services
+        // that read them, and the kit a new instance plays (FUT01) when kit isn't empty. Only before the
+        // first prepareToPlay or setStateInformation, and before any audition.
         void setContentForTesting (std::unique_ptr<ContentSourceFactory> content, const juce::String& kit = {});
 
         // Shortens the offline wait's 30 s, for tests.
@@ -99,6 +107,8 @@ namespace wubansia
         // For the Controller and the tests.
         const KitService& kitService() const noexcept { return *service; }
         const engine::Telemetry& telemetry() const noexcept { return player.telemetry(); }
+        const engine::AuditionPlayer& auditionPlayer() const noexcept { return auditions; }
+        const SoundService& soundService() const noexcept { return *sounds; }
         StateOnly settings() const;
 
         juce::AudioProcessorValueTreeState apvts;
@@ -117,7 +127,9 @@ namespace wubansia
         Parameters::RawParameters raw;
         std::unique_ptr<ContentSourceFactory> content;
         engine::Engine player;
+        engine::AuditionPlayer auditions; // ADR 0024: the Samples drawer's clips
         std::unique_ptr<KitService> service; // after the engine and content: it uses both, so it goes first
+        std::unique_ptr<SoundService> sounds; // after content and auditions, which it uses: it goes first
         ControllerImpl controllerImpl;
         InternalTransport transport;
 

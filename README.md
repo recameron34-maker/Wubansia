@@ -21,6 +21,8 @@ Two downloads: the macOS zip from CI (`Wubansia-macOS-<commit>.zip`: the VST3, A
 
 **Status:** v0.1: the four round 5 kits play in the plugin, in sync with your DAW (ADR 0017). Install it as above, then run the DAW checklist in [`docs/listening.md`](docs/listening.md). What comes next is in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
+**v0.2 Samples** ([ADR 0024](docs/decisions/0024-samples-drawer-and-audio-drag-out.md)): the **Samples** button opens a drawer of every kit's sounds; click one to hear it, or drag it into your DAW as the kit's own 48 kHz / 24-bit WAV, saved in `~/Music/Wubansia/Samples` (how, in [`dist/INSTALL.md`](dist/INSTALL.md)'s "Samples into your DAW"; its DAW checklist is v0.2's in [`docs/listening.md`](docs/listening.md)).
+
 To start with Claude Code, open this repo and say:
 
 > Read CLAUDE.md and docs/ROADMAP.md. We're starting M0. Propose the exact steps first: template, JUCE version pin, CMake presets, CI matrix, CLAP wrapper. Wait for my OK, then implement. Stop when the M0 "Done when" checks pass, and tell me how to load the plugin in my DAW.

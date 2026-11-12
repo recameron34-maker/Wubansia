@@ -10,6 +10,7 @@
 
 #include "kit/manifest.h"
 #include "kit/sample_source.h"
+#include "util/result.h"
 
 #include <juce_core/juce_core.h>
 
@@ -19,6 +20,7 @@
 #include <memory>
 #include <span>
 #include <string_view>
+#include <vector>
 
 namespace wubansia
 {
@@ -56,6 +58,13 @@ namespace wubansia
         // a read within one chunk (P4's FileSampleSource), so a load gives way even on slow storage.
         virtual std::unique_ptr<engine::SampleSource> open (const engine::KitManifest& kit, const ContentStatus& found,
             const std::atomic<bool>* cancel = nullptr) = 0;
+
+        // The bytes of a file kit.json lists (path relative to found.folder, '/'-separated), as installed; or why
+        // not ("missing: ...", "unreadable: ...", "format: ..."), as P4's FileSampleSource words it. A path that
+        // would leave the kit's folder is refused before the disk is touched (engine::contentPathProblem). The
+        // Samples drawer's copies and auditions read through it (ADR 0024). Stateless; any thread but the audio
+        // thread.
+        virtual util::Result<std::vector<std::uint8_t>> readFile (const ContentStatus& found, std::string_view path) = 0;
 
         // The folder chosen with "Choose content folder…": kept per user, never in project state. The
         // setter runs on the message thread and may write a settings file.
