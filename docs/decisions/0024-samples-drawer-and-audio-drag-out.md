@@ -66,6 +66,18 @@ What the code fixed before the design:
 - **The sound thread sleeps while it has nothing out**: it wakes every 50 ms only while the player holds one of its clips, and otherwise only for a request, a stop or its end.
 - **`makeAuditionClip` refuses** a rate that isn't positive, finite and at most 768 kHz, and a file that isn't 48 kHz mono or stereo with frames × channels samples.
 
+### Settled in the code (step 3)
+- **The drawer takes the browsed kit's colour.** It has its own LookAndFeel, so its rim, rows, buttons, File menu and scroll bar follow the kit browsed; each chip keeps its own kit's colour, and the rest of the editor the playing kit's.
+- **A kit that can't play yet** (looked for, loading, missing, wrong files) shows its rows dimmed: a press selects one but plays nothing, and nothing drags. The banner or the status line says why, so no refusal is needed. The File box still lists the files and the tile still names them.
+- **The tile names the file before anything is copied**, built with the same `sounds::exportName` that `exportCopy` uses, from the kit's card (checked for all 618 files). After a copy it names the copy as written, ` (2)` and all.
+- **The status line, in order:** the browsed kit's "Looking for…" or "Loading… 42 %" (nothing plays or drags until the samples are in); then the last action's words ("Saved …" for 3 s, a failed copy or a refused folder until the next action); then the audition's ("Couldn't play …", the Logic hint). Browsing another kit clears them; Stop and Esc stop the sound and put them away.
+- **Esc is taken only when there is something to stop or put away**; otherwise it reaches the host. Return on the focused tile shows the file, as its press action does, and buttons take Return as JUCE buttons do; the list takes only Up, Down and Return.
+- **The drawer holds still during an OS drag.** Windows runs the drag in a modal loop with the editor's timer ticking, so the follow rule waits until the drag is over rather than rebuild the row the drag started from.
+- **The playing kit's own chip follows it again**; another chip stops the following until the drawer next opens. A category the browsed kit lacks shows its first one, and the category picked holds for the next kit and the next opening, while the editor is open.
+- **The install panel and the drawer:** opening the drawer hides the install panel; once the drawer closes, the install panel opens by itself again while the kit can't play, unless the person closed it. The banner's "Choose content folder…" runs the install panel's chooser (`ContentPanel::chooseContentFolder ()`). The Samples button's LED now follows the drawer only.
+- **A refused samples folder says why**: "Couldn't save drags to <folder>: it's inside a content folder or the drag cache, or it can't be made. Choose another folder." That covers a content folder chosen as broad as a home folder.
+- **Words the spec left open:** Bass's tooltip is "The basses, every recorded note and layer"; a sound that fits none of the four hints (Rave Stab: one note, not end-aligned, no lead-in, not a loop) shows none.
+
 ## Consequences
 - The plugin gains `plugin/source/sounds/` and, in step 2, `engine/audition/` and a sound thread per processor, started by the first audition (never by a constructor, so host scans start nothing). No new dependency and no CMake change: the source folders are globbed.
 - `settings.xml` gains `samples_folder`; projects don't change.
