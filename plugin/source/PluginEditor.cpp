@@ -253,6 +253,7 @@ namespace wubansia
         m.midiInLane = controller.midiInLane();
         m.phraseMode = controller.phraseMode();
         m.phraseFiles = controller.phraseFiles();
+        m.audition = controller.auditionState();
 
         if (playModeParameter != nullptr)
             m.playMode = static_cast<engine::PlayMode> (juce::jlimit (0, 2, juce::roundToInt (playModeParameter->convertFrom0to1 (playModeParameter->getValue()))));

@@ -42,6 +42,7 @@ namespace wubansia::editor
         engine::Lane midiInLane = engine::Lane::kick;
         engine::PhraseMode phraseMode = engine::PhraseMode::automatic;
         juce::StringArray phraseFiles;
+        AuditionState audition; // the Samples drawer's last audition (ADR 0024)
 
         // From the parameters.
         engine::PlayMode playMode = engine::PlayMode::loop;
