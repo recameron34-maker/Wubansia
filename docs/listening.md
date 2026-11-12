@@ -165,3 +165,59 @@ worked on Logic Pro"; Ableton Live 12 not checked yet.
 - None to the sounds, the MIDI or the mix from this note: every kit keeps its round 5 sounds and the reviewed
   extended mixes.
 - The checklist above wasn't reported item by item, so its boxes stay open; tick them as you check each one.
+
+## 2026-11-12 · v0.2 Samples · build: the v0.2 PR's macOS CI zip (not made yet) · Listener: you · DAW: not reported yet · Mac: not reported
+
+v0.2 adds the Samples drawer (ADR 0024): every kit's sounds, to hear and to drag into your DAW as WAV files. It
+changes no sound, MIDI or mix, so this entry has no fidelity numbers and no listening test. It records what was
+checked on Linux and holds the DAW checklist for you; nothing here says how the drawer behaves in Live or Logic until
+you report it. How to use it: `dist/INSTALL.md`, "Samples into your DAW".
+
+### A. Checked here (before you try it)
+
+Linux x86-64, Clang 18 release build, at 8967fa7 (the code of 353d639; the later commits change only docs and their
+tests), with the four kits' content installed from their zips.
+- ctest: 801 tests, 799 passed and 2 skipped (the real kits' renders, which want the content, and a read-only folder,
+  which root can write anyway). `golden_check`: the 516 legacy files match `legacy-v21.sha256` and every metric
+  value matches.
+- The catalog: FUT01 35 sounds, FUT02 37, FUT03 36, FUT04 32, which reach all 618 files. Every export name is unique
+  in its kit and the longest is 46 characters.
+- Every sound's default file in the four kits (140 files) copied from the installed content byte for byte, each
+  with kit.json's SHA-256, in 791 ms (`[.real]`).
+- Offline renders: the processor still plays each kit's Loop as `groovecore render` does, bit for bit (`[.render]`).
+  An audition never reaches an offline render.
+- pluginval 1.0.4 at strictness 10 on the VST3, with and without content: pass. clap-validator 0.4.1 (report-only):
+  41 run, 30 passed, 0 failed, 1 warning, 10 skipped, as in v0.1.
+- TSan (clang 18, run locally; CI has no TSan job), no reports: the engine's audition tests (12 cases: 10 passed, 2
+  skipped, the allocation counters, which a sanitizer replaces); the plugin's audition, sounds, real-time and
+  service tests (70 cases: 66 passed, 4 skipped); its editor and controller tests (52 cases, all passed).
+- CPU at 48 kHz / 128 samples on this shared machine, % of one core on average, plain and then with an audition
+  playing in 97-98 % of the blocks (gate 15 %): FUT01 11.9 and 12.0 %, FUT04 10.8 and 10.7 %, SYN01 11.4 and 11.3 %.
+  Copying the largest file, FUT03's 8-bar riser (4.3 MB), took 24 ms; its 44.1 kHz audition was ready in 48 ms.
+
+### B. In your DAW (the checklist; not a listening test)
+- [ ] The Samples button opens the drawer in each format your DAWs host (AU, VST3, CLAP); the groove keeps playing
+- [ ] A click plays the sound; Up, Down, Return and Esc reach the drawer after a click in the list, in Live and in
+      Logic, and Space still reaches the DAW
+- [ ] How the auditions sound, and their level over a loud groove (6 dB down, under Output, with no limiter)
+- [ ] Live 12: drag a one-shot to an audio track, to a Drum Rack pad and to a MIDI track (Simpler)
+- [ ] Live 12: drag a loop; FUT03's Context Vox Riff (6 bars at 128 BPM: a 4-bar loop, then its echo tail) warps
+      at the right tempo
+- [ ] Logic: drag to an audio track and to Quick Sampler
+- [ ] Logic: an audition plays while stopped with Wubansia's track selected; unselected, the drawer shows "No sound
+      from your DAW..."
+- [ ] Logic: a 44.1 kHz project, with "Convert audio file sample rate when importing" on
+- [ ] Names with `#` (`F#m`, `F#4`) arrive whole in Live and in Logic
+- [ ] Live's Collect All and Save, and Logic's "Copy audio files into project", take the copies into the project
+- [ ] The Standalone app: drag to Finder
+- [ ] Show in Finder (and a click on the tile) shows the file in Finder; Change... picks a folder, a new one included
+- [ ] The first drag from Logic's AU makes `~/Music/Wubansia/Samples`
+- [ ] Whether either DAW reads anything from the files besides the audio (a root note, a tempo)
+
+Drags on Windows and Linux are not on this list: your setup is Live and Logic on a Mac.
+
+### C. What you said
+Nothing yet.
+
+### D. Action
+None yet: tick the boxes above as you check each one.
