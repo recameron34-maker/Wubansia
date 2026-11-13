@@ -312,7 +312,7 @@ TEST_CASE ("styles: regions.json gives the song's length and each region's ticks
 {
     // The fields a producer reads off regions.json, pinned by more than the snapshot hashes: the
     // song's length (m:ss of its bars at the kit's tempo: each seed draws its form, 200 to 240 bars,
-    // 5:52 to 7:30 at the kits' tempos), each region's length in ticks, and its lanes, the union of
+    // 5:58 to 7:30 at the kits' tempos), each region's length in ticks, and its lanes, the union of
     // its 8-bar blocks' lanes in track order.
     for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
     {
@@ -322,7 +322,7 @@ TEST_CASE ("styles: regions.json gives the song's length and each region's ticks
         CHECK (s.totalBars <= 240);
         const std::int32_t seconds = s.totalBars * 240 / s.bpm; // 4 beats a bar, rounded down
         const std::string length = std::to_string (seconds / 60) + ":" + (seconds % 60 < 10 ? "0" : "") + std::to_string (seconds % 60);
-        CHECK (seconds >= 5 * 60 + 52);
+        CHECK (seconds >= 5 * 60 + 58);
         CHECK (seconds <= 7 * 60 + 30);
         for (const Version v : { Version::feel, Version::quantized })
         {
