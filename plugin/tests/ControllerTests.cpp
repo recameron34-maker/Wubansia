@@ -487,13 +487,21 @@ TEST_CASE ("setSamplesFolder is kept for the person, never in the project, and r
     CHECK_FALSE (xml->toString().contains (mine.getFullPathName()));
 
     // The content folders (the kit's, and the root that holds it), the installers' content folder and the drag
-    // cache, and anything inside them, are refused, and nothing changes.
+    // cache, and anything inside them, are refused, and nothing changes. So are Wubansia's own folders: the app
+    // data's "Wubansia Audio", which holds Content and settings.xml and which INSTALL.md's Uninstall deletes, and the
+    // caches' "Wubansia Audio" around the drag cache, which cleaners empty.
     test::prepareWithKit (*plugin); // the service has searched SMP01's folder
     const auto kitFolder = SyntheticContent::folderOf ("SMP01");
     const auto contentRoot = kitFolder.getParentDirectory();
+    const auto appData = ContentLocator::appDataFolder(); // <app data>/Wubansia Audio/Wubansia
+    const auto ownCaches = dragout::cacheFolder().getParentDirectory().getParentDirectory(); // <caches>/Wubansia Audio
+    REQUIRE (appData.getParentDirectory().getFileName() == "Wubansia Audio");
+    REQUIRE (ownCaches.getFileName() == "Wubansia Audio");
     const juce::File refusals[] { kitFolder, kitFolder.getChildFile ("Mine"), contentRoot, contentRoot.getChildFile ("Samples"),
         ContentLocator::platformDefaultFolder(), ContentLocator::platformDefaultFolder().getChildFile ("Samples"), drag.folder,
-        drag.folder.getChildFile ("Samples"), dragout::cacheFolder(), dragout::cacheFolder().getChildFile ("Samples") };
+        drag.folder.getChildFile ("Samples"), dragout::cacheFolder(), dragout::cacheFolder().getChildFile ("Samples"), appData,
+        appData.getChildFile ("Samples"), appData.getParentDirectory(), appData.getParentDirectory().getChildFile ("Samples"), ownCaches,
+        ownCaches.getChildFile ("Samples"), ownCaches.getChildFile ("Wubansia") };
     for (const auto& refused : refusals)
     {
         CAPTURE (refused.getFullPathName().toStdString());
