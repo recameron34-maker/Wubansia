@@ -6,7 +6,9 @@
 // mix.json), report any content problem, check its folder or read slowly, or hold every read until a test
 // lets it go,
 // and it counts what the service asks of it. readFile () serves the synthetic WAVs' bytes from memory
-// (they match the manifest's SHA-256), and can serve one file with a byte flipped (alteredPath).
+// (they match the manifest's SHA-256), and can serve one file with a byte flipped (alteredPath). Every kit
+// serves the same bytes, so readFile () also records the folder it was asked to read from (foldersRead ()):
+// a test checks that a kit's file came from that kit's own folder.
 //
 //     auto content = std::make_unique<wubansia::test::SyntheticContent> ();
 //     auto& syn = *content;
@@ -153,6 +155,20 @@ namespace wubansia::test
         std::atomic<int> opens { 0 };
         std::atomic<int> fileReads { 0 }; // readFile () calls
 
+        // The folders readFile () was asked to read from (ContentStatus::folder), in order, since the last clear.
+        // Any thread: the sound thread reads too.
+        std::vector<juce::File> foldersRead() const
+        {
+            const std::lock_guard lock (readsMutex);
+            return readFrom;
+        }
+
+        void clearFoldersRead()
+        {
+            const std::lock_guard lock (readsMutex);
+            readFrom.clear();
+        }
+
         std::span<const KitSource> kits() const override { return sources; }
 
         ContentStatus locate (const engine::KitManifest& kit, const std::atomic<bool>* cancel = nullptr) override
@@ -235,6 +251,10 @@ namespace wubansia::test
         {
             using R = util::Result<std::vector<std::uint8_t>>;
             ++fileReads;
+            {
+                const std::lock_guard lock (readsMutex);
+                readFrom.push_back (found.folder);
+            }
             const auto& syn = engine::testing::syntheticContent();
             const auto shown = std::string (path);
             if (found.folder == juce::File())
@@ -330,5 +350,8 @@ namespace wubansia::test
         std::condition_variable holdChanged;
         bool holding = false;
         juce::File chosen;
+
+        mutable std::mutex readsMutex;
+        std::vector<juce::File> readFrom;
     };
 }

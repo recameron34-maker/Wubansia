@@ -529,6 +529,30 @@ TEST_CASE ("a new audition replaces the last: the old fades out in 5 ms, the new
     }
 }
 
+TEST_CASE ("an audition of a kit that isn't playing reads that kit's own folder", "[audio][audition]")
+{
+    SyntheticContent::Options options;
+    options.ids = { "ANP01", "ANP02" };
+    Quiet q (options);
+    auto& controller = q.controller();
+    REQUIRE (test::waitFor ([&] { return controller.kits()[1].content.state == ContentState::ready; })); // ANP02 surveyed
+
+    // Every synthetic kit serves the same bytes: only the folder read tells the browsed kit's from the playing one's.
+    q.plugin.content->clearFoldersRead();
+    REQUIRE (controller.audition ({ "ANP02", riser }) > 0u);
+    REQUIRE (waitForOffer (*q));
+    CHECK (q.plugin.content->foldersRead() == std::vector<juce::File> { SyntheticContent::folderOf ("ANP02") });
+    CHECK (controller.currentKit() == "ANP01"); // the kit that plays doesn't change
+    const auto clip = clipFor (riser, 48000.0);
+    REQUIRE (clip != nullptr);
+    const auto out = test::process (*q, kBlock);
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        const float* x = channel (*clip, ch);
+        CHECK (mismatches (out, ch, 0, kBlock, [x] (int i) { return 0.5f * x[i]; }) == 0);
+    }
+}
+
 TEST_CASE ("selectKit stops the audition", "[audio][audition]")
 {
     SyntheticContent::Options options;

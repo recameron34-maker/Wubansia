@@ -358,12 +358,14 @@ TEST_CASE ("exportSound copies the kit's file into the samples folder; a second 
 
     const auto riser = synFile ("FX/Riser.wav");
     const auto& wav = engine::testing::syntheticContent().wavs[(std::size_t) riser];
+    plugin.content->clearFoldersRead();
     const auto first = controller.exportSound ({ "XPT01", riser });
     INFO (first.problem);
     REQUIRE (first.file.existsAsFile());
     CHECK (first.problem.isEmpty());
     CHECK (first.file == samples.folder.getChildFile ("XPT01 Synthetic 01").getChildFile ("Riser - XPT01 128 Gm 6A.wav"));
     CHECK (bytesOf (first.file) == wav);
+    CHECK (plugin.content->foldersRead() == std::vector<juce::File> { SyntheticContent::folderOf ("XPT01") });
 
     const juce::Time past (2001, 0, 1, 12, 0, 0, 0, false);
     REQUIRE (first.file.setLastModificationTime (past));
@@ -371,12 +373,15 @@ TEST_CASE ("exportSound copies the kit's file into the samples folder; a second 
     CHECK (second.file == first.file);
     CHECK (second.file.getLastModificationTime() == past); // nothing written
 
-    // A kit other than the one playing, once the service has found its samples.
+    // A kit other than the one playing, once the service has found its samples: read from its own folder (every
+    // synthetic kit serves the same bytes, so only the folder tells).
     REQUIRE (test::waitFor ([&] { return controller.kits()[1].content.state == ContentState::ready; }));
+    plugin.content->clearFoldersRead();
     const auto other = controller.exportSound ({ "XPT02", riser });
     INFO (other.problem);
     CHECK (other.file == samples.folder.getChildFile ("XPT02 Synthetic 02").getChildFile ("Riser - XPT02 128 Gm 6A.wav"));
     CHECK (bytesOf (other.file) == wav);
+    CHECK (plugin.content->foldersRead() == std::vector<juce::File> { SyntheticContent::folderOf ("XPT02") });
 
     // Nothing to copy: a kit this build doesn't carry, a file the kit doesn't list.
     const auto unknown = controller.exportSound ({ "NOPE", riser });
