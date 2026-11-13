@@ -1,6 +1,6 @@
 # 0013. Generator v2, part 1: integer generation, four styles as data, extended mixes as regions, the legacy baseline
 
-**Status:** Accepted, 2026-11-04 (S1b1).
+**Status:** Accepted, 2026-11-04 (S1b1). ADR 0023 (S1b2a, proposed) amends it for forms drawn per seed: it does §2's last two "Reserved for S1b2" bullets, replaces §4's one form per style (with its 6 to 7½ minutes and its region names alike for every seed of a kit) and adds `regions.json`'s one-bar dropouts. Its Consequences re-measure §3's hold-gap figures on the drawn forms (the rule still changes no shipped output) and give §7's new file count; the text below stays S1b1's record.
 
 ## Context
 S1b1 is the first half of generator v2 (`docs/plans/S1-futuristic-slice.md` §4, §5.1 and the S1b1 row of §7). It has to:
