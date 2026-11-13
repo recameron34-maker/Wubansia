@@ -54,7 +54,7 @@ What the code fixed before the design:
 ### Settled in the code (step 1)
 - **Writes check themselves before the rename.** `File::replaceWithData` ignores a failed write and would rename a short temporary file into place, so `exportCopy` writes the same hidden temporary file (`TemporaryFile`, unbuffered), checks the write and the file's size, and only then renames it into place. No fsync and no platform-specific rename (decision 18 stands).
 - **The size `kit.json` implies** is that of the content's only layout: 44 bytes of RIFF, `fmt ` (PCM, 24-bit) and `data` headers, the audio, and a pad byte when the audio's length is odd (75 of the 618 files). A content version with another layout would change this rule with it.
-- **`setSamplesFolder` also refuses the places the locator looks** (the chosen content folder, `$WUBANSIA_CONTENT_DIR`, the installers' content folder, Debug's checkout) before any content check has run, besides the root of every kit folder already searched and the drag cache. `juce::File ()` goes back to the default.
+- **`setSamplesFolder` also refuses the places the locator looks** (the chosen content folder, `$WUBANSIA_CONTENT_DIR`, the installers' content folder, Debug's checkout) before any content check has run, besides the root of every kit folder already searched and Wubansia's own folders: the app data's `Wubansia Audio` (Content and `settings.xml`, which INSTALL.md's Uninstall deletes) and the caches' `Wubansia Audio` around the drag cache. `juce::File ()` goes back to the default.
 - **Export names are never hidden files and always fit**: a leading dot is dropped, and an installed name is cut so the whole name stays within 196 characters before ` (k)` and `.wav` (the longest today is 46).
 - **`readFile` holds a path to the manifests' own rule** (`engine::contentPathProblem`) before touching the disk, caps the size at `FileSampleSource::kMaxFileBytes`, and words its errors as `FileSampleSource` does.
 
@@ -75,7 +75,7 @@ What the code fixed before the design:
 - **The drawer holds still during an OS drag.** Windows runs the drag in a modal loop with the editor's timer ticking, so the follow rule waits until the drag is over rather than rebuild the row the drag started from.
 - **The playing kit's own chip follows it again**; another chip stops the following until the drawer next opens. A category the browsed kit lacks shows its first one, and the category picked holds for the next kit and the next opening, while the editor is open.
 - **The install panel and the drawer:** opening the drawer hides the install panel; once the drawer closes, the install panel opens by itself again while the kit can't play, unless the person closed it. The banner's "Choose content folder…" runs the install panel's chooser (`ContentPanel::chooseContentFolder ()`). The Samples button's LED now follows the drawer only.
-- **A refused samples folder says why**: "Couldn't save drags to <folder>: it's inside a content folder or the drag cache, or it can't be made. Choose another folder." That covers a content folder chosen as broad as a home folder.
+- **A refused samples folder says why**: "Couldn't save drags to <folder>: it's inside a content folder or one of Wubansia's own folders, or it can't be made. Choose another folder." That covers a content folder chosen as broad as a home folder.
 - **Words the spec left open:** Bass's tooltip is "The basses, every recorded note and layer"; a sound that fits none of the four hints (Rave Stab: one note, not end-aligned, no lead-in, not a loop) shows none.
 
 ## Consequences

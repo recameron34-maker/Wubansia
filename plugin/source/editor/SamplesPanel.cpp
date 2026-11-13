@@ -1024,8 +1024,8 @@ namespace wubansia::editor
         }
         else
         {
-            setMessage ("Couldn't save drags to " + tidy (folder) + ": it's inside a content folder or the drag cache, or it can't be made. "
-                        "Choose another folder.",
+            setMessage ("Couldn't save drags to " + tidy (folder) + ": it's inside a content folder or one of Wubansia's own folders, "
+                        "or it can't be made. Choose another folder.",
                 colours::warning);
         }
         layOutFooter();

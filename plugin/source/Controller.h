@@ -209,7 +209,9 @@ namespace wubansia
         virtual SoundExport exportSound (const SoundRef& sound) = 0;
         virtual juce::File samplesFolder() const = 0; // the chosen folder, else <Music>/Wubansia/Samples
         // Kept per user, never in project state; juce::File () goes back to the default. False, and nothing
-        // changes, for a folder inside a content folder or the drag cache, or one that can't be made.
+        // changes, for a folder inside a content folder or one of Wubansia's own folders (the app data's
+        // "Wubansia Audio", which the Uninstall removes, and the caches' around the drag cache), or one that
+        // can't be made.
         virtual bool setSamplesFolder (const juce::File& folder) = 0;
     };
 }
