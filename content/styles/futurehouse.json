@@ -18,11 +18,11 @@
       { "kind": "groove", "bars": [ { "bars": 16, "w": 3 }, { "bars": 24, "w": 1 }, { "bars": 32, "w": 2 } ] },
       { "kind": "break", "bars": [ { "bars": 0, "w": 3 }, { "bars": 8, "w": 1 }, { "bars": 16, "w": 2 } ] },
       { "kind": "build", "bars": [ { "bars": 8, "w": 3 }, { "bars": 16, "w": 1 } ] },
-      { "kind": "drop", "bars": [ { "bars": 16, "w": 1 }, { "bars": 24, "w": 1 }, { "bars": 32, "w": 3 } ] },
+      { "kind": "drop", "bars": [ { "bars": 24, "w": 1 }, { "bars": 32, "w": 3 } ] },
       { "kind": "groove", "bars": [ { "bars": 0, "w": 1 }, { "bars": 8, "w": 1 }, { "bars": 16, "w": 2 } ] },
       { "kind": "break", "bars": [ { "bars": 16, "w": 2 }, { "bars": 24, "w": 2 }, { "bars": 32, "w": 1 } ] },
       { "kind": "build", "bars": [ { "bars": 0, "w": 1 }, { "bars": 8, "w": 2 }, { "bars": 16, "w": 1 } ] },
-      { "kind": "drop2", "bars": [ { "bars": 16, "w": 1 }, { "bars": 24, "w": 1 }, { "bars": 32, "w": 3 } ] },
+      { "kind": "drop2", "bars": [ { "bars": 32, "w": 3 }, { "bars": 40, "w": 1 } ] },
       { "kind": "outro", "bars": [ { "bars": 32, "w": 1 } ] }
     ],
     "plans": {
