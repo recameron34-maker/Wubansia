@@ -201,23 +201,28 @@ namespace wubansia::gen
                 return true;
             };
 
-            // a dropout in the bar before the section's own line: a lane group drawn among the lanes
-            // playing there and on the line, so every lane it takes out lands back on the line (a lane
-            // whose rest starts on the line plays through the bar and leaves on the line)
+            // a dropout in the bar before the section's own line: a lane group drawn among those with a
+            // lane playing there and none leaving on the line, so the whole group (its lanes that play
+            // the bar: one whose rest ends on the line is out already) sits the bar out and slams back
+            // on the line. Before a line a group's lane leaves on (the kick's rest starting there), the
+            // rest of the group alone would be a gap with nothing landing after it: not drawn
             const auto dropout = [&] (std::int32_t line, bool forced) {
                 const DropoutSpec& d = *plan.dropout;
                 const rng::Key kd = kf.with (rng::tag ("dropout")).with (s.index).with (line);
                 if (!forced && !rng::chance (kd.with (rng::tag ("p")), p16FromPercent (d.p)))
                     return false;
                 const std::int32_t bar = line - 1;
-                const std::uint64_t playing = s.lanesAt (bar) & s.lanesAt (line);
+                const std::uint64_t here = s.lanesAt (bar), leaving = here & ~s.lanesAt (line);
                 std::vector<std::int32_t> weights;
                 for (const LaneGroup& g : d.lanes)
-                    weights.push_back ((maskOf (style, g.lanes) & playing) != 0 ? g.weight : 0);
+                {
+                    const std::uint64_t m = maskOf (style, g.lanes);
+                    weights.push_back ((m & here) != 0 && (m & leaving) == 0 ? g.weight : 0);
+                }
                 const std::size_t pick = rng::pickWeighted (kd.with (rng::tag ("lanes")), weights);
                 if (pick >= d.lanes.size())
                     return false;
-                s.dropouts.push_back ({ bar, maskOf (style, d.lanes[pick].lanes) & playing });
+                s.dropouts.push_back ({ bar, maskOf (style, d.lanes[pick].lanes) & here });
                 return true;
             };
 

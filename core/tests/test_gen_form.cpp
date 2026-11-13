@@ -850,7 +850,10 @@ TEST_CASE ("form: dropouts before every 32-bar line, and the dropout a drop with
     // grammar features no shipped style uses
     SECTION ("every 32: a pull before the drop's own 32-bar line only")
     {
+        // the rest takes the chords only: no lane of the kick and bass group leaves on the line, so
+        // the pull is always drawn (before a line its kick leaves on, none would be)
         std::string form = replaced (baseForm, "\"dropout\": { \"p\": 50, \"every\": 16,", "\"dropout\": { \"p\": 100, \"every\": 32,");
+        form = replaced (form, "\"lanes\": [{ \"lane\": \"kick\", \"w\": 1 }, { \"lane\": \"chords\", \"w\": 1 }] }, \"dropout\"", "\"lanes\": [{ \"lane\": \"chords\", \"w\": 1 }] }, \"dropout\"");
         form = replaced (form, "{ \"kind\": \"drop\", \"bars\": [{ \"bars\": 16, \"w\": 1 }, { \"bars\": 24, \"w\": 2 }, { \"bars\": 32, \"w\": 1 }] }",
             "{ \"kind\": \"drop\", \"bars\": [{ \"bars\": 40, \"w\": 1 }, { \"bars\": 48, \"w\": 1 }, { \"bars\": 56, \"w\": 1 }] }");
         form = replaced (form, "\"bars\": [176, 208]", "\"bars\": [176, 240]");

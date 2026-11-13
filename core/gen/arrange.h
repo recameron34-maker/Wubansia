@@ -15,7 +15,7 @@
 //   - some joining late or leaving early (the entries);
 //   - one lane sitting out 8 or 16 bars (the rest; a drum lane always comes back inside the section);
 //   - lane groups sitting out the bar before the section's own 16-bar lines, landing back on the line
-//     (the dropouts, at least 32 bars apart);
+//     (the dropouts, at least 32 bars apart; never before a line one of the group's lanes leaves on);
 //   - drop 2's layer, drawn per song, in drop 2 and never in drop 1.
 //   A kind with "change" has a lane change inside every section. A slot may start its section on its
 //   own pattern variant (the groove after drop 1: new patterns on its grids).
