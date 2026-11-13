@@ -50,6 +50,17 @@ namespace wubansia::editor
             return text;
         }
 
+        // A content check's problem without its leading code ("missing: ", "lfs_pointer: ", "mismatch: ", "rate: ",
+        // "unreadable: "...): a lowercase word, or words joined by '_', then ": ". Anything else is left as it is.
+        juce::String withoutCode (const juce::String& problem)
+        {
+            const auto colon = problem.indexOf (": ");
+            const auto code = problem.substring (0, juce::jmax (0, colon));
+            if (colon <= 0 || ! code.containsOnly ("abcdefghijklmnopqrstuvwxyz_"))
+                return problem;
+            return problem.substring (colon + 2);
+        }
+
         // A problem as a sentence: "no folder holds FUT02" becomes "No folder holds FUT02."; a path keeps its case.
         juce::String sentence (const juce::String& problem)
         {
@@ -1136,7 +1147,11 @@ namespace wubansia::editor
             case ContentState::loading:
                 return {};
         }
-        const auto problem = sentence (content.problem);
+        // The check's problem, in words, before the drawer's advice; but not where it only says what the headline
+        // and the advice do: no folder holds the kit at all ("install its content, or choose the folder..."), or the
+        // files are LFS pointers ("git lfs pull or install the content").
+        const auto saysItAll = (content.state == ContentState::missing && content.folder == juce::File()) || content.state == ContentState::lfsPointers;
+        const auto problem = saysItAll ? juce::String() : sentence (withoutCode (content.problem));
         return headline + "\n" + (problem.isNotEmpty() ? problem + " " : juce::String()) + advice;
     }
 
