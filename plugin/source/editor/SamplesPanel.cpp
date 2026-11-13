@@ -687,6 +687,7 @@ namespace wubansia::editor
         playingKit = model.hasKit() ? model.kit.id : juce::String();
         playingContent = model.content;
         audition = model.audition;
+        standalone = model.standalone;
         samplesFolder = controller.samplesFolder();
         chipPicked = false;
         message = {};
@@ -711,6 +712,7 @@ namespace wubansia::editor
         playingKit = model.hasKit() ? model.kit.id : juce::String();
         playingContent = model.content;
         audition = model.audition;
+        standalone = model.standalone;
         refreshChips();
 
         // It follows the kit that plays until a chip picks another; never in the middle of an OS drag (Windows runs
@@ -1069,6 +1071,8 @@ namespace wubansia::editor
             return "Couldn't play " + auditionLabel + ": " + refusal;
         if (ticket == 0 || audition.latest != ticket)
             return {};
+        if (audition.hostSilent && standalone) // JUCE's standalone window: its Options button and menu item
+            return "No sound: the app's audio output isn't running. Choose one in Options > Audio/MIDI Settings...";
         if (audition.hostSilent)
             return "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed. Select this track, or press Play.";
         if (audition.problem.isNotEmpty() && ! audition.waiting && audition.sounding != ticket)

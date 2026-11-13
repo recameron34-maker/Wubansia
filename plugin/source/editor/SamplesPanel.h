@@ -277,6 +277,7 @@ namespace wubansia::editor
         juce::String playingKit;
         ContentStatus playingContent;
         AuditionState audition;
+        bool standalone = false; // the Standalone app: no DAW, so no-sound means its audio output isn't running
 
         // What the person chose.
         juce::String browsed;
