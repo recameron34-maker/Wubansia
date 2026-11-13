@@ -42,8 +42,11 @@ namespace
     //   the bass grooves against the kick). The swing tiers versus round 1's "every lane uses the kit's
     //   one swing" stay open for the S1b2 gating ADR.
     // - G1, G2 on FUT04: a one-chord pedal by design (an exemption or another measure, the same ADR).
-    // - G9: no fills or transition gestures yet (S1b2's fills). The form grammar's one-bar dropouts
-    //   come before the drops' own 16-bar lines, inside them, not at section boundaries.
+    // - G9: no fills or transition gestures at section boundaries yet (S1b2c's fills). The form
+    //   grammar's one-bar dropouts that pull the kick are G9 fills inside the drops (the README: "a
+    //   dropout counts as a fill"), every one on position 7, the bar before the drop's own 16-bar
+    //   line: they raise that position's share of the fills (FUT04's most), which S1b2c's fills
+    //   must count.
     // - G10 passes: every seed draws its own form (S1b2a), some 60 distinct forms in 64 seeds per style.
     const Expected expected[] = {
         { "FUT01", { "G4", "G5", "G7", "G9" } },
