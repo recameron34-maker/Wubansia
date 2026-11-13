@@ -363,6 +363,10 @@ namespace wubansia::dragout
 
     juce::String externalDragPath (const juce::File& file)
     {
-        return file.getFullPathName(); // not yet: the tests come first
+#if JUCE_LINUX || JUCE_BSD
+        return juce::URL (file).toString (false); // "file:///.../F%23m%2011A.wav": JUCE passes a URL on as it is
+#else
+        return file.getFullPathName();
+#endif
     }
 }

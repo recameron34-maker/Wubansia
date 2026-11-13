@@ -1,6 +1,8 @@
 #include "DragChip.h"
 #include "LookAndFeel.h"
 
+#include "dragout/DragFiles.h"
+
 namespace wubansia::editor
 {
     DragChip::DragChip (Controller& c, const DragRequest& request, const juce::String& label)
@@ -8,7 +10,7 @@ namespace wubansia::editor
     {
         startDrag = [] (const juce::File& file, juce::Component& source)
         {
-            return juce::DragAndDropContainer::performExternalDragDropOfFiles ({ file.getFullPathName() }, false, &source);
+            return juce::DragAndDropContainer::performExternalDragDropOfFiles ({ dragout::externalDragPath (file) }, false, &source);
         };
         revealFile = [] (const juce::File& file) { file.revealToUser(); };
         setRequest (request, label);

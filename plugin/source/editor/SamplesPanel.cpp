@@ -1,5 +1,6 @@
 #include "SamplesPanel.h"
 
+#include "dragout/DragFiles.h"
 #include "sounds/SampleExport.h"
 #include "sounds/SoundCatalog.h"
 
@@ -557,7 +558,7 @@ namespace wubansia::editor
 
         startDrag = [] (const juce::File& file, juce::Component& source)
         {
-            return juce::DragAndDropContainer::performExternalDragDropOfFiles ({ file.getFullPathName() }, false, &source);
+            return juce::DragAndDropContainer::performExternalDragDropOfFiles ({ dragout::externalDragPath (file) }, false, &source);
         };
         revealFile = [] (const juce::File& file) { file.revealToUser(); };
         chooseFolder = [this] (std::function<void (const juce::File&)> done)
