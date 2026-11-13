@@ -1062,28 +1062,51 @@ namespace wubansia::gen
                             n["layer"].fail ("\"" + lw.lane + "\" isn't one of the drop2's lanes that plays all through it");
             }
 
+            const auto optionalSlot = [&form] (std::size_t i) {
+                return std::any_of (form.slots[i].bars.begin(), form.slots[i].bars.end(), [] (const Weighted& w) { return w.value == 0 && w.weight > 0; });
+            };
+            const auto layered = [&form] (std::string_view id) {
+                return std::any_of (form.layer.begin(), form.layer.end(), [&] (const LaneWeight& lw) { return lw.weight > 0 && lw.lane == id; });
+            };
+
             // the mix-in's lanes carry on into the section after it (lanes only join from the mix-in on):
-            // every lane a mix-in choice ends on is one of that kind's lanes from its start
+            // every lane a mix-in choice ends on is one of that kind's lanes from its start. Late: an
+            // "after" or "last" entry, or a "before" entry long enough to keep the lane out of the
+            // whole section; and drop 2's layer, which drop 1 never plays
             const KindPlan* intro = form.plan ("intro");
             for (std::size_t i = 1; intro != nullptr && i < form.slots.size(); ++i)
             {
-                const KindPlan& next = *form.plan (form.slots[i].kind);
+                const FormSlot& slot = form.slots[i];
+                const KindPlan& next = *form.plan (slot.kind);
+                std::int32_t shortest = 0;
+                for (const Weighted& w : slot.bars)
+                    if (w.value > 0 && w.weight > 0 && (shortest == 0 || w.value < shortest))
+                        shortest = w.value;
+                const auto late = [&] (const LaneEntry& e) {
+                    if (e.entry != Entry::before)
+                        return true;
+                    return std::any_of (e.bars.begin(), e.bars.end(), [&] (const Weighted& w) { return w.weight > 0 && w.value >= shortest; });
+                };
                 for (const BlockChoice& c : intro->choices)
                 {
                     if (c.blocks.empty())
                         continue;
                     for (const auto& id : c.blocks.back())
                     {
-                        const bool late = std::any_of (next.entries.begin(), next.entries.end(), [&] (const LaneEntry& e) { return e.entry != Entry::before && contains (e.lanes, id); });
-                        if (!contains (next.lanes, id) || late)
+                        if (!contains (next.lanes, id) || std::any_of (next.entries.begin(), next.entries.end(), [&] (const LaneEntry& e) { return contains (e.lanes, id) && late (e); }))
                         {
-                            plans[form.slots[i].kind].fail ("the mix-in ends on \"" + id + "\", so the " + form.slots[i].kind + " after it plays it from its start");
+                            plans[slot.kind].fail ("the mix-in ends on \"" + id + "\", so the " + slot.kind + " after it plays it from its start");
+                            return;
+                        }
+                        if (slot.kind == "drop" && layered (id))
+                        {
+                            n["layer"].fail ("the mix-in ends on \"" + id + "\", so the drop after it plays it from its start, but it's drop 2's layer, which drop 1 never plays");
                             return;
                         }
                     }
                 }
                 // the next slot that can follow the mix-in, if this one can be left out
-                if (std::none_of (form.slots[i].bars.begin(), form.slots[i].bars.end(), [] (const Weighted& w) { return w.value == 0 && w.weight > 0; }))
+                if (!optionalSlot (i))
                     break;
             }
 

@@ -192,7 +192,8 @@ namespace wubansia::gen
     // - a build not followed by a drop or drop2 that always plays;
     // - a mix-in choice that isn't drums only in its first block, lanes only joining, never three
     //   blocks alike (and a mix-out the other way round);
-    // - a lane the mix-in ends on that the section after it doesn't play from its start;
+    // - a lane the mix-in ends on that the section after it doesn't play from its start (a late
+    //   entry, a "before" entry that can sit the section out, drop 2's layer in a drop);
     // - an entry, rest or dropout lane the kind doesn't play, or that can't play all through it where
     //   it must;
     // - a "change" kind with a length too short for its rest (inside the section, for a drum lane)
