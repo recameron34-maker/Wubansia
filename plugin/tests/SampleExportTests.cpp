@@ -17,6 +17,7 @@
 #include "util/sha256.h"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -26,6 +27,8 @@
 #include <vector>
 
 #if ! JUCE_WINDOWS
+    #include <csignal>
+    #include <sys/resource.h>
     #include <sys/stat.h>
     #include <unistd.h>
 #endif
@@ -410,6 +413,79 @@ TEST_CASE ("a read-only kit folder gives a problem naming it and leaves nothing 
     INFO (refused.problem);
     CHECK (text (refused.problem).contains (kitFolder.getFullPathName()));
     CHECK (entriesIn (kitFolder) == 0); // no temporary file left behind
+#endif
+}
+
+#if ! JUCE_WINDOWS
+namespace
+{
+    // Caps the size of any file this process writes (RLIMIT_FSIZE, the soft limit only, so it can be raised back),
+    // with SIGXFSZ ignored so a write past it fails (EFBIG) instead of killing the process: a disk that fills up
+    // part-way through a copy. Both come back when this goes, even if a REQUIRE throws meanwhile.
+    struct FileSizeCap
+    {
+        explicit FileSizeCap (rlim_t bytes)
+        {
+            if (getrlimit (RLIMIT_FSIZE, &saved) != 0)
+                return;
+            previous = std::signal (SIGXFSZ, SIG_IGN);
+            auto capped = saved;
+            capped.rlim_cur = std::min (bytes, saved.rlim_max);
+            capping = setrlimit (RLIMIT_FSIZE, &capped) == 0;
+        }
+
+        ~FileSizeCap()
+        {
+            if (capping)
+                setrlimit (RLIMIT_FSIZE, &saved);
+            if (previous != SIG_ERR)
+                std::signal (SIGXFSZ, previous);
+        }
+
+        rlimit saved {};
+        void (*previous) (int) = SIG_ERR;
+        bool capping = false;
+    };
+}
+#endif
+
+TEST_CASE ("a write that fails part-way leaves nothing under the export name; the next export writes it whole", "[sounds][export]")
+{
+#if JUCE_WINDOWS
+    SKIP ("POSIX file size limits only");
+#else
+    // writeNew checks the write and the size before the rename: File::replaceWithData () would rename a short file
+    // into place, under the frozen name projects refer to, and every later export would go to " (2)".
+    TempFolder temp;
+    test::SyntheticContent content;
+    const auto samples = temp / "Samples";
+    const auto kitFolder = samples.getChildFile ("SYN01 Synthetic Test Kit");
+    const auto target = kitFolder.getChildFile ("Riser - SYN01 128 Gm 6A.wav");
+    const auto& riser = synWav (fileIndex (syn(), "FX/Riser.wav"));
+    REQUIRE (riser.size() == 540044u);
+    const auto found = content.locate (syn());
+    REQUIRE (found.state == ContentState::ready);
+
+    const rlim_t limit = GENERATE (rlim_t { 100000 }, rlim_t { 0 }); // part of it written, then none of it
+    CAPTURE (limit);
+    sounds::ExportResult refused;
+    bool capped = false;
+    {
+        FileSizeCap cap (limit);
+        capped = cap.capping;
+        refused = sounds::exportCopy (content, found, synInfo(), fileAt (syn(), "FX/Riser.wav"), samples);
+    }
+    // Every check once the cap is gone: under it, even this test's own output could be cut short.
+    REQUIRE (capped);
+    CHECK (refused.file == juce::File());
+    CHECK (text (refused.problem).contains (target.getFullPathName()));
+    CHECK_FALSE (target.exists());
+    CHECK (entriesIn (kitFolder) == 0); // no hidden temporary file left behind
+
+    const auto whole = sounds::exportCopy (content, found, synInfo(), fileAt (syn(), "FX/Riser.wav"), samples);
+    INFO (whole.problem);
+    CHECK (whole.file == target); // the plain name: nothing short took it
+    CHECK (bytesOf (whole.file) == riser);
 #endif
 }
 
