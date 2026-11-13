@@ -154,7 +154,9 @@ note's pad. Its files are in the kit's content folder, in `Content/<kit>/v1/Drum
 - FUT01's kick follows Wubansia's kick A/B switch: Kick Garage on B, the default, and Kick Split on A.
 - FUT03's conga and bongo files are named by the pitch they sound, not by their note: put each on its note above, and
   let it play at its own pitch.
-- In `Drums/` but on no note: FUT01's Alloy Bell, FUT02's Glass Ping and Resonant Zap, and the Accent files.
+- In `Drums/` but on no drum pad: FUT01's Alloy Bell, FUT02's Glass Ping and Resonant Zap, and the Accent files.
+  They're accent sounds, on the Accents track's notes (channel 6; the README below maps them), and FUT02's Glass Ping
+  also has its own track (channel 13).
 - Each kit's MIDI README in Wubansia's repository, `content/midi/<kit>/README.md`, gives the same map.
 
 ### In Ableton Live
