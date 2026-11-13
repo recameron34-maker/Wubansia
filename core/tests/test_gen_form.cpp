@@ -9,7 +9,8 @@
 // - G10's form part: at least 8 distinct forms, none in more than a quarter of the seeds;
 // - the lanes inside the drops: a lane change inside every drop and drop 2, moves only on 8-bar
 //   lines and in the bar before a 16-bar line, drop 2's layer, and drop 1 at least 10% denser than
-//   the groove;
+//   the groove; the lanes each drop keeps in every bar as the written mixes do (drop 1's kick,
+//   drop 2's hats), and one-bar pulls that take their whole group and land back on the line;
 // - the loader refuses grammars that could draw a form breaking a DJ rule, and says where.
 
 #include "gen/arrange.h"
@@ -1170,6 +1171,107 @@ TEST_CASE ("form: drop 1 keeps its kick in every bar but its one-bar pulls", "[g
                         CHECK ((sec.active (kick, bar) || pulled));
                     }
         }
+}
+
+TEST_CASE ("form: drop 2 keeps its hats and the four-on-the-floor kick, and FUT04's drop 1 its acid, in every bar but their one-bar pulls", "[gen][form]")
+{
+    // Drop 2 is the peak a DJ lets play before the mix-out: none of the written drop 2s rests its hats
+    // (FUT01's and FUT03's are busier than their drop 1's), and FUT02's and FUT03's keep the four on
+    // the floor in every bar (FUT01's takes its 2-step kick out for 8 bars, its written move). FUT04's
+    // written drop 1 never rests its acid line, the track's hook. A one-bar pull may take a lane for
+    // its bar: it lands back on the line.
+    struct Kept
+    {
+        const char* kit;
+        const char* kind;
+        const char* lane;
+    };
+    for (const Kept& k : { Kept { "FUT01", "drop2", "hats" }, Kept { "FUT02", "drop2", "hats" }, Kept { "FUT03", "drop2", "hats" }, Kept { "FUT02", "drop2", "kick" },
+             Kept { "FUT03", "drop2", "kick" }, Kept { "FUT04", "drop", "bass" } })
+    {
+        std::size_t songs = 0;
+        for (const Song& s : songsOf (k.kit))
+        {
+            const std::size_t li = laneIndexOf (s, k.lane);
+            bool kept = true;
+            for (const Section& sec : s.sections)
+                if (sec.kind == k.kind)
+                    for (std::int32_t bar = 0; bar < sec.bars; ++bar)
+                    {
+                        const bool pulled = std::any_of (sec.dropouts.begin(), sec.dropouts.end(), [&] (const Dropout& d) { return d.bar == bar && (d.lanes >> li & 1u) != 0; });
+                        kept = kept && (sec.active (li, bar) || pulled);
+                    }
+            INFO (k.kit << " seed " << s.seed << ": " << formOf (s) << "; the " << k.lane << " all through the " << k.kind << " but its pulls");
+            CHECK (kept);
+            songs += kept ? 1u : 0u;
+        }
+        INFO (k.kit << ": the " << k.lane << " all through the " << k.kind << " in " << songs << " of " << seeds << " songs");
+        CHECK (songs == seeds);
+    }
+}
+
+TEST_CASE ("form: a one-bar pull takes its whole group, so it never sits before a line one of its lanes leaves on", "[gen][form]")
+{
+    // A pull is its lane group dropping out for a bar and slamming back on the line. Before a line
+    // where a lane of its group leaves (the kick's rest starting there) it would take the rest of the
+    // group alone, a sub gap that resolves into the kick going: an editing seam. So a pull takes every
+    // lane of one of its plan's groups that plays its bar (lanes already out, a rest that ends on the
+    // line, aside), and each of them lands back on the line.
+    SECTION ("the shipped styles")
+    {
+        for (const char* id : kits)
+        {
+            const FormSpec& form = bundleFor (id).style.form;
+            for (const Song& s : songsOf (id))
+                for (const Section& sec : s.sections)
+                    for (const Dropout& d : sec.dropouts)
+                    {
+                        INFO (id << " seed " << s.seed << ": the " << sec.kind << " at bar " << sec.startBar << ", the pull at its bar " << d.bar);
+                        const KindPlan* plan = form.plan (sec.kind);
+                        REQUIRE (plan != nullptr);
+                        REQUIRE (plan->dropout);
+                        const std::uint64_t block = sec.blocks[static_cast<std::size_t> (d.bar / barsPerBlock)];
+                        CHECK (std::any_of (plan->dropout->lanes.begin(), plan->dropout->lanes.end(), [&] (const LaneGroup& g) { return d.lanes == (maskOf (s, g.lanes) & block); }));
+                        CHECK ((d.lanes & ~sec.lanesAt (d.bar + 1)) == 0);
+                    }
+        }
+    }
+    SECTION ("a drop whose kick rests from its 16-bar line has no pull before it")
+    {
+        // every drop is 32 bars on a 16-bar line, rests its kick for 8 bars, from bar 8 or bar 16, and
+        // draws a kick and bass pull before its 16-bar line whenever its group can land back there
+        std::string form = replaced (baseForm, "\"rest\": { \"p\": 50, \"bars\": 8, \"lanes\": [{ \"lane\": \"kick\", \"w\": 1 }, { \"lane\": \"chords\", \"w\": 1 }] }, \"dropout\": { \"p\": 50,",
+            "\"rest\": { \"p\": 100, \"bars\": 8, \"lanes\": [{ \"lane\": \"kick\", \"w\": 1 }] }, \"dropout\": { \"p\": 100,");
+        form = replaced (form, "{ \"kind\": \"drop\", \"bars\": [{ \"bars\": 16, \"w\": 1 }, { \"bars\": 24, \"w\": 2 }, { \"bars\": 32, \"w\": 1 }] }", "{ \"kind\": \"drop\", \"bars\": [{ \"bars\": 32, \"w\": 1 }] }");
+        form = replaced (form, "\"sixteen\": 70", "\"sixteen\": 100");
+        std::size_t leaving = 0, back = 0;
+        for (const Song& s : songsWith (form, 64))
+        {
+            const std::uint64_t kick = std::uint64_t (1) << laneIndexOf (s, "kick"), bass = std::uint64_t (1) << laneIndexOf (s, "bass");
+            for (const Section& sec : s.sections)
+                if (sec.kind == "drop")
+                {
+                    INFO ("seed " << s.seed << ": the drop at bar " << sec.startBar);
+                    REQUIRE (sec.bars == 32);
+                    if ((sec.blocks[2] & kick) == 0)
+                    {
+                        ++leaving; // the kick plays bar 15 and leaves on the line: no pull there
+                        CHECK (sec.dropouts.empty());
+                    }
+                    else
+                    {
+                        REQUIRE ((sec.blocks[1] & kick) == 0); // its rest, bars 8 to 15
+                        ++back; // the kick sits bar 15 out and comes back on the line, with the bass
+                        REQUIRE (sec.dropouts.size() == 1);
+                        CHECK (sec.dropouts.front().bar == 15);
+                        CHECK (sec.dropouts.front().lanes == bass);
+                    }
+                }
+        }
+        INFO (leaving << " drops rest the kick from the line, " << back << " up to it");
+        CHECK (leaving > 0);
+        CHECK (back > 0);
+    }
 }
 
 TEST_CASE ("form: drops run 24 bars or more, drop 2 32 or more, and in FUT01-FUT03 never shorter than drop 1", "[gen][form]")
