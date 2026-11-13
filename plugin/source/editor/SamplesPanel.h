@@ -33,8 +33,9 @@ namespace wubansia::editor
 {
     class SamplesPanel;
 
-    // The name exportSound () gives a file: "Rave Stab v2 - FUT01 134 F#m 11A.wav" (sounds::exportName). A copy
-    // only differs when a file of that name holds other bytes, and then takes " (2)".
+    // The name exportSound () gives a file: "Rave Stab v2 - FUT01 134 F#m 11A.wav", "Dub Chord Cm9 - FUT03 128 Gm
+    // 6A.wav" for "Accent Dub Chord Cm9" (sounds::exportName). A copy only differs when a file of that name holds
+    // other bytes, and then takes " (2)".
     juce::String exportFileName (const KitCard& kit, const SoundFile& file);
 
     // A kit in the drawer's header: a click browses its sounds. Lit in its kit's accent while browsed; its LED

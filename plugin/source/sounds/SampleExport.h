@@ -6,9 +6,10 @@
 //     <samples folder>/<KIT> <Title>/<stem> - <KIT> <BPM> <Key> <Camelot>[ c<N>][ (<k>)].wav
 //     ~/Music/Wubansia/Samples/FUT01 Alloy Signal/Rave Stab v2 - FUT01 134 F#m 11A.wav
 //
-// - <stem> is the installed file's name without folder and ".wav", as it is: the four kits' 618 names are
-//   unique per kit ignoring case, in safe characters, and carry the note, the layer and the round robin. The
-//   sound comes first, so a Drum Rack pad or Simpler shows it.
+// - <stem> is the installed file's name without folder and ".wav", and without a leading "Accent ", which the
+//   drawer drops from names too (18 of FUT03's and FUT04's): the four kits' 618 names are still unique per kit
+//   ignoring case, in safe characters, and carry the note, the layer and the round robin. The sound comes first,
+//   so a Drum Rack pad or Simpler shows it: "Dub Chord Cm9 - FUT03 128 Gm 6A.wav", not "Accent Dub Ch...".
 // - <Key> is short (dragout::shortKey: F#m, Bbmaj). " c<N>" marks content version N from 2 on, so a later
 //   version's file never takes an earlier one's name. " (<k>)" is added only when a file of the plain name
 //   holds other bytes. Only safe characters (dragout::safeName), and at most kMaxNameStem before " (<k>)".

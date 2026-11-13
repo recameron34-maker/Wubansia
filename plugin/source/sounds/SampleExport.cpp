@@ -84,7 +84,13 @@ namespace wubansia::sounds
     {
         const auto version = kit.contentVersion >= 2 ? " c" + std::to_string (kit.contentVersion) : std::string();
         const auto suffix = dragout::safeName (kit.id + " " + std::to_string (kit.bpm) + " " + dragout::shortKey (kit.key) + " " + kit.camelot + version);
-        auto stem = visible (dragout::safeName (stemOf (file.path)));
+
+        // The installed name, less a leading "Accent " as the drawer's names drop it (SoundCatalog's rule 6): a pad or
+        // Simpler shows the start of a name, which must be the sound.
+        auto installed = stemOf (file.path);
+        if (installed.starts_with ("Accent ") && installed.size() > 7)
+            installed.remove_prefix (7);
+        auto stem = visible (dragout::safeName (installed));
 
         // A long installed name is cut, so the kit's part always fits.
         const auto room = kMaxNameStem > suffix.size() + 3 ? kMaxNameStem - suffix.size() - 3 : std::size_t { 1 };
