@@ -10,8 +10,8 @@
 //   a cell at variant v takes its draws from the last u <= v that mutated its step, or from variant 0.
 // So the line a section starts on stays, and each change moves a note or two of it, heard in both
 // bars of the loop from the change on (G4 sees the change where it happens, on its phrase line). A
-// section whose kind starts on a later variant (drop 2's "variant": 2) starts on the line as those
-// mutations left it.
+// section that starts on a later variant (its kind's "variant" in "sections", such as drop 2's 8, or
+// its form slot's "variant") starts on the line as those mutations left it.
 
 #include "gen/content.h"
 #include "rng/rng.h"

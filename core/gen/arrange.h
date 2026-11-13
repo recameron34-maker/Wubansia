@@ -64,7 +64,8 @@ namespace wubansia::gen
     // Fills song.changes and song.turnBars. Keys: root.with (tag ("arrange")).
     void planChanges (Song& song, const Style& style, rng::Key root);
 
-    // The pattern variant lane plays at a bar of a section: the section kind's base variant plus the
+    // The pattern variant lane plays at a bar of a section: the section's starting variant
+    // (Section::variant, its form slot's "variant"; else its kind's in the style's "sections") plus the
     // changes for that lane in the section up to and including that bar.
     std::int32_t variantAt (const Song& song, const Style& style, std::size_t lane, std::size_t section, std::int32_t barInSection) noexcept;
 

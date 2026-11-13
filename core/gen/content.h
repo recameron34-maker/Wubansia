@@ -95,7 +95,7 @@ namespace wubansia::gen
         std::string kind;
         std::int32_t energy = 1; // 1-4, reserved: S1b2's syncopation bands per energy level (plan §4.1) read it; part 1 doesn't
         std::int32_t vel = 1000; // the section's score velocity scale, permille
-        std::int32_t variant = 0; // the pattern variant every lane starts the section on
+        std::int32_t variant = 0; // the pattern variant every lane starts a section of this kind on, unless its form slot gives its own (FormSlot::variant)
     };
 
     // ---- the form grammar (arrange.h): every seed draws its own extended mix from it
