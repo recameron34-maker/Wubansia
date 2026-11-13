@@ -43,7 +43,7 @@
           { "lanes": ["kick", "bass"], "before": [ { "bars": 8, "w": 1 } ] } ] },
       "drop": {
         "lanes": ["kick", "snare", "hats", "perc", "bass", "chords", "arp"],
-        "rest": { "p": 60, "bars": 8, "lanes": [ { "lane": "kick", "w": 2 }, { "lane": "chords", "w": 1 } ] },
+        "rest": { "p": 60, "bars": 8, "lanes": [ { "lane": "chords", "w": 1 } ] },
         "dropout": { "p": 40, "every": 16, "lanes": [ { "lanes": ["kick", "bass"], "w": 3 }, { "lanes": ["kick", "bass", "arp"], "w": 1 } ] },
         "change": true },
       "break": {
