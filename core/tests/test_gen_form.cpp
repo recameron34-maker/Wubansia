@@ -455,21 +455,27 @@ TEST_CASE ("form: a lane sits out the bars it doesn't play, dropouts included", 
         }
 }
 
-TEST_CASE ("form: the first drop plays the zaps (FUT02) and the snare (FUT04), as their written mixes do", "[gen][form]")
+TEST_CASE ("form: both drops play the zaps (FUT02) and the snare (FUT04) in every block, as their written mixes do", "[gen][form]")
 {
     // The kits' own extended mixes keep FUT02's laser zaps and FUT04's metal snare in every line of
-    // both drops; the second drop lifts on its own grids (the 3/16 zap roll, the 2-and-4 backbeat).
+    // both drops, so in neither drop does the lane rest, join late or leave early (no pull group
+    // takes it either). That is the lanes: the grids are part 1's, so FUT04's first drop plays its
+    // sparse snare where the written mix plays the backbeat on 2 and 4 (ADR 0023 §4 lists it).
     for (const auto& [id, lane] : { std::pair { "FUT02", "perc" }, std::pair { "FUT04", "snare" } })
         for (const Song& s : songsOf (id))
         {
             const std::size_t li = laneIndexOf (s, lane);
-            INFO (id << " seed " << s.seed << ": " << formOf (s));
             std::size_t notes = 0;
             for (const Note& n : s.lanes[li].score)
                 notes += s.sections[static_cast<std::size_t> (n.section)].kind == "drop" ? 1u : 0u;
             for (const Section& sec : s.sections)
                 if (isDrop (sec.kind))
-                    CHECK (sec.active (li, 0));
+                    for (std::size_t k = 0; k < sec.blocks.size(); ++k)
+                    {
+                        INFO (id << " seed " << s.seed << ": the " << sec.kind << " at bar " << sec.startBar << ", its block at bar " << k * barsPerBlock);
+                        CHECK ((sec.blocks[k] >> li & 1u) == 1u);
+                    }
+            INFO (id << " seed " << s.seed << ": " << formOf (s));
             CHECK (notes > 0);
         }
 }
@@ -733,6 +739,42 @@ TEST_CASE ("form: the slot-by-slot fallback keeps the lines and the length range
         CHECK (formLengths (form, std::vector<std::int8_t> { -1, -1, 0, -1 }, rng::seedKey (1)) == std::vector<std::int32_t> { 32, 8, 16, 16 });
         CHECK (formLengths (form, std::vector<std::int8_t> { -1, -1, 1, -1 }, rng::seedKey (0)) == std::vector<std::int32_t> { 32, 16, 24, 8 });
         CHECK (formLengths (form, std::vector<std::int8_t> { -1, -1, 1, -1 }, rng::seedKey (1)) == std::vector<std::int32_t> { 32, 16, 16, 16 });
+    }
+    SECTION ("a line slot that can be left out: left out, or on its line")
+    {
+        // The slot's own line check decides here, where the slot before can't: a break of 0 or 16
+        // bars after a groove of 8 or 16, in 64 to 96 bars, fits either way, but only one groove puts
+        // it on its line (a slot that always plays is kept on its line by the slots before it).
+        // FUT04's break 2 (0, 16 or 24 bars) is this case on a shipped grammar.
+        FormSpec form;
+        form.bars = { 64, 96 };
+        form.slots.push_back ({ "intro", { { 32, 1 } } });
+        form.slots.push_back ({ "groove", { { 8, 1 }, { 16, 1 }, { 128, 1000000 } } });
+        form.slots.push_back ({ "break", { { 0, 1 }, { 16, 1 }, { 128, 1000000 } } });
+        form.slots.push_back ({ "outro", { { 32, 1 } } });
+        for (const std::int8_t line : { std::int8_t (0), std::int8_t (1) })
+        {
+            INFO ("the break " << (line == 1 ? "on a 16-bar line" : "on 8 mod 16"));
+            const std::vector<std::int8_t> lines { -1, -1, line, -1 };
+            REQUIRE (formFits (form, lines));
+            std::set<std::vector<std::int32_t>> forms;
+            for (std::uint64_t k = 0; k < 200; ++k)
+            {
+                const auto lengths = formLengths (form, lines, rng::seedKey (k));
+                REQUIRE (lengths.size() == form.slots.size());
+                INFO ("key " << k << ": the groove " << lengths[1] << " bars, the break " << lengths[2]);
+                CHECK (lengths[1] != 128);
+                CHECK (lengths[2] != 128);
+                if (lengths[2] != 0)
+                    CHECK (((lengths[0] + lengths[1]) % 16 == 0) == (line == 1));
+                const std::int32_t total = lengths[0] + lengths[1] + lengths[2] + lengths[3];
+                CHECK (total >= form.bars.lo);
+                CHECK (total <= form.bars.hi);
+                forms.insert (lengths);
+            }
+            // the break left out after either groove, or 16 bars after the groove that puts it on its line
+            CHECK (forms.size() == 3);
+        }
     }
 }
 
@@ -1022,6 +1064,68 @@ TEST_CASE ("form: lanes only leave from the section before the mix-out on, and t
         }
 }
 
+namespace
+{
+    // baseForm's mix-out choice, up to its first block's lanes, and the same choice opening on the chords
+    const std::string outroOpens = "\"outro\": { \"choices\": [ { \"w\": 1, \"blocks\": [[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"],";
+    const std::string outroOpensOnChords = "\"outro\": { \"choices\": [ { \"w\": 1, \"blocks\": [[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"],";
+    // two mix-out choices of weight 1: one opening on the chords, then baseForm's
+    const std::string twoOutros = "\"outro\": { \"choices\": [ { \"w\": 1, \"blocks\": [[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"], "
+                                  "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"], [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"], [\"kick\", \"hats\", \"shaker\"]] }, "
+                                  "{ \"w\": 1, \"blocks\": [[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"],";
+    const std::string drop2Lengths = "{ \"kind\": \"drop2\", \"bars\": [{ \"bars\": 16, \"w\": 2 }, { \"bars\": 24, \"w\": 1 }, { \"bars\": 32, \"w\": 1 }] }";
+    const std::string drop2Long = "{ \"kind\": \"drop2\", \"bars\": [{ \"bars\": 24, \"w\": 1 }, { \"bars\": 32, \"w\": 1 }] }";
+    const std::string drop2Rest = "\"rest\": { \"p\": 40, \"bars\": 8, \"lanes\": [{ \"lane\": \"hats\", \"w\": 1 }, { \"lane\": \"chords\", \"w\": 1 }] }";
+
+    // baseForm with drop 2's chords leaving 8 bars before its end in about half the songs (a "before"
+    // entry) and resting the hats only, 24 or 32 bars long (room for the hats' rest inside it)
+    std::string chordsStripForm()
+    {
+        return replaced (replaced (baseForm, drop2Lengths, drop2Long), drop2Rest,
+            "\"entries\": [{ \"lanes\": [\"chords\"], \"before\": [{ \"bars\": 0, \"w\": 1 }, { \"bars\": 8, \"w\": 1 }] }], \"rest\": { \"p\": 40, \"bars\": 8, \"lanes\": [{ \"lane\": \"hats\", \"w\": 1 }] }");
+    }
+
+    // Over 64 seeds of a form whose mix-out can open on the chords: never after a drop 2 that ends
+    // without them, and at least once after one that ends with them (the draw isn't just avoiding it).
+    void checkMixOutChoice (const std::string& form)
+    {
+        INFO (formError (form));
+        REQUIRE (formError (form).empty());
+        std::size_t without = 0, with = 0, opened = 0;
+        for (const Song& s : songsWith (form, 64))
+        {
+            INFO ("seed " << s.seed << ": " << formOf (s));
+            const std::uint64_t chords = std::uint64_t (1) << laneIndexOf (s, "chords");
+            const Section& out = s.sections.back();
+            const Section& before = s.sections[s.sections.size() - 2];
+            REQUIRE (before.kind == "drop2");
+            const bool opens = (out.blocks.front() & chords) != 0;
+            if ((before.lanesAt (before.bars - 1) & chords) == 0)
+            {
+                ++without;
+                CHECK_FALSE (opens);
+            }
+            else
+            {
+                ++with;
+                opened += opens ? 1u : 0u;
+            }
+        }
+        INFO (without << " drop 2s end without the chords; the mix-out opens on them after " << opened << " of the " << with << " that end with them");
+        CHECK (without > 0);
+        CHECK (opened > 0);
+    }
+}
+
+TEST_CASE ("form: the mix-out never opens on a non-drum lane the drop 2 before it ended without", "[gen][form]")
+{
+    // The draw itself (arrange.cpp's choice weights), on a grammar where a mix-out choice opens on the
+    // chords: no shipped mix-out carries a non-drum lane its drop 2 can end without, so only a fixture
+    // shows the draw at work.
+    SECTION ("drop 2's chords rest through its last block") { checkMixOutChoice (replaced (baseForm, outroOpens, twoOutros)); }
+    SECTION ("drop 2's chords leave 8 bars before its end") { checkMixOutChoice (replaced (chordsStripForm(), outroOpens, twoOutros)); }
+}
+
 TEST_CASE ("form: the kick never sits out more than 32 bars in a row", "[gen][form]")
 {
     // The written mixes never go past 16 kickless bars, part 1's forms never past 32: a break of up
@@ -1246,6 +1350,24 @@ TEST_CASE ("form: the loader keeps lanes carrying on across the mix-in and mix-o
     CHECK_THAT (formWith ("\"outro\": { \"choices\": [ { \"w\": 1, \"blocks\": [[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"],",
                     "\"outro\": { \"choices\": [ { \"w\": 1, \"blocks\": [[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"],"),
         ContainsSubstring ("form.plans.outro.choices"));
+    // ...and every other way a section before the mix-out can end without a lane: a "before" entry,
+    // an "after" entry long enough to sit the section out, a lane the section doesn't play, and a
+    // section the mix-out can come straight after because the one between can be left out
+    const std::string strip = chordsStripForm();
+    const std::string lateChords = replaced (replaced (baseForm, drop2Lengths, drop2Long), drop2Rest,
+        "\"entries\": [{ \"lanes\": [\"chords\"], \"after\": [{ \"bars\": 8, \"w\": 1 }, { \"bars\": 24, \"w\": 1 }] }], \"rest\": { \"p\": 40, \"bars\": 8, \"lanes\": [{ \"lane\": \"hats\", \"w\": 1 }] }");
+    const std::string noChords = replaced (replaced (replaced (baseForm, drop2Lengths, drop2Long), drop2Rest, "\"rest\": { \"p\": 40, \"bars\": 8, \"lanes\": [{ \"lane\": \"hats\", \"w\": 1 }] }"),
+        "\"drop2\": { \"lanes\": [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"]", "\"drop2\": { \"lanes\": [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"]");
+    const std::string optionalGroove = replaced (baseForm, "{ \"kind\": \"outro\", \"bars\"", "{ \"kind\": \"groove\", \"bars\": [{ \"bars\": 0, \"w\": 1 }, { \"bars\": 16, \"w\": 1 }] }, { \"kind\": \"outro\", \"bars\"");
+    for (const auto& [what, form] : { std::pair { "a before entry", strip }, std::pair { "an after entry", lateChords }, std::pair { "a lane drop 2 doesn't play", noChords },
+             std::pair { "an optional groove before the mix-out", optionalGroove } })
+    {
+        INFO (what);
+        CHECK (formError (form).empty());
+        CHECK_THAT (formError (replaced (form, outroOpens, outroOpensOnChords)), ContainsSubstring ("lanes only leave from the section before the mix-out on"));
+        CHECK_THAT (formError (replaced (form, outroOpens, outroOpensOnChords)), ContainsSubstring ("form.plans.outro.choices"));
+        CHECK (formError (replaced (form, outroOpens, twoOutros)).empty()); // a choice without them is enough
+    }
     // the mix-in starts and the mix-out ends on the kick a DJ mixes on, never on silence
     CHECK_THAT (formWith ("[[\"kick\", \"hats\"], [\"kick\", \"hats\", \"shaker\"]", "[[], [\"kick\", \"hats\", \"shaker\"]"), ContainsSubstring ("first block is empty"));
     CHECK_THAT (formWith ("[[\"kick\", \"hats\"], [\"kick\", \"hats\", \"shaker\"]", "[[], [\"kick\", \"hats\", \"shaker\"]"), ContainsSubstring ("form.plans.intro.choices[0].blocks[0]"));
