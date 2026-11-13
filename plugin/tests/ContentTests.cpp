@@ -19,10 +19,19 @@
 
 #include <atomic>
 #include <chrono>
+#include <future>
 #include <set>
 #include <sstream>
+#include <thread>
+
+#if ! JUCE_WINDOWS
+    #include <fcntl.h>
+    #include <sys/stat.h>
+    #include <unistd.h>
+#endif
 
 using namespace wubansia;
+using namespace std::chrono_literals;
 namespace syn = engine::testing;
 
 namespace
@@ -335,6 +344,55 @@ TEST_CASE ("readFile gives a listed file's bytes from the kit's folder and refus
     const auto noFolder = installed.readFile (nowhere, synManifest().files[0].path);
     CHECK_FALSE (noFolder.ok());
     CHECK (noFolder.error.rfind ("missing: ", 0) == 0);
+}
+
+TEST_CASE ("readFile reads regular files only: a FIFO or a device at a listed path is refused at once", "[content][sounds]")
+{
+#if JUCE_WINDOWS
+    SKIP ("POSIX FIFOs and devices only");
+#else
+    // After the kit was found ready, something not a file takes a listed path. A drag reads on the message thread and
+    // an audition on the sound thread: a read that waits for a FIFO's writer, or never ends on a device, hangs them.
+    TempFolder temp;
+    const auto root = temp / "root";
+    const auto kitFolder = root.getChildFile ("syn01").getChildFile ("v1");
+    writeKit (kitFolder);
+    UserSettings settings (temp / "settings.xml");
+    ContentLocator::Places places;
+    places.platformDefault = root;
+    InstalledContent installed (places, settings);
+    const auto found = installed.locate (synManifest());
+    REQUIRE (found.state == ContentState::ready);
+    const auto& path = synManifest().files[2].path;
+    const auto file = fileIn (kitFolder, 2);
+    REQUIRE (file.deleteFile());
+
+    SECTION ("a FIFO: refused before it is opened, so nothing waits for a writer")
+    {
+        REQUIRE (mkfifo (file.getFullPathName().toRawUTF8(), 0600) == 0);
+        auto reading = std::async (std::launch::async, [&] { return installed.readFile (found, path); });
+        const bool returned = reading.wait_for (2s) == std::future_status::ready;
+        // A read that waits for a writer gets one, so this fails instead of hanging.
+        for (int i = 0; ! returned && i < 50 && reading.wait_for (0s) != std::future_status::ready; ++i)
+        {
+            if (const int writer = open (file.getFullPathName().toRawUTF8(), O_WRONLY | O_NONBLOCK); writer >= 0)
+                close (writer);
+            std::this_thread::sleep_for (100ms);
+        }
+        REQUIRE (returned);
+        const auto read = reading.get();
+        CHECK_FALSE (read.ok());
+        CHECK (read.error == "unreadable: " + path + ": not a regular file");
+    }
+
+    SECTION ("a link to a device: refused, never read")
+    {
+        REQUIRE (symlink ("/dev/null", file.getFullPathName().toRawUTF8()) == 0);
+        const auto read = installed.readFile (found, path);
+        CHECK_FALSE (read.ok());
+        CHECK (read.error == "unreadable: " + path + ": not a regular file");
+    }
+#endif
 }
 
 TEST_CASE ("a raised cancel flag stops the content check and the reads within one file", "[content]")

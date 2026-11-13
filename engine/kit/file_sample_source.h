@@ -21,6 +21,7 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace wubansia::engine
 {
@@ -46,6 +47,12 @@ namespace wubansia::engine
         // The file at relativePath (kit.json's files[].path: UTF-8, '/'-separated), decoded. It reads in chunks of
         // kReadChunkBytes.
         util::Result<SampleData> read (std::string_view relativePath) override;
+
+        // The same file's bytes as they are, undecoded, with read ()'s checks and words: the path rule before the disk
+        // is touched, a regular file only (a FIFO or a device could block or never end), at most kMaxFileBytes, then
+        // exactly its size in chunks, with the cancel flag. The Samples drawer's copies and auditions read through it
+        // (the plugin's ContentSourceFactory::readFile).
+        util::Result<std::vector<std::uint8_t>> readBytes (std::string_view relativePath) const;
 
         // The file's header only: it exists, isn't an LFS pointer, and is a WAV the reader takes. A few small reads.
         util::Result<WavInfo> probe (std::string_view relativePath) const;

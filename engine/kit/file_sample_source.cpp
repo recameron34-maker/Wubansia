@@ -198,6 +198,12 @@ namespace wubansia::engine
         return wav;
     }
 
+    util::Result<std::vector<std::uint8_t>> FileSampleSource::readBytes (std::string_view relativePath) const
+    {
+        (void) relativePath;
+        return util::Result<std::vector<std::uint8_t>>::failure ("unreadable: not yet: the tests come first");
+    }
+
     util::Result<WavInfo> FileSampleSource::probe (std::string_view relativePath) const
     {
         using R = util::Result<WavInfo>;
