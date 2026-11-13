@@ -6,8 +6,8 @@
 // - the lines: each drop, drop2 and break starts on a 16-bar line with the grammar's chance (about
 //   70%, as measured on annotated four-on-the-floor tracks), else on 8 mod 16;
 // - the lengths: every slot's length drawn by its weights, the form kept if it keeps those lines and
-//   ends inside its length range (200 to 240 bars in the shipped styles); a length of 0 leaves an
-//   optional slot out;
+//   ends inside its length range (200 to 240 bars in the shipped styles, techno 208 to 240); a
+//   length of 0 leaves an optional slot out;
 // - the lanes: the 32-bar mix-in and mix-out take a whole block plan (drums only at the edges, lanes
 //   only joining in the mix-in and only leaving in the mix-out, from the section before it on: the
 //   mix-out never takes a choice that brings back a non-drum lane that section ends without). Every

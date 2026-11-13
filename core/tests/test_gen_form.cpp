@@ -244,7 +244,8 @@ TEST_CASE ("form: every seed draws a DJ-friendly extended mix of 200 to 240 bars
         for (const Song& s : songsOf (id))
         {
             INFO (id << " seed " << s.seed << ": " << formOf (s));
-            // sections on 8-bar lines, tiling the song: 200 to 240 bars, 6 to 7.5 minutes at the kits' tempos
+            // sections on 8-bar lines, tiling the song: 200 to 240 bars (techno 208 to 240), 5:58 to 7:30
+            // at the kits' tempos
             std::int32_t bar = 0;
             for (const Section& sec : s.sections)
             {
