@@ -76,10 +76,23 @@ Example forms (seeds 1 to 3):
 FUT01 seed 1's drop, block by block: [all seven lanes] [the stabs out] [all] [all]; its drop 2: [all] [the kick out] [all] [all]; neither has a dropout.
 
 ### 5. The loader's rules
-The loader refuses, with the file, path, line and column, a grammar that could draw a form breaking a DJ rule: a length off the 8-bar grid; anything but a 32-bar intro first and a 32-bar outro last (and only there); a build not followed by a drop or drop2 that always plays; a mix-in choice that isn't drums only in its first block, lanes only joining, never three blocks alike (and a mix-out the other way round, down to drums only); a lane the mix-in ends on that the section after it doesn't play from its start (lanes only join from the mix-in on); an entry, rest or dropout lane the kind doesn't play, a lane in two entries, a rest lane that doesn't play all through the kind (an entry, or drop 2's layer), a dropout group without one that does; a "change" kind with a length too short for its rest and its dropouts; a layer drop 2 doesn't play all through; a plan for a kind no slot names, or a slot kind without a plan; and lines it can draw that no lengths keep inside the range. The style loader also needs a controller row for every kind a plan can play a lane with controllers in, and `makeBundle` a grid for every kind a plan can play a lane in.
+The loader refuses, with the file, the JSON path and the line, a grammar that could draw a form breaking a DJ rule:
+- a length off the 8-bar grid, or a slot `"variant"` outside 0 to 15;
+- anything but a 32-bar intro first and a 32-bar outro last (and only there);
+- a build not followed by a drop or drop2 that always plays;
+- a mix-in choice that isn't drums only in its first block, lanes only joining, never three blocks alike, and a mix-out the other way round, down to drums only; an empty edge block, or one without the lane a bass follows (the kick a DJ mixes on);
+- a lane the mix-in ends on that the section after it doesn't play from its start: a late entry, a "before" entry that can sit the section out, drop 2's layer before a drop (lanes only join from the mix-in on);
+- no mix-out choice that starts without the non-drum lanes the section before it can end without;
+- an entry, rest or dropout lane the kind doesn't play, a lane in two entries, a rest lane that doesn't play all through the kind (an entry, or drop 2's layer), a dropout group without one that does;
+- a "change" kind with a length that has room for neither its rest (twice the rest shorter than the length for a drum lane, which rests inside the section; at most the length for another lane) nor a dropout (a line inside it);
+- a layer drop 2 doesn't play all through;
+- a plan for a kind no slot names, or a slot kind without a plan;
+- more than 12 drop, drop2 and break slots, and lines it can draw that no lengths keep inside the range.
+
+The style loader also needs a controller row for every kind a plan can play a lane with controllers in, and `makeBundle` a grid for every kind a plan can play a lane in (its refusal names the kit, the style and the feel).
 
 ### 6. Export
-- **`regions.json`** gains, per region, `"dropouts"`: each one-bar dropout's `startBar`, `dawBar`, `bars` (1) and `lanes` (`[]` for none). No field is renamed or removed; the markers are unchanged.
+- **`regions.json`** gains, per region, `"dropouts"`, `[]` when it has none (always in the intro and outro; in the shipped styles, also in every groove, build and break, whose plans have no dropout): one entry per one-bar dropout, with `startBar` (the song's 0-based bar, like the region's and its blocks'), `dawBar`, `bars` (always 1) and `lanes`, the lanes of that bar's block that sit it out and play the line after it (never empty). A block's `lanes` are the lanes that play, so a lane listed in a block is active in all its bars but the dropouts that name it. Bars are score positions (ADR 0013 §3: with feel, the next line's downbeat can start a few ticks inside the bar). `format` stays 1: no field is renamed or removed, and the markers are unchanged.
 - **Region names** still carry no seed, and seeds of a kit can now share them or not; `writeFiles`' one-song-per-folder rule is unchanged (the full file's name and `regions.json` tell seeds apart).
 - **A `--bars` cut** keeps the dropouts before it (`groovecore_cut_check` expects the same).
 
