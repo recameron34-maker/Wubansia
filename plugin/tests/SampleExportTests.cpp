@@ -489,6 +489,36 @@ TEST_CASE ("a write that fails part-way leaves nothing under the export name; th
 #endif
 }
 
+TEST_CASE ("a dangling link at the export name is left as it is: the copy takes the next name", "[sounds][export]")
+{
+#if JUCE_WINDOWS
+    SKIP ("POSIX symbolic links only");
+#else
+    // A link reads as missing when its target has gone, and JUCE's rename deletes what is at the name first: without
+    // exportCopy's own check, the person's link would go.
+    TempFolder temp;
+    test::SyntheticContent content;
+    const auto samples = temp / "Samples";
+    const auto kitFolder = samples.getChildFile ("SYN01 Synthetic Test Kit");
+    REQUIRE (kitFolder.createDirectory().wasOk());
+    const auto link = kitFolder.getChildFile ("Riser - SYN01 128 Gm 6A.wav");
+    const auto movedAway = (temp / "Moved Away").getChildFile ("Riser.wav"); // not there
+    REQUIRE (symlink (movedAway.getFullPathName().toRawUTF8(), link.getFullPathName().toRawUTF8()) == 0);
+    REQUIRE (link.isSymbolicLink());
+    REQUIRE_FALSE (link.exists());
+
+    const auto copy = exportSyn (content, "FX/Riser.wav", samples);
+    INFO (copy.problem);
+    CHECK (copy.problem.empty());
+    CHECK (copy.file == kitFolder.getChildFile ("Riser - SYN01 128 Gm 6A (2).wav"));
+    CHECK (bytesOf (copy.file) == synWav (fileIndex (syn(), "FX/Riser.wav")));
+    CHECK (link.isSymbolicLink()); // the link, as it was
+    CHECK (link.getLinkedTarget() == movedAway);
+    CHECK_FALSE (movedAway.exists()); // nothing written through it
+    CHECK (entriesIn (kitFolder) == 2);
+#endif
+}
+
 TEST_CASE ("exports leave no temporary file and never touch other files", "[sounds][export]")
 {
     TempFolder temp;
