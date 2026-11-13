@@ -158,8 +158,12 @@ note's pad. Its files are in the kit's content folder, in `Content/<kit>/v1/Drum
 - Each kit's MIDI README in Wubansia's repository, `content/midi/<kit>/README.md`, gives the same map.
 
 ### In Ableton Live
-- Drop the Song on the track that holds your Drum Rack: the drums come in as one clip there, the other instruments on
-  the tracks after it.
+- Drop the Song on the track that holds your Drum Rack: the drums come in as one clip there. Live puts the other
+  instruments on the tracks after it, making new tracks only when it runs out, and a clip it drops replaces what it
+  covers. So drop it where no track of yours follows: in a new set, or with your Drum Rack's track last. Or drop the
+  Song below your last track, so every instrument gets a new track, then move the Drums clip onto your Drum Rack's
+  track. For the drums alone, mute Wubansia's six other lanes before you drag, and unmute them after: the file then
+  brings only Drums.
 - The rack shows the pads from C1 to D#2: scroll its pad overview for B0 (FUT04's rumble) and F#2 (FUT01's
   tambourine, FUT03's shaker).
 - Put the closed and open hats (42 and 46) in one choke group, and leave the ride (51) out of it.
