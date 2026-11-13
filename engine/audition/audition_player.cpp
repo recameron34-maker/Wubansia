@@ -47,9 +47,13 @@ namespace wubansia::engine
 
     bool AuditionPlayer::offered() const noexcept { return pending.pending(); }
 
-    std::uint64_t AuditionPlayer::blocksRun() const noexcept { return 0; } // not yet: the tests come first
+    std::uint64_t AuditionPlayer::blocksRun() const noexcept { return blocks.load (std::memory_order_acquire); }
 
-    void AuditionPlayer::dropIfIdleSince (std::uint64_t) noexcept {} // not yet: the tests come first
+    void AuditionPlayer::dropIfIdleSince (std::uint64_t seen) noexcept
+    {
+        // Released after any stopUpTo () the sound thread made first, so the block that drops sees that stop too.
+        dropAt.store (seen + 1, std::memory_order_release);
+    }
 
     void AuditionPlayer::letGo (Slot& slot) noexcept
     {
@@ -78,11 +82,22 @@ namespace wubansia::engine
 
     void AuditionPlayer::process (float* const* out, int numOutputs, int numSamples, bool silent) noexcept
     {
+        // This block's number, and whether the sound thread gave up the clips in hand while no block ran (the host
+        // stopped running blocks mid-clip): then they go now, unheard. A block that ran in between keeps them.
+        const auto ran = blocks.load (std::memory_order_relaxed); // only this thread writes it
+        const bool drop = dropAt.load (std::memory_order_acquire) == ran + 1;
+        blocks.store (ran + 1, std::memory_order_release);
+
         // A clip that ended while the FIFO was full goes first, if there's room now.
         if (current.done)
             letGo (current);
         if (fading.done)
             letGo (fading);
+
+        if (drop)
+            for (Slot* slot : { &current, &fading })
+                if (slot->clip != nullptr && ! slot->done)
+                    letGo (*slot);
 
         if (silent || out == nullptr || numOutputs <= 0 || out[0] == nullptr)
         {

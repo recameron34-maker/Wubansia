@@ -154,7 +154,7 @@ namespace wubansia
         std::uint32_t sounding = 0; // the ticket playing now; 0 when none
         std::uint32_t latest = 0; // the last ticket audition () gave
         bool waiting = false; // latest is being read, or waits for the host's next block
-        bool hostSilent = false; // latest waited 300 ms for a block and was dropped: the host runs no audio
+        bool hostSilent = false; // latest got no block for 300 ms, before or after one took it, and was dropped: the host runs no audio
         juce::String problem; // why latest (or a request turned down) can't play, for people
     };
 

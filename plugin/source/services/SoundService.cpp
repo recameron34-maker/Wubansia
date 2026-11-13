@@ -147,6 +147,7 @@ namespace wubansia
 
             drain();
             checkOffer();
+            checkHeld();
             if (job)
                 work (*job);
 
@@ -285,6 +286,38 @@ namespace wubansia
                 hostSilent = true; // the host runs no audio: the drawer says so instead of a stale click later
         }
         back (withdrawn);
+    }
+
+    void SoundService::checkHeld()
+    {
+        // The offer first, then the blocks: a block that takes the offer has counted itself before it does.
+        const bool offerWaits = player.offered();
+        const auto blocks = player.blocksRun();
+        const auto now = Clock::now();
+        const int held = outstanding - (offerWaits ? 1 : 0); // clips a block took, still in the player's hands
+        if (blocks != blocksSeen || held <= 0)
+        {
+            blocksSeen = blocks;
+            blocksSeenAt = now;
+            return;
+        }
+        if (blocks == givenUpAt || now - blocksSeenAt < kUntakenLimit)
+            return;
+
+        // No block for 300 ms with clips in hand: the host stopped running blocks mid-clip. They never play again: the
+        // one playing is stopped (if a block comes before the drop, it fades out as a stop does), and the next block
+        // lets them all go unheard. The player is told first, so status () never reads stopped before it knows.
+        givenUpAt = blocks;
+        const auto playing = player.sounding();
+        player.stopUpTo (playing);
+        player.dropIfIdleSince (blocks);
+        {
+            const std::lock_guard lock (mutex);
+            if (playing != 0 && playing == latest && playing > stoppedUpTo)
+                hostSilent = true; // the drawer says why the sound stopped
+            stoppedUpTo = std::max (stoppedUpTo, playing);
+        }
+        givenUp.fetch_add (1, std::memory_order_acq_rel);
     }
 
     void SoundService::drain()

@@ -36,7 +36,7 @@ What the code fixed before the design:
 10. **Clips own their audio and are made on a sound thread, one per processor.** The player and the clip maker live in `engine/audition/`, JUCE-free, resampling with the voices' `SincBank`. No clip refers to a Kit.
 11. **The real-time protocol**: clips in through a `PendingSlot` (latest wins), back through a `RetireFifo` of 8; stops are tickets (`stopUpTo`), and a `sounding ()` atomic reports the ticket playing. The audio thread never frees anything, and every clip comes back exactly once.
 12. **Offline renders and bypassed blocks never play an audition, and an idle player touches nothing**, so a bounce stays bit-identical (RenderTests).
-13. **A host that runs no blocks gets a hint, not a stale click**: an offer no block took within 300 ms is withdrawn and the drawer shows Logic's hint.
+13. **A host that runs no blocks gets a hint, not a stale click**: an offer no block took within 300 ms is withdrawn and the drawer shows Logic's hint. A clip a block took is given up the same way once no block has come for 300 ms (the host stopped mid-clip): it reads as stopped at once, and the first block back lets it go unheard, without even a fade.
 14. **A fixed −6 dB, then master_gain; the sound starts at once**, with no bar sync (that is M6).
 
 ### Export (`plugin/source/sounds/SampleExport.h`)

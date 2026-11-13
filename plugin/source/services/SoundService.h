@@ -16,7 +16,10 @@
 // While the player holds clips of its (every 50 ms, and whenever woken) the thread deletes the clips the player let go,
 // and withdraws an offer that is stopped, replaced by a newer request, or that no block took within 300 ms: a host that
 // runs no audio (Logic, for a stopped track that isn't selected or armed) gets status ().hostSilent instead of a stale
-// click when it next plays. With no clip of its out, it sleeps until the next request.
+// click when it next plays. A clip a block took is given up the same way once no block has come for 300 ms (the host
+// stopped running blocks mid-clip): it reads as stopped at once, the hint shows if it was the latest, and the player
+// lets it go unheard at the next block (engine::AuditionPlayer::dropIfIdleSince), so blocks that come back play
+// nothing stale, not even a fade. With no clip of its out, it sleeps until the next request.
 //
 // stop () stops every ticket so far at once (a playing clip fades out over 5 ms) and drops the queued request. Every
 // clip is made here with new and deleted here, once the player hands it back; one the player still holds when it is
@@ -81,7 +84,7 @@ namespace wubansia
         int clipsDeleted() const noexcept { return deleted.load (std::memory_order_acquire); }
 
         // For tests: how often the thread gave up the clips in the player's hands because no block came for 300 ms.
-        int clipsGivenUp() const noexcept { return 0; } // not yet: the tests come first
+        int clipsGivenUp() const noexcept { return givenUp.load (std::memory_order_acquire); }
 
     private:
         using Clock = std::chrono::steady_clock;
@@ -98,6 +101,7 @@ namespace wubansia
         void fail (const Job& job, const std::string& problem);
         void offer (const Job& job, std::unique_ptr<engine::AuditionClip> clip);
         void checkOffer();
+        void checkHeld(); // clips a block took, and no block for kUntakenLimit: given up
         void drain();
         void back (const engine::AuditionClip* clip); // a clip the player handed back: deleted
         void discard (std::unique_ptr<engine::AuditionClip> clip); // one it never had: deleted
@@ -124,8 +128,13 @@ namespace wubansia
         std::atomic<bool> startedFlag { false };
         std::atomic<int> made { 0 };
         std::atomic<int> deleted { 0 };
+        std::atomic<int> givenUp { 0 };
 
-        // The thread's own (and the destructor's, once it has joined): clips in the player's hands.
+        // The thread's own (and the destructor's, once it has joined): clips in the player's hands, the player's block
+        // count when it was last seen to move, and when, and the count at which the clips in hand were last given up.
         int outstanding = 0;
+        std::uint64_t blocksSeen = 0;
+        Clock::time_point blocksSeenAt {};
+        std::uint64_t givenUpAt = ~std::uint64_t { 0 };
     };
 }
