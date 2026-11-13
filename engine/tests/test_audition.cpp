@@ -773,6 +773,96 @@ TEST_CASE ("process allocates and frees nothing", "[audition][alloc]")
     CHECK (back.clips.size() == 5);
 }
 
+TEST_CASE ("with the retire FIFO full, process and reset allocate and free nothing", "[audition][alloc]")
+{
+    // The paths that hold a clip because the FIFO has no room are the ones an overflow list would tempt: every block
+    // and reset below is counted on its own; the offers and collects, the sound thread's part, aren't.
+    if (! allocations::available())
+        SKIP ("a sanitizer owns the allocation functions in this build");
+
+    AuditionPlayer player;
+    player.prepare (kRate);
+    Returns back;
+    std::vector<float> l (512), r (512);
+    float* out[2] { l.data(), r.data() };
+    const auto quiet = [] (auto&& step) {
+        allocations::Scope scope;
+        step();
+        return scope.counts().none();
+    };
+    const auto block = [&] (int n, bool silent = false) { return quiet ([&] { player.process (out, 2, n, silent); }); };
+    const auto shortClips = [&] (std::uint32_t count) { // each plays to its end in one block: the FIFO fills up
+        for (std::uint32_t t = 1; t <= count; ++t)
+        {
+            back.add (player.offer (clipOf (noise (10, t), {}, t)));
+            CHECK (block (64));
+        }
+    };
+
+    SECTION ("a clip ends while it is full and is held; an offer waits; a silent block, a drop and a reset while full")
+    {
+        shortClips (7);
+        back.add (player.offer (clipOf (noise (2000, 8), {}, 8)));
+        CHECK (block (64));
+        back.add (player.offer (clipOf (noise (600, 9), {}, 9)));
+        CHECK (block (512)); // the 8th fades out into the last place, the 9th plays
+        REQUIRE (player.sounding() == 9u);
+        CHECK (block (512)); // the 9th ends with the FIFO full: held
+        CHECK (player.sounding() == 0u);
+        back.add (player.offer (clipOf (noise (3000, 10), {}, 10)));
+        CHECK (block (512)); // still full: the 10th waits
+        CHECK (player.offered());
+        player.dropIfIdleSince (player.blocksRun());
+        CHECK (block (512)); // a drop while full
+        CHECK (block (512, true)); // a silent block while full
+        CHECK (quiet ([&] { player.reset(); })); // a reset while full
+        CHECK (player.offered());
+        back.collect (player);
+        REQUIRE (back.clips.size() == 8);
+        CHECK (block (512)); // room: the held 9th goes in, the 10th plays
+        CHECK (player.sounding() == 10u);
+        CHECK (quiet ([&] { player.reset(); }));
+        back.collect (player);
+        CHECK (back.clips.size() == 10);
+    }
+
+    SECTION ("a fade finishes while it is full: the faded clip is held")
+    {
+        shortClips (7);
+        back.add (player.offer (clipOf (noise (2000, 8), {}, 8)));
+        CHECK (block (64)); // the 8th plays
+        back.add (player.offer (clipOf (noise (10, 9), {}, 9)));
+        CHECK (block (64)); // the 9th replaces the 8th (fading, 176 samples left) and ends: the FIFO is full
+        for (int i = 0; i < 4; ++i)
+            CHECK (block (64)); // the fade ends with the FIFO full: the 8th is held
+        back.collect (player);
+        REQUIRE (back.clips.size() == 8);
+        CHECK (block (64)); // the 8th goes in
+        back.collect (player);
+        CHECK (back.clips.size() == 9);
+    }
+
+    SECTION ("a playing clip made for the old rate, after a prepare at another, is held while it is full")
+    {
+        shortClips (6);
+        back.add (player.offer (clipOf (noise (9000, 7), {}, 7)));
+        CHECK (block (64)); // the 7th plays
+        back.add (player.offer (clipOf (noise (100, 8), {}, 8, 44100.0)));
+        CHECK (block (64)); // never played: the FIFO holds 7
+        back.add (player.offer (clipOf (noise (100, 9), {}, 9, 44100.0)));
+        CHECK (block (64)); // never played: the FIFO holds 8; the 7th plays on
+        CHECK (player.sounding() == 7u);
+        player.prepare (96000.0);
+        CHECK (block (64)); // the 7th can't play at 96 kHz and the FIFO is full: held
+        CHECK (player.sounding() == 0u);
+        back.collect (player);
+        REQUIRE (back.clips.size() == 8);
+        CHECK (block (64)); // the 7th goes in
+        back.collect (player);
+        CHECK (back.clips.size() == 9);
+    }
+}
+
 TEST_CASE ("makeAuditionClip: at 48 kHz the file itself; at 44.1 and 96 kHz ceil (frames x rate / 48000) frames, a 1 kHz tone stays 1 kHz; deterministic",
     "[audition]")
 {
