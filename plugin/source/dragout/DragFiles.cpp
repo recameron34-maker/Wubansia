@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <memory>
 #include <utility>
 
 namespace wubansia::dragout
@@ -372,6 +373,18 @@ namespace wubansia::dragout
 
     void revealToUser (const juce::File& file)
     {
-        file.revealToUser(); // not yet: the tests come first
+#if JUCE_LINUX || JUCE_BSD
+        // xdg-open with the folder as its one argument: no shell, so nothing in the name acts. Its output goes to
+        // /dev/null (stream flags 0), so it can't die writing to a pipe nobody reads. Each opener is kept until it
+        // ends, then reaped by isRunning (), so none lingers as a zombie; all of this on the message thread.
+        static std::vector<std::unique_ptr<juce::ChildProcess>> openers;
+        openers.erase (std::remove_if (openers.begin(), openers.end(), [] (const auto& opener) { return ! opener->isRunning(); }), openers.end());
+        const auto folder = file.isDirectory() ? file : file.getParentDirectory();
+        auto opener = std::make_unique<juce::ChildProcess>();
+        if (opener->start (juce::StringArray { "xdg-open", folder.getFullPathName() }, 0))
+            openers.push_back (std::move (opener));
+#else
+        file.revealToUser();
+#endif
     }
 }

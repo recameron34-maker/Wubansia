@@ -560,7 +560,7 @@ namespace wubansia::editor
         {
             return juce::DragAndDropContainer::performExternalDragDropOfFiles ({ dragout::externalDragPath (file) }, false, &source);
         };
-        revealFile = [] (const juce::File& file) { file.revealToUser(); };
+        revealFile = [] (const juce::File& file) { dragout::revealToUser (file); };
         chooseFolder = [this] (std::function<void (const juce::File&)> done)
         {
             const auto start = samplesFolder.isDirectory() ? samplesFolder : juce::File::getSpecialLocation (juce::File::userMusicDirectory);

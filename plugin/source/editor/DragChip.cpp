@@ -12,7 +12,7 @@ namespace wubansia::editor
         {
             return juce::DragAndDropContainer::performExternalDragDropOfFiles ({ dragout::externalDragPath (file) }, false, &source);
         };
-        revealFile = [] (const juce::File& file) { file.revealToUser(); };
+        revealFile = [] (const juce::File& file) { dragout::revealToUser (file); };
         setRequest (request, label);
         setMouseCursor (juce::MouseCursor::DraggingHandCursor);
     }
