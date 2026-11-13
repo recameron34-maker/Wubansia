@@ -179,10 +179,11 @@ namespace wubansia::editor
     }
 
     //==============================================================================================================
-    KitChip::KitChip (const juce::String& id)
-        : juce::Button (id), kitId (id)
+    KitChip::KitChip (const juce::String& id, const juce::String& kitTitle)
+        : juce::Button (id), kitId (id), kitName (kitTitle.isNotEmpty() ? id + " " + kitTitle : id)
     {
         setComponentID ("samples_kit_" + id);
+        updateTitle();
     }
 
     void KitChip::show (bool isBrowsed, bool isPlayingKit)
@@ -191,7 +192,13 @@ namespace wubansia::editor
             return;
         browsed = isBrowsed;
         playing = isPlayingKit;
+        updateTitle();
         repaint();
+    }
+
+    void KitChip::updateTitle()
+    {
+        setTitle (kitName + (browsed ? ", shown" : "") + (playing ? ", playing" : ""));
     }
 
     void KitChip::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
@@ -225,8 +232,8 @@ namespace wubansia::editor
     {
         setComponentID (juce::String ("samples_category_") + categoryId (c));
         setTooltip (categoryTip (c));
-        setTitle (getButtonText());
         setEnabled (false); // until show () gives it sounds
+        updateTitle();
     }
 
     void CategoryButton::show (int numSounds, bool isSelected)
@@ -236,8 +243,13 @@ namespace wubansia::editor
         sounds = numSounds;
         selected = isSelected;
         setEnabled (sounds > 0);
-        setTitle (getButtonText() + ", " + juce::String (sounds) + (sounds == 1 ? " sound" : " sounds"));
+        updateTitle();
         repaint();
+    }
+
+    void CategoryButton::updateTitle()
+    {
+        setTitle (getButtonText() + ", " + juce::String (sounds) + (sounds == 1 ? " sound" : " sounds") + (selected ? ", shown" : ""));
     }
 
     void CategoryButton::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
@@ -462,7 +474,8 @@ namespace wubansia::editor
             return;
         name = fileName;
         failed = isFailed;
-        setTitle (name.isNotEmpty() ? "Drag " + name + " into your DAW" : juce::String ("No sound to drag"));
+        // What it shows first, then the file: a screen reader can't drag, and its press is the help text's.
+        setTitle (name.isEmpty() ? juce::String ("No sound to drag") : (failed ? "Couldn't save " : "Drag into your DAW: ") + name);
         repaint();
     }
 
@@ -567,6 +580,7 @@ namespace wubansia::editor
         setTitle ("Samples");
         setLookAndFeel (&look);
 
+        announce = [] (const juce::String& text) { juce::AccessibilityHandler::postAnnouncement (text, juce::AccessibilityHandler::AnnouncementPriority::medium); };
         startDrag = [] (const juce::File& file, juce::Component& source)
         {
             return juce::DragAndDropContainer::performExternalDragDropOfFiles ({ dragout::externalDragPath (file) }, false, &source);
@@ -690,6 +704,8 @@ namespace wubansia::editor
         standalone = model.standalone;
         samplesFolder = controller.samplesFolder();
         chipPicked = false;
+        spokenStatus.clear(); // said afresh once the drawer shows
+        spokenBanner.clear();
         message = {};
         refusal.clear();
         auditionDismissed = true; // closing stopped what played; its words go too
@@ -1201,6 +1217,10 @@ namespace wubansia::editor
 
         tile.setEnabled (canUse);
         tile.show (tileName(), tileFailed && canUse);
+        tile.setHelpText ("Press to save it into your samples folder and show it in "
+                          + juce::String (platform == ContentPanel::Platform::macOS     ? "Finder"
+                                          : platform == ContentPanel::Platform::windowsOS ? "Explorer"
+                                                                                          : "your file manager"));
         playButton.setEnabled (canUse);
         revealButton.setEnabled (canUse);
         stopButton.setToggleState (auditioning(), juce::dontSendNotification);
@@ -1214,12 +1234,34 @@ namespace wubansia::editor
         for (std::size_t i = 0; i < categories.size(); ++i)
             categories[i]->show (counts[i], static_cast<SoundCategory> (i) == shownCategory && ! rows.isEmpty());
 
-        // The banner over the list, when the kit can't play.
+        // The banner over the list, when the kit can't play; its button carries it for screen readers.
         const auto banner = bannerText();
         if (banner.isNotEmpty() != contentFolderButton.isVisible())
         {
             contentFolderButton.setVisible (banner.isNotEmpty());
             layOutList();
+        }
+        const auto bannerSpoken = banner.replace ("\n", ". ");
+        contentFolderButton.setDescription (bannerSpoken);
+
+        // What the painted lines say is said aloud too, once each: a new status line (a load once, not every percent)
+        // and a new banner. Only while the drawer shows; open () lets them be said again.
+        if (isVisible() && announce != nullptr)
+        {
+            const auto loading = kitMessage();
+            const auto status = loading.isNotEmpty() ? loading.upToFirstOccurrenceOf (utf8 ("\xe2\x80\xa6"), true, false) : statusText();
+            if (status != spokenStatus)
+            {
+                spokenStatus = status;
+                if (status.isNotEmpty())
+                    announce (status);
+            }
+            if (bannerSpoken != spokenBanner)
+            {
+                spokenBanner = bannerSpoken;
+                if (bannerSpoken.isNotEmpty())
+                    announce (bannerSpoken);
+            }
         }
 
         // What paint () draws of the text; repainted only when it changes.
@@ -1245,10 +1287,9 @@ namespace wubansia::editor
             chips.clear();
             for (int i = 0; i < ids.size(); ++i)
             {
-                auto* chip = chips.add (new KitChip (ids[i]));
                 const auto& card = kits[static_cast<std::size_t> (i)];
+                auto* chip = chips.add (new KitChip (ids[i], card.title));
                 chip->setTooltip ("Browse " + card.id + " " + card.title + "'s sounds. The kit that plays doesn't change.");
-                chip->setTitle (card.id + " " + card.title);
                 chip->setExplicitFocusOrder (chipOrder + i);
                 chip->onClick = [this, kit = ids[i]] { pickKit (kit); };
                 addAndMakeVisible (chip);

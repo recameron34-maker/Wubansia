@@ -40,11 +40,12 @@ namespace wubansia::editor
     juce::String exportFileName (const KitCard& kit, const SoundFile& file);
 
     // A kit in the drawer's header: a click browses its sounds. Lit in its kit's accent while browsed; its LED
-    // marks the kit that plays.
+    // marks the kit that plays. Screen readers hear "FUT01 Alloy Signal, shown, playing" (a title, not a toggle,
+    // whose press action would untick it).
     class KitChip : public juce::Button
     {
     public:
-        explicit KitChip (const juce::String& kitId);
+        explicit KitChip (const juce::String& kitId, const juce::String& kitTitle = {});
 
         void show (bool isBrowsed, bool isPlayingKit);
         const juce::String& kit() const noexcept { return kitId; }
@@ -54,11 +55,14 @@ namespace wubansia::editor
         void paintButton (juce::Graphics&, bool isMouseOver, bool isButtonDown) override;
 
     private:
-        juce::String kitId;
+        void updateTitle();
+
+        juce::String kitId, kitName;
         bool browsed = false, playing = false;
     };
 
-    // A category in the rail, with how many sounds the browsed kit has in it; disabled when none.
+    // A category in the rail, with how many sounds the browsed kit has in it; disabled when none. Screen readers
+    // hear "Accents, 3 sounds, shown".
     class CategoryButton : public juce::Button
     {
     public:
@@ -72,6 +76,8 @@ namespace wubansia::editor
         void paintButton (juce::Graphics&, bool isMouseOver, bool isButtonDown) override;
 
     private:
+        void updateTitle();
+
         SoundCategory which;
         int sounds = 0;
         bool selected = false;
@@ -307,6 +313,7 @@ namespace wubansia::editor
 
         juce::StringArray fileBoxSound; // the kit and sound whose files the File box lists
         juce::String painted; // what paint () last drew of the text, to repaint only on a change
+        juce::String spokenStatus, spokenBanner; // what announce () last said of each, so each is said once
 
         juce::OwnedArray<KitChip> chips;
         juce::StringArray chipKits;
