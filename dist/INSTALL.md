@@ -126,20 +126,51 @@ Song gives one DAW track per instrument; the vox switch picks the file, and mute
 kick, snare or clap, hats and percussion as one track, Drums, on channel 10 with the same notes, ready for one drum
 rack, and every other instrument keeps its own track. The file's name says so:
 `FUT01 Alloy Signal 134 F#m 11A - Song (1 drum track).mid`. Wubansia remembers the switch for your user, in
-`settings.xml`, in every project. The notes are the kit's drum map: C1 (36) kick, C#1 (37) rim, D1 (38) clap or
-snare, F#1 and A#1 (42 and 46) closed and open hat, D#2 (51) ride, the rest of the percussion as the kit's MIDI README
-lists it, and B0 (35) for FUT04's rumble. A lane's MIDI chip still gives that lane's own tracks.
+`settings.xml`, in every project. A lane's MIDI chip still gives that lane's own tracks.
+
+### The drum pads
+
+Each kit plays its drums on these notes, named as Live and Logic name them (middle C is C3). Put each sound on its
+note's pad. Its files are in the kit's content folder, in `Content/<kit>/v1/Drums/`, but for FUT04's rumble.
+
+| Note | FUT01 | FUT02 | FUT03 | FUT04 |
+|---|---|---|---|---|
+| B0 (35) | | | | Rumble, `Bass/Rumble.wav` |
+| C1 (36) | Kick Garage or Kick Split | Kick Split | Kick Deep | Kick Split |
+| C#1 (37) | Rim Shot | | Rimshot | |
+| D1 (38) | Clap Garage | Electro Clap | Clap Snare | Snare Gated |
+| F1 (41) | | | Conga G3 | |
+| F#1 (42) | Hat Closed | Closed Hat | Closed Hat Deep | Closed Hat |
+| G1 (43) | | | Conga C4 | |
+| A1 (45) | | | Conga D4 | |
+| A#1 (46) | Hat Open | Open Hat | Open Hat Deep | Open Hat |
+| B1 (47) | Alloy Hit | Zap | Bongo G4 | Anvil |
+| C2 (48) | | | Bongo D5 | |
+| D#2 (51) | | | | Ride |
+| F#2 (54) | Tambourine | | Shaker Deep | |
+
+- A sound comes as several files: velocity layers, `v1` the softest, and round robins, `rr1`, `rr2`... Put one on its
+  pad, or layer them.
+- FUT01's kick follows Wubansia's kick A/B switch: Kick Garage on B, the default, and Kick Split on A.
+- FUT03's conga and bongo files are named by the pitch they sound, not by their note: put each on its note above, and
+  let it play at its own pitch.
+- In `Drums/` but on no note: FUT01's Alloy Bell, FUT02's Glass Ping and Resonant Zap, and the Accent files.
+- Each kit's MIDI README in Wubansia's repository, `content/midi/<kit>/README.md`, gives the same map.
 
 ### In Ableton Live
 - Drop the Song on the track that holds your Drum Rack: the drums come in as one clip there, the other instruments on
   the tracks after it.
-- The rack shows the pads from C1 to D#2: scroll its pad overview for B0 (the rumble) and F#2 (54).
+- The rack shows the pads from C1 to D#2: scroll its pad overview for B0 (FUT04's rumble) and F#2 (FUT01's
+  tambourine, FUT03's shaker).
 - Put the closed and open hats (42 and 46) in one choke group, and leave the ride (51) out of it.
 - A sample dropped on a pad plays as a one-shot: set the rumble pad's Simpler to Gate, so the note's length gates it.
 
 ### In Logic Pro
 - Drop the Song on a Drum Machine Designer track: the drums are one region on it.
-- For FUT04's rumble, set a pad's input note to B0 and its Quick Sampler to Classic, so the note's length gates it.
+- For FUT04's rumble, set a pad's input note to B0 (35) and its Quick Sampler to Classic, so the note's length gates
+  it.
+- FUT01's tambourine and FUT03's shaker, their busiest drum lines, are on F#2 (54): if your kit has no pad there, set
+  a pad's input note to F#2.
 - Put the hats in one choke group.
 
 Not yet checked in Live or Logic: where the other instruments land, and these pad settings.
