@@ -991,7 +991,7 @@ namespace wubansia::gen
             for (std::size_t i = 0; i < sections.size(); ++i)
             {
                 const Node s = sections.at (i);
-                s.only ({ "kind", "bars" });
+                s.only ({ "kind", "bars", "variant" });
                 FormSlot slot;
                 slot.kind = s["kind"].string();
                 if (!knownKind (slot.kind))
@@ -999,6 +999,7 @@ namespace wubansia::gen
                 else if (style.section (slot.kind) == nullptr)
                     s["kind"].fail ("the kind \"" + slot.kind + "\" has no entry in \"sections\"");
                 slot.bars = barsOf (s["bars"], 0);
+                slot.variant = s.int32Or ("variant", -1, 0, 15);
                 form.slots.push_back (std::move (slot));
             }
             if (n.errors().any())

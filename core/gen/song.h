@@ -90,6 +90,7 @@ namespace wubansia::gen
         std::int32_t bars = 0; // the form's (a --bars cut shortens the last section it keeps: cut.h)
         std::vector<std::uint64_t> blocks; // per 8-bar block (of `bars`): bit i = style lane i plays
         std::vector<Dropout> dropouts; // in bar order, at most one per bar
+        std::int32_t variant = -1; // the pattern variant every lane starts the section on; -1: its kind's (the style's "sections")
 
         std::int64_t startTick() const noexcept { return startBar * ticksPerBar; }
         std::int64_t endTick() const noexcept { return (startBar + bars) * ticksPerBar; }

@@ -17,7 +17,8 @@
 //   - lane groups sitting out the bar before the section's own 16-bar lines, landing back on the line
 //     (the dropouts, at least 32 bars apart);
 //   - drop 2's layer, drawn per song, in drop 2 and never in drop 1.
-//   A kind with "change" has a lane change inside every section.
+//   A kind with "change" has a lane change inside every section. A slot may start its section on its
+//   own pattern variant (the groove after drop 1: new patterns on its grids).
 // Lane entries and exits therefore fall on 8-bar lines, and dropouts on the last bar of a phrase.
 // Variation by hypermeter tier, on top of the form:
 // - every 4-bar line: a turnaround in its last bar, with the style's probability (about 0.5)

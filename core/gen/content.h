@@ -113,11 +113,14 @@ namespace wubansia::gen
     };
 
     // One slot of the form, in order: a section kind and the lengths it may take, in bars (multiples
-    // of 8), by weight. A length of 0 leaves the slot out.
+    // of 8), by weight. A length of 0 leaves the slot out. A slot may start its section on its own
+    // pattern variant (0-15), so a kind that comes back (the groove after drop 1) plays new patterns
+    // on its grids instead of the first one's opening bars.
     struct FormSlot
     {
         std::string kind;
         std::vector<Weighted> bars;
+        std::int32_t variant = -1; // -1: the kind's ("sections")
     };
 
     // A whole 32-bar mix-in or mix-out: the lanes of each of its 4 blocks.
@@ -179,7 +182,7 @@ namespace wubansia::gen
 
     // The style's "form" (ADR 0023):
     //   "form": { "bars": [lo, hi], "sixteen": percent,
-    //     "sections": [ { "kind": "intro", "bars": [ { "bars": 32, "w": 1 } ] }, ... ],
+    //     "sections": [ { "kind": "intro", "bars": [ { "bars": 32, "w": 1 } ] }, ... ],  (a slot's "variant": 0-15, optional)
     //     "layer": [ { "lane": id, "w": weight } ],                          (optional)
     //     "plans": { "intro": { "choices": [ { "w": weight, "blocks": [ [ids], [ids], [ids], [ids] ] } ] },
     //                "drop": { "lanes": [ids],

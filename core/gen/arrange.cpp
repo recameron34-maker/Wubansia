@@ -343,6 +343,7 @@ namespace wubansia::gen
             s.kind = form.slots[i].kind;
             s.startBar = start;
             s.bars = lengths[i];
+            s.variant = form.slots[i].variant;
             const std::optional<std::uint64_t> prevEnd = out.empty() ? std::nullopt : std::optional<std::uint64_t> (out.back().lanesAt (out.back().bars - 1));
             if (const KindPlan* plan = form.plan (s.kind))
                 planBlocks (s, style, *plan, layer, prevEnd, kf);
@@ -398,8 +399,9 @@ namespace wubansia::gen
 
     std::int32_t variantAt (const Song& song, const Style& style, std::size_t lane, std::size_t section, std::int32_t barInSection) noexcept
     {
-        const SectionSpec* spec = style.section (song.sections[section].kind);
-        std::int32_t v = spec != nullptr ? spec->variant : 0;
+        const Section& sec = song.sections[section];
+        const SectionSpec* spec = style.section (sec.kind);
+        std::int32_t v = sec.variant >= 0 ? sec.variant : spec != nullptr ? spec->variant : 0;
         for (const auto& c : song.changes)
             if (c.section == section && c.lane == lane && c.bar <= barInSection)
                 ++v;
