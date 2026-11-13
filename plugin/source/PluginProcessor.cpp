@@ -115,7 +115,9 @@ namespace wubansia
         masterGain.reset (rate, 0.02); // 20 ms ramps, so gain changes never click
         masterGain.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (raw.masterGainDb(), Parameters::minDb));
 
-        resetPending.store (false, std::memory_order_relaxed);
+        // A reset () or releaseResources () pending is kept: a host deactivates with them, then reactivates with this,
+        // and the engine was just reset here, but a clip of the drawer's would play on mid-clip at the same rate. The
+        // first block acts on it.
         bypassed = false;
         lastPlaying.store (false, std::memory_order_relaxed);
         prepared.store (true, std::memory_order_release);
@@ -185,7 +187,7 @@ namespace wubansia
             return;
         bypassed = false;
 
-        // 2. The host's reset (or releaseResources): every voice, tail and audition silent at once.
+        // 2. The host's reset (or releaseResources, even with a prepare since): every voice, tail and audition silent at once.
         if (resetPending.exchange (false, std::memory_order_acq_rel))
         {
             player.reset();
