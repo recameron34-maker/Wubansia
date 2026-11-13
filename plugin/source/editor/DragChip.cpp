@@ -215,13 +215,13 @@ namespace wubansia::editor
     void DragStrip::resized()
     {
         auto area = getLocalBounds().reduced (8, 5);
-        area.removeFromLeft (72); // the engraved label
+        area.removeFromLeft (68); // the engraved label (labelArea ())
         loop.setBounds (area.removeFromLeft (80));
         area.removeFromLeft (6);
         song.setBounds (area.removeFromLeft (80));
         area.removeFromLeft (6);
         drums.setBounds (area.removeFromLeft (120));
-        area.removeFromLeft (18);
+        area.removeFromLeft (12); // the divider, in the middle
 
         if (phraseChips.isEmpty())
             return;
@@ -244,7 +244,7 @@ namespace wubansia::editor
         draw::engraved (g, "Drag MIDI", labelArea(), juce::Justification::centredLeft, 9.5f);
         if (! phraseChips.isEmpty())
         {
-            const auto x = (float) drums.getRight() + 9.0f;
+            const auto x = (float) drums.getRight() + 6.0f;
             g.setColour (juce::Colours::white.withAlpha (0.08f));
             g.fillRect (juce::Rectangle<float> (1.0f, (float) getHeight() * 0.5f).withCentre ({ x, (float) getHeight() * 0.5f }));
         }
