@@ -55,7 +55,7 @@
         "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
         "entries": [
           { "lanes": ["chords"], "before": [ { "bars": 0, "w": 2 }, { "bars": 8, "w": 1 } ] } ],
-        "rest": { "p": 50, "bars": 8, "lanes": [ { "lane": "hats", "w": 1 }, { "lane": "shaker", "w": 1 }, { "lane": "kick", "w": 1 } ] },
+        "rest": { "p": 50, "bars": 8, "lanes": [ { "lane": "shaker", "w": 1 }, { "lane": "perc", "w": 1 } ] },
         "dropout": { "p": 40, "every": 16, "lanes": [ { "lanes": ["kick", "bass"], "w": 3 } ] },
         "change": true },
       "outro": { "choices": [
