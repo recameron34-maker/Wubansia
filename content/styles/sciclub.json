@@ -19,7 +19,7 @@
       { "kind": "break", "bars": [ { "bars": 0, "w": 3 }, { "bars": 8, "w": 1 }, { "bars": 16, "w": 2 } ] },
       { "kind": "build", "bars": [ { "bars": 8, "w": 1 }, { "bars": 16, "w": 3 } ] },
       { "kind": "drop", "bars": [ { "bars": 24, "w": 1 }, { "bars": 32, "w": 3 } ] },
-      { "kind": "groove", "bars": [ { "bars": 0, "w": 2 }, { "bars": 8, "w": 1 }, { "bars": 16, "w": 2 } ] },
+      { "kind": "groove", "bars": [ { "bars": 0, "w": 2 }, { "bars": 8, "w": 1 }, { "bars": 16, "w": 2 } ], "variant": 14 },
       { "kind": "break", "bars": [ { "bars": 16, "w": 2 }, { "bars": 24, "w": 1 }, { "bars": 32, "w": 2 } ] },
       { "kind": "build", "bars": [ { "bars": 0, "w": 1 }, { "bars": 16, "w": 2 } ] },
       { "kind": "drop2", "bars": [ { "bars": 32, "w": 3 }, { "bars": 48, "w": 1 } ] },
