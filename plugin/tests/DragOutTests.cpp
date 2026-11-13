@@ -813,6 +813,44 @@ TEST_CASE ("1 drum track leaves lane and phrase drags as they are", "[dragout]")
            == std::vector<std::string> { "FUT04 Furnace Code, 136 BPM, E minor, loop, Vox", "Kick", "Rumble" });
 }
 
+TEST_CASE ("1 drum track never merges a kit's extras, whatever their lane", "[dragout]")
+{
+    // The merge takes the tracks whose names have the drums role in kTracks, never a kit's extras (channels 11-16), even
+    // on a drum lane: a later kit may put one there. So with every extra moved onto one drum lane, and nothing muted, a
+    // Loop or Song drag is the same file as with the extras on their own lanes.
+    int extrasInLoops = 0, extrasInSongs = 0;
+    for (const auto& k : kits())
+        for (const auto lane : { Lane::kick, Lane::snare, Lane::hats, Lane::perc })
+        {
+            auto moved = k.info;
+            for (auto& extra : moved.extras)
+                extra.lane = lane;
+            for (const auto what : { DragWhat::loop, DragWhat::song })
+                for (const auto v : { Variant::vox, Variant::novox })
+                {
+                    INFO (k.info.id << "'s extras on lane " << static_cast<int> (lane) << ", " << (what == DragWhat::song ? "song" : "loop")
+                                    << " " << variantName (v));
+                    const auto names = trackNames (k.bytesOf (sourceName (k, what, v)));
+                    const auto extras = std::count_if (names.begin(), names.end(), [&k] (const std::string& name) {
+                        return std::any_of (k.info.extras.begin(), k.info.extras.end(), [&name] (const engine::KitExtra& e) { return e.name == name; });
+                    });
+                    (what == DragWhat::song ? extrasInSongs : extrasInLoops) += static_cast<int> (extras);
+
+                    DragRequest request;
+                    request.what = what;
+                    const auto s = state (PlayMode::loop, v, 0, true);
+                    const auto made = dragout::makeDragFile (moved, k.files, s, request);
+                    INFO (made.error);
+                    REQUIRE (made.ok());
+                    const auto expected = drag (k, s, request);
+                    CHECK (made.value.name == expected.name);
+                    CHECK (made.value.bytes == expected.bytes);
+                }
+        }
+    CHECK (extrasInLoops > 0); // FUT02's Drop Glide and FUT03's Pad Warm play in the Loops
+    CHECK (extrasInSongs > extrasInLoops);
+}
+
 TEST_CASE ("1 drum track: drums that can't go on one track fail the drag, saying why", "[dragout]")
 {
     // FUT01's vox Loop with a pitch bend at the head of its Clap track (track 2), which a merged track can't carry.
