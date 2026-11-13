@@ -24,7 +24,6 @@
       { "kind": "drop2", "bars": [ { "bars": 32, "w": 3 }, { "bars": 48, "w": 2 }, { "bars": 64, "w": 1 } ] },
       { "kind": "outro", "bars": [ { "bars": 32, "w": 1 } ] }
     ],
-    "layer": [ { "lane": "snare", "w": 1 } ],
     "plans": {
       "intro": { "choices": [
         { "w": 2, "blocks": [ ["kick"], ["kick", "hats"], ["kick", "rumble", "hats"], ["kick", "rumble", "snare", "hats"] ] },
