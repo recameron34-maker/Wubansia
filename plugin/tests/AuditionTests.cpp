@@ -608,6 +608,81 @@ TEST_CASE ("bytes that aren't kit.json's are never played, and say so", "[audio]
     }
 }
 
+TEST_CASE ("a request the Controller turns down stops what plays", "[audio][audition]")
+{
+    // Controller.h: "a request turned down stops what plays", as a new sound would have replaced it. Each section
+    // starts afresh with the riser playing, one block in, and the Controller refusing the next request itself.
+    SyntheticContent::Options options;
+    options.ids = { "RFS01", "RFS02" };
+    Quiet q (options);
+    auto& controller = q.controller();
+    REQUIRE (test::waitFor ([&] { return controller.kits()[1].content.state == ContentState::ready; })); // RFS02 surveyed
+    REQUIRE (controller.audition (q.ref (riser)) > 0u);
+    REQUIRE (waitForOffer (*q));
+    test::process (*q, kBlock);
+    REQUIRE (controller.auditionState().sounding > 0u);
+
+    // Polls done (), running a block every 50 ms meanwhile, as a host does: a longer gap would give the clip up.
+    const auto whilePlaying = [&] (const std::function<bool()>& done) {
+        auto last = std::chrono::steady_clock::now();
+        return test::waitFor ([&] {
+            if (std::chrono::steady_clock::now() - last >= 50ms)
+            {
+                test::process (*q, kBlock);
+                last = std::chrono::steady_clock::now();
+            }
+            return done();
+        });
+    };
+
+    // Stopped at once, faded out within 5 ms from the next block, and silent after.
+    const auto stopsWhatPlays = [&] {
+        CHECK (controller.auditionState().sounding == 0u);
+        CHECK_FALSE (controller.auditionState().waiting);
+        const auto out = test::process (*q, kBlock);
+        CHECK_FALSE (test::silent (out, 0, kFade));
+        CHECK (test::silent (out, kFade));
+        CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
+        CHECK ((*q).auditionPlayer().sounding() == 0u);
+    };
+
+    SECTION ("a file the kit doesn't list")
+    {
+        CHECK (controller.audition ({ "RFS01", 999 }) == 0u);
+        CHECK (controller.auditionState().problem.contains ("RFS01 lists no file 999"));
+        stopsWhatPlays();
+    }
+
+    SECTION ("a kit this build doesn't carry")
+    {
+        CHECK (controller.audition ({ "NOPE", riser }) == 0u);
+        CHECK (controller.auditionState().problem.contains ("no kit NOPE"));
+        stopsWhatPlays();
+    }
+
+    SECTION ("another kit whose samples aren't there")
+    {
+        // RFS02's folder goes (another instance chose a folder): the survey finds it missing; RFS01 plays on.
+        q.plugin.content->setSamples (SyntheticContent::Samples::missing);
+        q.plugin.content->bumpFolders();
+        REQUIRE (whilePlaying ([&] { return controller.kits()[1].content.state == ContentState::missing; }));
+        REQUIRE (controller.auditionState().sounding > 0u);
+        CHECK (controller.audition ({ "RFS02", riser }) == 0u);
+        CHECK (controller.auditionState().problem.contains ("no content folder holds RFS02"));
+        stopsWhatPlays();
+    }
+
+    SECTION ("an offer no block took yet goes too")
+    {
+        REQUIRE (controller.audition (q.ref (phrase)) > 0u);
+        REQUIRE (waitForOffer (*q));
+        CHECK (controller.audition ({ "RFS01", -1 }) == 0u);
+        CHECK_FALSE (controller.auditionState().waiting);
+        stopsWhatPlays(); // the riser fades out, and the phrase never plays
+        CHECK (test::waitFor ([&] { return ! (*q).auditionPlayer().offered(); }));
+    }
+}
+
 TEST_CASE ("the sound thread starts with the first audition, never before", "[audio][audition]")
 {
     // Hosts and validators make, prepare and run instances by the dozen: none of that starts it.
