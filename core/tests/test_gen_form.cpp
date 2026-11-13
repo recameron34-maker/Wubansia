@@ -454,24 +454,22 @@ TEST_CASE ("form: a lane sits out the bars it doesn't play, dropouts included", 
         }
 }
 
-TEST_CASE ("form: drop 2 adds a layer drop 1 lacks, where the style has one", "[gen][form]")
+TEST_CASE ("form: the first drop plays the zaps (FUT02) and the snare (FUT04), as their written mixes do", "[gen][form]")
 {
-    // FUT02's laser zaps sit out the first drop, and drop 2 brings them in on their 3/16 roll; FUT04's
-    // snare and clap sit out the first drop, and drop 2 brings the full backbeat.
-    for (const auto& [id, layer] : { std::pair { "FUT02", "perc" }, std::pair { "FUT04", "snare" } })
+    // The kits' own extended mixes keep FUT02's laser zaps and FUT04's metal snare in every line of
+    // both drops; the second drop lifts on its own grids (the 3/16 zap roll, the 2-and-4 backbeat).
+    for (const auto& [id, lane] : { std::pair { "FUT02", "perc" }, std::pair { "FUT04", "snare" } })
         for (const Song& s : songsOf (id))
         {
-            const std::size_t li = laneIndexOf (s, layer);
+            const std::size_t li = laneIndexOf (s, lane);
             INFO (id << " seed " << s.seed << ": " << formOf (s));
+            std::size_t notes = 0;
+            for (const Note& n : s.lanes[li].score)
+                notes += s.sections[static_cast<std::size_t> (n.section)].kind == "drop" ? 1u : 0u;
             for (const Section& sec : s.sections)
-            {
-                if (sec.kind == "drop")
-                    for (std::int32_t bar = 0; bar < sec.bars; ++bar)
-                        CHECK_FALSE (sec.active (li, bar));
-                if (sec.kind == "drop2")
-                    for (std::size_t k = 0; k < sec.blocks.size(); ++k)
-                        CHECK ((sec.blocks[k] >> li & 1u) == 1u);
-            }
+                if (isDrop (sec.kind))
+                    CHECK (sec.active (li, 0));
+            CHECK (notes > 0);
         }
 }
 
@@ -880,4 +878,323 @@ TEST_CASE ("form: every drop plays its plan's lanes from its first block, and a 
                 CHECK (quiet <= allowed);
             }
     }
+}
+
+// ---- the drops and the lines between sections, as the kits' written extended mixes play them
+
+TEST_CASE ("form: a drum lane that sits out part of a drop is back for its last 8 bars", "[gen][form]")
+{
+    // The kick (or the hats) coming back is the cue a dancefloor hears as the drop: it comes back
+    // inside the drop, never as the next, quieter section starts. Melodic lanes may strip at the
+    // end (FUT01's and FUT03's drop 2, FUT04's drone, as their written mixes do).
+    for (const char* id : kits)
+        for (const Song& s : songsOf (id))
+        {
+            std::uint64_t drums = 0;
+            for (std::size_t l = 0; l < s.lanes.size(); ++l)
+                drums |= isDrums (s, l) ? std::uint64_t (1) << l : 0;
+            for (const Section& sec : s.sections)
+                if (isDrop (sec.kind))
+                {
+                    INFO (id << " seed " << s.seed << ": the " << sec.kind << " at bar " << sec.startBar << " (" << sec.bars << " bars)");
+                    CHECK ((sec.blocks.front() & drums & ~sec.blocks.back()) == 0);
+                }
+        }
+}
+
+TEST_CASE ("form: every lane a dropout takes out lands back on the line after it", "[gen][form]")
+{
+    // the one-bar pull's payoff: the lanes slam back on the 16-bar line (a lane whose rest starts on
+    // the line plays through the bar and leaves on the line)
+    for (const char* id : kits)
+        for (const Song& s : songsOf (id))
+            for (const Section& sec : s.sections)
+                for (const Dropout& d : sec.dropouts)
+                {
+                    INFO (id << " seed " << s.seed << ": the " << sec.kind << " at bar " << sec.startBar << ", the dropout at its bar " << d.bar);
+                    CHECK ((d.lanes & ~sec.lanesAt (d.bar + 1)) == 0);
+                }
+}
+
+TEST_CASE ("form: one-bar pulls inside a section come at least 32 bars apart", "[gen][form]")
+{
+    // the same pull before every 16-bar line is an edit on a loop (FUT04's written mix pulls its
+    // drums once in drop 1)
+    for (const char* id : kits)
+        for (const Song& s : songsOf (id))
+            for (const Section& sec : s.sections)
+                for (std::size_t k = 1; k < sec.dropouts.size(); ++k)
+                {
+                    INFO (id << " seed " << s.seed << ": the " << sec.kind << " at bar " << sec.startBar);
+                    CHECK (sec.dropouts[k].bar - sec.dropouts[k - 1].bar >= 32);
+                }
+}
+
+TEST_CASE ("form: lanes only leave from the section before the mix-out on, and the mix-out plays drums and the bass only", "[gen][form]")
+{
+    // A DJ blends the next record over the mix-out: nothing the music let go of comes back there
+    // (drums may: the kick or hats back on its downbeat after a rest), and it carries no chords,
+    // as in the four written mixes (whose mix-outs are drums only; here the sub leaves in its first
+    // 8 or 16 bars).
+    for (const char* id : kits)
+        for (const Song& s : songsOf (id))
+        {
+            INFO (id << " seed " << s.seed << ": " << formOf (s));
+            std::uint64_t drums = 0, low = 0;
+            for (std::size_t l = 0; l < s.lanes.size(); ++l)
+            {
+                drums |= isDrums (s, l) ? std::uint64_t (1) << l : 0;
+                low |= s.lanes[l].kind == LaneKind::bass ? std::uint64_t (1) << l : 0;
+            }
+            REQUIRE (s.sections.size() >= 2);
+            const Section& out = s.sections.back();
+            const Section& before = s.sections[s.sections.size() - 2];
+            CHECK ((out.blocks.front() & ~before.lanesAt (before.bars - 1) & ~drums) == 0);
+            for (const auto block : out.blocks)
+                CHECK ((block & ~(drums | low)) == 0);
+        }
+}
+
+TEST_CASE ("form: the kick never sits out more than 32 bars in a row", "[gen][form]")
+{
+    // The written mixes never go past 16 kickless bars, part 1's forms never past 32: a break of up
+    // to 32 bars, but no kickless build or drop's end stacked onto it.
+    for (const char* id : kits)
+        for (const Song& s : songsOf (id))
+        {
+            const std::size_t kick = laneIndexOf (s, "kick");
+            std::int32_t run = 0, longest = 0, at = 0, from = 0, longestFrom = 0;
+            for (const Section& sec : s.sections)
+                for (std::int32_t bar = 0; bar < sec.bars; ++bar, ++at)
+                    if (sec.active (kick, bar))
+                        run = 0;
+                    else
+                    {
+                        if (run++ == 0)
+                            from = at;
+                        if (run > longest)
+                        {
+                            longest = run;
+                            longestFrom = from;
+                        }
+                    }
+            INFO (id << " seed " << s.seed << ": " << formOf (s) << "; no kick for " << longest << " bars from bar " << longestFrom + 1);
+            CHECK (longest <= 32);
+        }
+}
+
+TEST_CASE ("form: drop 1 keeps its kick in every bar but its one-bar pulls", "[gen][form]")
+{
+    // None of the four written mixes rests the first drop's kick: it is the payoff of the build.
+    for (const char* id : kits)
+        for (const Song& s : songsOf (id))
+        {
+            const std::size_t kick = laneIndexOf (s, "kick");
+            for (const Section& sec : s.sections)
+                if (sec.kind == "drop")
+                    for (std::int32_t bar = 0; bar < sec.bars; ++bar)
+                    {
+                        const bool pulled = std::any_of (sec.dropouts.begin(), sec.dropouts.end(), [&] (const Dropout& d) { return d.bar == bar && (d.lanes >> kick & 1u) != 0; });
+                        INFO (id << " seed " << s.seed << ": the drop at bar " << sec.startBar << ", its bar " << bar);
+                        CHECK ((sec.active (kick, bar) || pulled));
+                    }
+        }
+}
+
+TEST_CASE ("form: drops run 24 bars or more, drop 2 32 or more, and in FUT01-FUT03 never shorter than drop 1", "[gen][form]")
+{
+    // The last drop is the peak: in all four written mixes it is at least as long as the first
+    // (40/32, 32/32, 32/32, 32/32). A 16-bar drop spends half itself on its lane change. Techno's
+    // long first drops (48, 64) can outrun its drop 2.
+    for (const char* id : kits)
+        for (const Song& s : songsOf (id))
+        {
+            INFO (id << " seed " << s.seed << ": " << formOf (s));
+            std::int32_t drop = 0, drop2 = 0;
+            for (const Section& sec : s.sections)
+            {
+                drop = sec.kind == "drop" ? sec.bars : drop;
+                drop2 = sec.kind == "drop2" ? sec.bars : drop2;
+            }
+            CHECK (drop >= 24);
+            CHECK (drop2 >= 32);
+            if (std::string_view (id) != "FUT04")
+                CHECK (drop2 >= drop);
+        }
+}
+
+TEST_CASE ("form: no bass or melodic lane plays a break's last bar, sits out the build after it and comes back with the drop", "[gen][form]")
+{
+    // The drop's payoff (the sub above all) never arrives early and is then taken away: the written
+    // mixes keep the bass out of their garage, club and house breaks. (A drum lane may: FUT03's
+    // plings ring in the break's second half and come back with the drop.)
+    for (const char* id : kits)
+        for (const Song& s : songsOf (id))
+        {
+            std::uint64_t drums = 0;
+            for (std::size_t l = 0; l < s.lanes.size(); ++l)
+                drums |= isDrums (s, l) ? std::uint64_t (1) << l : 0;
+            for (std::size_t i = 0; i + 2 < s.sections.size(); ++i)
+            {
+                const Section& brk = s.sections[i];
+                const Section& build = s.sections[i + 1];
+                const Section& drop = s.sections[i + 2];
+                if (brk.kind != "break" || build.kind != "build" || !isDrop (drop.kind))
+                    continue;
+                std::uint64_t inBuild = 0;
+                for (std::int32_t bar = 0; bar < build.bars; ++bar)
+                    inBuild |= build.lanesAt (bar);
+                INFO (id << " seed " << s.seed << ": the break at bar " << brk.startBar);
+                CHECK ((brk.lanesAt (brk.bars - 1) & ~inBuild & drop.lanesAt (0) & ~drums) == 0);
+            }
+        }
+}
+
+TEST_CASE ("form: a drop opens with every non-drum lane that played into it", "[gen][form]")
+{
+    // a hook that plays through the break and the build is there on the drop's downbeat
+    for (const char* id : kits)
+        for (const Song& s : songsOf (id))
+            for (std::size_t i = 1; i < s.sections.size(); ++i)
+            {
+                const Section& sec = s.sections[i];
+                if (!isDrop (sec.kind))
+                    continue;
+                const Section& before = s.sections[i - 1];
+                std::uint64_t drums = 0;
+                for (std::size_t l = 0; l < s.lanes.size(); ++l)
+                    drums |= isDrums (s, l) ? std::uint64_t (1) << l : 0;
+                INFO (id << " seed " << s.seed << ": the " << sec.kind << " at bar " << sec.startBar);
+                CHECK ((before.lanesAt (before.bars - 1) & ~sec.lanesAt (0) & ~drums) == 0);
+            }
+}
+
+TEST_CASE ("form: garage and house builds keep the kick through, and house brings its bass back for the first half of a 16-bar build", "[gen][form]")
+{
+    // FUT01's written build keeps the 2-step kick on (beat 1 and the and of 3 on the build grid);
+    // FUT03's keeps the four on the floor and brings the bass line back for its first 8 bars.
+    for (const char* id : { "FUT01", "FUT03" })
+        for (const Song& s : songsOf (id))
+        {
+            const std::size_t kick = laneIndexOf (s, "kick"), bass = laneIndexOf (s, "bass");
+            for (const Section& sec : s.sections)
+            {
+                if (sec.kind != "build")
+                    continue;
+                INFO (id << " seed " << s.seed << ": the " << sec.bars << "-bar build at bar " << sec.startBar);
+                for (std::int32_t bar = 0; bar < sec.bars; ++bar)
+                    CHECK (sec.active (kick, bar));
+                if (std::string_view (id) == "FUT03")
+                    for (std::int32_t bar = 0; bar < sec.bars; ++bar)
+                        CHECK (sec.active (bass, bar) == (sec.bars == 16 && bar < 8));
+            }
+        }
+}
+
+TEST_CASE ("form: the groove after drop 1 plays new patterns, not groove 1's opening bars", "[gen][form]")
+{
+    // A lane's pattern is drawn per grid and variant: the groove after drop 1 starts on a variant of
+    // its own, so it doesn't replay groove 1 bar for bar. Measured on the bass (the kick may be four
+    // on the floor, the same in every pattern). And FUT03's stab plays in some of them, as its
+    // written switch-up holds the stab under its riff.
+    for (const char* id : { "FUT01", "FUT02", "FUT03" })
+    {
+        std::size_t compared = 0, same = 0, stabs = 0;
+        for (const Song& s : songsOf (id))
+        {
+            const Section* first = nullptr;
+            const Section* after = nullptr;
+            for (std::size_t i = 0; i < s.sections.size(); ++i)
+            {
+                if (s.sections[i].kind == "groove" && first == nullptr)
+                    first = &s.sections[i];
+                if (s.sections[i].kind == "groove" && i > 0 && s.sections[i - 1].kind == "drop")
+                    after = &s.sections[i];
+            }
+            if (first == nullptr || after == nullptr)
+                continue;
+            const std::size_t bass = laneIndexOf (s, "bass");
+            const auto barNotes = [&] (const Section& sec, std::int32_t bar) {
+                std::set<std::pair<std::int64_t, int>> out;
+                for (const Note& n : s.lanes[bass].score)
+                    if (n.tick >= (sec.startBar + bar) * ticksPerBar && n.tick < (sec.startBar + bar + 1) * ticksPerBar)
+                        out.insert ({ n.step % 16, n.key });
+                return out;
+            };
+            for (std::int32_t bar = 0; bar < std::min ({ 8, first->bars, after->bars }); ++bar)
+                if (first->active (bass, bar) && after->active (bass, bar))
+                {
+                    ++compared;
+                    same += barNotes (*first, bar) == barNotes (*after, bar) ? 1u : 0u;
+                }
+            stabs += (after->lanesAnywhere() >> laneIndexOf (s, "chords") & 1u) != 0 ? 1u : 0u;
+        }
+        INFO (id << ": " << same << " of " << compared << " bass bars the same as groove 1's");
+        REQUIRE (compared > 100);
+        CHECK (same * 4 <= compared);
+        if (std::string_view (id) == "FUT03")
+            CHECK (stabs > 0);
+    }
+}
+
+TEST_CASE ("form: the loader keeps lanes carrying on across the mix-in and mix-out, the kick at both edges, and room for every drop's change", "[gen][form][content]")
+{
+    REQUIRE (formError (baseForm).empty());
+    // a "before" entry long enough to keep a lane the mix-in ends on out of the section after it
+    CHECK_THAT (formWith ("{ \"lanes\": [\"chords\"], \"after\": [{ \"bars\": 8, \"w\": 1 }] }]",
+                    "{ \"lanes\": [\"chords\"], \"after\": [{ \"bars\": 8, \"w\": 1 }] }, { \"lanes\": [\"bass\"], \"before\": [{ \"bars\": 16, \"w\": 1 }] }]"),
+        ContainsSubstring ("the mix-in ends on \"bass\""));
+    CHECK (formWith ("{ \"lanes\": [\"chords\"], \"after\": [{ \"bars\": 8, \"w\": 1 }] }]",
+               "{ \"lanes\": [\"chords\"], \"after\": [{ \"bars\": 8, \"w\": 1 }] }, { \"lanes\": [\"bass\"], \"before\": [{ \"bars\": 8, \"w\": 1 }] }]")
+               .empty()); // it plays the groove's first 8 bars at least
+    // drop 2's layer, which drop 1 never plays, right after the mix-in
+    const std::string layerAfterIntro = R"({
+    "bars": [128, 176], "sixteen": 100,
+    "sections": [
+      { "kind": "intro", "bars": [{ "bars": 32, "w": 1 }] },
+      { "kind": "drop", "bars": [{ "bars": 24, "w": 1 }, { "bars": 32, "w": 1 }] },
+      { "kind": "break", "bars": [{ "bars": 16, "w": 1 }, { "bars": 24, "w": 1 }] },
+      { "kind": "build", "bars": [{ "bars": 8, "w": 1 }, { "bars": 16, "w": 1 }] },
+      { "kind": "drop2", "bars": [{ "bars": 24, "w": 1 }, { "bars": 32, "w": 1 }] },
+      { "kind": "outro", "bars": [{ "bars": 32, "w": 1 }] }
+    ],
+    "layer": [{ "lane": "perc", "w": 1 }],
+    "plans": {
+      "intro": { "choices": [ { "w": 1, "blocks": [["kick", "hats"], ["kick", "hats", "shaker"], ["kick", "snare", "hats", "shaker"], ["kick", "snare", "hats", "shaker", "perc"]] } ] },
+      "drop": { "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], "rest": { "p": 50, "bars": 8, "lanes": [{ "lane": "chords", "w": 1 }] }, "change": true },
+      "break": { "lanes": ["hats", "chords"] },
+      "build": { "lanes": ["snare", "hats", "shaker", "perc", "chords"] },
+      "drop2": { "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], "rest": { "p": 40, "bars": 8, "lanes": [{ "lane": "chords", "w": 1 }] }, "change": true },
+      "outro": { "choices": [ { "w": 1, "blocks": [["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "shaker", "perc"], ["kick", "hats", "shaker", "perc"], ["kick", "hats"]] } ] }
+    }
+  })";
+    CHECK_THAT (formError (layerAfterIntro), ContainsSubstring ("drop 2's layer, which drop 1 never plays"));
+    CHECK_THAT (formError (layerAfterIntro), ContainsSubstring ("form.layer"));
+    CHECK (formError (replaced (layerAfterIntro, "\"layer\": [{ \"lane\": \"perc\", \"w\": 1 }],", "")).empty());
+    // lanes only leave from the section before the mix-out on: drop 2 can end without its chords (a
+    // rest that takes its last block), so a mix-out that opens on them can't be the only choice
+    CHECK_THAT (formWith ("\"outro\": { \"choices\": [ { \"w\": 1, \"blocks\": [[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"],",
+                    "\"outro\": { \"choices\": [ { \"w\": 1, \"blocks\": [[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"],"),
+        ContainsSubstring ("lanes only leave from the section before the mix-out on"));
+    CHECK_THAT (formWith ("\"outro\": { \"choices\": [ { \"w\": 1, \"blocks\": [[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"],",
+                    "\"outro\": { \"choices\": [ { \"w\": 1, \"blocks\": [[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\", \"chords\"],"),
+        ContainsSubstring ("form.plans.outro.choices"));
+    // the mix-in starts and the mix-out ends on the kick a DJ mixes on, never on silence
+    CHECK_THAT (formWith ("[[\"kick\", \"hats\"], [\"kick\", \"hats\", \"shaker\"]", "[[], [\"kick\", \"hats\", \"shaker\"]"), ContainsSubstring ("first block is empty"));
+    CHECK_THAT (formWith ("[[\"kick\", \"hats\"], [\"kick\", \"hats\", \"shaker\"]", "[[], [\"kick\", \"hats\", \"shaker\"]"), ContainsSubstring ("form.plans.intro.choices[0].blocks[0]"));
+    CHECK_THAT (formWith ("[[\"kick\", \"hats\"], [\"kick\", \"hats\", \"shaker\"]", "[[\"hats\"], [\"kick\", \"hats\", \"shaker\"]"), ContainsSubstring ("a DJ mixes on, \"kick\""));
+    CHECK_THAT (formWith ("[\"kick\", \"hats\", \"shaker\"]] } ] }\n    }", "[]] } ] }\n    }"), ContainsSubstring ("last block is empty"));
+    CHECK_THAT (formWith ("[\"kick\", \"hats\", \"shaker\"]] } ] }\n    }", "[\"hats\", \"shaker\"]] } ] }\n    }"), ContainsSubstring ("a DJ mixes on, \"kick\""));
+    CHECK_THAT (formWith ("[\"kick\", \"hats\", \"shaker\"]] } ] }\n    }", "[\"hats\", \"shaker\"]] } ] }\n    }"), ContainsSubstring ("form.plans.outro.choices[0].blocks[3]"));
+    // a drum lane rests inside its section, never through its last block: a 16-bar drop 2 whose only
+    // rest lane is the hats, and no dropout, has no room for its change
+    CHECK_THAT (formWith ("\"rest\": { \"p\": 40, \"bars\": 8, \"lanes\": [{ \"lane\": \"hats\", \"w\": 1 }, { \"lane\": \"chords\", \"w\": 1 }] }",
+                    "\"rest\": { \"p\": 40, \"bars\": 8, \"lanes\": [{ \"lane\": \"hats\", \"w\": 1 }] }"),
+        ContainsSubstring ("a 16-bar one has no room for a rest or a dropout"));
+    CHECK_THAT (formWith ("\"rest\": { \"p\": 40, \"bars\": 8, \"lanes\": [{ \"lane\": \"hats\", \"w\": 1 }, { \"lane\": \"chords\", \"w\": 1 }] }",
+                    "\"rest\": { \"p\": 40, \"bars\": 8, \"lanes\": [{ \"lane\": \"hats\", \"w\": 1 }] }"),
+        ContainsSubstring ("form.sections[6].bars[0].bars"));
+    // a slot can start its section on its own pattern variant, 0 to 15
+    CHECK (formWith ("{ \"kind\": \"break\", \"bars\"", "{ \"kind\": \"break\", \"variant\": 12, \"bars\"").empty());
+    CHECK_THAT (formWith ("{ \"kind\": \"break\", \"bars\"", "{ \"kind\": \"break\", \"variant\": 16, \"bars\""), ContainsSubstring ("form.sections[4].variant"));
 }

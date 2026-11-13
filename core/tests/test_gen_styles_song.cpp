@@ -1155,14 +1155,19 @@ TEST_CASE ("techno: 16th hats with open hats or rides on the offbeats", "[gen][s
     CHECK (rideBars * 100 >= drop2Bars * 90);
 }
 
-TEST_CASE ("techno: a sparse snare and clap in the groove, none in the first drop, the full backbeat in the second", "[gen][styles][techno]")
+TEST_CASE ("techno: a sparse snare and clap in the groove and the first drop, the full backbeat in the second", "[gen][styles][techno]")
 {
-    // Machine-hard techno: in the groove the metal snare hits beat 4 of every second bar, a clap
-    // sometimes doubles beat 4, and nothing else plays but a pickup in some turnaround bars; no
-    // swung ghost snares (that is house and garage programming). The snare and clap are drop 2's
-    // layer (the form grammar): the first drop runs on the kick, rumble, hats, anvil and acid alone,
-    // and the second drop lifts to the full backbeat on 2 and 4.
-    std::size_t grooveBars = 0, grooveSteps = 0, grooveTwos = 0, grooveFours = 0, dropNotes = 0, drop2Bars = 0, drop2Backbeats = 0, ghosts = 0;
+    // Machine-hard techno: in the groove and the first drop the metal snare hits beat 4 of every
+    // second bar, a clap sometimes doubles beat 4, and nothing else plays but a pickup in some
+    // turnaround bars; no swung ghost snares (that is house and garage programming). The second drop
+    // lifts to the full backbeat on 2 and 4, on its own grid (the kit's written mix keeps the snare
+    // through both drops).
+    struct Sparse
+    {
+        std::size_t bars = 0, steps = 0, twos = 0, fours = 0;
+    };
+    std::map<std::string, Sparse> sparse; // "groove", "drop"
+    std::size_t drop2Bars = 0, drop2Backbeats = 0, ghosts = 0;
     for (std::uint64_t seed = 0; seed < 32; ++seed)
     {
         const Song s = songFor ("FUT04", seed);
@@ -1175,7 +1180,6 @@ TEST_CASE ("techno: a sparse snare and clap in the groove, none in the first dro
             // outside turnaround pickups, nothing quieter than the backbeat: no ghosts
             if (!(n.flags & noteFlag::turn) && (isDrop (kind) || kind == "groove"))
                 ghosts += n.velocity < 64 ? 1u : 0u;
-            dropNotes += kind == "drop" ? 1u : 0u;
         }
         for (const Section& sec : s.sections)
             for (std::int32_t bar = 0; bar < sec.bars; ++bar)
@@ -1187,15 +1191,19 @@ TEST_CASE ("techno: a sparse snare and clap in the groove, none in the first dro
                     const auto it = byStep.find (s0 + k);
                     return it != byStep.end() && std::any_of (it->second.begin(), it->second.end(), [] (const Note* n) { return n->voice == 0; });
                 };
-                if (sec.kind == "groove")
+                if (sec.kind == "groove" || sec.kind == "drop")
                 {
-                    ++grooveBars;
-                    grooveTwos += snareAt (4) ? 1u : 0u;
-                    grooveFours += snareAt (12) ? 1u : 0u;
+                    Sparse& sp = sparse[sec.kind];
+                    ++sp.bars;
+                    sp.twos += snareAt (4) ? 1u : 0u;
+                    sp.fours += snareAt (12) ? 1u : 0u;
                     for (std::int64_t k = 0; k < 16; ++k)
-                        grooveSteps += byStep.contains (s0 + k) ? 1u : 0u;
+                        sp.steps += byStep.contains (s0 + k) ? 1u : 0u;
                     if (bar % 2 == 1)
+                    {
+                        INFO ("seed " << seed << ", the " << sec.kind << " at bar " << sec.startBar << ", its bar " << bar);
                         CHECK (snareAt (12)); // beat 4 of every second bar
+                    }
                 }
                 else if (sec.kind == "drop2")
                 {
@@ -1204,13 +1212,16 @@ TEST_CASE ("techno: a sparse snare and clap in the groove, none in the first dro
                 }
             }
     }
-    INFO (grooveSteps << " snare-lane steps in " << grooveBars << " groove bars, the snare on beat 2 in " << grooveTwos << " and on beat 4 in " << grooveFours
-                      << "; the backbeat in " << drop2Backbeats << " of " << drop2Bars << " drop 2 bars; " << ghosts << " ghosts; " << dropNotes << " notes in the first drops");
-    REQUIRE (grooveBars > 500);
-    CHECK (grooveTwos == 0);
-    CHECK (grooveFours * 2 == grooveBars); // every second bar, no more
-    CHECK (grooveSteps * 10 <= grooveBars * 12); // sparse: at most 1.2 hits a bar, pickups included
-    CHECK (dropNotes == 0);
+    for (const char* kind : { "groove", "drop" })
+    {
+        const Sparse& sp = sparse[kind];
+        INFO (kind << ": " << sp.steps << " snare-lane steps in " << sp.bars << " bars, the snare on beat 2 in " << sp.twos << " and on beat 4 in " << sp.fours);
+        REQUIRE (sp.bars > 500);
+        CHECK (sp.twos == 0);
+        CHECK (sp.fours * 2 == sp.bars); // every second bar, no more
+        CHECK (sp.steps * 10 <= sp.bars * 12); // sparse: at most 1.2 hits a bar, pickups included
+    }
+    INFO ("the backbeat in " << drop2Backbeats << " of " << drop2Bars << " drop 2 bars; " << ghosts << " ghosts");
     REQUIRE (drop2Bars > 500);
     CHECK (drop2Backbeats == drop2Bars);
     CHECK (ghosts == 0);
