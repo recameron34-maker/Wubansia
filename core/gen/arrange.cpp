@@ -1,6 +1,7 @@
 #include "gen/arrange.h"
 
 #include <algorithm>
+#include <optional>
 
 namespace wubansia::gen
 {
@@ -100,16 +101,30 @@ namespace wubansia::gen
         constexpr std::int32_t pullSpacing = 32;
 
         // A section's blocks and dropouts from its kind's plan. layer: drop 2's layer lane (0 for none).
-        void planBlocks (Section& s, const Style& style, const KindPlan& plan, std::uint64_t layer, rng::Key kf)
+        // prevEnd: the lanes the section before it plays in its last bar, if there is one (a mix-out
+        // choice that would bring back a non-drum lane it lacks is never drawn).
+        void planBlocks (Section& s, const Style& style, const KindPlan& plan, std::uint64_t layer, std::optional<std::uint64_t> prevEnd, rng::Key kf)
         {
             const auto blockCount = static_cast<std::size_t> (s.bars / barsPerBlock);
             const std::uint64_t drums = drumLanes (style);
             if (!plan.choices.empty())
             {
-                std::vector<std::int32_t> weights;
+                // lanes only leave from the section before the mix-out on: a choice whose first block
+                // brings back a non-drum lane that section ends without weighs 0 (drums may come back,
+                // the kick above all: a DJ mixes on it). The loader keeps a choice for every way the
+                // section before can end, so the draw never runs out (the plain weights if it did).
+                std::vector<std::int32_t> weights, plain;
                 for (const BlockChoice& c : plan.choices)
-                    weights.push_back (c.weight);
-                const BlockChoice& c = plan.choices[rng::pickWeighted (kf.with (rng::tag ("choice")).with (s.index), weights)];
+                {
+                    const bool back = prevEnd && !c.blocks.empty() && (maskOf (style, c.blocks.front()) & ~*prevEnd & ~drums) != 0;
+                    weights.push_back (back ? 0 : c.weight);
+                    plain.push_back (c.weight);
+                }
+                const rng::Key kc = kf.with (rng::tag ("choice")).with (s.index);
+                std::size_t pick = rng::pickWeighted (kc, weights);
+                if (pick >= plan.choices.size())
+                    pick = rng::pickWeighted (kc, plain);
+                const BlockChoice& c = plan.choices[pick];
                 for (std::size_t k = 0; k < blockCount; ++k)
                     s.blocks.push_back (k < c.blocks.size() ? maskOf (style, c.blocks[k]) : 0);
                 return;
@@ -328,8 +343,9 @@ namespace wubansia::gen
             s.kind = form.slots[i].kind;
             s.startBar = start;
             s.bars = lengths[i];
+            const std::optional<std::uint64_t> prevEnd = out.empty() ? std::nullopt : std::optional<std::uint64_t> (out.back().lanesAt (out.back().bars - 1));
             if (const KindPlan* plan = form.plan (s.kind))
-                planBlocks (s, style, *plan, layer, kf);
+                planBlocks (s, style, *plan, layer, prevEnd, kf);
             else
                 s.blocks.assign (static_cast<std::size_t> (s.bars / barsPerBlock), 0);
             start += s.bars;

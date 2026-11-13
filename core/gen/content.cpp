@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <set>
 #include <string>
 
 namespace wubansia::gen
@@ -1108,6 +1109,61 @@ namespace wubansia::gen
                 // the next slot that can follow the mix-in, if this one can be left out
                 if (!optionalSlot (i))
                     break;
+            }
+
+            // lanes only leave from the section before the mix-out on (arrange.h draws only such a
+            // choice): some mix-out choice starts on no non-drum lane that a section able to come
+            // before it can end without (a lane it doesn't play, a "before" entry, an "after" entry
+            // that can sit the section out, a rest that can take its last block, drop 2's layer in a
+            // drop, a mix-in choice that ends without it)
+            const KindPlan* outro = form.plan ("outro");
+            if (outro != nullptr && form.slots.size() >= 2 && form.slots.back().kind == "outro")
+            {
+                std::set<std::string, std::less<>> endless; // non-drum lanes some section before the mix-out can end without
+                for (std::size_t i = form.slots.size() - 1; i-- > 0;)
+                {
+                    const FormSlot& slot = form.slots[i];
+                    const KindPlan& plan = *form.plan (slot.kind);
+                    std::int32_t shortest = 0;
+                    for (const Weighted& w : slot.bars)
+                        if (w.value > 0 && w.weight > 0 && (shortest == 0 || w.value < shortest))
+                            shortest = w.value;
+                    for (const LaneSpec& lane : style.lanes)
+                    {
+                        if (lane.kind == LaneKind::drums)
+                            continue;
+                        bool without = false;
+                        if (!plan.choices.empty())
+                            without = std::any_of (plan.choices.begin(), plan.choices.end(), [&] (const BlockChoice& c) { return c.weight > 0 && (c.blocks.empty() || !contains (c.blocks.back(), lane.id)); });
+                        else
+                        {
+                            without = !contains (plan.lanes, lane.id) || (slot.kind == "drop" && layered (lane.id));
+                            for (const LaneEntry& e : plan.entries)
+                                if (contains (e.lanes, lane.id))
+                                    without = without || std::any_of (e.bars.begin(), e.bars.end(), [&] (const Weighted& w) {
+                                        return w.weight > 0 && ((e.entry == Entry::before && w.value > 0) || (e.entry == Entry::after && w.value >= shortest));
+                                    });
+                            if (plan.rest)
+                                without = without || std::any_of (plan.rest->lanes.begin(), plan.rest->lanes.end(), [&] (const LaneWeight& lw) { return lw.weight > 0 && lw.lane == lane.id; });
+                        }
+                        if (without)
+                            endless.insert (lane.id);
+                    }
+                    if (!optionalSlot (i))
+                        break;
+                }
+                const bool fits = std::any_of (outro->choices.begin(), outro->choices.end(), [&] (const BlockChoice& c) {
+                    return c.weight > 0 && !c.blocks.empty() && std::none_of (c.blocks.front().begin(), c.blocks.front().end(), [&] (const std::string& id) { return endless.contains (id); });
+                });
+                if (!fits)
+                {
+                    std::string named;
+                    for (const auto& id : endless)
+                        named += std::string (named.empty() ? "" : ", ") + "\"" + id + "\"";
+                    plans["outro"]["choices"].fail ("lanes only leave from the section before the mix-out on, but every mix-out choice starts on a lane that section can end without ("
+                                                    + named + ")");
+                    return;
+                }
             }
 
             // a kind with "change" can always make one: a rest or a dropout fits every length it takes

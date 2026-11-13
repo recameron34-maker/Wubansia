@@ -9,8 +9,9 @@
 //   ends inside its length range (200 to 240 bars in the shipped styles); a length of 0 leaves an
 //   optional slot out;
 // - the lanes: the 32-bar mix-in and mix-out take a whole block plan (drums only at the edges, lanes
-//   only joining in the mix-in and only leaving in the mix-out). Every other section plays its kind's
-//   lanes:
+//   only joining in the mix-in and only leaving in the mix-out, from the section before it on: the
+//   mix-out never takes a choice that brings back a non-drum lane that section ends without). Every
+//   other section plays its kind's lanes:
 //   - some joining late or leaving early (the entries);
 //   - one lane sitting out 8 or 16 bars (the rest; a drum lane always comes back inside the section);
 //   - lane groups sitting out the bar before the section's own 16-bar lines, landing back on the line

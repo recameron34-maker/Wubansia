@@ -194,6 +194,7 @@ namespace wubansia::gen
     //   blocks alike (and a mix-out the other way round);
     // - a lane the mix-in ends on that the section after it doesn't play from its start (a late
     //   entry, a "before" entry that can sit the section out, drop 2's layer in a drop);
+    // - no mix-out choice that starts on no non-drum lane the section before it can end without;
     // - an entry, rest or dropout lane the kind doesn't play, or that can't play all through it where
     //   it must;
     // - a "change" kind with a length too short for its rest (inside the section, for a drum lane)
