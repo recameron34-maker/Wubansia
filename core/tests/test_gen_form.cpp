@@ -1176,13 +1176,14 @@ TEST_CASE ("form: drop 1 keeps its kick in every bar but its one-bar pulls", "[g
         }
 }
 
-TEST_CASE ("form: drop 2 keeps its hats and the four-on-the-floor kick, and FUT04's drop 1 its acid, in every bar but their one-bar pulls", "[gen][form]")
+TEST_CASE ("form: drop 2 keeps its hats and the four-on-the-floor kick (FUT03 its shaker), and FUT04's drop 1 its acid, in every bar but their one-bar pulls", "[gen][form]")
 {
     // Drop 2 is the peak a DJ lets play before the mix-out: none of the written drop 2s rests its hats
     // (FUT01's and FUT03's are busier than their drop 1's), and FUT02's and FUT03's keep the four on
-    // the floor in every bar (FUT01's takes its 2-step kick out for 8 bars, its written move). FUT04's
-    // written drop 1 never rests its acid line, the track's hook. A one-bar pull may take a lane for
-    // its bar: it lands back on the line.
+    // the floor in every bar (FUT01's takes its 2-step kick out for 8 bars, its written move), FUT03's
+    // with the shaker's 16ths (its written drops thin only their bongos and rim on alternate lines).
+    // FUT04's written drop 1 never rests its acid line, the track's hook. A one-bar pull may take a
+    // lane for its bar: it lands back on the line.
     struct Kept
     {
         const char* kit;
@@ -1190,7 +1191,7 @@ TEST_CASE ("form: drop 2 keeps its hats and the four-on-the-floor kick, and FUT0
         const char* lane;
     };
     for (const Kept& k : { Kept { "FUT01", "drop2", "hats" }, Kept { "FUT02", "drop2", "hats" }, Kept { "FUT03", "drop2", "hats" }, Kept { "FUT02", "drop2", "kick" },
-             Kept { "FUT03", "drop2", "kick" }, Kept { "FUT04", "drop", "bass" } })
+             Kept { "FUT03", "drop2", "kick" }, Kept { "FUT03", "drop2", "shaker" }, Kept { "FUT04", "drop", "bass" } })
     {
         std::size_t songs = 0;
         for (const Song& s : songsOf (k.kit))
