@@ -48,8 +48,9 @@ namespace wubansia::sounds
             return std::any_of (in.zones.begin(), in.zones.end(), [] (const engine::ZoneEntry& z) { return z.lo < z.hi; });
         }
 
-        // The file the kit's loops play: the top layer's first round robin of the zone on the tonic (pitched) or the
-        // first zone (one key). -1 when the instrument has none.
+        // The default file (rule 5): the top layer's first round robin of the first zone on the tonic (pitched; else
+        // the middle zone) or of the first zone (one key). The kit's key note at its lowest and loudest, which the
+        // kit's loops usually play, not always. -1 when the instrument has none.
         int defaultFileOf (const engine::InstrumentEntry& in, int tonic)
         {
             if (in.zones.empty())

@@ -18,7 +18,9 @@
 //    is skipped.
 // 5. The default file is the top layer's first round robin of one zone: for a pitched instrument (a zone with
 //    lo < hi) the first zone rooted on the kit's tonic, else its middle zone (zones[size / 2]); for a one-key
-//    instrument its first zone. It is what the kit's loops play.
+//    instrument its first zone. So it is the kit's key note in the lowest register that has one, at its loudest:
+//    usually a note the kit's loops play, but not always (FUT03's Vox Synth and Keys EP give G3, below the G4 up
+//    the kit plays them; FUT02's Chrome Arp gives D4, below its arp's A4-C6). The File box reaches every file.
 // 6. name: the instrument's, a leading "Accent " dropped ("Dub Chord Cm9"); a loop's, its file name without
 //    folder and ".wav". id: "<KIT>/<instrument id>", or "<KIT>/<path>" for a loop.
 // 7. bars: the default file's length in whole bars at the kit's tempo (48000 x 240 / bpm frames a bar) when
