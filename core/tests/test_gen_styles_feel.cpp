@@ -370,7 +370,7 @@ TEST_CASE ("styles: hat and perc microtiming is 1/f, correlated with a moderate 
 {
     // A proxy per track; the gate itself (G7 on the drum groups) runs in test_gen_gates.cpp. In the
     // drops and the grooves, each position's mean taken per section kind (drop 2 can swing its own
-    // way): a drawn drop can be 16 bars, and drop 2's layer sits out drop 1 (FUT02's zaps).
+    // way): a lane can sit out a block of a drop (its rest), so the grooves add the bars.
     for (const char* id : kits)
         for (const char* laneId : { "hats", "perc" })
             for (std::uint64_t seed = 1; seed <= 4; ++seed)
