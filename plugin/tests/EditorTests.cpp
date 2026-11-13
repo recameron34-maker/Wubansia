@@ -1612,8 +1612,9 @@ TEST_CASE ("a kit chip browses another kit without selecting it; a kit without s
             CHECK (soundRow (editor, 0).look().name == "Glass Ping");
             CHECK (soundRow (editor, 0).look().dimmed);
             const auto banner = drawer.bannerText().toStdString();
-            CHECK_THAT (banner, ContainsSubstring ("FUT02's samples aren't installed") && ContainsSubstring ("no folder holds FUT02", Catch::CaseSensitive::No)
-                                    && ContainsSubstring ("install-macos.sh") && ContainsSubstring ("the folder that holds 'fut02'"));
+            CHECK_THAT (banner, ContainsSubstring ("FUT02's samples aren't installed") && ContainsSubstring ("install-macos.sh")
+                                    && ContainsSubstring ("the folder that holds 'fut02'"));
+            CHECK_THAT (banner, ! ContainsSubstring ("no folder holds FUT02", Catch::CaseSensitive::No)); // the headline says it
             CHECK (get<juce::Button> (editor, "samples_content_folder").isVisible());
             press (soundRow (editor, 0));
             CHECK (c.auditions.empty());
@@ -1669,6 +1670,66 @@ TEST_CASE ("a kit chip browses another kit without selecting it; a kit without s
             CHECK_FALSE (soundRow (editor, 0).look().dimmed);
             CHECK (drawer.bannerText().isEmpty());
             CHECK (drawer.statusText().isEmpty());
+        });
+}
+
+TEST_CASE ("the banner says what's wrong once, in words, without the content check's codes", "[editor][sounds]")
+{
+    // The problems as the content check words them (ContentLocator, P4's FileSampleSource and checkKitFiles).
+    struct Case
+    {
+        const char* what;
+        wubansia::ContentState state;
+        bool folder; // a kit folder was found, with something wrong in it
+        const char* problem;
+        const char* shows; // what the banner's second line holds; "" for nothing but its own advice
+    };
+    const Case cases[] {
+        { "no folder holds it", wubansia::ContentState::missing, false,
+            "No content folder holds FUT02 (fut02/v1 or fut02): install its content, or choose the folder that holds it", "" },
+        { "a file missing from its folder", wubansia::ContentState::missing, true,
+            "missing: Drums/Kick Split v1 rr1.wav: no such file in /x/fut02/v1", "Drums/Kick Split v1 rr1.wav: no such file in /x/fut02/v1. " },
+        { "Git LFS pointers", wubansia::ContentState::lfsPointers, true,
+            "lfs_pointer: Drums/Kick Split v1 rr1.wav: a Git LFS pointer file for 65729 bytes of audio, not the audio itself: fetch the "
+            "samples (git lfs pull) or install the content",
+            "" },
+        { "another version's file", wubansia::ContentState::mismatch, true,
+            "mismatch: Drums/Kick Split v1 rr1.wav: 1000 frames and 1 channel; kit.json lists 19518 frames and 1 channel",
+            "Drums/Kick Split v1 rr1.wav: 1000 frames and 1 channel; kit.json lists 19518 frames and 1 channel. " },
+        { "a 44.1 kHz file", wubansia::ContentState::mismatch, true, "rate: Drums/Kick Split v1 rr1.wav: 44100 Hz; the content is 48000 Hz",
+            "Drums/Kick Split v1 rr1.wav: 44100 Hz; the content is 48000 Hz. " },
+        { "a file that can't be read", wubansia::ContentState::failed, true, "unreadable: Drums/Kick Split v1 rr1.wav: permission denied",
+            "Drums/Kick Split v1 rr1.wav: permission denied. " },
+    };
+
+    Rig rig;
+    auto& c = rig.controller;
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openDrawer (editor);
+            drawer.platform = editor::ContentPanel::Platform::macOS;
+            click (get<editor::KitChip> (editor, "samples_kit_FUT02"));
+            for (const auto& k : cases)
+            {
+                CAPTURE (k.what);
+                c.kitCards[1].content = {};
+                c.kitCards[1].content.state = k.state;
+                c.kitCards[1].content.problem = k.problem;
+                if (k.folder)
+                    c.kitCards[1].content.folder = juce::File ("/x/fut02/v1");
+                editor.tick();
+                const auto lines = juce::StringArray::fromLines (drawer.bannerText());
+                REQUIRE (lines.size() == 2);
+                const auto body = lines[1];
+                CAPTURE (body.toStdString());
+                CHECK (body.startsWith (k.shows));
+                for (const auto* code : { "Missing:", "Mismatch:", "Lfs_pointer:", "Rate:", "Unreadable:", "missing:", "lfs_pointer:" })
+                    CHECK_FALSE (body.contains (code));
+                // Each piece of advice once: the drawer's own, not the check's too.
+                CHECK (body.indexOf ("choose") == body.lastIndexOf ("choose"));
+                CHECK (body.indexOf ("git lfs pull") == body.lastIndexOf ("git lfs pull"));
+                CHECK_FALSE (body.contains ("No content folder holds"));
+            }
         });
 }
 
