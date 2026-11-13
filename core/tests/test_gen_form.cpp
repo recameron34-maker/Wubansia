@@ -735,6 +735,72 @@ TEST_CASE ("form: the slot-by-slot fallback keeps the lines and the length range
     }
 }
 
+TEST_CASE ("form: a shipped grammar reaches the fallback on a real seed, FUT04 seed 304, and keeps its lines and range", "[gen][form]")
+{
+    // Techno's grammar needs the slot-by-slot fallback in 453 of seeds 0 to 99,999 (the other styles
+    // in none), the first of them seed 304. Its 1,024 free draws are replayed here as formLengths
+    // makes them (arrange.cpp: each slot by its weights, kept if the drawn lines hold and the total is
+    // in range), to show none is kept; the song then plays the fallback's lengths, on its lines and
+    // inside techno's 208 to 240 bars. The form is pinned, so a change to the fallback's draws on a
+    // shipped grammar shows here.
+    const Bundle& b = bundleFor ("FUT04");
+    const FormSpec& form = b.style.form;
+    const rng::Key kf = songRoot ("FUT04", 304).with (rng::tag ("form"));
+    std::vector<std::int8_t> lines (form.slots.size(), -1);
+    for (std::size_t i = 0; i < form.slots.size(); ++i)
+        if (startsOnLine (form.slots[i].kind))
+            lines[i] = rng::chance (kf.with (rng::tag ("line")).with (i), p16FromPercent (form.sixteen)) ? 1 : 0;
+    // intro, groove, break, build, drop, break, build, drop2, outro: break 1, break 2 and drop 2 on 8
+    // mod 16, the drop on a 16-bar line
+    CHECK (lines == std::vector<std::int8_t> { -1, -1, 0, -1, 1, 0, -1, 0, -1 });
+
+    const rng::Key kb = kf.with (rng::tag ("bars"));
+    std::int32_t kept = 0;
+    for (std::int32_t attempt = 0; attempt < 1024; ++attempt)
+    {
+        const rng::Key ka = kb.with (rng::tag ("attempt")).with (attempt);
+        std::int32_t bars = 0;
+        bool onLines = true;
+        for (std::size_t i = 0; i < form.slots.size() && onLines; ++i)
+        {
+            std::vector<std::int32_t> weights;
+            for (const Weighted& w : form.slots[i].bars)
+                weights.push_back (w.weight);
+            const std::int32_t n = form.slots[i].bars[rng::pickWeighted (ka.with (i), weights)].value;
+            if (n != 0 && lines[i] >= 0)
+                onLines = (bars % 16 == 0) == (lines[i] == 1);
+            bars += n;
+        }
+        kept += onLines && bars >= form.bars.lo && bars <= form.bars.hi ? 1 : 0;
+    }
+    CHECK (kept == 0);
+    const auto lengths = formLengths (form, lines, kb);
+    CHECK (lengths == std::vector<std::int32_t> { 32, 40, 24, 32, 32, 0, 8, 32, 32 }); // break 2 left out
+
+    Options o;
+    o.seed = 304;
+    const auto song = generate (b, o);
+    REQUIRE (song.ok());
+    const auto& sections = song.value.sections;
+    CHECK (song.value.totalBars == 232);
+    CHECK (song.value.totalBars >= form.bars.lo);
+    CHECK (song.value.totalBars <= form.bars.hi);
+    std::size_t at = 0;
+    for (std::size_t i = 0; i < lengths.size(); ++i)
+    {
+        if (lengths[i] == 0)
+            continue;
+        REQUIRE (at < sections.size());
+        INFO ("slot " << i << ", " << sections[at].kind << " at bar " << sections[at].startBar);
+        CHECK (sections[at].kind == form.slots[i].kind);
+        CHECK (sections[at].bars == lengths[i]);
+        if (lines[i] >= 0)
+            CHECK ((sections[at].startBar % 16 == 0) == (lines[i] == 1));
+        ++at;
+    }
+    CHECK (at == sections.size());
+}
+
 TEST_CASE ("form: dropouts before every 32-bar line, and the dropout a drop with no rest takes for its lane change", "[gen][form]")
 {
     // grammar features no shipped style uses
