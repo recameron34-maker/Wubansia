@@ -682,38 +682,48 @@ TEST_CASE ("a section ends the same whatever the next one starts with", "[gen][s
     // on that line or not. Only a bass lane without a duck shows it (a duck ends every note its gap,
     // more than the hold gap, before its section's end), and no shipped one starts a section on its
     // line: FUT04's rumble has a note on six section lines of every song, but its duck ends the note
-    // before at least 60 ticks short of the line either way. So this edits garage2step: the bass
-    // plays all through the break (not only its last 8 bars), whose grid plays the 1 (a 100% cell), so the bass starts the
-    // break on the line where the section before it ends. Every section but the breaks stays the
-    // same, note for note and controller for controller, in both versions.
+    // before at least 60 ticks short of the line either way. So this compares two edits of
+    // garage2step whose bass plays all through the break (the shipped break leaves the sub to the
+    // drop): in one its break grid plays the 1 (a 100% cell), so the bass starts the break on the
+    // line where the section before it ends; in the other that cell is 0, and nothing starts there.
+    // Both play the same lanes in every bar (so the same salient changes), and every section but the
+    // breaks stays the same, note for note and controller for controller, in both versions.
     const auto read = [] (const std::filesystem::path& p) {
         const auto r = util::readBinaryFile (p);
         REQUIRE (r.ok());
         return std::string (r.value.begin(), r.value.end());
     };
     const auto content = std::filesystem::path (WUBANSIA_SOURCE_DIR) / "content";
-    std::string style = read (content / "styles" / "garage2step.json");
-    const std::string bassLast = ",\n          { \"lanes\": [\"bass\"], \"last\": [ { \"bars\": 8, \"w\": 1 } ] }";
-    const auto at = style.find (bassLast);
-    REQUIRE (at != std::string::npos);
-    style.erase (at, bassLast.size());
-    auto kit = parseKit (read (content / "kits" / "fut01.json"), "fut01.json");
-    auto sty = parseStyle (style, "garage2step.json");
-    auto feel = parseFeel (read (content / "feels" / "garage2step.json"), "garage2step.json");
-    REQUIRE (kit.ok());
-    INFO (sty.error);
-    REQUIRE (sty.ok());
-    REQUIRE (feel.ok());
-    auto edited = makeBundle (std::move (kit.value), std::move (sty.value), std::move (feel.value));
-    INFO (edited.error);
-    REQUIRE (edited.ok());
+    const auto edit = [&] (bool onTheOne) {
+        std::string style = read (content / "styles" / "garage2step.json");
+        const auto replace = [&style] (const std::string& from, const std::string& to) {
+            const auto at = style.find (from);
+            REQUIRE (at != std::string::npos);
+            style.replace (at, from.size(), to);
+        };
+        replace ("\"break\": {\n        \"lanes\": [\"hats\", \"perc\", \"chords\"],", "\"break\": {\n        \"lanes\": [\"hats\", \"perc\", \"bass\", \"chords\"],");
+        if (!onTheOne)
+            replace ("\"break\": {\n          \"p\":   [100, 0, 0, 0,", "\"break\": {\n          \"p\":   [0, 0, 0, 0,");
+        auto kit = parseKit (read (content / "kits" / "fut01.json"), "fut01.json");
+        auto sty = parseStyle (style, "garage2step.json");
+        auto feel = parseFeel (read (content / "feels" / "garage2step.json"), "garage2step.json");
+        REQUIRE (kit.ok());
+        INFO (sty.error);
+        REQUIRE (sty.ok());
+        REQUIRE (feel.ok());
+        auto b = makeBundle (std::move (kit.value), std::move (sty.value), std::move (feel.value));
+        INFO (b.error);
+        REQUIRE (b.ok());
+        return std::move (b.value);
+    };
+    const Bundle onLine = edit (true), offLine = edit (false);
 
-    std::size_t breaks = 0, onTheLine = 0, toTheLine = 0, compared = 0;
+    std::size_t breaks = 0, onTheLine = 0, offTheLine = 0, toTheLine = 0, compared = 0;
     std::vector<std::string> differences;
     for (std::uint64_t seed = 0; seed < 16; ++seed)
     {
-        const Song shipped = songOf (bundleFor ("FUT01"), seed);
-        const Song changed = songOf (edited.value, seed);
+        const Song shipped = songOf (offLine, seed);
+        const Song changed = songOf (onLine, seed);
         REQUIRE (changed.sections.size() == shipped.sections.size());
         for (const Section& sec : shipped.sections)
         {
@@ -723,8 +733,9 @@ TEST_CASE ("a section ends the same whatever the next one starts with", "[gen][s
             const Section& before = shipped.sections[sec.index - 1]; // a drop, or a groove before an early break
             const auto& bass = laneOf (changed, "bass").score;
             onTheLine += std::any_of (bass.begin(), bass.end(), [&] (const Note& n) { return n.tick == sec.startTick(); }) ? 1u : 0u;
-            // the case the rule is for: the last note before the break runs to the line
             const auto& shippedBass = laneOf (shipped, "bass").score;
+            offTheLine += std::none_of (shippedBass.begin(), shippedBass.end(), [&] (const Note& n) { return n.tick == sec.startTick(); }) ? 1u : 0u;
+            // the case the rule is for: the last note before the break runs to the line
             const auto last = std::find_if (shippedBass.rbegin(), shippedBass.rend(), [&] (const Note& n) { return n.section == static_cast<std::int16_t> (before.index); });
             if (last != shippedBass.rend())
                 toTheLine += last->tick + last->length == before.endTick() ? 1u : 0u;
@@ -776,7 +787,8 @@ TEST_CASE ("a section ends the same whatever the next one starts with", "[gen][s
     INFO (differences.size() << " of " << compared << " section lanes differ; the first:" << shown);
     CHECK (differences.empty());
     CHECK (breaks >= 16);
-    CHECK (onTheLine == breaks); // the edit starts every break with a bass note on its line
+    CHECK (onTheLine == breaks); // one edit starts every break with a bass note on its line
+    CHECK (offTheLine == breaks); // the other never does
     CHECK (toTheLine >= 3); // and in some songs the drop's last bass note runs to that line
 }
 

@@ -851,7 +851,7 @@ TEST_CASE ("styles: slides overlap the next note and approach notes lead into ch
         INFO (id << ": " << slides << " slides, " << approaches << " approach notes");
         CHECK (slides > 20);
         if (std::string (id) == "FUT02")
-            CHECK (approaches > 20); // the sci-fi bass leads into its chord changes
+            CHECK (approaches > 10); // the sci-fi bass leads into its chord changes (it sits out the breaks, whose slow changes drew most of them)
         else
             CHECK (approaches == 0); // a pedal has no changes to lead into
     }

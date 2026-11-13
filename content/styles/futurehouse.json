@@ -37,19 +37,20 @@
           { "lanes": ["perc"], "after": [ { "bars": 0, "w": 1 }, { "bars": 8, "w": 3 } ] },
           { "lanes": ["chords"], "after": [ { "bars": 16, "w": 2 }, { "bars": 24, "w": 1 }, { "bars": 32, "w": 1 } ] } ] },
       "build": {
-        "lanes": ["kick", "snare", "hats", "shaker", "chords"] },
+        "lanes": ["kick", "snare", "hats", "shaker", "bass", "chords"],
+        "entries": [
+          { "lanes": ["bass"], "before": [ { "bars": 8, "w": 1 } ] } ] },
       "drop": {
         "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
         "rest": { "p": 55, "bars": 8, "lanes": [ { "lane": "chords", "w": 2 }, { "lane": "perc", "w": 1 }, { "lane": "shaker", "w": 1 } ] },
         "dropout": { "p": 40, "every": 16, "lanes": [ { "lanes": ["kick", "bass"], "w": 3 }, { "lanes": ["kick", "bass", "chords"], "w": 1 } ] },
         "change": true },
       "break": {
-        "lanes": ["hats", "shaker", "perc", "bass", "chords"],
+        "lanes": ["hats", "shaker", "perc", "chords"],
         "entries": [
           { "lanes": ["shaker"], "before": [ { "bars": 8, "w": 1 }, { "bars": 16, "w": 1 } ] },
           { "lanes": ["hats"], "after": [ { "bars": 8, "w": 1 } ] },
-          { "lanes": ["perc"], "after": [ { "bars": 8, "w": 1 } ] },
-          { "lanes": ["bass"], "last": [ { "bars": 8, "w": 1 } ] } ] },
+          { "lanes": ["perc"], "after": [ { "bars": 8, "w": 1 } ] } ] },
       "drop2": {
         "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
         "entries": [
@@ -353,7 +354,7 @@
     {
       "id": "bass", "kind": "bass",
       "follow": "kick",
-      "use": { "intro": "main", "groove": "main", "drop": "main", "break": "break", "drop2": "main", "outro": "main" },
+      "use": { "intro": "main", "groove": "main", "build": "main", "drop": "main", "break": "break", "drop2": "main", "outro": "main" },
       "degreeSets": [
         [100, 0, 0, 0, 0],
         [5, 85, 10, 0, 0],

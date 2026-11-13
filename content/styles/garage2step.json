@@ -46,11 +46,10 @@
         "dropout": { "p": 35, "every": 16, "lanes": [ { "lanes": ["kick", "bass"], "w": 3 }, { "lanes": ["kick", "bass", "chords"], "w": 1 } ] },
         "change": true },
       "break": {
-        "lanes": ["hats", "perc", "bass", "chords"],
+        "lanes": ["hats", "perc", "chords"],
         "entries": [
           { "lanes": ["hats"], "after": [ { "bars": 0, "w": 1 }, { "bars": 8, "w": 1 } ] },
-          { "lanes": ["perc"], "after": [ { "bars": 8, "w": 1 }, { "bars": 16, "w": 1 } ] },
-          { "lanes": ["bass"], "last": [ { "bars": 8, "w": 1 } ] } ] },
+          { "lanes": ["perc"], "after": [ { "bars": 8, "w": 1 }, { "bars": 16, "w": 1 } ] } ] },
       "drop2": {
         "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"],
         "entries": [
