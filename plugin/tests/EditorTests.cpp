@@ -1008,6 +1008,57 @@ TEST_CASE ("the Samples button opens the drawer over the lanes, A/B and FX; the 
         });
 }
 
+TEST_CASE ("while the drawer is open, Tab and screen readers reach nothing it covers", "[editor][sounds]")
+{
+    Rig rig;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            // What the drawer hides from sight: a component wholly inside its bounds, and not its own.
+            auto& drawer = openDrawer (editor);
+            auto* face = drawer.getParentComponent();
+            REQUIRE (face != nullptr);
+            const auto under = [&] (juce::Component* c) {
+                return c != &drawer && ! drawer.isParentOf (c) && drawer.getBounds().contains (face->getLocalArea (c, c->getLocalBounds()));
+            };
+            const auto name = [] (juce::Component* c) { return c->getComponentID().isNotEmpty() ? c->getComponentID() : "'" + c->getTitle() + "'"; };
+
+            juce::StringArray tabStops, covered;
+            for (auto* c : juce::KeyboardFocusTraverser().getAllComponents (&editor))
+            {
+                tabStops.add (name (c));
+                if (under (c))
+                    covered.add (name (c));
+            }
+            for (auto* c : juce::FocusTraverser().getAllComponents (&editor)) // what a screen reader walks
+                if (under (c))
+                    covered.addIfNotAlreadyThere (name (c));
+            INFO ("under the drawer: " << covered.joinIntoString (" "));
+            CHECK (covered.isEmpty());
+
+            // The drawer's controls and those around it stay in reach.
+            INFO ("tab stops: " << tabStops.joinIntoString (" "));
+            for (const auto* id : { "samples_kit_FUT01", "sound_list", "sound_drag", "samples_content", "samples", "zoom", "play_mode" })
+            {
+                INFO (id);
+                CHECK (tabStops.contains (id));
+            }
+
+            // Closed, the lanes, A/B and FX are back, and so are their keys.
+            click (get<juce::Button> (editor, "samples_close"));
+            editor.tick();
+            for (const auto l : { engine::Lane::kick, engine::Lane::fx })
+                CHECK (lane (editor, l).isVisible());
+            CHECK (get<juce::Component> (editor, "ab").isVisible());
+            CHECK (get<juce::Component> (editor, "fx").isVisible());
+            juce::StringArray after;
+            for (auto* c : juce::KeyboardFocusTraverser().getAllComponents (&editor))
+                after.add (name (c));
+            CHECK (after.contains (ids::laneMute[0]));
+            CHECK (after.contains (ids::clubMaster));
+        });
+}
+
 TEST_CASE ("the drawer and the content panel never show together; Content... opens the install panel", "[editor][sounds]")
 {
     Rig rig;
