@@ -9,11 +9,14 @@
 //   ends inside its length range (200 to 240 bars in the shipped styles); a length of 0 leaves an
 //   optional slot out;
 // - the lanes: the 32-bar mix-in and mix-out take a whole block plan (drums only at the edges, lanes
-//   only joining in the mix-in and only leaving in the mix-out); every other section plays its kind's
-//   lanes, some joining late or leaving early (the entries), one lane sitting out 8 or 16 bars (the
-//   rest) and lane groups sitting out the bar before the section's own 16-bar lines (the dropouts);
-//   drop 2's layer, drawn per song, plays in drop 2 and never in drop 1. A kind with "change" has a
-//   lane change inside every section.
+//   only joining in the mix-in and only leaving in the mix-out). Every other section plays its kind's
+//   lanes:
+//   - some joining late or leaving early (the entries);
+//   - one lane sitting out 8 or 16 bars (the rest);
+//   - lane groups sitting out the bar before the section's own 16-bar lines, landing back on the line
+//     (the dropouts);
+//   - drop 2's layer, drawn per song, in drop 2 and never in drop 1.
+//   A kind with "change" has a lane change inside every section.
 // Lane entries and exits therefore fall on 8-bar lines, and dropouts on the last bar of a phrase.
 // Variation by hypermeter tier, on top of the form:
 // - every 4-bar line: a turnaround in its last bar, with the style's probability (about 0.5)

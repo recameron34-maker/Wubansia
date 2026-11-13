@@ -161,14 +161,16 @@ namespace wubansia::gen
                 return true;
             };
 
-            // a dropout in the bar before the section's own line: a lane group drawn among those playing there
+            // a dropout in the bar before the section's own line: a lane group drawn among the lanes
+            // playing there and on the line, so every lane it takes out lands back on the line (a lane
+            // whose rest starts on the line plays through the bar and leaves on the line)
             const auto dropout = [&] (std::int32_t line, bool forced) {
                 const DropoutSpec& d = *plan.dropout;
                 const rng::Key kd = kf.with (rng::tag ("dropout")).with (s.index).with (line);
                 if (!forced && !rng::chance (kd.with (rng::tag ("p")), p16FromPercent (d.p)))
                     return false;
                 const std::int32_t bar = line - 1;
-                const std::uint64_t playing = s.lanesAt (bar);
+                const std::uint64_t playing = s.lanesAt (bar) & s.lanesAt (line);
                 std::vector<std::int32_t> weights;
                 for (const LaneGroup& g : d.lanes)
                     weights.push_back ((maskOf (style, g.lanes) & playing) != 0 ? g.weight : 0);
