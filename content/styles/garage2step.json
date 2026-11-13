@@ -56,9 +56,9 @@
         "dropout": { "p": 35, "every": 16, "lanes": [ { "lanes": ["kick", "bass"], "w": 3 }, { "lanes": ["kick", "bass", "hats"], "w": 1 } ] },
         "change": true },
       "outro": { "choices": [
-        { "w": 2, "blocks": [ ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], ["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "shaker", "perc"], ["kick", "hats", "shaker"] ] },
+        { "w": 2, "blocks": [ ["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "shaker", "perc"], ["kick", "hats", "shaker"] ] },
         { "w": 2, "blocks": [ ["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "shaker", "perc"], ["kick", "hats", "shaker", "perc"], ["kick", "hats"] ] },
-        { "w": 1, "blocks": [ ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], ["kick", "snare", "hats", "perc", "bass"], ["kick", "hats", "perc"], ["kick", "hats"] ] }
+        { "w": 1, "blocks": [ ["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "perc", "bass"], ["kick", "hats", "perc"], ["kick", "hats"] ] }
       ] }
     }
   },
