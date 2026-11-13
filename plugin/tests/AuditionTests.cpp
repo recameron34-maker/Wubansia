@@ -371,6 +371,11 @@ TEST_CASE ("an offline render never prints an audition", "[audio][audition]")
 
 TEST_CASE ("a host that runs no blocks: the audition is dropped after 300 ms and the hint is raised", "[audio][audition]")
 {
+    // 300 ms, not less: hosts that run large or irregular blocks (2048 samples at 44.1 kHz come 46 ms apart) must not
+    // lose clicks to the hint (ADR 0024 decision 13). The sound thread looks every 50 ms while it has clips out.
+    STATIC_CHECK (SoundService::kUntakenLimit == 300ms);
+    STATIC_CHECK (SoundService::kDrainInterval == 50ms);
+
     Quiet q (withKit ("AUD06"));
     auto& controller = q.controller();
     const auto asked = std::chrono::steady_clock::now();
