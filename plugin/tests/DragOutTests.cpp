@@ -1003,3 +1003,57 @@ TEST_CASE ("an OS drag hands over a percent-encoded file URL on Linux, and the p
 #endif
     }
 }
+
+TEST_CASE ("revealing a file on Linux opens its folder with xdg-open, the path as one argument and no shell", "[dragout]")
+{
+#if ! (JUCE_LINUX || JUCE_BSD)
+    SKIP ("macOS and Windows reveal without a shell");
+#else
+    // A stub xdg-open first on PATH records its arguments. The samples folder is the person's, chosen with Change...,
+    // so its name can hold anything a shell acts on: $HOME, backticks, $(...) and quotes.
+    const auto temp = juce::File::getSpecialLocation (juce::File::tempDirectory).getNonexistentChildFile ("WubansiaRevealTest", "", false);
+    REQUIRE (temp.createDirectory().wasOk());
+    struct Cleanup
+    {
+        juce::File folder;
+        juce::String path = juce::SystemStats::getEnvironmentVariable ("PATH", {});
+        juce::File cwd = juce::File::getCurrentWorkingDirectory();
+        ~Cleanup()
+        {
+            setenv ("PATH", path.toRawUTF8(), 1);
+            cwd.setAsCurrentWorkingDirectory();
+            folder.deleteRecursively();
+        }
+    } cleanup { temp };
+
+    const auto bin = temp.getChildFile ("bin");
+    const auto log = temp.getChildFile ("args.txt");
+    REQUIRE (bin.createDirectory().wasOk());
+    const auto stub = bin.getChildFile ("xdg-open");
+    REQUIRE (stub.replaceWithText ("#!/bin/sh\nprintf '%s\\n' \"$#\" \"$@\" > '" + log.getFullPathName() + ".part' && mv '" + log.getFullPathName() + ".part' '"
+                                       + log.getFullPathName() + "'\n",
+        false, false, "\n")); // Unix line ends: "#!/bin/sh\r" names no interpreter
+    REQUIRE (stub.setExecutePermission (true));
+    REQUIRE (setenv ("PATH", (bin.getFullPathName() + ":" + cleanup.path).toRawUTF8(), 1) == 0);
+
+    const auto work = temp.getChildFile ("cwd"); // where a command smuggled in a name would run
+    REQUIRE (work.createDirectory().wasOk());
+    REQUIRE (work.setAsCurrentWorkingDirectory());
+
+    const auto samples = temp.getChildFile ("Beats $HOME `touch INJECTED` \"2025\" $(touch INJECTED2)");
+    const auto kitFolder = samples.getChildFile ("FUT02 Orbit Relay");
+    REQUIRE (kitFolder.createDirectory().wasOk());
+    const auto copy = kitFolder.getChildFile ("Glass Ping v2 - FUT02 130 Dm 7A.wav");
+    REQUIRE (copy.replaceWithText ("RIFF"));
+
+    dragout::revealToUser (copy);
+    const auto deadline = juce::Time::getMillisecondCounter() + 5000;
+    while (! log.existsAsFile() && juce::Time::getMillisecondCounter() < deadline)
+        juce::Thread::sleep (5);
+    REQUIRE (log.existsAsFile());
+    const auto lines = juce::StringArray::fromLines (log.loadFileAsString().trimEnd());
+    CHECK (lines == juce::StringArray { "1", kitFolder.getFullPathName() }); // one argument: the folder, exactly
+    CHECK_FALSE (work.getChildFile ("INJECTED").exists());
+    CHECK_FALSE (work.getChildFile ("INJECTED2").exists());
+#endif
+}

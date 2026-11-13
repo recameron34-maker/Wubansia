@@ -121,4 +121,10 @@ namespace wubansia::dragout
     // drop's text/uri-list without escaping it, which drop targets cut at '#' (FUT01's F#m) or, in REAPER, at the
     // first space; so there it is the file's own percent-encoded file:// URL, which JUCE hands over as it is.
     juce::String externalDragPath (const juce::File& file);
+
+    // Shows file in the system's file browser: the Samples drawer's tile and Show in Finder, and a MIDI chip's click.
+    // On Linux and the BSDs it opens the file's folder with xdg-open, the folder as its one argument and no shell
+    // between: File::revealToUser () there runs the path through /bin/sh in double quotes, where $, ` and " in a
+    // folder's name act. Elsewhere it is File::revealToUser (). Message thread.
+    void revealToUser (const juce::File& file);
 }

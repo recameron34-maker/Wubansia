@@ -369,4 +369,9 @@ namespace wubansia::dragout
         return file.getFullPathName();
 #endif
     }
+
+    void revealToUser (const juce::File& file)
+    {
+        file.revealToUser(); // not yet: the tests come first
+    }
 }
