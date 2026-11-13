@@ -112,9 +112,9 @@ files.
    another kit's sounds without changing the kit that plays or your project; the playing kit's own chip brings the
    drawer back to it.
 3. Click a sound to hear it. It plays dry, exactly as the file you'll get, 6 dB down on top of whatever plays, and
-   the Output knob acts on it as on the groove. After a click in the list, the Up and Down arrows move through it
-   and play each sound, Return plays it again, and Esc or ■ stops it. If your DAW keeps those keys for itself, use
-   the mouse.
+   the Output knob acts on it as on the groove. From the moment the drawer opens, the Up and Down arrows move
+   through the list and play each sound, Return plays it again, and Esc or ■ stops it. If your DAW keeps those keys
+   for itself, use the mouse.
 4. Drag the sound's row, or the "Drag into your DAW" tile on the right, onto a track. Wubansia copies the kit's own
    48 kHz / 24-bit WAV, byte for byte, into your samples folder, then hands that copy to your DAW. Its name says what
    it is: `Rave Stab v2 - FUT01 134 F#m 11A.wav` is Rave Stab's loud layer, from FUT01 at 134 BPM in F# minor, 11A

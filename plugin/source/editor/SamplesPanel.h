@@ -178,6 +178,10 @@ namespace wubansia::editor
         // samples and the last audition stand. Does nothing while the drawer is hidden.
         void update (const EditorModel&);
 
+        // Gives the list the keyboard (Up, Down, Return), if it shows and has rows: the editor calls it once the
+        // drawer is visible, so the keys work from the moment it opens.
+        void focusList();
+
         void resized() override;
         void paint (juce::Graphics&) override;
         bool keyPressed (const juce::KeyPress&) override; // Esc stops the audition (and clears the status line)
@@ -254,7 +258,6 @@ namespace wubansia::editor
         juce::String kitMessage() const; // "Looking for FUT03's samples..."
         juce::Colour statusTone() const;
         void setMessage (const juce::String& text, juce::Colour tone, int forMs = 0);
-        void focusList();
         void refresh();
         void refreshChips();
         void refreshRows();

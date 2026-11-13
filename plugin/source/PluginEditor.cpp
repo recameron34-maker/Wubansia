@@ -312,6 +312,7 @@ namespace wubansia
                 samplesPanel.open (state);
                 samplesPanel.setVisible (true);
                 samplesPanel.toFront (false);
+                samplesPanel.focusList(); // the keys go to the list, not to the Samples button just clicked
             }
             else
             {
