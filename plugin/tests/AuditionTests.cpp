@@ -283,6 +283,58 @@ TEST_CASE ("Stop fades out within 5 ms; a host reset and bypass silence it at on
     CHECK ((*q).auditionPlayer().sounding() == 0u);
 }
 
+TEST_CASE ("a host's reset or release before a prepare silences auditions at the first block; a prepare alone doesn't", "[audio][audition]")
+{
+    // A deactivate and reactivate (VST3 and CLAP) or a device restart (the Standalone app): reset (), releaseResources ()
+    // and prepareToPlay at the same rate, then blocks. The groove starts from rest, and so must the audition.
+    Quiet q (withKit ("AUD09"));
+    auto& controller = q.controller();
+    const auto clip = clipFor (riser, 48000.0);
+    REQUIRE (clip != nullptr);
+    REQUIRE (controller.audition (q.ref (riser)) > 0u);
+    REQUIRE (waitForOffer (*q));
+    test::process (*q, kBlock); // frames 0-511
+    REQUIRE (controller.auditionState().sounding > 0u);
+
+    SECTION ("reset, release, then a prepare at the same rate: silent from the first block")
+    {
+        (*q).reset();
+        (*q).releaseResources();
+        test::prepare (*q, 48000.0, kBlock);
+        CHECK (test::silent (test::process (*q, kBlock)));
+        CHECK ((*q).auditionPlayer().sounding() == 0u);
+        CHECK (controller.auditionState().sounding == 0u);
+        CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
+    }
+
+    SECTION ("a release alone, then a prepare: silent")
+    {
+        (*q).releaseResources();
+        test::prepare (*q, 48000.0, kBlock);
+        CHECK (test::silent (test::process (*q, kBlock)));
+        CHECK ((*q).auditionPlayer().sounding() == 0u);
+    }
+
+    SECTION ("a reset alone, then a prepare: silent")
+    {
+        (*q).reset();
+        test::prepare (*q, 48000.0, kBlock);
+        CHECK (test::silent (test::process (*q, kBlock)));
+    }
+
+    SECTION ("a prepare at the same rate alone: it plays on where it was")
+    {
+        test::prepare (*q, 48000.0, kBlock);
+        const auto out = test::process (*q, kBlock);
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            const float* x = channel (*clip, ch);
+            CHECK (mismatches (out, ch, 0, kBlock, [x] (int i) { return 0.5f * x[512 + i]; }) == 0);
+        }
+        CHECK ((*q).auditionPlayer().sounding() > 0u);
+    }
+}
+
 TEST_CASE ("an offline render never prints an audition", "[audio][audition]")
 {
     // The same kit rendered offline from bar 1 twice: once with an audition offered just before, once without.
