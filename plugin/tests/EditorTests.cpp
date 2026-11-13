@@ -1985,10 +1985,10 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
         engine::laneBit (engine::Lane::bass) | engine::laneBit (engine::Lane::lead), { "", "Acid Clean", "" }, { "", "Acid Warm", "" });
 
     const std::map<juce::String, juce::StringArray> phraseFiles {
-        { "FUT01", { "FUT01_Phrase_ChromePluck_4bars.mid", "FUT01_Phrase_OrganLead_4bars.mid", "FUT01_Phrase_VoxSynth_2bars.mid", "FUT01_Phrase_WarpClean_2bars.mid" } },
-        { "FUT02", { "FUT02_Phrase_GlassPing_4bars.mid", "FUT02_Phrase_LaserChordStab_2bars.mid", "FUT02_Phrase_VoxSynth_4bars.mid" } },
-        { "FUT03", { "FUT03_Phrase_DubStabGm9_4bars.mid", "FUT03_Phrase_KeysEP_4bars.mid", "FUT03_Phrase_RubberBassClean_2bars.mid", "FUT03_Phrase_VoxSynth_2bars.mid" } },
-        { "FUT04", { "FUT04_Phrase_AccentAcidStabE4_2bars.mid", "FUT04_Phrase_AccentMetalChordEm_4bars.mid", "FUT04_Phrase_VoxSynth_2bars.mid" } },
+        { "FUT01", { "FUT01_Phrase_EPianoStabRhythm_2bars.mid", "FUT01_Phrase_OrganRiff_4bars.mid", "FUT01_Phrase_PluckRiff_4bars.mid", "FUT01_Phrase_VoxSynthRiff_2bars.mid", "FUT01_Phrase_WarpRiff_2bars.mid" } },
+        { "FUT02", { "FUT02_Phrase_GlassMelody_4bars.mid", "FUT02_Phrase_LaserStabRiff_2bars.mid", "FUT02_Phrase_VoxChoirChords_4bars.mid", "FUT02_Phrase_VoxSynthRiff_2bars.mid" } },
+        { "FUT03", { "FUT03_Phrase_DubChords_4bars.mid", "FUT03_Phrase_KeysArp_4bars.mid", "FUT03_Phrase_RubberRiff_2bars.mid", "FUT03_Phrase_VoxSynthRiff_2bars.mid" } },
+        { "FUT04", { "FUT04_Phrase_AcidStabRiff_2bars.mid", "FUT04_Phrase_MetalChords_4bars.mid", "FUT04_Phrase_RaveStabRiff_2bars.mid", "FUT04_Phrase_VoxSynthRiff_2bars.mid" } },
     };
     using Song = std::vector<wubansia::SectionInfo>;
     const Song houseForm { { "Intro", 1, 32 }, { "Groove", 33, 32 }, { "Break", 65, 16 }, { "Build", 81, 16 }, { "Drop", 97, 32 },
