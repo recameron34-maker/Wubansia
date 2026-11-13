@@ -819,10 +819,23 @@ namespace wubansia::gen
                 return;
             }
             const std::size_t edge = in ? 0 : blocks.size() - 1;
+            if (blocks[edge].empty())
+            {
+                at.at (edge).fail (name + (in ? " starts" : " ends") + " on drums, but its " + (in ? "first" : "last") + " block is empty");
+                return;
+            }
             for (const auto& id : blocks[edge])
                 if (!isDrumLane (style, id))
                 {
                     at.at (edge).fail (name + (in ? " starts" : " ends") + " with drums only, but its " + (in ? "first" : "last") + " block has \"" + id + "\"");
+                    return;
+                }
+            // a DJ mixes on the kick: every lane a bass follows plays the edge block
+            for (const LaneSpec& lane : style.lanes)
+                if (lane.kind == LaneKind::bass && !lane.bass.follow.empty() && !contains (blocks[edge], lane.bass.follow))
+                {
+                    at.at (edge).fail (name + (in ? " starts" : " ends") + " on the lane a DJ mixes on, \"" + lane.bass.follow + "\" (the " + lane.id + " follows it), but its "
+                                       + (in ? "first" : "last") + " block doesn't have it");
                     return;
                 }
             const auto same = [] (const std::vector<std::string>& a, const std::vector<std::string>& b) {

@@ -191,7 +191,8 @@ namespace wubansia::gen
     // - lengths off the 8-bar grid; anything but a 32-bar intro first and a 32-bar outro last;
     // - a build not followed by a drop or drop2 that always plays;
     // - a mix-in choice that isn't drums only in its first block, lanes only joining, never three
-    //   blocks alike (and a mix-out the other way round);
+    //   blocks alike (and a mix-out the other way round), or whose edge block is empty or lacks the
+    //   lane a bass follows (the kick a DJ mixes on);
     // - a lane the mix-in ends on that the section after it doesn't play from its start (a late
     //   entry, a "before" entry that can sit the section out, drop 2's layer in a drop);
     // - no mix-out choice that starts on no non-drum lane the section before it can end without;
