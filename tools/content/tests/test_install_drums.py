@@ -3,8 +3,9 @@
 Its drum pad table is the only drum map the downloads carry (the kits' MIDI READMEs stay in the repository), so it
 must give every note each kit's drums play, with the sounds on it and where their files are, read here from each
 kit's kit.json (content/plugin/<kit>/<KIT>_kit.json, the manifest the plugin embeds): its channel-10 keymap, the
-instruments it names and their zones' files. Each cell names exactly its note's sounds, and a drum note on an A/B
-switch gets a bullet saying which sound is on each side.
+instruments it names and their zones' files. Each cell names exactly its note's sounds, a drum note on an A/B switch
+gets a bullet saying which sound is on each side, and a bullet names exactly the files in Drums/ no drum note plays,
+with the channels that do play them.
 
 From the repo root: python3 -m unittest discover -s tools/content/tests -t .
 Standard library only, like the rest of tools/content/tests.
@@ -19,6 +20,7 @@ INSTALL_MD = REPO / 'dist' / 'INSTALL.md'
 KITS = ('FUT01', 'FUT02', 'FUT03', 'FUT04')
 NOTE_NAMES = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
 DRUM_CHANNEL = 10
+NO_PAD = 'In `Drums/` but on no drum pad:'  # how the bullet on the Drums/ files no drum note plays starts
 
 
 def note_name(key):
@@ -89,6 +91,15 @@ def drum_switches(kit_id):
             for key in range(entry['keys'][0], entry['keys'][1] + 1)]
 
 
+def channels_playing(kit, sound):
+    """The channels the kit's keymap plays one of the sound's files on: those of its entries whose keys reach a zone
+    holding one."""
+    instruments = {i['id']: i for i in kit['instruments']}
+    return {entry['ch'] for entry in kit['keymap'] for side in ('a', 'b') if entry[side]
+            for z in instruments[entry[side]]['zones'] if z['lo'] <= entry['keys'][1] and entry['keys'][0] <= z['hi']
+            and any(sound_name(kit['files'][r]['path']) == sound for layer in z['layers'] for r in layer['rr'])}
+
+
 def table(text):
     """The first Markdown table in text: (header cells, rows of cells)."""
     lines = [line.strip() for line in text.splitlines() if line.strip().startswith('|')]
@@ -143,15 +154,39 @@ class TestDrumPads(unittest.TestCase):
         for needed in ('Content/<kit>/v1/Drums/', '`v1` the softest', 'rr1', 'content/midi/<kit>/README.md'):
             with self.subTest(needed=needed):
                 self.assertTrue(needed in text, f'the drag section never says {needed!r}')
-        # The sounds in Drums/ that are on no drum note: each named, the Accent files as one group.
+
+    def test_it_names_exactly_the_drums_files_on_no_drum_pad_and_the_channels_that_play_them(self):
+        # A few files in Drums/ are on no drum note: accent sounds, on channel 6, and FUT02's Glass Ping has a track of
+        # its own too. One bullet names exactly those, each kit's after "<kit>'s" and the Accent files as one group, and
+        # gives every channel that plays them, so no one takes them for files nothing plays.
+        self.assertIsNotNone(self.drag, 'INSTALL.md has no "## Drag MIDI into Live or Logic"')
+        found = [item for item in bullets(self.drag) if item.startswith(NO_PAD)]
+        self.assertEqual(len(found), 1, f'the drag section needs one bullet starting {NO_PAD!r}')
+        item = found[0]
+        listed = item[len(NO_PAD):].split('.', 1)[0]  # its first sentence
+        accents = 'the Accent files' in listed
+        parts = re.split(r"\b(FUT\d\d)'s ", listed.replace('the Accent files', ''))
+        self.assertEqual(re.sub(r'[\s,]|\band\b', '', parts[0]), '', f'the bullet names {parts[0]!r} for no kit')
+        named = {}
+        for kit, names in zip(parts[1::2], parts[2::2]):
+            named.setdefault(kit, []).extend(n.strip() for n in re.split(r',|\band\b', names) if n.strip())
+        self.assertEqual(set(named) - set(KITS), set(), 'the bullet names a kit there is none of')
+        unmapped_accents, channels = False, set()
         for kit in KITS:
-            files = json.loads((REPO / 'content' / 'plugin' / kit.lower() / f'{kit}_kit.json').read_text(encoding='utf-8'))['files']
+            data = load_kit(kit)
             mapped = {sound for sounds in self.maps[kit].values() for sound in sounds}
-            others = {sound_name(f['path']) for f in files if f['path'].startswith('Drums/')} - mapped
-            for sound in sorted(others):
-                with self.subTest(kit=kit, sound=sound):
-                    named = 'Accent' if sound.startswith('Accent ') else sound
-                    self.assertTrue(named in text, f'the drag section never names {named!r}, which is on no drum note')
+            others = {sound_name(f['path']) for f in data['files'] if f['path'].startswith('Drums/')} - mapped
+            with self.subTest(kit=kit):
+                self.assertEqual(sorted(named.get(kit, [])), sorted(s for s in others if not s.startswith('Accent ')))
+                if accents:  # "the Accent files": every one of them, so none may be on a drum pad
+                    self.assertEqual(sorted(s for s in mapped if s.startswith('Accent ')), [])
+            unmapped_accents |= any(s.startswith('Accent ') for s in others)
+            channels |= {ch for sound in others for ch in channels_playing(data, sound)}
+        self.assertEqual(accents, unmapped_accents,
+                         'the bullet names "the Accent files" if, and only if, some are on no drum pad')
+        for ch in sorted(channels):
+            with self.subTest(channel=ch):
+                self.assertRegex(item, rf'\bchannel {ch}\b', f'the bullet never says these sounds play on channel {ch}')
 
     def test_a_drum_note_on_an_a_b_switch_says_which_sound_is_on_each_side(self):
         # FUT01's kick: its cell names both sounds, and a bullet that starts with the kit puts each "on A" or "on B" as
