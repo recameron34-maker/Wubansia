@@ -17,9 +17,9 @@
       { "kind": "intro", "bars": [ { "bars": 32, "w": 1 } ] },
       { "kind": "groove", "bars": [ { "bars": 32, "w": 3 }, { "bars": 40, "w": 1 }, { "bars": 48, "w": 2 }, { "bars": 56, "w": 1 }, { "bars": 64, "w": 1 } ] },
       { "kind": "break", "bars": [ { "bars": 16, "w": 2 }, { "bars": 24, "w": 1 }, { "bars": 32, "w": 2 } ] },
-      { "kind": "build", "bars": [ { "bars": 8, "w": 1 }, { "bars": 16, "w": 3 }, { "bars": 32, "w": 1 } ] },
+      { "kind": "build", "bars": [ { "bars": 16, "w": 3 }, { "bars": 32, "w": 1 } ] },
       { "kind": "drop", "bars": [ { "bars": 32, "w": 3 }, { "bars": 48, "w": 1 }, { "bars": 64, "w": 1 } ] },
-      { "kind": "break", "bars": [ { "bars": 0, "w": 2 }, { "bars": 16, "w": 2 }, { "bars": 32, "w": 1 } ] },
+      { "kind": "break", "bars": [ { "bars": 0, "w": 2 }, { "bars": 16, "w": 2 }, { "bars": 24, "w": 1 } ] },
       { "kind": "build", "bars": [ { "bars": 0, "w": 2 }, { "bars": 8, "w": 1 }, { "bars": 16, "w": 1 } ] },
       { "kind": "drop2", "bars": [ { "bars": 32, "w": 3 }, { "bars": 48, "w": 2 }, { "bars": 64, "w": 1 } ] },
       { "kind": "outro", "bars": [ { "bars": 32, "w": 1 } ] }
@@ -39,7 +39,7 @@
       "build": {
         "lanes": ["kick", "rumble", "snare", "hats", "perc", "bass", "chords"],
         "entries": [
-          { "lanes": ["kick", "rumble"], "before": [ { "bars": 8, "w": 2 }, { "bars": 16, "w": 1 } ] } ] },
+          { "lanes": ["kick", "rumble"], "before": [ { "bars": 8, "w": 1 } ] } ] },
       "drop": {
         "lanes": ["kick", "rumble", "snare", "hats", "perc", "bass", "chords"],
         "rest": { "p": 60, "bars": 16, "lanes": [ { "lane": "chords", "w": 3 }, { "lane": "bass", "w": 1 } ] },
