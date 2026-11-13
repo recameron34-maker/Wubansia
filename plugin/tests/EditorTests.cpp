@@ -2026,6 +2026,82 @@ TEST_CASE ("the drawer's rows and tile work without a mouse, in the drawer's ord
         });
 }
 
+TEST_CASE ("screen readers hear which kit and category show, what the tile does, and the drawer's messages", "[editor][sounds]")
+{
+    Rig rig;
+    TempFolder samples;
+    rig.controller.samplesFolderChosen = samples.folder;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openDrawer (editor);
+            drawer.platform = editor::ContentPanel::Platform::macOS;
+            juce::StringArray said;
+            drawer.announce = [&said] (const juce::String& text) { said.add (text); };
+            Handoffs os;
+            os.hook (drawer);
+            auto& fut01 = get<editor::KitChip> (editor, "samples_kit_FUT01");
+            auto& fut02 = get<editor::KitChip> (editor, "samples_kit_FUT02");
+
+            // The chips: the kit, then whether it shows and whether it plays. Not toggles: a press browses.
+            CHECK (fut01.getTitle() == "FUT01 Alloy Signal, shown, playing");
+            CHECK (fut02.getTitle() == "FUT02 Orbit Relay");
+            CHECK_FALSE (fut01.isToggleable());
+
+            // The categories: the name, how many, and the one shown.
+            CHECK (get<juce::Button> (editor, "samples_category_accents").getTitle() == "Accents, 3 sounds, shown");
+            CHECK (get<juce::Button> (editor, "samples_category_fx").getTitle() == "FX, 1 sound");
+            click (get<juce::Button> (editor, "samples_category_fx"));
+            CHECK (get<juce::Button> (editor, "samples_category_fx").getTitle() == "FX, 1 sound, shown");
+            CHECK (get<juce::Button> (editor, "samples_category_accents").getTitle() == "Accents, 3 sounds");
+            click (get<juce::Button> (editor, "samples_category_accents"));
+
+            // The tile: its visible words first, then the file; what a press does is its help.
+            auto& tile = get<editor::SoundDragTile> (editor, "sound_drag");
+            CHECK (tile.getTitle() == "Drag into your DAW: Reverse Stab v2 - FUT01 134 F#m 11A.wav");
+            CHECK (tile.getHelpText() == "Press to save it into your samples folder and show it in Finder");
+
+            // What the status line says is said aloud once: a copy saved, a copy that failed, the host's silence.
+            click (tile);
+            CHECK (said.contains ("Saved Reverse Stab v2 - FUT01.wav"));
+            c.exportFails = true;
+            click (tile);
+            CHECK (tile.getTitle() == "Couldn't save " + tile.fileName()); // the copy as last written
+            CHECK (said.contains (editor::utf8 ("Couldn't save Reverse Stab v2: the fake's disk is full. Choose another folder with Change\xe2\x80\xa6")));
+            c.exportFails = false;
+            press (soundRow (editor, 1));
+            c.auditionStatus.sounding = 0;
+            c.auditionStatus.hostSilent = true;
+            const auto before = said.size();
+            for (int i = 0; i < 5; ++i)
+                editor.tick();
+            CHECK (said.size() == before + 1); // once, not every tick
+            CHECK (said[said.size() - 1].startsWith ("No sound from your DAW"));
+
+            // A kit that can't play: its chips say so, the banner is said, and its button reads it too.
+            click (fut02);
+            editor.tick();
+            CHECK (fut02.getTitle() == "FUT02 Orbit Relay, shown");
+            CHECK (fut01.getTitle() == "FUT01 Alloy Signal, playing");
+            CHECK (said.contains ("FUT02's samples aren't installed. Install it with install-macos.sh, or choose the folder that holds 'fut02'."));
+            CHECK (get<juce::Button> (editor, "samples_content_folder").getDescription() == said[said.size() - 1]);
+
+            // While its samples load, that is said once, not every percent.
+            c.kitCards[1].content = {};
+            c.kitCards[1].content.state = wubansia::ContentState::loading;
+            c.kitCards[1].content.folder = samples.folder.getChildFile ("fut02");
+            const auto loading = said.size();
+            for (const auto percent : { 10, 42, 77 })
+            {
+                c.kitCards[1].content.percent = percent;
+                editor.tick();
+            }
+            CHECK (said.size() == loading + 1);
+            CHECK (said[said.size() - 1] == editor::utf8 ("Loading FUT02's samples\xe2\x80\xa6"));
+        });
+}
+
 TEST_CASE ("the tile names exactly the file a drag gives, for every file of the four kits", "[editor][sounds]")
 {
     const wubansia::KitCatalog catalog (wubansia::EmbeddedContent::sources());

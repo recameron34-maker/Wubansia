@@ -207,6 +207,10 @@ namespace wubansia::editor
         std::function<void (const juce::File&)> revealFile;
         std::function<void (std::function<void (const juce::File&)>)> chooseFolder;
 
+        // How the drawer says what it shows to a screen reader: by default an AccessibilityHandler announcement. Tests
+        // replace it.
+        std::function<void (const juce::String&)> announce;
+
         std::function<void()> chooseContentFolder; // the banner's button; the editor hands it the install panel's chooser
         std::function<void()> onClose; // the x
         std::function<void()> onShowContent; // Content...: the install panel instead
