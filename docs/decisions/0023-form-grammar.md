@@ -97,36 +97,54 @@ The style loader also needs a controller row for every kind a plan can play a la
 - **A `--bars` cut** keeps the dropouts before it (`groovecore_cut_check` expects the same).
 
 ## Consequences
-On 64 seeds per style (`core/tests/test_gen_form.cpp`, `test_gen_gates.cpp`):
+On 64 seeds per style (`core/tests/test_gen_form.cpp`, `test_gen_gates.cpp`), counted in the files `groovecore gen` writes, every percentage rounded once from its counts:
 
 | | FUT01 | FUT02 | FUT03 | FUT04 |
 |---|---|---|---|---|
-| Distinct forms; the top one | 62; 2 seeds | 62; 2 | 61; 2 | 57; 3 |
-| Starts on a 16-bar line | 161 of 226 (71%) | 167 of 225 (74%) | 167 of 231 (72%) | 146 of 211 (69%) |
-| Length (mean) | 200-240 (214) | 200-240 (218) | 200-240 (212) | 208-240 (227) |
-| Builds (8 / 16 / 32 bars) | 69 / 54 / 0 | 31 / 83 / 0 | 65 / 52 / 0 | 47 / 49 / 7 |
-| Notes a bar: grooves, drop 1 | 44.0, 50.1 (1.14x) | 40.7, 47.5 (1.17x) | 42.1, 51.2 (1.22x) | 32.5, 38.1 (1.17x) |
-| Seeds with drop 1 thinner than their grooves | 7 | 5 | 0 | 4 |
-| Lane changes inside a drop (mean, fewest) | 2.0, 1 | 2.0, 1 | 1.9, 1 | 2.0, 1 |
-| G4 on phrase lines: bass, chords, lead | 66%, 70%, none | 98%, 76%, 95% | 72%, 67%, none | 87%, 84%, none |
+| Distinct forms; the top one | 58; 2 seeds | 59; 2 | 62; 2 | 53; 3 |
+| Starts on a 16-bar line | 158 of 223 (71%) | 159 of 220 (72%) | 163 of 227 (72%) | 142 of 207 (69%) |
+| Length in bars (mean); time | 200-240 (213); 5:58-7:09 | 200-240 (220); 6:09-7:23 | 200-240 (214); 6:15-7:30 | 208-240 (228); 6:07-7:03 |
+| Builds (8 / 16 / 32 bars) | 76 / 44 / 0 | 11 / 93 / 0 | 71 / 43 / 0 | 30 / 62 / 9 |
+| Notes a bar: grooves, drop 1 (the lift) | 44.1, 49.0 (1.11x) | 40.4, 50.0 (1.24x) | 44.9, 50.9 (1.13x) | 32.5, 39.1 (1.21x) |
+| Drop 1 against the groove before it | 1.08x (45.4) | 1.20x (41.8) | 1.10x (46.3) | 1.21x (32.5) |
+| Notes a bar in drop 2 | 49.0 | 57.3 | 51.0 | 40.2 |
+| Seeds with drop 1 thinner than its grooves; with drop 2 thinner than drop 1 | 11; 30 | 1; 0 | 7; 34 | 2; 24 |
+| Bar-to-bar lane changes in a drop or drop 2 (mean, fewest) | 2.1, 1 | 2.1, 1 | 2.2, 1 | 1.9, 1 |
+| Runs of bars with a lane out, in a drop or drop 2 (mean, most) | 1.12, 2 | 1.10, 2 | 1.13, 2 | 1.05, 2 |
+| G4 on phrase lines: bass, chords, lead | 69%, 67%, none | 99%, 68%, 96% | 73%, 68%, none | 87%, 84%, none |
 | Failing gates | G4 G5 G7 G9 | G9 | G4 G5 G7 G9 | G1 G2 G4 G5 G9 |
 
+The lane changes count every bar whose lanes differ from the bar before it, as `test_gen_form.cpp` does, so a rest inside a drop or a one-bar dropout counts 2. The runs count each stretch of bars that plays fewer lanes than the drop's whole set (a rest, a pull or a strip): about one move a drop, two at most.
+
 - **G10 passes on all four styles**; every other verdict is part 1's, and G4 still fails only for want of a lead lane (S1b2b's hook). `test_gen_gates.cpp` pins the lists and G4's bass and chords at 50% or more.
-- Kick and bass within 2 ticks, anchors within ±2 ticks, every section on an 8-bar line, the regions tiling the song and every `--bars` cut equal to the whole song's head all hold on the drawn forms (the existing tests, at every 8-bar line for the cuts). 128 bars take 4 to 5 ms in Release, against 50.
-- **The generator snapshots** cover 1,398 files (was 1,312: more sections on average). Clang 18 and GCC 13 give the same bytes; the macOS arm64 job checks AppleClang.
-- **Per seed, drop 1 can still be thinner than its grooves** (7, 5, 0 and 4 seeds in 64): a long groove whose lanes have all joined, in FUT01 under its four-note groove stabs, against drop 1's two-note stabs. The aggregate gate holds with room; S1b2b's hook (in at least half the drop bars) adds the drops' lead line.
-- ADR 0013 §4's "Each style's form is an extended mix of 6 to 7½ minutes" is now 200 to 240 bars: at 134 and 136 BPM, 200 bars is 5:58 and 5:52.
-- The CLI's cut tests moved to cuts that show their cases in the drawn forms (FUT01 seed 40 at bar 168, seed 0 at 120, seed 4 at 104, seed 16 at 96), plus a cut before a one-bar dropout (seed 8 at 72).
+- **Drop 1's lift is the grooves'.** Drop 1 is a little thinner than part 1's in every style (49.0, 50.0, 50.9 and 39.1 notes a bar, against 50.8, 50.9, 53.0 and 41.1): its rest and its pulls take notes out. The grooves are thinner still (44.1, 40.4, 44.9 and 32.5, against 50.7, 44.2, 47.8 and 37.5): their lanes join late, as the written mixes bring theirs in, and the groove after drop 1 (FUT01-FUT03), 8 or 16 bars long, ends before most late lanes join. Against the groove before it alone, FUT01's drop 1 is 1.08x; against all its grooves it clears the 1.10 band by 1% (1.111 on these 64 seeds, 1.131 on 1,024), so any further thinning of FUT01's drop 1 trips the test.
+- **Per seed, drop 1 can still be thinner than its grooves** (11, 1, 7 and 2 seeds in 64; part 1: 30, 0, 4 and 4): a long groove whose lanes have all joined (in FUT01, its four-note groove stabs against drop 1's two- and three-note ones) against a drop 1 with a rest. S1b2b's hook (in at least half the drop bars) adds the drops' lead line.
+- **Drop 2 is no denser than drop 1 in FUT01 and FUT03** (49.0 against 49.0, 51.0 against 50.9; thinner in 30 and 34 seeds): it lifts on its length, its stab grids and its strip, while the written mixes also busy its hats (and give FUT03's a new bass line): that is left for S1b2b's new material. FUT02's and FUT04's drop 2s lift on their own grids. FUT04's drop 2 is shorter than its drop 1 in 12 of 64 seeds (157 of 1,024), since its drop 1 can draw 48 or 64 bars; the written FUT04 mix has 32 and 32.
+- **Lengths.** ADR 0013 §4's "Each style's form is an extended mix of 6 to 7½ minutes" is now 200 to 240 bars (techno 208 to 240): only FUT01 can end under 6 minutes, 200 bars at 134 BPM being 5:58 (14 of 64 seeds); FUT04's floor, 208 bars at 136 BPM, is 6:07. The section lengths follow the written mixes (FUT01's 40-bar drop 2, FUT04's 64-bar groove) and replace plan §2.3's "lengths drawn from {8, 16, 24, 32}", as ADR 0013 replaced its 112 to 160 bars in all: FUT01's and FUT03's drop 2 can be 40 bars, FUT02's 48, and techno's groove, drop and drop 2 up to 64.
+- **Plan §2.3's form extras.** Its 8-bar switch-up inside drop 1 is the 8-bar rest, and its second short break the optional break slots; the written mixes' switch-up after drop 1 is the optional groove on its own variant. Its 4+4 false drop isn't built: the grammar has no 4-bar unit, and it is a transition (S1b2c). Its per-seed drop 2 (a four-on-the-floor switch, halftime, or 2-step with a new bass line), written for the one-kit slice, is each style's own drop 2 here. Both stay open (below).
+- **The dropouts are G9 fills.** G9 counts a bar that misses two or more of its section's common kick steps as a fill ("a dropout counts as a fill", `tools/legacy_audit/README.md`), and every dropout sits on section bar 15 mod 16, G9's position 7. They raise that position's share of the fills to 19%, 31%, 31% and 50% (FUT04's 161 of 325, against G9's 60% cap), from 17%, 18%, 15% and 31% with every dropout's chance set to 0. S1b2c's fills must count them (plan §4.1: "dropouts count as fills").
+- Kick and bass within 2 ticks, anchors within ±2 ticks, every section on an 8-bar line, the regions tiling the song and every `--bars` cut equal to the whole song's head all hold on the drawn forms (the existing tests, at every 8-bar line for the cuts). 128 bars take 3 to 5 ms in Release, against 50.
+- **The generator snapshots** cover 1,372 files (part 1: 1,312; more sections on average). Clang 18 and GCC 13 give the same bytes; the macOS arm64 job checks AppleClang.
+- **ADR 0013 §3's hold gap**, re-measured on the drawn forms: FUT04's rumble has a note on five or six of a song's six to eight inner section lines, and its duck still ends the note before at least 60 ticks short of the line; the acid starts 18 of FUT04's 436 inner lines, its duck at least 48 short; FUT01's to FUT03's bass starts none. So the rule still changes no shipped output: without it, no file of seeds 0-63 and the four large snapshot seeds changes, in either version.
+- The CLI's cut tests moved to cuts that show their cases in the drawn forms (FUT01 seed 40 at bar 168, seed 0 at 120, seed 4 at 80, seed 16 at 96), plus a cut before a one-bar dropout (seed 8 at 72).
+- **Open, for your decision or the lead's:**
+  - FUT04's drop 2 shorter than drop 1 (above): making it never shorter is one data line.
+  - A melodic lane that strips a drop's end comes back at the next section (the mix-out aside) in 6, 21, 5 and 35 of 64 songs. The other way is a strip in drop 2 only.
+  - FUT04 seed 304 as a snapshot seed, so the macOS job covers the length fallback on a shipped grammar (a snapshots-only commit).
+  - FUT03's label: the kit is garage-house, its style still round 3's future house (§4).
+  - Plan §2.3's false drop and per-seed drop-2 variants (above).
 
 ## Alternatives
 - **A list of whole forms per style, one drawn per seed:** a handful of forms, the clockwork G10 catches, and no lane moves.
 - **Lines left to the lengths:** the 70% share would be an accident of the weights, not the measured placement.
 - **Exact weighted sampling by counting completions:** products of weights over ten slots overflow 64 bits; the free draws are the same distribution wherever they succeed, and the fallback is rare.
 - **Dropouts on the song's 16-bar lines:** a drop starting on 8 mod 16 would drop out mid-phrase; the drop's own phrase lines are where producers pull the low end.
-- **Drop 2's layer in every style:** broke G8 on FUT03 and FUT04, and the density lift on FUT01 (§4).
+- **Drop 2's layer, a lane drop 1 holds out:** tried on FUT02's zaps and FUT04's snare, and removed. The written mixes play both in every line of both drops, and the layer hollowed out drop 1 (FUT04's first drop lost its backbeat straight after the build's snare roll). Held out of drop 1, FUT03's plings or FUT04's anvil break G8, which is measured on the first drop, where they carry its third swing (63 and 0 of 64 seeds keep three swings), and FUT01's Alloy perc leaves drop 1 thinner than its grooves (38.1 against 44.1 notes a bar).
+- **A rest or a pull wherever the draws fall:** a drum lane resting through a drop's last block comes back as the next, quieter section starts; a pull before every 16-bar line is an edit on a loop; a pulled lane whose rest starts on the line never lands back.
 - **Redrawing until each seed's drop 1 is denser than its groove:** a metric chased for itself; the hook is the musical answer.
 
 ## Sources
-- ADR 0013 §1, §2 ("Reserved for S1b2"), §4; the S1b2 plan (step 1); `docs/plans/S1-futuristic-slice.md` §4.1, §5.1.
-- `tools/legacy_audit/README.md` (G4, G8, G10 definitions).
-- The kits' written extended mixes: `tools/sound/recipes/fut01/midi.py` to `fut04/midi.py`, `FORM`.
+- ADR 0013 §1, §2 ("Reserved for S1b2"), §3, §4; ADR 0015 (the styles follow round 3's kits).
+- `docs/plans/S1b2-plan.md` (step 1); `docs/plans/S1-futuristic-slice.md` §2.3 ("Form: a grammar, not one table"), §4.1, §5.1.
+- `tools/legacy_audit/README.md` (G4, G8, G9 and G10 definitions).
+- The kits' written extended mixes: `content/midi/fut01/extended/vox/regions.json` to `fut04`'s, written from `FORM` in `tools/sound/recipes/fut01/midi.py` to `fut04/midi.py`.
