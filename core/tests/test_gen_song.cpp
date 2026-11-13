@@ -681,11 +681,12 @@ TEST_CASE ("a section ends the same whatever the next one starts with", "[gen][s
     // so a section's last held note ends the same whether the next section starts with a bass note
     // on that line or not. Only a bass lane without a duck shows it (a duck ends every note its gap,
     // more than the hold gap, before its section's end), and no shipped one starts a section on its
-    // line: FUT04's rumble has a note on six section lines of every song, but its duck ends the note
-    // before at least 60 ticks short of the line either way. So this compares two edits of
-    // garage2step whose bass plays all through the break (the shipped break leaves the sub to the
-    // drop): in one its break grid plays the 1 (a 100% cell), so the bass starts the break on the
-    // line where the section before it ends; in the other that cell is 0, and nothing starts there.
+    // line: FUT04's rumble has a note on five or six of a song's six to eight inner section lines,
+    // but its duck ends the note before at least 60 ticks short of the line either way. So this
+    // compares two edits of garage2step whose bass plays all through the break (the shipped break
+    // leaves the sub to the drop): in one its break grid plays the 1 (a 100% cell), so the bass
+    // starts the break on the line where the section before it ends; in the other that cell is 0,
+    // and nothing starts there.
     // Both play the same lanes in every bar (so the same salient changes), and every section but the
     // breaks stays the same, note for note and controller for controller, in both versions.
     const auto read = [] (const std::filesystem::path& p) {
@@ -789,7 +790,7 @@ TEST_CASE ("a section ends the same whatever the next one starts with", "[gen][s
     CHECK (breaks >= 16);
     CHECK (onTheLine == breaks); // one edit starts every break with a bass note on its line
     CHECK (offTheLine == breaks); // the other never does
-    CHECK (toTheLine >= 3); // and in some songs the drop's last bass note runs to that line
+    CHECK (toTheLine >= 3); // and in some songs the last bass note before the break runs to that line
 }
 
 TEST_CASE ("stab patterns keep their minimum of hits in every bar of a drop", "[gen][song][style]")
