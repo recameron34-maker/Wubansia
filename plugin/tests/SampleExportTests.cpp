@@ -114,7 +114,7 @@ namespace
     }
 }
 
-TEST_CASE ("export names: the installed name first, then the kit's id, tempo, key and Camelot", "[sounds][export]")
+TEST_CASE ("export names: the installed name first, less a leading 'Accent ', then the kit's id, tempo, key and Camelot", "[sounds][export]")
 {
     struct Example
     {
@@ -130,9 +130,11 @@ TEST_CASE ("export names: the installed name first, then the kit's id, tempo, ke
         { "FUT02", "Laser Chord Stab Dm9", "Music/Laser Chord Stab D4 v2.wav", "FUT02 Orbit Relay", "Laser Chord Stab D4 v2 - FUT02 130 Dm 7A.wav" },
         // Synths' Laser Chord Stab defaults to the same file: one file, one path.
         { "FUT02", "Laser Chord Stab", "Music/Laser Chord Stab D4 v2.wav", "FUT02 Orbit Relay", "Laser Chord Stab D4 v2 - FUT02 130 Dm 7A.wav" },
-        { "FUT03", "Dub Chord Cm9", "Music/Accent Dub Chord Cm9.wav", "FUT03 Glass Current", "Accent Dub Chord Cm9 - FUT03 128 Gm 6A.wav" },
+        // "Accent " goes, as it goes from the drawer's names: a pad or Simpler shows the sound, not "Accent Du...".
+        { "FUT03", "Dub Chord Cm9", "Music/Accent Dub Chord Cm9.wav", "FUT03 Glass Current", "Dub Chord Cm9 - FUT03 128 Gm 6A.wav" },
         { "FUT03", "Context Vox Riff", "Stems/Context Vox Riff.wav", "FUT03 Glass Current", "Context Vox Riff - FUT03 128 Gm 6A.wav" },
         { "FUT04", "Mod Blip", "Music/Mod Blip E5 v2.wav", "FUT04 Furnace Code", "Mod Blip E5 v2 - FUT04 136 Em 9A.wav" },
+        { "FUT04", "Sub Drop E2", "Bass/Accent Sub Drop E2.wav", "FUT04 Furnace Code", "Sub Drop E2 - FUT04 136 Em 9A.wav" }, // in FX
     };
     for (const auto& e : examples)
     {
@@ -153,7 +155,7 @@ TEST_CASE ("export names: the installed name first, then the kit's id, tempo, ke
 
 TEST_CASE ("every export name is unique in its kit ignoring case, in safe characters, within 196 characters", "[sounds][export]")
 {
-    std::size_t count = 0;
+    std::size_t count = 0, accents = 0;
     std::string longest;
     for (const auto& entry : embedded().entries())
     {
@@ -170,10 +172,16 @@ TEST_CASE ("every export name is unique in its kit ignoring case, in safe charac
             CHECK (dragout::safeName (name) == name); // only safe characters, single spaces, none at the ends
             CHECK (name.front() != '.');
 
-            // The installed name, as it is, comes first.
+            // The installed name comes first, as it is but for a leading "Accent " (18 of FUT03's and FUT04's).
             auto stem = file.path.substr (file.path.rfind ('/') + 1);
             stem.resize (stem.size() - 4);
+            if (stem.starts_with ("Accent ") && stem.size() > 7)
+            {
+                stem = stem.substr (7);
+                ++accents;
+            }
             CHECK (name.rfind (stem + " - " + entry.id + " ", 0) == 0);
+            CHECK_FALSE (name.starts_with ("Accent "));
 
             CHECK (lowered.insert (text (name).toLowerCase().toStdString()).second);
             if (name.size() > longest.size())
@@ -182,7 +190,8 @@ TEST_CASE ("every export name is unique in its kit ignoring case, in safe charac
         }
     }
     CHECK (count == 618);
-    CHECK (longest == "Accent Reverse Chord Gm9 - FUT03 128 Gm 6A.wav"); // 46 characters
+    CHECK (accents == 18);
+    CHECK (longest == "Acid Line 1 Clean 4 Bars - FUT04 136 Em 9A.wav"); // 46 characters
 }
 
 TEST_CASE ("content v2 and later add c<N>; v1 adds nothing", "[sounds][export]")
@@ -215,6 +224,13 @@ TEST_CASE ("content v2 and later add c<N>; v1 adds nothing", "[sounds][export]")
 
         f.path = "Music/.hidden take.wav"; // never a hidden file
         CHECK (sounds::exportName (odd, f) == "hidden take - ODD01 130 Bbmaj 6B.wav");
+
+        f.path = "Music/Accent Pad.wav"; // a leading "Accent " goes, as in the drawer...
+        CHECK (sounds::exportName (odd, f) == "Pad - ODD01 130 Bbmaj 6B.wav");
+        f.path = "Music/Accent.wav"; // ...but never the whole name
+        CHECK (sounds::exportName (odd, f) == "Accent - ODD01 130 Bbmaj 6B.wav");
+        f.path = "Music/Accented Pad.wav";
+        CHECK (sounds::exportName (odd, f) == "Accented Pad - ODD01 130 Bbmaj 6B.wav");
 
         f.path = "Music/" + std::string (300, 'x') + ".wav"; // cut to fit, the kit's part kept
         const auto cut = sounds::exportName (odd, f);
