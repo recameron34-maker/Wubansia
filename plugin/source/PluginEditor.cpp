@@ -295,6 +295,14 @@ namespace wubansia
     {
         if (show != samplesPanel.isVisible())
         {
+            // What the drawer covers goes out of sight altogether while it shows, so Tab and screen readers never
+            // reach a control the person can't see (a mute pad, an A/B switch) and change the project there. Their
+            // ticks go on: none of them depends on being visible.
+            for (auto& lane : lanes)
+                lane->setVisible (! show);
+            abPanel.setVisible (! show);
+            fxPanel.setVisible (! show);
+
             if (show)
             {
                 // The install panel goes; it comes back by itself once the drawer closes if the kit still can't play

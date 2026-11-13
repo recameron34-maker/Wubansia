@@ -1,7 +1,8 @@
 #pragma once
 
 // The Samples drawer (ADR 0024): every kit's sounds by category, to hear and to drag into a DAW as the
-// kit's own WAV files. It covers the lanes, A/B and FX, at (20, 246), 1080 x 396 in the editor's face,
+// kit's own WAV files. It covers the lanes, A/B and FX, at (20, 246), 1080 x 396 in the editor's face (the
+// editor hides them while it shows, so Tab and screen readers stay out of them),
 // and knows the plugin only through the Controller: sounds () for each kit's list (asked once per kit),
 // audition () and stopAudition () to hear them, exportSound () for the file a drag or Show in Finder
 // hands over, and samplesFolder () and setSamplesFolder () for where those copies go. Nothing it does
