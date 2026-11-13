@@ -1279,7 +1279,8 @@ TEST_CASE ("form: a one-bar pull takes its whole group, so it never sits before 
 
 TEST_CASE ("form: drops run 24 bars or more, drop 2 32 or more, and in FUT01-FUT03 never shorter than drop 1", "[gen][form]")
 {
-    // The last drop is the peak: in all four written mixes it is at least as long as the first
+    // The lengths only (what drop 2 keeps is pinned by "drop 2 keeps its hats and the four-on-the-
+    // floor kick ..."): in all four written mixes the last drop is at least as long as the first
     // (40/32, 32/32, 32/32, 32/32). A 16-bar drop spends half itself on its lane change. Techno's
     // long first drops (48, 64) can outrun its drop 2.
     for (const char* id : kits)

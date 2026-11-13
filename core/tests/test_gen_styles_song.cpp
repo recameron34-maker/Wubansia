@@ -1160,8 +1160,9 @@ TEST_CASE ("techno: a sparse snare and clap in the groove and the first drop, th
     // Machine-hard techno: in the groove and the first drop the metal snare hits beat 4 of every
     // second bar, a clap sometimes doubles beat 4, and nothing else plays but a pickup in some
     // turnaround bars; no swung ghost snares (that is house and garage programming). The second drop
-    // lifts to the full backbeat on 2 and 4, on its own grid (the kit's written mix keeps the snare
-    // through both drops).
+    // lifts to the full backbeat on 2 and 4, on its own grid. These are part 1's grids: the kit's
+    // written mix plays the backbeat in its groove and both drops, so the sparse first drop is a
+    // departure from it (ADR 0023 §4 lists it for the listen).
     struct Sparse
     {
         std::size_t bars = 0, steps = 0, twos = 0, fours = 0;
