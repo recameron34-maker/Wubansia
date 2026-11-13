@@ -1905,6 +1905,30 @@ TEST_CASE ("the playing row shows Stop while its ticket sounds; a silent host ge
         });
 }
 
+TEST_CASE ("in the Standalone app, no sound says its audio output isn't running, not Logic's hint", "[editor][sounds]")
+{
+    FakeController controller;
+    juce::AudioProcessor::setTypeOfNextNewPlugin (juce::AudioProcessor::wrapperType_Standalone);
+    TestProcessor processor ([&controller] (TestProcessor& p) { return new PluginEditor (p, controller); });
+    juce::AudioProcessor::setTypeOfNextNewPlugin (juce::AudioProcessor::wrapperType_Undefined);
+    REQUIRE (processor.wrapperType == juce::AudioProcessor::wrapperType_Standalone);
+
+    withEditor (processor, [&] (PluginEditor& editor)
+        {
+            // The app runs no blocks while no audio output is on: there is no DAW, track or Play to point at.
+            auto& drawer = openDrawer (editor);
+            press (soundRow (editor, 1));
+            controller.auditionStatus.sounding = 0;
+            controller.auditionStatus.hostSilent = true;
+            editor.tick();
+            CHECK (drawer.statusText() == "No sound: the app's audio output isn't running. Choose one in Options > Audio/MIDI Settings...");
+            CHECK_FALSE (drawer.statusText().contains ("Logic"));
+            CHECK (drawer.keyPressed (juce::KeyPress (juce::KeyPress::escapeKey))); // Esc puts it away, as the hint
+            editor.tick();
+            CHECK (drawer.statusText().isEmpty());
+        });
+}
+
 TEST_CASE ("Change... hands the chosen folder to the Controller", "[editor][sounds]")
 {
     Rig rig;
