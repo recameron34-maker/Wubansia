@@ -28,7 +28,7 @@ What the code fixed before the design:
 ### Catalog (`plugin/source/sounds/SoundCatalog.h`)
 5. **Built in C++ from the embedded `kit.json` alone**: no sidecar file, no Python generator, nothing to drift.
 6. **One sound per distinct instrument file set.** Instruments that share their files merge into the more "flair" category of the two; each phrase stem is a Loop. FUT02's two Glass Pings, FUT04's three accent twins and FUT01's Glitch Fill Lift Beat 4 aren't separate sounds.
-7. **Seven categories**: Accents, FX, Vox, Synths (the lead and chords lanes), Bass, Drums, Loops. The four kits have 35, 37, 36 and 32 sounds, which reach all 618 files.
+7. **Seven categories**: Accents, FX, Vox, Synths (the lead and chords lanes), Bass, Drums, Loops. The four kits have 35, 37, 36 and 32 sounds, which reach all 618 files. A loop says what it plays, from its phrase's lane: the detail line reads "Bass loop · FUT02 · Dm · 7A" for a bass line (`SoundInfo::part`).
 8. **The default file** is the top velocity layer's first round robin, from the lowest zone rooted on the kit's tonic (pitched instruments; else the middle zone) or the first zone (one-key instruments): the kit's key note at its lowest and loudest. That is usually a note the kit's loops play, but not for three sounds: FUT03's Vox Synth and Keys EP give G3, below the G4 up the kit plays them, and FUT02's Chrome Arp gives D4, below its arp's A4-C6 (SoundCatalogTests pins all three). A File box reaches every file.
 
 ### Audition (step 2)

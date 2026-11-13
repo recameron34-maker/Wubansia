@@ -1176,7 +1176,8 @@ namespace wubansia::editor
         if (sound == nullptr || card == nullptr || sound->files.empty())
             return {};
         const auto& file = sound->files[static_cast<std::size_t> (chosenFile (*sound))];
-        return sound->name + "\n" + sounds::categoryName (sound->category) + middleDot() + card->id + middleDot() + shortKey (card->key) + middleDot()
+        const auto kind = sound->category == SoundCategory::loops ? sounds::partName (sound->part) + " loop" : sounds::categoryName (sound->category);
+        return sound->name + "\n" + kind + middleDot() + card->id + middleDot() + shortKey (card->key) + middleDot()
                + card->camelot + "\n" + secondsText (file.seconds) + " s" + middleDot() + (file.channels == 1 ? "mono" : "stereo") + middleDot()
                + "48 kHz 24-bit";
     }
@@ -1277,7 +1278,8 @@ namespace wubansia::editor
             SoundRow::Look rowLook;
             rowLook.name = sound.name;
             rowLook.length = wholeBars ? barsText (sound.bars) : seconds + " s";
-            rowLook.spoken = sound.name + ", " + (wholeBars ? barsText (sound.bars) : seconds + " seconds") + (sound.endAligned ? ", ends on the beat" : "");
+            const auto loopPart = sound.category == SoundCategory::loops ? sounds::partName (sound.part).toLowerCase() + " loop, " : juce::String();
+            rowLook.spoken = sound.name + ", " + loopPart + (wholeBars ? barsText (sound.bars) : seconds + " seconds") + (sound.endAligned ? ", ends on the beat" : "");
             rowLook.endAligned = sound.endAligned;
             rowLook.files = static_cast<int> (sound.files.size());
             rowLook.selected = i == selected;
