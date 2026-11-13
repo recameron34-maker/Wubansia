@@ -162,6 +162,7 @@ namespace wubansia
     {
         juce::File file; // the copy; juce::File () on failure
         juce::String problem; // for people: why there is no copy
+        bool sourceProblem = false; // the kit's own file is why (missing, unreadable, not kit.json's), not the samples folder
     };
 
     class Controller

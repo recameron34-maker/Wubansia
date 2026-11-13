@@ -387,11 +387,13 @@ TEST_CASE ("exportSound copies the kit's file into the samples folder; a second 
     const auto unknown = controller.exportSound ({ "NOPE", riser });
     CHECK (unknown.file == juce::File());
     CHECK (unknown.problem.contains ("NOPE"));
+    CHECK (unknown.sourceProblem);
     for (const auto file : { -1, 30 })
     {
         const auto none = controller.exportSound ({ "XPT01", file });
         CHECK (none.file == juce::File());
         CHECK (none.problem.isNotEmpty());
+        CHECK (none.sourceProblem);
     }
     CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 2); // the two kits' folders
 }
@@ -411,12 +413,14 @@ TEST_CASE ("exportSound is refused, with the reason, while the kit's samples are
     const auto early = controller.exportSound ({ "MIS01", riser });
     CHECK (early.file == juce::File());
     CHECK (early.problem.isNotEmpty());
+    CHECK (early.sourceProblem);
 
     test::prepare (*plugin, 48000.0, 512);
     REQUIRE (test::waitForStatus (*plugin, ContentState::missing));
     const auto refused = controller.exportSound ({ "MIS01", riser });
     CHECK (refused.file == juce::File());
     CHECK (refused.problem.contains ("no content folder holds MIS01"));
+    CHECK (refused.sourceProblem); // the kit's samples, not the samples folder
     CHECK (plugin.content->fileReads.load() == 0); // never read
     CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 0);
 }

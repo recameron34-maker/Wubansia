@@ -339,6 +339,7 @@ TEST_CASE ("bytes that aren't the ones kit.json lists are refused, and nothing i
         CHECK (refused.file == juce::File());
         CHECK (refused.problem == "Riser.wav isn't the file SYN01's content v1 lists: reinstall SYN01");
         CHECK (refused.problem == sounds::listingProblem (synInfo(), riser));
+        CHECK (refused.sourceProblem); // the kit's file, not the samples folder
         CHECK_FALSE (samples.exists()); // not even the folder
 
         // The kit's other files are still copied.
@@ -353,6 +354,7 @@ TEST_CASE ("bytes that aren't the ones kit.json lists are refused, and nothing i
         const auto refused = sounds::exportCopy (content, found, synInfo(), riser, samples);
         CHECK (refused.file == juce::File());
         CHECK (refused.problem == sounds::listingProblem (synInfo(), riser));
+        CHECK (refused.sourceProblem);
         CHECK_FALSE (samples.exists());
     }
 
@@ -365,6 +367,7 @@ TEST_CASE ("bytes that aren't the ones kit.json lists are refused, and nothing i
         CHECK (refused.file == juce::File());
         CHECK (text (refused.problem).contains ("Drums/Snare v1 rr2.wav"));
         CHECK (text (refused.problem).contains ("missing"));
+        CHECK (refused.sourceProblem);
         CHECK_FALSE (samples.exists());
     }
 
@@ -402,6 +405,7 @@ TEST_CASE ("a folder that can't be written gives a problem naming it", "[sounds]
 
     const auto refused = exportSyn (content, "FX/Riser.wav", blocker);
     CHECK (refused.file == juce::File());
+    CHECK_FALSE (refused.sourceProblem); // the folder's: another one helps
     INFO (refused.problem);
     CHECK (text (refused.problem).contains (blocker.getChildFile ("SYN01 Synthetic Test Kit").getFullPathName()));
     CHECK (blocker.loadFileAsString() == "a file, not a folder");
@@ -494,6 +498,7 @@ TEST_CASE ("a write that fails part-way leaves nothing under the export name; th
     // Every check once the cap is gone: under it, even this test's own output could be cut short.
     REQUIRE (capped);
     CHECK (refused.file == juce::File());
+    CHECK_FALSE (refused.sourceProblem);
     CHECK (text (refused.problem).contains (target.getFullPathName()));
     CHECK_FALSE (target.exists());
     CHECK (entriesIn (kitFolder) == 0); // no hidden temporary file left behind

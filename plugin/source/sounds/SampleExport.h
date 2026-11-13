@@ -66,6 +66,7 @@ namespace wubansia::sounds
     {
         juce::File file; // the copy; juce::File () on failure
         std::string problem; // why there is none, for people
+        bool sourceProblem = false; // the installed file is why (it can't be read, or isn't kit.json's), not the folder
     };
 
     // The file's copy in samplesFolder/kitFolderName (kit)/, made if missing (see the top). found is the kit's

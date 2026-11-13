@@ -31,6 +31,7 @@
 #endif
 
 using Catch::Matchers::ContainsSubstring;
+using Catch::Matchers::EndsWith;
 using Catch::Matchers::WithinAbs;
 using wubansia::PluginEditor;
 using wubansia::test::FakeController;
@@ -1572,6 +1573,43 @@ TEST_CASE ("an export that fails starts no drag and says why", "[editor][sounds]
             CHECK (os.dragged.size() == 1);
             CHECK_FALSE (tile.hasFailed());
             CHECK (drawer.statusText() == "Saved Rave Stab v2 - FUT01.wav");
+        });
+}
+
+TEST_CASE ("an export the kit's own file fails says what fixes the kit, not the folder", "[editor][sounds]")
+{
+    Rig rig;
+    TempFolder samples;
+    rig.controller.samplesFolderChosen = samples.folder;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openDrawer (editor);
+            Handoffs os;
+            os.hook (drawer);
+            auto& tile = get<editor::SoundDragTile> (editor, "sound_drag");
+
+            // The installed file is gone (an unplugged drive, say): another samples folder wouldn't help.
+            c.exportSourceProblem = "Reverse Stab v2.wav can't be read: missing: Music/Reverse Stab v2.wav: no such file in /x/fut01/v1";
+            drag (tile, 6.0f);
+            CHECK (os.dragged.isEmpty());
+            CHECK (tile.hasFailed());
+            CHECK (drawer.statusText()
+                   == "Couldn't save Reverse Stab v2: Reverse Stab v2.wav can't be read: missing: Music/Reverse Stab v2.wav: no such file in "
+                      "/x/fut01/v1. Check that FUT01's samples are still installed.");
+
+            // Bytes that aren't kit.json's: the problem already says what to do.
+            c.exportSourceProblem = "Reverse Stab v2.wav isn't the file FUT01's content v1 lists: reinstall FUT01";
+            click (get<juce::Button> (editor, "sound_reveal"));
+            CHECK (os.revealed.isEmpty());
+            CHECK (drawer.statusText() == "Couldn't save Reverse Stab v2: Reverse Stab v2.wav isn't the file FUT01's content v1 lists: reinstall FUT01.");
+
+            // A failure at the samples folder still points to Change...
+            c.exportSourceProblem.clear();
+            c.exportFails = true;
+            drag (tile, 6.0f);
+            CHECK_THAT (drawer.statusText().toStdString(), EndsWith (editor::utf8 ("Choose another folder with Change\xe2\x80\xa6").toStdString()));
         });
 }
 
