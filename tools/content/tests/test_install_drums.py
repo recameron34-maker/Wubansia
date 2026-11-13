@@ -158,7 +158,7 @@ class TestDrumPads(unittest.TestCase):
     def test_it_names_exactly_the_drums_files_on_no_drum_pad_and_the_channels_that_play_them(self):
         # A few files in Drums/ are on no drum note: accent sounds, on channel 6, and FUT02's Glass Ping has a track of
         # its own too. One bullet names exactly those, each kit's after "<kit>'s" and the Accent files as one group, and
-        # gives every channel that plays them, so no one takes them for files nothing plays.
+        # gives exactly the channels that play them, so no one takes them for files nothing plays.
         self.assertIsNotNone(self.drag, 'INSTALL.md has no "## Drag MIDI into Live or Logic"')
         found = [item for item in bullets(self.drag) if item.startswith(NO_PAD)]
         self.assertEqual(len(found), 1, f'the drag section needs one bullet starting {NO_PAD!r}')
@@ -184,9 +184,8 @@ class TestDrumPads(unittest.TestCase):
             channels |= {ch for sound in others for ch in channels_playing(data, sound)}
         self.assertEqual(accents, unmapped_accents,
                          'the bullet names "the Accent files" if, and only if, some are on no drum pad')
-        for ch in sorted(channels):
-            with self.subTest(channel=ch):
-                self.assertRegex(item, rf'\bchannel {ch}\b', f'the bullet never says these sounds play on channel {ch}')
+        said = {int(ch) for ch in re.findall(r'\bchannel (\d+)\b', item)}
+        self.assertEqual(said, channels, 'the bullet must give exactly the channels that play these sounds')
 
     def test_a_drum_note_on_an_a_b_switch_says_which_sound_is_on_each_side(self):
         # FUT01's kick: its cell names both sounds, and a bullet that starts with the kit puts each "on A" or "on B" as
