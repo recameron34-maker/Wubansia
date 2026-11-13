@@ -210,7 +210,8 @@ On Windows the content folder is `%APPDATA%\Wubansia Audio\Wubansia\Content`, an
 - **Bitwig's offline bounce stalls with the CLAP.** A known issue with CLAP plug-ins that report latency
   (clap-juce-extensions #184): use the VST3 in Bitwig.
 - **Your DAW won't take a drop from the Samples drawer.** Click the tile, or Show in Finder, and drag the file from
-  Finder. If the drawer says "Couldn't save", choose another folder with Change….
+  Finder. If the drawer says "Couldn't save", it says what helps: another folder with Change… when the copy couldn't
+  be written there, or the kit's samples when its own file is missing or not the one it lists.
 
 ## Uninstall
 

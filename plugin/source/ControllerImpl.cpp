@@ -316,6 +316,7 @@ namespace wubansia
         if (source.entry == nullptr)
         {
             result.problem = source.problem;
+            result.sourceProblem = true; // the kit, its file or its samples: not the samples folder
             return result;
         }
 
@@ -323,6 +324,7 @@ namespace wubansia
         const auto copy = sounds::exportCopy (*processor.content, source.found, source.entry->info, file, samplesFolder());
         result.file = copy.file;
         result.problem = juce::String::fromUTF8 (copy.problem.data(), static_cast<int> (copy.problem.size()));
+        result.sourceProblem = copy.sourceProblem;
         return result;
     }
 

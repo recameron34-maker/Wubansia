@@ -123,12 +123,12 @@ namespace wubansia::sounds
     ExportResult exportCopy (ContentSourceFactory& content, const ContentStatus& found, const engine::KitInfo& kit,
         const engine::FileEntry& file, const juce::File& samplesFolder)
     {
-        // The installed bytes, checked against kit.json before anything is written.
+        // The installed bytes, checked against kit.json before anything is written: the kit's file is the problem.
         const auto bytes = content.readFile (found, file.path);
         if (! bytes.ok())
-            return { {}, std::string (fileNameOf (file.path)) + " can't be read: " + bytes.error };
+            return { {}, std::string (fileNameOf (file.path)) + " can't be read: " + bytes.error, true };
         if (! matchesListing (bytes.value, file))
-            return { {}, listingProblem (kit, file) };
+            return { {}, listingProblem (kit, file), true };
         if (samplesFolder == juce::File())
             return { {}, "there is no samples folder to copy " + std::string (fileNameOf (file.path)) + " into" };
 

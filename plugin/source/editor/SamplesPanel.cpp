@@ -996,9 +996,14 @@ namespace wubansia::editor
 
         if (copy.file == juce::File())
         {
+            // What helps: another samples folder when the copy couldn't be written; when the kit's own file is the
+            // problem, the kit's samples (unless the problem already says to reinstall).
+            const auto problem = withoutFullStop (copy.problem);
+            const auto advice = ! copy.sourceProblem                    ? utf8 (" Choose another folder with Change\xe2\x80\xa6")
+                                : problem.containsIgnoreCase ("install") ? juce::String()
+                                                                         : " Check that " + ref.kit + "'s samples are still installed.";
             tileFailed = true;
-            setMessage ("Couldn't save " + label + ": " + withoutFullStop (copy.problem) + ". " + utf8 ("Choose another folder with Change\xe2\x80\xa6"),
-                colours::warning);
+            setMessage ("Couldn't save " + label + ": " + problem + "." + advice, colours::warning);
             refresh();
             return {};
         }
