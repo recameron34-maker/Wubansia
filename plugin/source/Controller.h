@@ -129,6 +129,7 @@ namespace wubansia
         juce::String id; // "FUT01/rave_stab"; a loop: "FUT01/Loops/Chrome Pluck Phrase.wav"
         juce::String name; // "Rave Stab"; a leading "Accent " dropped: "Dub Chord Cm9"
         SoundCategory category = SoundCategory::accents;
+        SoundCategory part = SoundCategory::accents; // what it plays: a loop's lane ("Bass" for a bass line), else its category
         std::vector<SoundFile> files; // zones low to high, then layers soft to hard, then round robins
         int defaultFile = 0; // into files
         bool endAligned = false; // align: end, its last frame is the beat

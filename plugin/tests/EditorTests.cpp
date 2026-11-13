@@ -1231,8 +1231,10 @@ TEST_CASE ("the detail pane shows the selected sound: its file, length and forma
             click (get<juce::Button> (editor, "samples_category_synths"));
             CHECK (drawer.hintText() == "9 recorded notes: pick one in File");
 
-            // A loop: its bars at the kit's tempo; with an echo tail beyond its cycle, both.
+            // A loop: what it plays, and its bars at the kit's tempo; with an echo tail beyond its cycle, both.
             click (get<juce::Button> (editor, "samples_category_loops"));
+            CHECK_THAT (detail().toStdString(), ContainsSubstring ("Synth loop" + editor::middleDot().toStdString() + "FUT01"));
+            CHECK (soundRow (editor, 0).getTitle() == "Chrome Pluck Phrase, synth loop, 2 bars");
             CHECK (drawer.hintText() == "2 bars at 134 BPM");
             auto& loops = rig.controller.soundLists["FUT02"];
             loops[2].bars = 6;
@@ -1241,6 +1243,7 @@ TEST_CASE ("the detail pane shows the selected sound: its file, length and forma
             click (get<juce::Button> (editor, "samples_category_loops"));
             CHECK (drawer.hintText() == "6 bars at 130 BPM: a 4-bar loop, then a 2-bar echo tail");
             CHECK_THAT (detail().toStdString(), ContainsSubstring ("mono"));
+            CHECK_THAT (detail().toStdString(), ContainsSubstring ("Bass loop" + editor::middleDot().toStdString() + "FUT02" + editor::middleDot().toStdString() + "Dm"));
         });
 }
 

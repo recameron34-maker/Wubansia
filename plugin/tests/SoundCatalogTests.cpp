@@ -462,6 +462,52 @@ TEST_CASE ("lengths: whole bars at the kit's tempo, end-aligned sounds, lead-ins
     }
 }
 
+TEST_CASE ("a loop's part is its phrase's lane, Bass for a bass line; any other sound's is its category", "[sounds]")
+{
+    struct Example
+    {
+        const char* kit;
+        const char* loop;
+        SoundCategory part;
+    };
+    const Example examples[] {
+        { "FUT01", "Chrome Pluck Phrase", SoundCategory::synths }, // lead
+        { "FUT02", "Orbit Line Clean", SoundCategory::bass },
+        { "FUT02", "Relay Line Warm", SoundCategory::bass },
+        { "FUT03", "Line Deep Clean", SoundCategory::bass },
+        { "FUT04", "Acid Line 1 Clean 4 Bars", SoundCategory::bass },
+    };
+    for (const auto& e : examples)
+    {
+        CAPTURE (e.kit, e.loop);
+        const auto& sound = named (sounds::soundsOf (manifestOf (e.kit)), e.loop);
+        CHECK (sound.category == SoundCategory::loops);
+        CHECK (sound.part == e.part);
+    }
+
+    // Every loop's part is its phrase's lane (bass, lead and vox lines in these kits); everything else plays as listed.
+    for (const auto& entry : embedded().entries())
+    {
+        CAPTURE (entry.id);
+        std::array<int, kSoundCategories> loopParts {};
+        for (const auto& sound : sounds::soundsOf (entry.manifest))
+        {
+            CAPTURE (sound.id.toStdString());
+            if (sound.category != SoundCategory::loops)
+            {
+                CHECK (sound.part == sound.category);
+                continue;
+            }
+            CHECK (sound.part != SoundCategory::loops);
+            ++loopParts[(std::size_t) sound.part];
+        }
+        int loops = 0;
+        for (const auto& phrase : entry.manifest.phrases)
+            loops += (phrase.stemA >= 0 ? 1 : 0) + (phrase.stemB >= 0 ? 1 : 0);
+        CHECK (loopParts[(std::size_t) SoundCategory::bass] + loopParts[(std::size_t) SoundCategory::synths] + loopParts[(std::size_t) SoundCategory::vox] == loops);
+    }
+}
+
 TEST_CASE ("names drop a leading 'Accent '; ids are unique, stable and name the kit", "[sounds]")
 {
     const auto fut03 = sounds::soundsOf (manifestOf ("FUT03"));
