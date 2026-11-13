@@ -335,6 +335,11 @@ TEST_CASE ("the default file: the top layer's first round robin, on the kit's to
         { "FUT03", "Conga", "Drums/Conga G3 v3 rr1.wav" }, // one key per zone: the first zone
         { "FUT04", "Mod Blip", "Music/Mod Blip E5 v2.wav" },
         { "FUT01", "Kick Split", "Drums/Kick Split v5 rr1.wav" },
+        // The rule gives the tonic's lowest zone, which isn't always one the kit's MIDI plays: FUT03 plays its Vox
+        // Synth and Keys EP from G4 up, and FUT02's arp runs A4-C6 above its one tonic zone. Pinned: a choice on record.
+        { "FUT03", "Vox Synth", "Vox/Vox Synth G3 v2.wav" },
+        { "FUT03", "Keys EP", "Music/Keys EP G3 v2.wav" },
+        { "FUT02", "Chrome Arp", "Music/Chrome Arp D4 v2.wav" },
     };
     for (const auto& e : examples)
     {
