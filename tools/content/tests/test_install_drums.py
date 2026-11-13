@@ -134,6 +134,19 @@ class TestDrumPads(unittest.TestCase):
             with self.subTest(note=note_name(key)):
                 self.assertTrue(f'{note_name(key)} ({key})' in logic, f'the Logic steps never name {note_name(key)} ({key})')
 
+    def test_the_live_steps_say_the_drop_writes_over_the_tracks_after_and_how_to_drop_safely(self):
+        # Live puts a dropped file's other tracks on the tracks after the one it lands on, over their clips: the Song
+        # brings 7 to 10 more after Drums. The steps say so, and give three drops that write over none of yours.
+        self.assertIsNotNone(self.drag, 'INSTALL.md has no "## Drag MIDI into Live or Logic"')
+        live = section(self.drag, 'In Ableton Live', level=3)
+        self.assertIsNotNone(live, 'the drag section has no "### In Ableton Live"')
+        live = flat(live)
+        for needed in ('replaces what it covers',  # the warning
+                       'a new set', 'below your last track',  # nothing of yours after the drop
+                       'six other lanes'):  # the drums alone
+            with self.subTest(needed=needed):
+                self.assertTrue(needed in live, f'the Live steps never say {needed!r}')
+
 
 if __name__ == '__main__':
     unittest.main()
