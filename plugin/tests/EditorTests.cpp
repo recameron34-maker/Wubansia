@@ -26,6 +26,10 @@
 #include <thread>
 #include <utility>
 
+#if JUCE_LINUX || JUCE_BSD
+    #include <dlfcn.h>
+#endif
+
 using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::WithinAbs;
 using wubansia::PluginEditor;
@@ -1345,6 +1349,61 @@ TEST_CASE ("Up and Down move through the rows and audition each; Space is left t
             CHECK (c.auditions.size() == 4);
             CHECK (c.stops == 0);
         });
+}
+
+TEST_CASE ("opening the drawer gives its list the keyboard: Down plays the next sound, Return plays it again", "[editor][sounds]")
+{
+    // Keyboard focus needs the editor in a window the OS lets this process focus: an X display here (xvfb-run does).
+#if ! (JUCE_LINUX || JUCE_BSD)
+    SKIP ("needs a window this test can focus: run it on Linux with a display");
+#else
+    if (juce::SystemStats::getEnvironmentVariable ("DISPLAY", {}).isEmpty())
+        SKIP ("no display: run it under xvfb-run");
+
+    // JUCE leaves Xlib's errors to Xlib's default handler, which ends the process, unless it runs as a standalone app;
+    // a window on a display with no window manager (Xvfb) draws a few harmless ones. They're ignored from here on.
+    using XHandler = int (*) (void*, void*);
+    if (auto* x11 = dlopen ("libX11.so.6", RTLD_NOW | RTLD_GLOBAL))
+        if (auto setHandler = reinterpret_cast<XHandler (*) (XHandler)> (dlsym (x11, "XSetErrorHandler")))
+            setHandler ([] (void*, void*) -> int { return 0; });
+
+    Rig rig;
+    auto& c = rig.controller;
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            juce::DocumentWindow window ("Wubansia", juce::Colours::black, 0, true);
+            window.setUsingNativeTitleBar (false);
+            window.setContentNonOwned (&editor, true);
+            window.setVisible (true);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (300);
+            auto* peer = editor.getPeer();
+            REQUIRE (peer != nullptr);
+
+            // A click on Samples leaves the keyboard on it, as a real one does; then the drawer opens.
+            auto& samples = get<juce::Button> (editor, "samples");
+            samples.grabKeyboardFocus();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            if (! samples.hasKeyboardFocus (false))
+                SKIP ("the window didn't get the keyboard focus");
+            click (samples);
+            editor.tick();
+            REQUIRE (editor.isSamplesPanelShown());
+            auto& drawer = get<editor::SamplesPanel> (editor, "samples_drawer");
+            auto& list = get<juce::Component> (editor, "sound_list");
+            CHECK (list.hasKeyboardFocus (false));
+            CHECK (c.auditions.empty()); // opening plays nothing
+
+            // The keys reach the list, not the host or the Samples button.
+            CHECK (peer->handleKeyPress (juce::KeyPress (juce::KeyPress::downKey)));
+            CHECK (drawer.selectedRow() == 1);
+            REQUIRE (c.auditions.size() == 1);
+            CHECK (peer->handleKeyPress (juce::KeyPress (juce::KeyPress::returnKey)));
+            CHECK (c.auditions.size() == 2);
+            CHECK (editor.isSamplesPanelShown()); // Return played; it didn't close the drawer
+
+            window.clearContentComponent();
+        });
+#endif
 }
 
 TEST_CASE ("the File box changes what plays, drags and reveals", "[editor][sounds]")
