@@ -77,12 +77,12 @@ if(WUBANSIA_BUILD_TESTS)
     # score note (cut_check.cpp): it pairs them only inside the section the cut ends, so FUT01 seed 0's
     # break, 8 bars in, whose song merges notes on one tick elsewhere (its groove and its drop), is
     # checked exactly; and where the files can't tell, it says so (exit 3) instead of calling a right
-    # cut wrong: seed 4's drop, whose last 16th kick plays after the downbeat it is cut at, and seed
-    # 16's, where the feel file merges shaker notes played on one tick.
+    # cut wrong: seed 4's drop, 16 bars in, whose last 16th kick plays after the downbeat it is cut
+    # at, and seed 16's, 8 bars in, where the feel file merges shaker notes played on one tick.
     _groovecore_cut_test("groovecore_cut_check: at the feel's extremes it pairs the notes of the section the cut ends" cut-extreme-section
         -DKIT=FUT01 -DSEED=0 -DAMOUNT=1000 -DBARS=120 -DEXTREME=ON)
     _groovecore_cut_test("groovecore_cut_check: notes played out of score order across the cut are unknown, not wrong" cut-extreme-order
-        -DKIT=FUT01 -DSEED=4 -DAMOUNT=2000 -DBARS=104 -DEXTREME=ON -DCHECK_EXIT=3 "-DCHECK_REGEX=out of score order")
+        -DKIT=FUT01 -DSEED=4 -DAMOUNT=2000 -DBARS=80 -DEXTREME=ON -DCHECK_EXIT=3 "-DCHECK_REGEX=out of score order")
     _groovecore_cut_test("groovecore_cut_check: notes merged on one tick at the cut are unknown, not wrong" cut-extreme-merged
         -DKIT=FUT01 -DSEED=16 -DAMOUNT=1000 -DBARS=96 -DEXTREME=ON -DCHECK_EXIT=3 "-DCHECK_REGEX=on one tick")
 
