@@ -773,7 +773,9 @@ TEST_CASE ("the drag strip fits the switch between Song and the phrase chips, ev
             for (int i = 0; i < strip.numPhraseChips(); ++i)
             {
                 CHECK (strip.phraseChip (i)->getX() >= drums.getRight());
-                CHECK (strip.phraseChip (i)->getWidth() >= 125);
+                // 131 px before the label slot and the divider's gap gave their slack back. DejaVu Sans, the widest
+                // default font JUCE picks, needs 95 px of the title area for "E Piano Stab Rhythm" squeezed to 0.8.
+                CHECK (strip.phraseChip (i)->getWidth() >= 133);
             }
 
             // Every label reads in full, in the font and area its paint code uses.
@@ -789,14 +791,22 @@ TEST_CASE ("the drag strip fits the switch between Song and the phrase chips, ev
                 CHECK (width (chip->labelFont(), chip->label()) <= chip->labelArea().getWidth());
             }
 
-            // The four FUT01 phrase titles that fit today still fit, squeezed to 0.8 at most ("E Piano Stab Rhythm" was
-            // already cut).
-            for (int i = 1; i < strip.numPhraseChips(); ++i)
+            // Every phrase chip shows a title it can hold, squeezed to 0.8 at most, in whatever font this machine gives
+            // (Verdana on Windows and DejaVu Sans on some Linux machines are 8 and 12 % wider than Liberation Sans): the
+            // whole title where it fits, else the title without its bar count, which the tooltip's file name still has.
+            // "E Piano Stab Rhythm · 2 bars" fits in no default font.
+            for (int i = 0; i < strip.numPhraseChips(); ++i)
             {
-                const auto* chip = strip.phraseChip (i);
-                INFO (chip->label());
-                CHECK (width (chip->labelFont(), chip->label()) * 0.8f < chip->labelArea().getWidth());
+                auto* chip = strip.phraseChip (i);
+                const auto title = chip->label();
+                INFO (title);
+                const auto fits = [&] (const juce::String& text) { return width (chip->labelFont(), text) * 0.8f < chip->labelArea().getWidth(); };
+                const auto shown = chip->shownLabel();
+                CHECK (shown == (fits (title) ? title : title.upToLastOccurrenceOf (editor::middleDot(), false, false)));
+                CHECK (fits (shown));
+                CHECK_THAT (chip->getTooltip().toStdString(), ContainsSubstring (fut01PhraseFiles()[i].toStdString()));
             }
+            CHECK (strip.phraseChip (0)->shownLabel() == "E Piano Stab Rhythm");
         });
 }
 

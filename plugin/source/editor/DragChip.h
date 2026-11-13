@@ -31,6 +31,9 @@ namespace wubansia::editor
         juce::Font labelFont() const;
         juce::Rectangle<float> labelArea() const;
 
+        // What paint () writes: the label; "Couldn't write" ("!" when compact) after a failed drag; MIDI when compact.
+        juce::String shownLabel() const;
+
         // Writes the file and starts the external drag; false if either fails. mouseDrag calls it.
         bool beginDrag();
 

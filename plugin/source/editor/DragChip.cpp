@@ -117,8 +117,14 @@ namespace wubansia::editor
 
         g.setFont (labelFont());
         g.setColour (! enabled ? colours::textFaint : (failed ? colours::warning : colours::text.withAlpha (0.9f)));
-        const auto shown = failed ? juce::String (compact ? "!" : "Couldn't write") : (compact ? juce::String ("MIDI") : text);
-        g.drawFittedText (shown, labelArea().toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+        g.drawFittedText (shownLabel(), labelArea().toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+    }
+
+    juce::String DragChip::shownLabel() const
+    {
+        if (failed)
+            return compact ? "!" : "Couldn't write";
+        return compact ? juce::String ("MIDI") : text;
     }
 
     juce::Font DragChip::labelFont() const
