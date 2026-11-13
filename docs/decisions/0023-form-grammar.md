@@ -43,7 +43,7 @@ A **dropout** is part of the section (`Section::dropouts`): `active()` and `acti
 |---|---|---|
 | Drop, drop2 and break starts on a 16-bar line | 70% drawn per start; tested 60% to 80% on 64 seeds (207 to 227 starts a style, so about 3 standard deviations either way) | the measurement ADR 0013 cites |
 | The form's length | 200 to 240 bars, techno 208 to 240 (5:58 to 7:30 at the kits' tempos) | ADR 0013 §2; step 1 of `docs/plans/S1b2-plan.md` |
-| Builds | 8 to 32 bars, each into a drop | ADR 0013 §2; the written builds (8 or 16), techno's long ones (32) |
+| Builds | 8 to 32 bars, each into a drop | ADR 0013 §2 (8 to 32 bars); the written builds run 8 or 16 |
 | Drops | drop 1 24 bars or more, drop 2 32 or more and, in FUT01-FUT03, never shorter than drop 1 | the written mixes: drop 1 and drop 2 are 32 and 40 bars in FUT01, 32 and 32 in the others (a 16-bar drop spends half of itself on its rest) |
 | Drop 1 against the grooves | at least 1.10 times the notes a bar, on 64 seeds | ADR 0013 §2 |
 | Lanes inside the drops | at least one change inside every drop and drop 2 | ADR 0013 §2 |
