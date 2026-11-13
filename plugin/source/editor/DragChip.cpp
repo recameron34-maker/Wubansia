@@ -3,6 +3,24 @@
 
 namespace wubansia::editor
 {
+    namespace
+    {
+        // A phrase title without its bar count: "Vox Synth Riff · 2 bars" is "Vox Synth Riff" (phraseTitle () puts the
+        // count last). Any other text comes back as it is.
+        juce::String withoutBarCount (const juce::String& title)
+        {
+            const auto dot = middleDot();
+            const auto at = title.lastIndexOf (dot);
+            if (at <= 0)
+                return title;
+            const auto tail = title.substring (at + dot.length());
+            const auto count = tail.upToFirstOccurrenceOf (" ", false, false);
+            const auto unit = tail.fromFirstOccurrenceOf (" ", false, false);
+            const auto isCount = count.isNotEmpty() && count.containsOnly ("0123456789") && (unit == "bar" || unit == "bars");
+            return isCount ? title.substring (0, at) : title;
+        }
+    }
+
     DragChip::DragChip (Controller& c, const DragRequest& request, const juce::String& label)
         : controller (c)
     {
@@ -117,8 +135,21 @@ namespace wubansia::editor
 
         g.setFont (labelFont());
         g.setColour (! enabled ? colours::textFaint : (failed ? colours::warning : colours::text.withAlpha (0.9f)));
-        const auto shown = failed ? juce::String (compact ? "!" : "Couldn't write") : (compact ? juce::String ("MIDI") : text);
-        g.drawFittedText (shown, labelArea().toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+        g.drawFittedText (shownLabel(), labelArea().toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+    }
+
+    juce::String DragChip::shownLabel() const
+    {
+        if (failed)
+            return compact ? "!" : "Couldn't write";
+        if (compact)
+            return "MIDI";
+        // A title that doesn't fit even squeezed to 0.8 (drawFittedText's own test) would be cut short: a phrase title
+        // drops its bar count instead, which the tooltip's file name still gives. The platform's font decides: Verdana
+        // and DejaVu Sans run 8 and 12 % wider than Liberation Sans.
+        if (juce::GlyphArrangement::getStringWidth (labelFont(), text) * 0.8f < (float) labelArea().toNearestInt().getWidth())
+            return text;
+        return withoutBarCount (text);
     }
 
     juce::Font DragChip::labelFont() const
@@ -184,13 +215,13 @@ namespace wubansia::editor
     void DragStrip::resized()
     {
         auto area = getLocalBounds().reduced (8, 5);
-        area.removeFromLeft (72); // the engraved label
+        area.removeFromLeft (68); // the engraved label (labelArea ())
         loop.setBounds (area.removeFromLeft (80));
         area.removeFromLeft (6);
         song.setBounds (area.removeFromLeft (80));
         area.removeFromLeft (6);
         drums.setBounds (area.removeFromLeft (120));
-        area.removeFromLeft (18);
+        area.removeFromLeft (12); // the divider, in the middle
 
         if (phraseChips.isEmpty())
             return;
@@ -213,7 +244,7 @@ namespace wubansia::editor
         draw::engraved (g, "Drag MIDI", labelArea(), juce::Justification::centredLeft, 9.5f);
         if (! phraseChips.isEmpty())
         {
-            const auto x = (float) drums.getRight() + 9.0f;
+            const auto x = (float) drums.getRight() + 6.0f;
             g.setColour (juce::Colours::white.withAlpha (0.08f));
             g.fillRect (juce::Rectangle<float> (1.0f, (float) getHeight() * 0.5f).withCentre ({ x, (float) getHeight() * 0.5f }));
         }

@@ -40,7 +40,7 @@ What the 16 Loop and Song files hold, checked on the content:
 13. `<KIT> <Title> <BPM> <Key> <Camelot> - <Loop|Song>[ NoVox][ (<marks>)].mid`, the marks being "1 drum track" when the drums merged, then "no <muted lanes>": `FUT01 Alloy Signal 134 F#m 11A - Song NoVox (1 drum track, no Clap, Warp Bass).mid`. With the switch off, or one drum track left at most, the names are today's. Different bytes get different names, one name is one file, and every name passes the three denylists.
 
 ### The switch
-14. **"1 drum track" on the drag strip**, between Song and the phrase chips: the editor's LED pill toggle, always enabled. Its tooltip names Drum Rack and Drum Machine Designer.
+14. **"1 drum track" on the drag strip**, between Song and the phrase chips: the editor's LED pill toggle, always enabled. Its tooltip names Drum Rack and Drum Machine Designer. Its room comes out of the phrase chips, so a phrase title that won't fit its chip even squeezed to 0.8, in the platform's font, drops its bar count ("E Piano Stab Rhythm · 2 bars" shows "E Piano Stab Rhythm"); the chip's tooltip still names the file.
 15. **Off by default**, so today's files stay as they are.
 16. **Kept for you, in `settings.xml`** beside the content folder (`drag_drums_one_track="1"` while lit), never in a project and never as a parameter: like the content folder, it's how you work, not part of a song. Every plugin instance and the Standalone app in one process share it; another process picks a change up when it next starts.
 

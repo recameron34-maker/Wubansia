@@ -19,8 +19,10 @@
 
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <set>
 #include <sstream>
+#include <vector>
 
 using namespace wubansia;
 namespace syn = engine::testing;
@@ -294,6 +296,100 @@ TEST_CASE ("the drag strip's drum option is kept in the person's settings file, 
     CHECK_FALSE (UserSettings (file).dragDrumsOnOneTrack());
     REQUIRE (file.replaceWithText ("<WubansiaSettings drag_drums_one_track=\"1\"/>"));
     CHECK (UserSettings (file).dragDrumsOnOneTrack());
+}
+
+TEST_CASE ("each setter of the settings file keeps whatever else the file holds", "[content][dragout]")
+{
+    TempFolder temp;
+    const auto file = (temp / "Wubansia Audio").getChildFile ("settings.xml");
+    const auto chosen = temp / "My Samples";
+
+    // Every setting this build writes: its attribute, its value when set, its setter, and what a new reader sees.
+    struct Setting
+    {
+        const char* attribute;
+        juce::String value;
+        std::function<bool (UserSettings&, bool)> set; // set it (true) or clear it (false)
+        std::function<bool (const UserSettings&)> isSet;
+    };
+    const std::vector<Setting> settings {
+        { "content_folder", chosen.getFullPathName(), [&chosen] (UserSettings& s, bool on) { return s.setContentFolder (on ? chosen : juce::File()); },
+            [&chosen] (const UserSettings& s) { return s.contentFolder() == chosen; } },
+        { "drag_drums_one_track", "1", [] (UserSettings& s, bool on) { return s.setDragDrumsOnOneTrack (on); },
+            [] (const UserSettings& s) { return s.dragDrumsOnOneTrack(); } },
+    };
+
+    // A file every setting is set in, with an attribute and a child element this build doesn't know (a later build's).
+    const auto seed = [&]
+    {
+        juce::XmlElement root ("WubansiaSettings");
+        root.setAttribute ("future_option", "kept");
+        for (const auto& s : settings)
+            root.setAttribute (s.attribute, s.value);
+        root.createNewChildElement ("Future")->setAttribute ("note", "kept too");
+        REQUIRE (file.getParentDirectory().createDirectory().wasOk());
+        REQUIRE (root.writeTo (file));
+    };
+    // The file after a write: the one setting as written, every other one and the unknown parts as they were.
+    const auto checkFile = [&] (const Setting& written, bool on)
+    {
+        const auto xml = juce::XmlDocument::parse (file);
+        REQUIRE (xml != nullptr);
+        CHECK (xml->hasTagName ("WubansiaSettings"));
+        CHECK (xml->getStringAttribute ("future_option") == "kept");
+        const auto* child = xml->getChildByName ("Future");
+        CHECK (child != nullptr);
+        CHECK ((child != nullptr && child->getStringAttribute ("note") == "kept too"));
+        for (const auto& s : settings)
+        {
+            INFO (s.attribute);
+            if (&s == &written && ! on)
+                CHECK_FALSE (xml->hasAttribute (s.attribute));
+            else
+                CHECK (xml->getStringAttribute (s.attribute) == s.value);
+            CHECK (s.isSet (UserSettings (file)) == (&s != &written || on));
+        }
+    };
+
+    for (const auto& written : settings)
+    {
+        INFO ("writing " << written.attribute);
+        seed();
+        {
+            UserSettings reader (file);
+            CHECK (written.set (reader, false));
+        }
+        checkFile (written, false);
+        {
+            UserSettings reader (file);
+            CHECK (written.set (reader, true));
+        }
+        checkFile (written, true);
+    }
+}
+
+TEST_CASE ("a settings file that can't be written: the setters say so, and the choices hold until the process ends", "[content][dragout]")
+{
+    TempFolder temp;
+    const auto blocker = temp / "Wubansia Audio"; // a file where the settings file's folder should be
+    REQUIRE (blocker.replaceWithText ("a file, not a folder"));
+    const auto file = blocker.getChildFile ("settings.xml");
+    const auto chosen = temp / "My Samples";
+
+    UserSettings settings (file);
+    CHECK_FALSE (settings.setDragDrumsOnOneTrack (true));
+    CHECK (settings.dragDrumsOnOneTrack());
+    CHECK_FALSE (settings.setContentFolder (chosen));
+    CHECK (settings.contentFolder() == chosen);
+    CHECK (settings.dragDrumsOnOneTrack());
+
+    CHECK_FALSE (settings.setDragDrumsOnOneTrack (false));
+    CHECK_FALSE (settings.dragDrumsOnOneTrack());
+    CHECK_FALSE (settings.setContentFolder ({}));
+    CHECK (settings.contentFolder() == juce::File());
+
+    CHECK (blocker.loadFileAsString() == "a file, not a folder");
+    CHECK_FALSE (file.exists());
 }
 
 TEST_CASE ("the installed content: a chosen folder's WAVs located, then read into a Kit", "[content]")

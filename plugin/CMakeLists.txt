@@ -98,6 +98,18 @@ if(WUBANSIA_BUILD_TESTS)
     endif()
 
     catch_discover_tests(WubansiaPluginTests DISCOVERY_MODE PRE_TEST)
+
+    # The editor measures its text in the platform's default sans-serif font: Liberation Sans on most Linux machines,
+    # Lucida Grande on macOS, Verdana on Windows, and DejaVu Sans on Linux without Liberation, the widest of them (about
+    # 12 % wider than Liberation Sans). Where DejaVu Sans is installed, the drag strip's fit test runs again in it alone
+    # (JUCE_FONT_PATH replaces the font folders), so a label that fits only in narrower fonts fails here too.
+    set(_wubansia_dejavu /usr/share/fonts/truetype/dejavu)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND EXISTS "${_wubansia_dejavu}/DejaVuSans-Bold.ttf")
+        set(_wubansia_dejavu_test "the drag strip fits every label at 100 % in DejaVu Sans, the widest default font")
+        add_test(NAME "${_wubansia_dejavu_test}"
+                 COMMAND WubansiaPluginTests "the drag strip fits the switch between Song and the phrase chips*")
+        set_tests_properties("${_wubansia_dejavu_test}" PROPERTIES ENVIRONMENT "JUCE_FONT_PATH=${_wubansia_dejavu}")
+    endif()
 endif()
 
 # Warnings as errors on our own files only: JUCE's module sources compile inside these targets too.

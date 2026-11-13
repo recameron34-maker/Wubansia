@@ -31,6 +31,10 @@ namespace wubansia::editor
         juce::Font labelFont() const;
         juce::Rectangle<float> labelArea() const;
 
+        // What paint () writes: the label, or a phrase title without its bar count where the whole title doesn't fit even
+        // squeezed to 0.8 in the platform's font; "Couldn't write" ("!" when compact) after a failed drag; MIDI when compact.
+        juce::String shownLabel() const;
+
         // Writes the file and starts the external drag; false if either fails. mouseDrag calls it.
         bool beginDrag();
 

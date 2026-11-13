@@ -10,6 +10,7 @@
 
 #include "kit/channel_map.h"
 #include "midi/reader.h"
+#include "midi/track_select.h"
 #include "util/sha256.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -810,6 +811,77 @@ TEST_CASE ("1 drum track leaves lane and phrase drags as they are", "[dragout]")
     // FUT04's kick lane keeps its Kick and Rumble apart.
     CHECK (trackNames (drag (kit ("FUT04"), state (PlayMode::loop, Variant::vox, 0, true), laneRequest (Lane::kick)).bytes)
            == std::vector<std::string> { "FUT04 Furnace Code, 136 BPM, E minor, loop, Vox", "Kick", "Rumble" });
+}
+
+TEST_CASE ("1 drum track never merges a kit's extras, whatever their lane", "[dragout]")
+{
+    // The merge takes the tracks whose names have the drums role in kTracks, never a kit's extras (channels 11-16), even
+    // on a drum lane: a later kit may put one there. So with every extra moved onto one drum lane, and nothing muted, a
+    // Loop or Song drag is the same file as with the extras on their own lanes.
+    int extrasInLoops = 0, extrasInSongs = 0;
+    for (const auto& k : kits())
+        for (const auto lane : { Lane::kick, Lane::snare, Lane::hats, Lane::perc })
+        {
+            auto moved = k.info;
+            for (auto& extra : moved.extras)
+                extra.lane = lane;
+            for (const auto what : { DragWhat::loop, DragWhat::song })
+                for (const auto v : { Variant::vox, Variant::novox })
+                {
+                    INFO (k.info.id << "'s extras on lane " << static_cast<int> (lane) << ", " << (what == DragWhat::song ? "song" : "loop")
+                                    << " " << variantName (v));
+                    const auto names = trackNames (k.bytesOf (sourceName (k, what, v)));
+                    const auto extras = std::count_if (names.begin(), names.end(), [&k] (const std::string& name) {
+                        return std::any_of (k.info.extras.begin(), k.info.extras.end(), [&name] (const engine::KitExtra& e) { return e.name == name; });
+                    });
+                    (what == DragWhat::song ? extrasInSongs : extrasInLoops) += static_cast<int> (extras);
+
+                    DragRequest request;
+                    request.what = what;
+                    const auto s = state (PlayMode::loop, v, 0, true);
+                    const auto made = dragout::makeDragFile (moved, k.files, s, request);
+                    INFO (made.error);
+                    REQUIRE (made.ok());
+                    const auto expected = drag (k, s, request);
+                    CHECK (made.value.name == expected.name);
+                    CHECK (made.value.bytes == expected.bytes);
+                }
+        }
+    CHECK (extrasInLoops > 0); // FUT02's Drop Glide and FUT03's Pad Warm play in the Loops
+    CHECK (extrasInSongs > extrasInLoops);
+}
+
+TEST_CASE ("1 drum track: drums that can't go on one track fail the drag, saying why", "[dragout]")
+{
+    // FUT01's vox Loop with a pitch bend at the head of its Clap track (track 2), which a merged track can't carry.
+    auto patched = kit ("FUT01");
+    const auto loopName = dragout::loopFileName ("FUT01", Variant::vox);
+    const auto at = std::find (patched.names.begin(), patched.names.end(), loopName);
+    REQUIRE (at != patched.names.end());
+    auto& bytes = patched.data[static_cast<std::size_t> (at - patched.names.begin())];
+    const auto chunks = midi::trackChunks (bytes);
+    REQUIRE (chunks.ok());
+    REQUIRE (chunks.value.size() > 2);
+    REQUIRE (chunks.value[2].name == "Clap");
+    const auto chunk = chunks.value[2].offset;
+    const Bytes bend { 0x00, 0xE9, 0x00, 0x40 }; // at tick 0, channel 10
+    bytes.insert (bytes.begin() + static_cast<std::ptrdiff_t> (chunk + 8), bend.begin(), bend.end()); // after "MTrk" and the length
+    const auto length = be32 (bytes, chunk + 4) + static_cast<std::uint32_t> (bend.size());
+    for (std::size_t i = 0; i < 4; ++i)
+        bytes[chunk + 4 + i] = static_cast<std::uint8_t> (length >> (24 - 8 * i));
+    // The copy's file views still point at the shared kit's bytes: point them at the copy's.
+    patched.files.clear();
+    for (std::size_t i = 0; i < patched.names.size(); ++i)
+        patched.files.push_back ({ patched.names[i], patched.data[i] });
+
+    CHECK (dragError (patched, state (PlayMode::loop, Variant::vox, 0, true), loopRequest())
+           == "FUT01_Loop_Vox_4bars.mid: can't put the drums on one track: can't merge tracks 1, 2, 3, 4: track 2 \"Clap\" has a pitch "
+              "bend at tick 0; a merged track carries only notes, controllers, program changes and text events");
+
+    // The file itself is fine: with the switch off, the drag is the patched file as it is.
+    const auto off = drag (patched, state (PlayMode::loop, Variant::vox), loopRequest());
+    CHECK (off.name == patched.prefix() + "Loop.mid");
+    CHECK (off.bytes == bytes);
 }
 
 TEST_CASE ("a lane drag holds the conductor and that lane's tracks from the current mode's file", "[dragout]")

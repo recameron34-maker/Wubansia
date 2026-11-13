@@ -142,7 +142,8 @@ engineer replaces these with the kit's own form.
   "MIDI To" to Wubansia's track and its channel to the clip's channel from the table above, and arm or monitor them.
   For your own instruments, put a sampler on each track and root every sample at its MIDI number. With 1 drum track
   lit, the drums come as one clip: drop the Song on a track holding a Drum Rack with the kit's drums on the notes
-  above.
+  above. The other instruments then land on the tracks after it, over the clips there: `dist/INSTALL.md` gives the
+  drops that write over nothing.
 - **Logic Pro.** File > Open on a whole-mix file brings its tempo, key and section markers with it (an import doesn't).
   Imported tracks keep their channels: on Wubansia's track, set the MIDI input to Multi (channels as above), or to one
   lane. For your own instruments, one software instrument track per MIDI track. With 1 drum track lit, drop the Song
