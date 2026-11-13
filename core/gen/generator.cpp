@@ -39,6 +39,8 @@ namespace wubansia::gen
         // 1. the arrangement: the seed's whole form, whatever the cut (step 6)
         const rng::Key root = songRoot (kit.id, options.seed);
         song.sections = arrange (style, root);
+        if (song.sections.empty())
+            return R::failure ("the form drew no sections (a grammar the loader would refuse)");
         for (const auto& s : song.sections)
             song.totalBars += s.bars;
         for (const auto& lane : style.lanes)
