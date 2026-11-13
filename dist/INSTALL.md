@@ -182,7 +182,7 @@ content folder…**. **Content…** opens the panel that says where the kits' sa
 - `~/Library/Application Support/Wubansia Audio/Wubansia/Content/<kit>/v<N>/`: the samples, about 35-70 MB a kit,
   with the kit's `SHA256SUMS`. A later content version goes in its own `v<N>` folder next to it.
 - `~/Library/Application Support/Wubansia Audio/Wubansia/settings.xml`: the content folder and the samples folder
-  you chose, if any.
+  you chose, if any, and whether the 1 drum track switch is lit.
 - `~/Music/Wubansia/Samples/<KIT> <Title>/`: the WAVs the Samples drawer saved for your drags (or the folder you
   chose with Change…). Wubansia never deletes them, and uninstalling leaves them: your projects use them.
 
