@@ -152,7 +152,8 @@ namespace wubansia::gen
 
     // A one-bar dropout: the bar before each of the section's own lines every `every` bars (16 or 32)
     // inside it, never its last bar, with chance p per line: a lane group drawn by weight sits it out
-    // (its lanes that play there and on the line, so they land back on the line).
+    // (its lanes that play there and on the line, so they land back on the line). A section's pulls
+    // come at least 32 bars apart (a line closer to the last pull isn't drawn).
     struct DropoutSpec
     {
         std::int32_t p = 0; // percent

@@ -14,7 +14,7 @@
 //   - some joining late or leaving early (the entries);
 //   - one lane sitting out 8 or 16 bars (the rest);
 //   - lane groups sitting out the bar before the section's own 16-bar lines, landing back on the line
-//     (the dropouts);
+//     (the dropouts, at least 32 bars apart);
 //   - drop 2's layer, drawn per song, in drop 2 and never in drop 1.
 //   A kind with "change" has a lane change inside every section.
 // Lane entries and exits therefore fall on 8-bar lines, and dropouts on the last bar of a phrase.

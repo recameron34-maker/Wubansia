@@ -85,6 +85,10 @@ namespace wubansia::gen
             return li ? std::uint64_t (1) << *li : 0;
         }
 
+        // Pulls (one-bar dropouts) inside one section come at least this many bars apart: a pull
+        // before every 16-bar line is the same edit on a loop.
+        constexpr std::int32_t pullSpacing = 32;
+
         // A section's blocks and dropouts from its kind's plan. layer: drop 2's layer lane (0 for none).
         void planBlocks (Section& s, const Style& style, const KindPlan& plan, std::uint64_t layer, rng::Key kf)
         {
@@ -182,9 +186,11 @@ namespace wubansia::gen
             };
 
             (void) rest (false);
+            // a line less than pullSpacing bars after the section's last pull isn't drawn
             if (plan.dropout)
-                for (std::int32_t line = plan.dropout->every; line < s.bars; line += plan.dropout->every)
-                    (void) dropout (line, false);
+                for (std::int32_t line = plan.dropout->every, last = -pullSpacing; line < s.bars; line += plan.dropout->every)
+                    if (line - last >= pullSpacing && dropout (line, false))
+                        last = line;
 
             // a kind with "change": a lane change inside every section, a rest else a dropout if the draws gave none
             const auto changes = [&s] {
