@@ -134,14 +134,14 @@ The lane changes count every bar whose lanes differ from the bar before it, as `
 - **The generator snapshots** cover 1,372 files (part 1: 1,312; more sections on average). Clang 18 and GCC 13 give the same bytes; the macOS arm64 job checks AppleClang.
 - **ADR 0013 §3's hold gap**, re-measured on the drawn forms: FUT04's rumble has a note on five or six of a song's six to eight inner section lines, and its duck still ends the note before at least 60 ticks short of the line; the acid starts 18 of FUT04's 436 inner lines, its duck at least 48 short; FUT01's to FUT03's bass starts none. So the rule still changes no shipped output: without it, no file of seeds 0-63 and the four large snapshot seeds changes, in either version.
 - The CLI's cut tests moved to cuts that show their cases in the drawn forms (FUT01 seed 40 at bar 168, seed 0 at 120, seed 4 at 80, seed 16 at 96), plus a cut before a one-bar dropout (seed 8 at 72).
-- **Open, for your decision or the lead's:**
+- **Open, for your decision at the S1d listen** (the lead keeps today's behaviour until then):
   - FUT04's drop 2 shorter than drop 1 (above): making it never shorter is one data line.
   - A melodic lane that strips a drop's end comes back at the next section (the mix-out aside) in 6, 21, 5 and 38 of 64 songs (FUT04's drone, which every drop-1 rest now takes). The other way is a strip in drop 2 only.
   - FUT01's drop-2 kick rest in a 32-bar drop 2 (§4's departures: 6 of 64 songs play the kick in fewer bars in drop 2 than in drop 1). Keeping it to a 40-bar drop 2, the written length, needs a rule the grammar lacks (a rest lane's shortest section), or FUT01's drop 2 always 40 bars.
   - FUT04's first drop without the backbeat its build sets up (§4's departures). Giving drop 1 the written backbeat leaves drop 2 to lift on its rides and anvil alone.
-  - FUT04 seed 304 as a snapshot seed, so the macOS job covers the length fallback on a shipped grammar (a snapshots-only commit).
   - FUT03's label: the kit is garage-house, its style still round 3's future house (§4).
   - Plan §2.3's false drop and per-seed drop-2 variants (above).
+- **Settled by the lead, 2026-11-13:** FUT04 seed 304 is not a snapshot seed. The form test pins its fallback form, its lines and its range, and core_tests runs on every platform, the macOS job included; a 17th snapshot seed would change all four kits' manifest entries for one song's bytes.
 
 ## Alternatives
 - **A list of whole forms per style, one drawn per seed:** a handful of forms, the clockwork G10 catches, and no lane moves.
