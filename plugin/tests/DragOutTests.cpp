@@ -968,3 +968,38 @@ TEST_CASE ("a drag gives the same name and bytes every time", "[dragout]")
         CHECK (a.bytes == b.bytes);
     }
 }
+
+TEST_CASE ("an OS drag hands over a percent-encoded file URL on Linux, and the path elsewhere", "[dragout]")
+{
+    // Drop targets read text/uri-list as URIs: GLib, Qt and Ardour cut a bare path at '#', REAPER at the first space.
+    const auto folder = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile (juce::CharPointer_UTF8 ("S\xc3\xa4mples #1 (x) 100% a+b"));
+    const juce::File files[] {
+        folder.getChildFile ("FUT01 Alloy Signal").getChildFile ("Rave Stab v2 - FUT01 134 F#m 11A.wav"), // every FUT01 name has '#'
+        folder.getChildFile ("FUT03 Glass Current").getChildFile ("Riser - FUT03 128 Gm 6A.wav"), // spaces only
+        folder.getChildFile ("FUT01 Alloy Signal 134 F#m 11A - Loop.mid"), // a MIDI chip's
+    };
+    for (const auto& file : files)
+    {
+        const auto handed = dragout::externalDragPath (file);
+        CAPTURE (file.getFullPathName().toStdString(), handed.toStdString());
+#if JUCE_LINUX || JUCE_BSD
+        CHECK (handed.startsWith ("file:///"));
+        CHECK (handed.matchesWildcard ("?*://*", true)); // what JUCE's X11 drag hands over unchanged
+        const auto rest = handed.fromFirstOccurrenceOf ("file://", false, false);
+        CHECK_FALSE (rest.containsAnyOf (" \t#?\"<>\\`"));
+        bool ascii = true, escapes = true; // UTF-8 percent-encoded; every '%' starts an escape
+        const juce::String hex ("0123456789ABCDEFabcdef");
+        for (int i = 0; i < rest.length(); ++i)
+        {
+            ascii = ascii && rest[i] < 0x80;
+            if (rest[i] == '%')
+                escapes = escapes && i + 2 < rest.length() && hex.containsChar (rest[i + 1]) && hex.containsChar (rest[i + 2]);
+        }
+        CHECK (ascii);
+        CHECK (escapes);
+        CHECK (juce::URL (handed).getLocalFile() == file);
+#else
+        CHECK (handed == file.getFullPathName());
+#endif
+    }
+}

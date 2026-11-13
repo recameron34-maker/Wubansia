@@ -114,4 +114,11 @@ namespace wubansia::dragout
     // Deletes all but the newest `keep` .mid files in folder (by modification time, ties by name),
     // never keepFile, which counts as one of them. Other files are left alone.
     void trimCache (const juce::File& folder, int keep = kKeepFiles, const juce::File& keepFile = {});
+
+    // What an OS drag of file hands to juce::DragAndDropContainer::performExternalDragDropOfFiles: the MIDI chips'
+    // and the Samples drawer's (ADR 0024). macOS and Windows take the path as it is (macOS makes the file URL
+    // itself, Windows hands paths over). On Linux and the BSDs JUCE writes "file://" and a bare path into the
+    // drop's text/uri-list without escaping it, which drop targets cut at '#' (FUT01's F#m) or, in REAPER, at the
+    // first space; so there it is the file's own percent-encoded file:// URL, which JUCE hands over as it is.
+    juce::String externalDragPath (const juce::File& file);
 }

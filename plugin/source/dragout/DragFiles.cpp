@@ -360,4 +360,9 @@ namespace wubansia::dragout
         for (std::size_t i = room; i < entries.size(); ++i)
             entries[i].file.deleteFile();
     }
+
+    juce::String externalDragPath (const juce::File& file)
+    {
+        return file.getFullPathName(); // not yet: the tests come first
+    }
 }
