@@ -12,10 +12,12 @@
 //   the groove;
 // - the loader refuses grammars that could draw a form breaking a DJ rule, and says where.
 
+#include "gen/arrange.h"
 #include "gen/content.h"
 #include "gen/export.h"
 #include "gen/json.h"
 #include "gen/song.h"
+#include "rng/rng.h"
 #include "util/file_io.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -173,10 +175,10 @@ namespace
       "intro": { "choices": [ { "w": 1, "blocks": [["kick", "hats"], ["kick", "hats", "shaker"], ["kick", "snare", "hats", "shaker"], ["kick", "snare", "hats", "shaker", "bass"]] } ] },
       "groove": { "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], "entries": [{ "lanes": ["chords"], "after": [{ "bars": 8, "w": 1 }] }] },
       "build": { "lanes": ["snare", "hats", "shaker", "perc", "chords"] },
-      "drop": { "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], "rest": { "p": 50, "bars": 8, "lanes": [{ "lane": "kick", "w": 1 }] }, "dropout": { "p": 50, "every": 16, "lanes": [{ "lanes": ["kick", "bass"], "w": 1 }] }, "change": true },
+      "drop": { "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], "rest": { "p": 50, "bars": 8, "lanes": [{ "lane": "kick", "w": 1 }, { "lane": "chords", "w": 1 }] }, "dropout": { "p": 50, "every": 16, "lanes": [{ "lanes": ["kick", "bass"], "w": 1 }] }, "change": true },
       "break": { "lanes": ["hats", "perc", "bass", "chords"], "entries": [{ "lanes": ["bass"], "last": [{ "bars": 8, "w": 1 }] }] },
-      "drop2": { "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], "rest": { "p": 40, "bars": 8, "lanes": [{ "lane": "hats", "w": 1 }] }, "change": true },
-      "outro": { "choices": [ { "w": 1, "blocks": [["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], ["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "shaker", "perc"], ["kick", "hats", "shaker"]] } ] }
+      "drop2": { "lanes": ["kick", "snare", "hats", "shaker", "perc", "bass", "chords"], "rest": { "p": 40, "bars": 8, "lanes": [{ "lane": "hats", "w": 1 }, { "lane": "chords", "w": 1 }] }, "change": true },
+      "outro": { "choices": [ { "w": 1, "blocks": [["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "shaker", "perc", "bass"], ["kick", "snare", "hats", "shaker", "perc"], ["kick", "hats", "shaker"]] } ] }
     }
   })";
 
@@ -185,22 +187,55 @@ namespace
         std::string kit, style, feel;
     };
 
-    // The error the garage2step bundle gives with this form, or "" if it loads.
-    std::string formError (const std::string& form)
+    // The garage2step bundle with this form, or the loader's error.
+    util::Result<Bundle> formBundle (const std::string& form)
     {
         const auto content = std::filesystem::path (WUBANSIA_SOURCE_DIR) / "content";
         auto kit = parseKit (readText (content / "kits" / "fut01.json"), "kit.json");
         REQUIRE (kit.ok());
         auto style = parseStyle (withForm (readText (content / "styles" / "garage2step.json"), form), "style.json");
         if (!style.ok())
-            return style.error;
+            return util::Result<Bundle>::failure (style.error);
         auto feel = parseFeel (readText (content / "feels" / "garage2step.json"), "feel.json");
         REQUIRE (feel.ok());
-        auto b = makeBundle (std::move (kit.value), std::move (style.value), std::move (feel.value));
+        return makeBundle (std::move (kit.value), std::move (style.value), std::move (feel.value));
+    }
+
+    // The error the garage2step bundle gives with this form, or "" if it loads.
+    std::string formError (const std::string& form)
+    {
+        const auto b = formBundle (form);
         return b.ok() ? std::string() : b.error;
     }
 
     std::string formWith (std::string_view from, std::string_view to) { return formError (replaced (baseForm, from, to)); }
+
+    // The songs of the first n seeds of a bundle made from an edited baseForm.
+    std::vector<Song> songsWith (const std::string& form, std::uint64_t n)
+    {
+        const auto b = formBundle (form);
+        INFO (b.error);
+        REQUIRE (b.ok());
+        std::vector<Song> out;
+        for (std::uint64_t seed = 0; seed < n; ++seed)
+        {
+            Options o;
+            o.seed = seed;
+            auto s = generate (b.value, o);
+            INFO (s.error);
+            REQUIRE (s.ok());
+            out.push_back (std::move (s.value));
+        }
+        return out;
+    }
+
+    std::uint64_t maskOf (const Song& s, const std::vector<std::string>& ids)
+    {
+        std::uint64_t m = 0;
+        for (const auto& id : ids)
+            m |= std::uint64_t (1) << laneIndexOf (s, id);
+        return m;
+    }
 }
 
 TEST_CASE ("form: every seed draws a DJ-friendly extended mix of 200 to 240 bars", "[gen][form]")
@@ -545,10 +580,20 @@ TEST_CASE ("form: the loader refuses grammars that break a DJ rule, and says whe
     CHECK_THAT (formWith ("{ \"bars\": 16, \"w\": 1 }, { \"bars\": 24", "{ \"bars\": 12, \"w\": 1 }, { \"bars\": 24"), ContainsSubstring ("multiple of 8"));
     // a 32-bar mix-in first, a 32-bar mix-out last, and only there
     CHECK_THAT (formWith ("{ \"kind\": \"intro\", \"bars\"", "{ \"kind\": \"groove\", \"bars\""), ContainsSubstring ("starts with an intro"));
+    CHECK_THAT (formWith ("{ \"kind\": \"intro\", \"bars\"", "{ \"kind\": \"groove\", \"bars\""), ContainsSubstring ("form.sections[0].kind"));
+    CHECK_THAT (formWith ("{ \"kind\": \"break\", \"bars\"", "{ \"kind\": \"intro\", \"bars\": [{ \"bars\": 32, \"w\": 1 }] }, { \"kind\": \"break\", \"bars\""),
+        ContainsSubstring ("comes first and only there"));
+    CHECK_THAT (formWith ("{ \"kind\": \"break\", \"bars\"", "{ \"kind\": \"intro\", \"bars\": [{ \"bars\": 32, \"w\": 1 }] }, { \"kind\": \"break\", \"bars\""),
+        ContainsSubstring ("form.sections[4].kind"));
     CHECK_THAT (formWith ("\"kind\": \"intro\", \"bars\": [{ \"bars\": 32", "\"kind\": \"intro\", \"bars\": [{ \"bars\": 40"), ContainsSubstring ("32 bars long, not 40"));
     CHECK_THAT (formWith ("{ \"kind\": \"outro\", \"bars\": [{ \"bars\": 32, \"w\": 1 }] }",
                     "{ \"kind\": \"outro\", \"bars\": [{ \"bars\": 32, \"w\": 1 }] }, { \"kind\": \"groove\", \"bars\": [{ \"bars\": 16, \"w\": 1 }] }"),
         ContainsSubstring ("comes last"));
+    CHECK_THAT (formWith ("{ \"kind\": \"outro\", \"bars\": [{ \"bars\": 32, \"w\": 1 }] }",
+                    "{ \"kind\": \"outro\", \"bars\": [{ \"bars\": 32, \"w\": 1 }] }, { \"kind\": \"groove\", \"bars\": [{ \"bars\": 16, \"w\": 1 }] }"),
+        ContainsSubstring ("form.sections[7].kind"));
+    CHECK_THAT (formWith ("{ \"kind\": \"outro\", \"bars\"", "{ \"kind\": \"groove\", \"bars\""), ContainsSubstring ("ends with an outro"));
+    CHECK_THAT (formWith ("{ \"kind\": \"outro\", \"bars\"", "{ \"kind\": \"groove\", \"bars\""), ContainsSubstring ("form.sections[7].kind"));
     CHECK_THAT (formWith ("\"kind\": \"outro\", \"bars\": [{ \"bars\": 32", "\"kind\": \"outro\", \"bars\": [{ \"bars\": 24"), ContainsSubstring ("32 bars long, not 24"));
     // a build leads into a drop that is never left out
     CHECK_THAT (formWith ("{ \"kind\": \"break\", \"bars\"", "{ \"kind\": \"build\", \"bars\": [{ \"bars\": 8, \"w\": 1 }] }, { \"kind\": \"break\", \"bars\""),
@@ -556,18 +601,38 @@ TEST_CASE ("form: the loader refuses grammars that break a DJ rule, and says whe
     CHECK_THAT (formWith ("{ \"kind\": \"drop\", \"bars\": [", "{ \"kind\": \"drop\", \"bars\": [{ \"bars\": 0, \"w\": 1 }, "), ContainsSubstring ("a build leads into a drop"));
     // the mix-in: drums only first, lanes only joining, one at least every 16 bars, 4 blocks
     CHECK_THAT (formWith ("[[\"kick\", \"hats\"], [\"kick\", \"hats\", \"shaker\"]", "[[\"kick\", \"bass\"], [\"kick\", \"hats\", \"shaker\"]"), ContainsSubstring ("drums only"));
+    CHECK_THAT (formWith ("[[\"kick\", \"hats\"], [\"kick\", \"hats\", \"shaker\"]", "[[\"kick\", \"bass\"], [\"kick\", \"hats\", \"shaker\"]"),
+        ContainsSubstring ("form.plans.intro.choices[0].blocks[0]"));
     CHECK_THAT (formWith ("[\"kick\", \"hats\", \"shaker\"], [\"kick\", \"snare\", \"hats\", \"shaker\"], [\"kick\", \"snare\", \"hats\", \"shaker\", \"bass\"]",
                     "[\"kick\", \"hats\", \"shaker\"], [\"kick\", \"snare\", \"shaker\"], [\"kick\", \"snare\", \"hats\", \"shaker\", \"bass\"]"),
         ContainsSubstring ("\"hats\" leaves here"));
+    CHECK_THAT (formWith ("[\"kick\", \"hats\", \"shaker\"], [\"kick\", \"snare\", \"hats\", \"shaker\"], [\"kick\", \"snare\", \"hats\", \"shaker\", \"bass\"]",
+                    "[\"kick\", \"hats\", \"shaker\"], [\"kick\", \"snare\", \"shaker\"], [\"kick\", \"snare\", \"hats\", \"shaker\", \"bass\"]"),
+        ContainsSubstring ("form.plans.intro.choices[0].blocks[2]"));
     CHECK_THAT (formWith ("[\"kick\", \"snare\", \"hats\", \"shaker\"], [\"kick\", \"snare\", \"hats\", \"shaker\", \"bass\"]] } ] },\n      \"groove\"",
                     "[\"kick\", \"hats\", \"shaker\"], [\"kick\", \"hats\", \"shaker\"]] } ] },\n      \"groove\""),
         ContainsSubstring ("third block in a row"));
+    CHECK_THAT (formWith ("[\"kick\", \"snare\", \"hats\", \"shaker\"], [\"kick\", \"snare\", \"hats\", \"shaker\", \"bass\"]] } ] },\n      \"groove\"",
+                    "[\"kick\", \"hats\", \"shaker\"], [\"kick\", \"hats\", \"shaker\"]] } ] },\n      \"groove\""),
+        ContainsSubstring ("form.plans.intro.choices[0].blocks[3]"));
     CHECK_THAT (formWith (", [\"kick\", \"snare\", \"hats\", \"shaker\", \"bass\"]] } ] },\n      \"groove\"", "] } ] },\n      \"groove\""), ContainsSubstring ("not 24"));
     // the mix-out: lanes only leaving, down to drums only
     CHECK_THAT (formWith ("[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"], [\"kick\", \"hats\", \"shaker\"]]",
                     "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"chords\"], [\"kick\", \"hats\", \"shaker\"]]"),
         ContainsSubstring ("\"chords\" joins here"));
+    CHECK_THAT (formWith ("[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"], [\"kick\", \"hats\", \"shaker\"]]",
+                    "[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"chords\"], [\"kick\", \"hats\", \"shaker\"]]"),
+        ContainsSubstring ("form.plans.outro.choices[0].blocks[2]"));
     CHECK_THAT (formWith ("[\"kick\", \"hats\", \"shaker\"]] } ] }\n    }", "[\"kick\", \"hats\", \"perc\", \"bass\"]] } ] }\n    }"), ContainsSubstring ("drums only"));
+    CHECK_THAT (formWith ("[\"kick\", \"hats\", \"shaker\"]] } ] }\n    }", "[\"kick\", \"hats\", \"perc\", \"bass\"]] } ] }\n    }"),
+        ContainsSubstring ("form.plans.outro.choices[0].blocks[3]"));
+    // the mix-out takes a lane out at least every 16 bars: never three blocks in a row alike
+    CHECK_THAT (formWith ("[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"], [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"], [\"kick\", \"hats\", \"shaker\"]]",
+                    "[\"kick\", \"hats\", \"shaker\"], [\"kick\", \"hats\", \"shaker\"], [\"kick\", \"hats\", \"shaker\"]]"),
+        ContainsSubstring ("third block in a row"));
+    CHECK_THAT (formWith ("[\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\", \"bass\"], [\"kick\", \"snare\", \"hats\", \"shaker\", \"perc\"], [\"kick\", \"hats\", \"shaker\"]]",
+                    "[\"kick\", \"hats\", \"shaker\"], [\"kick\", \"hats\", \"shaker\"], [\"kick\", \"hats\", \"shaker\"]]"),
+        ContainsSubstring ("form.plans.outro.choices[0].blocks[3]"));
     // the mix-in's lanes carry on into the section after it
     CHECK_THAT (formWith ("{ \"lanes\": [\"chords\"], \"after\"", "{ \"lanes\": [\"bass\"], \"after\""), ContainsSubstring ("the mix-in ends on \"bass\""));
     // plans: known lanes, entries of the kind's own lanes, one entry per lane, one verb per entry
@@ -604,5 +669,215 @@ TEST_CASE ("form: the loader refuses grammars that break a DJ rule, and says whe
     {
         INFO (style);
         CHECK (loadBundle (std::filesystem::path (WUBANSIA_SOURCE_DIR) / "content", std::string (kit)).ok());
+    }
+}
+
+TEST_CASE ("form: the slot-by-slot fallback keeps the lines and the length range", "[gen][form]")
+{
+    // formLengths draws the whole form by the weights up to 1024 times, then falls back to drawing
+    // slot by slot among the lengths that still fit (arrange.h). The shipped grammars almost never
+    // reach the fallback, so these grammars force it: a 128-bar length that never fits outweighs the
+    // ones that do a million to one, so every free draw fails.
+    SECTION ("one way to fit: ten 8-bar slots in 80 bars, each drop and break on its line")
+    {
+        FormSpec form;
+        form.bars = { 80, 80 };
+        for (const char* kind : { "intro", "groove", "break", "build", "drop", "groove", "break", "build", "drop2", "outro" })
+            form.slots.push_back ({ kind, { { 8, 1 }, { 16, 1000 } } });
+        // slot i starts on bar 8i: on a 16-bar line when i is even
+        std::vector<std::int8_t> lines (form.slots.size(), -1);
+        for (std::size_t i = 0; i < form.slots.size(); ++i)
+            if (startsOnLine (form.slots[i].kind))
+                lines[i] = i % 2 == 0 ? 1 : 0;
+        CHECK (formFits (form, lines));
+        for (std::uint64_t k = 0; k < 64; ++k)
+            CHECK (formLengths (form, lines, rng::seedKey (k)) == std::vector<std::int32_t> (10, 8));
+        lines[4] = 0; // the drop off its line: no lengths keep it
+        CHECK_FALSE (formFits (form, lines));
+        CHECK (formLengths (form, lines, rng::seedKey (0)).empty());
+    }
+    SECTION ("several ways to fit: each length by weight among those that fit")
+    {
+        FormSpec form;
+        form.bars = { 64, 96 };
+        form.slots.push_back ({ "intro", { { 32, 1 } } });
+        form.slots.push_back ({ "groove", { { 8, 1 }, { 16, 1 }, { 128, 1000000 } } });
+        form.slots.push_back ({ "drop", { { 16, 1 }, { 24, 1 }, { 128, 1000000 } } });
+        form.slots.push_back ({ "outro", { { 8, 1 }, { 16, 1 }, { 128, 1000000 } } });
+        for (const std::int8_t line : { std::int8_t (0), std::int8_t (1) })
+        {
+            INFO ("the drop " << (line == 1 ? "on a 16-bar line" : "on 8 mod 16"));
+            const std::vector<std::int8_t> lines { -1, -1, line, -1 };
+            REQUIRE (formFits (form, lines));
+            std::set<std::vector<std::int32_t>> forms;
+            for (std::uint64_t k = 0; k < 200; ++k)
+            {
+                const auto lengths = formLengths (form, lines, rng::seedKey (k));
+                REQUIRE (lengths.size() == form.slots.size());
+                std::int32_t total = 0;
+                for (std::size_t i = 0; i < lengths.size(); ++i)
+                {
+                    CHECK (lengths[i] != 128);
+                    CHECK (std::any_of (form.slots[i].bars.begin(), form.slots[i].bars.end(), [&] (const Weighted& w) { return w.value == lengths[i] && w.weight > 0; }));
+                    total += lengths[i];
+                }
+                CHECK (total >= form.bars.lo);
+                CHECK (total <= form.bars.hi);
+                const std::int32_t dropStart = lengths[0] + lengths[1];
+                CHECK ((dropStart % 16 == 0) == (line == 1));
+                forms.insert (lengths);
+            }
+            CHECK (forms.size() == 4); // the drop 16 or 24 bars, the outro 8 or 16: all four fit
+        }
+        // the fallback's draws are part of every seed's key path (tag "fit"): pinned
+        CHECK (formLengths (form, std::vector<std::int8_t> { -1, -1, 0, -1 }, rng::seedKey (0)) == std::vector<std::int32_t> { 32, 8, 24, 8 });
+        CHECK (formLengths (form, std::vector<std::int8_t> { -1, -1, 0, -1 }, rng::seedKey (1)) == std::vector<std::int32_t> { 32, 8, 16, 16 });
+        CHECK (formLengths (form, std::vector<std::int8_t> { -1, -1, 1, -1 }, rng::seedKey (0)) == std::vector<std::int32_t> { 32, 16, 24, 8 });
+        CHECK (formLengths (form, std::vector<std::int8_t> { -1, -1, 1, -1 }, rng::seedKey (1)) == std::vector<std::int32_t> { 32, 16, 16, 16 });
+    }
+}
+
+TEST_CASE ("form: dropouts before every 32-bar line, and the dropout a drop with no rest takes for its lane change", "[gen][form]")
+{
+    // grammar features no shipped style uses
+    SECTION ("every 32: a pull before the drop's own 32-bar line only")
+    {
+        std::string form = replaced (baseForm, "\"dropout\": { \"p\": 50, \"every\": 16,", "\"dropout\": { \"p\": 100, \"every\": 32,");
+        form = replaced (form, "{ \"kind\": \"drop\", \"bars\": [{ \"bars\": 16, \"w\": 1 }, { \"bars\": 24, \"w\": 2 }, { \"bars\": 32, \"w\": 1 }] }",
+            "{ \"kind\": \"drop\", \"bars\": [{ \"bars\": 40, \"w\": 1 }, { \"bars\": 48, \"w\": 1 }, { \"bars\": 56, \"w\": 1 }] }");
+        form = replaced (form, "\"bars\": [176, 208]", "\"bars\": [176, 240]");
+        std::size_t drops = 0;
+        for (const Song& s : songsWith (form, 64))
+            for (const Section& sec : s.sections)
+                if (sec.kind == "drop")
+                {
+                    INFO ("seed " << s.seed << ": the " << sec.bars << "-bar drop");
+                    ++drops;
+                    REQUIRE (sec.dropouts.size() == 1);
+                    CHECK (sec.dropouts.front().bar == 31);
+                }
+        CHECK (drops == 64);
+    }
+    SECTION ("no rest: a drop that draws no change takes a dropout before its first 16-bar line")
+    {
+        std::string form = replaced (baseForm, "\"rest\": { \"p\": 50, \"bars\": 8, \"lanes\": [{ \"lane\": \"kick\", \"w\": 1 }, { \"lane\": \"chords\", \"w\": 1 }] }, ", "");
+        form = replaced (form, "\"dropout\": { \"p\": 50, \"every\": 16,", "\"dropout\": { \"p\": 0, \"every\": 16,");
+        form = replaced (form, "{ \"kind\": \"drop\", \"bars\": [{ \"bars\": 16, \"w\": 1 }, { \"bars\": 24, \"w\": 2 }, { \"bars\": 32, \"w\": 1 }] }",
+            "{ \"kind\": \"drop\", \"bars\": [{ \"bars\": 24, \"w\": 2 }, { \"bars\": 32, \"w\": 1 }] }");
+        std::size_t drops = 0;
+        for (const Song& s : songsWith (form, 64))
+            for (const Section& sec : s.sections)
+                if (sec.kind == "drop")
+                {
+                    INFO ("seed " << s.seed << ": the " << sec.bars << "-bar drop");
+                    ++drops;
+                    REQUIRE (sec.dropouts.size() == 1);
+                    CHECK (sec.dropouts.front().bar == 15);
+                    CHECK (sec.dropouts.front().lanes != 0);
+                }
+        CHECK (drops == 64);
+    }
+}
+
+TEST_CASE ("form: drop 2's layer sits out drop 1 and plays all through drop 2", "[gen][form]")
+{
+    // on a grammar with a layer (baseForm's perc): no shipped style has one
+    std::size_t drops = 0, drop2s = 0;
+    for (const Song& s : songsWith (baseForm, 32))
+    {
+        const std::size_t perc = laneIndexOf (s, "perc");
+        INFO ("seed " << s.seed << ": " << formOf (s));
+        for (const Section& sec : s.sections)
+        {
+            if (sec.kind == "drop")
+            {
+                ++drops;
+                for (std::int32_t bar = 0; bar < sec.bars; ++bar)
+                    CHECK_FALSE (sec.active (perc, bar));
+            }
+            if (sec.kind == "drop2")
+            {
+                ++drop2s;
+                for (const auto block : sec.blocks)
+                    CHECK ((block >> perc & 1u) == 1u);
+            }
+        }
+    }
+    CHECK (drops == 32);
+    CHECK (drop2s == 32);
+}
+
+TEST_CASE ("form: every drop plays its plan's lanes from its first block, and a lane sits out at most once, for its rest", "[gen][form]")
+{
+    // Pinned on the blocks, so a lane move that runs too long or happens twice fails here (a dropout
+    // next to a rest is the dropout's bar, checked on its own: test "every drop and drop 2 has a lane
+    // change inside it").
+    for (const char* id : kits)
+    {
+        const FormSpec& form = bundleFor (id).style.form;
+        for (const Song& s : songsOf (id))
+            for (const Section& sec : s.sections)
+            {
+                if (!isDrop (sec.kind))
+                    continue;
+                INFO (id << " seed " << s.seed << ": the " << sec.kind << " at bar " << sec.startBar << " (" << sec.bars << " bars)");
+                const KindPlan* plan = form.plan (sec.kind);
+                REQUIRE (plan != nullptr);
+                std::uint64_t lanes = maskOf (s, plan->lanes), late = 0, entered = 0, layer = 0;
+                for (const LaneEntry& e : plan->entries)
+                {
+                    entered |= maskOf (s, e.lanes);
+                    if (e.entry != Entry::before)
+                        late |= maskOf (s, e.lanes);
+                }
+                for (const LaneWeight& lw : form.layer)
+                    layer |= std::uint64_t (1) << laneIndexOf (s, lw.lane);
+                if (sec.kind == "drop")
+                    lanes &= ~layer;
+                const std::size_t kick = laneIndexOf (s, "kick");
+                // the drop lands with every lane that plays all through it, the kick above all
+                CHECK ((sec.blocks.front() & (lanes & ~late)) == (lanes & ~late));
+                CHECK ((sec.blocks.front() >> kick & 1u) == 1u);
+                CHECK ((sec.lanesAnywhere() & ~lanes) == 0); // nothing but the plan's lanes
+                // a lane of its own (no entry) sits out one run of blocks at most: its rest, never the first
+                std::size_t rested = 0;
+                bool kickRested = false;
+                for (std::size_t l = 0; l < s.lanes.size(); ++l)
+                {
+                    const std::uint64_t bit = std::uint64_t (1) << l;
+                    if ((lanes & ~entered & bit) == 0)
+                        continue;
+                    std::vector<std::size_t> out;
+                    for (std::size_t k = 0; k < sec.blocks.size(); ++k)
+                        if ((sec.blocks[k] & bit) == 0)
+                            out.push_back (k);
+                    if (out.empty())
+                        continue;
+                    INFO (s.lanes[l].id << " sits out blocks " << out.front() << " to " << out.back());
+                    ++rested;
+                    kickRested = kickRested || l == kick;
+                    REQUIRE (plan->rest);
+                    CHECK (out.back() - out.front() + 1 == out.size()); // one run
+                    CHECK (static_cast<std::int32_t> (out.size()) * barsPerBlock == plan->rest->bars);
+                    CHECK (out.front() > 0);
+                    CHECK (static_cast<std::int32_t> (out.front()) * barsPerBlock % plan->rest->bars == 0);
+                    CHECK (std::any_of (plan->rest->lanes.begin(), plan->rest->lanes.end(), [&] (const LaneWeight& lw) { return lw.lane == s.lanes[l].id; }));
+                }
+                CHECK (rested <= 1);
+                // each dropout takes lanes of one of the plan's groups
+                for (const Dropout& d : sec.dropouts)
+                {
+                    CHECK (d.lanes != 0);
+                    REQUIRE (plan->dropout);
+                    CHECK (std::any_of (plan->dropout->lanes.begin(), plan->dropout->lanes.end(), [&] (const LaneGroup& g) { return (d.lanes & ~maskOf (s, g.lanes)) == 0; }));
+                }
+                // so the kick sits out its rest and the bars of the dropouts that take it, nothing more
+                std::int32_t quiet = 0, allowed = kickRested ? plan->rest->bars : 0;
+                for (std::int32_t bar = 0; bar < sec.bars; ++bar)
+                    quiet += sec.active (kick, bar) ? 0 : 1;
+                for (const Dropout& d : sec.dropouts)
+                    allowed += (d.lanes >> kick & 1u) != 0 ? 1 : 0;
+                CHECK (quiet <= allowed);
+            }
     }
 }

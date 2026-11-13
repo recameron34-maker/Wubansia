@@ -355,7 +355,7 @@ TEST_CASE ("2-step is never four on the floor and keeps its skip kick", "[gen][s
     CHECK (skipBars * 100 >= bars * 90); // the skip kick around the and of 3 in nearly every bar (turnarounds may drop it)
 }
 
-TEST_CASE ("house keeps the kick on every beat of every drop bar", "[gen][song][style]")
+TEST_CASE ("house keeps the kick on every beat of every drop bar it plays", "[gen][song][style]")
 {
     // every drop bar where the lane plays: a lane can sit out a block or a bar of a drop (the form
     // grammar's lane moves)
