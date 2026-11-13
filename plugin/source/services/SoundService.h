@@ -80,6 +80,9 @@ namespace wubansia
         int clipsMade() const noexcept { return made.load (std::memory_order_acquire); }
         int clipsDeleted() const noexcept { return deleted.load (std::memory_order_acquire); }
 
+        // For tests: how often the thread gave up the clips in the player's hands because no block came for 300 ms.
+        int clipsGivenUp() const noexcept { return 0; } // not yet: the tests come first
+
     private:
         using Clock = std::chrono::steady_clock;
 

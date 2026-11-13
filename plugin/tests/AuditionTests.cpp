@@ -1,10 +1,11 @@
 // The Samples drawer's auditions through the real processor (ADR 0024), on the synthetic kit with the host stopped and
 // the player in Off mode, so the engine plays nothing and what comes out is the audition alone: the file dry at -6 dB,
 // sample for sample, then master_gain; at 44.1 kHz its resampled length; a mono output's fold; Stop's 5 ms fade, the
-// host's reset and bypass; offline renders that never print one; a host that runs no blocks (the 300 ms hint); the
-// groove left as it was; latest wins; selectKit stopping it; bytes that aren't kit.json's refused; the sound thread
-// started by the first audition only; and the message, sound and audio threads at once (run it under TSan too:
-// WubansiaPluginTests "[audition]" in a -fsanitize=thread build).
+// host's reset and bypass; offline renders that never print one; a host that runs no blocks, before or after a block
+// took the clip (the 300 ms hint, and nothing stale when blocks come back); the groove left as it was; latest wins;
+// selectKit stopping it; bytes that aren't kit.json's refused; the sound thread started by the first audition only;
+// and the message, sound and audio threads at once (run it under TSan too: WubansiaPluginTests "[audition]" in a
+// -fsanitize=thread build).
 
 #include "helpers/test_helpers.h"
 
@@ -341,6 +342,62 @@ TEST_CASE ("a host that runs no blocks: the audition is dropped after 300 ms and
     CHECK (controller.auditionState().hostSilent);
     REQUIRE (controller.audition (q.ref (riser)) > ticket);
     CHECK_FALSE (controller.auditionState().hostSilent);
+}
+
+TEST_CASE ("a host that stops running blocks mid-clip: after 300 ms the clip is given up, and never heard again", "[audio][audition]")
+{
+    Quiet q (withKit ("AUD08"));
+    auto& controller = q.controller();
+    const auto& sounds = (*q).soundService();
+    const auto ticket = controller.audition (q.ref (phrase));
+    REQUIRE (ticket > 0u);
+    REQUIRE (waitForOffer (*q));
+    test::process (*q, kBlock);
+    test::process (*q, kBlock); // the phrase's frames 0-1023; then no block (Logic, once the track isn't selected)
+    REQUIRE (controller.auditionState().sounding == ticket);
+
+    SECTION ("left alone: the hint after 300 ms, and silence when the host runs blocks again")
+    {
+        const auto stopped = std::chrono::steady_clock::now();
+        REQUIRE (test::waitFor ([&] { return controller.auditionState().hostSilent; }, 3000ms));
+        CHECK (std::chrono::steady_clock::now() - stopped >= SoundService::kUntakenLimit);
+        const auto state = controller.auditionState();
+        CHECK (state.latest == ticket);
+        CHECK (state.sounding == 0u); // the row shows play again, and Esc goes back to the host
+        CHECK_FALSE (state.waiting);
+        CHECK (state.problem.isEmpty());
+        CHECK (sounds.clipsGivenUp() == 1);
+
+        // Blocks come back: not the phrase's frames 1024 on, nor a fade of them.
+        CHECK (test::silent (test::process (*q, kBlock)));
+        CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
+        CHECK ((*q).auditionPlayer().sounding() == 0u);
+        CHECK (controller.auditionState().hostSilent); // until the next audition
+        CHECK (test::waitFor ([&] { return sounds.clipsMade() == sounds.clipsDeleted(); }));
+
+        // The next click plays as ever.
+        const auto riserClip = clipFor (riser, 48000.0);
+        REQUIRE (riserClip != nullptr);
+        REQUIRE (controller.audition (q.ref (riser)) > ticket);
+        CHECK_FALSE (controller.auditionState().hostSilent);
+        REQUIRE (waitForOffer (*q));
+        const auto out = test::process (*q, kBlock);
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            const float* x = channel (*riserClip, ch);
+            CHECK (mismatches (out, ch, 0, kBlock, [x] (int i) { return 0.5f * x[i]; }) == 0);
+        }
+    }
+
+    SECTION ("stopped during the gap: no stale fade when the host comes back")
+    {
+        controller.stopAudition();
+        CHECK (controller.auditionState().sounding == 0u);
+        REQUIRE (test::waitFor ([&] { return sounds.clipsGivenUp() > 0; }, 3000ms));
+        CHECK_FALSE (controller.auditionState().hostSilent); // stopped by hand: nothing to explain
+        CHECK (test::silent (test::process (*q, kBlock)));
+        CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
+    }
 }
 
 TEST_CASE ("an audition plays over the groove without changing it", "[audio][audition]")

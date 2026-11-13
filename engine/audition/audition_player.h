@@ -80,6 +80,16 @@ namespace wubansia::engine
         std::uint32_t sounding() const noexcept; // any thread: the ticket playing (not fading out), 0 when none
         bool offered() const noexcept; // any thread: an offer waits for the audio thread (a snapshot)
 
+        // Any thread: how many blocks process () has run, silent ones too. The sound thread watches it to tell a host
+        // that has stopped running blocks.
+        std::uint64_t blocksRun() const noexcept;
+
+        // The sound thread, once the host has run no block for a while: if the next block is the first since `seen`
+        // blocks had run, the clips in hand (the one playing and the one fading out, never the offer) go at its
+        // start, unplayed and unfaded, so a host that comes back plays nothing stale. If a block ran meanwhile, it
+        // changes nothing: what plays plays on (or fades out, if it was stopped).
+        void dropIfIdleSince (std::uint64_t seen) noexcept;
+
     private:
         // One clip in the audio thread's hands.
         struct Slot

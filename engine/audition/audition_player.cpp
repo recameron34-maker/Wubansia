@@ -47,6 +47,10 @@ namespace wubansia::engine
 
     bool AuditionPlayer::offered() const noexcept { return pending.pending(); }
 
+    std::uint64_t AuditionPlayer::blocksRun() const noexcept { return 0; } // not yet: the tests come first
+
+    void AuditionPlayer::dropIfIdleSince (std::uint64_t) noexcept {} // not yet: the tests come first
+
     void AuditionPlayer::letGo (Slot& slot) noexcept
     {
         if (slot.clip == nullptr)
