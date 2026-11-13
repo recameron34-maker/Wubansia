@@ -600,6 +600,24 @@ TEST_CASE ("mergeTracks carries controllers, program changes and text events, an
     CHECK (textsButNames (out.tracks[1]) == std::vector<midi::TextEvent> { { 0, midi::meta::text, "hit" } });
 }
 
+TEST_CASE ("mergeTracks re-channels nothing: notes, controllers and program changes keep their channels", "[midi][track_select]")
+{
+    // Kick on channel 10, and a track on channel 3 with a program change, CC 7 and a note: each event keeps its own
+    // channel, so every status byte is spelled out below.
+    const auto kick = body ("Kick", { 0x00, 0x99, 0x24, 0x64, 0x78, 0x89, 0x24, 0x00 });
+    const auto perc = body ("Perc", { 0x00, 0xC2, 0x05, 0x00, 0xB2, 0x07, 0x64, 0x00, 0x92, 0x30, 0x40, 0x78, 0x82, 0x30, 0x00 });
+    // On tick 0 the program change, the controller, then the note-ons by channel; on tick 120 the note-offs by channel.
+    const auto expected = body ("Drums", { 0x00, 0xC2, 0x05, 0x00, 0xB2, 0x07, 0x64, 0x00, 0x92, 0x30, 0x40, 0x00, 0x99, 0x24, 0x64,
+                                             0x78, 0x82, 0x30, 0x00, 0x00, 0x89, 0x24, 0x00 });
+    const auto merged = merge (twoTracks (kick, perc), {}, { 1, 2 });
+    CHECK (merged == concat ({ mthd (1, 2, 480), mtrk (conductorBody), mtrk (expected) }));
+
+    const auto out = read (merged);
+    CHECK (midi::notesOf (out.tracks[1]) == std::vector<midi::Note> { { 0, 120, 2, 0x30, 0x40, 0 }, { 0, 120, 9, 0x24, 0x64, 0 } });
+    CHECK (midi::controllersOf (out.tracks[1]) == std::vector<midi::Controller> { { 0, 2, 7, 100 } });
+    CHECK (midi::programsOf (out.tracks[1]) == std::vector<midi::ProgramChange> { { 0, 2, 5 } });
+}
+
 TEST_CASE ("mergeTracks refuses what it can't carry as it is, saying why", "[midi][track_select]")
 {
     const auto kick = body ("Kick", { 0x00, 0x99, 0x24, 0x64, 0x78, 0x89, 0x24, 0x00 });
