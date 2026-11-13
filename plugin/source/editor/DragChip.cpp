@@ -3,6 +3,24 @@
 
 namespace wubansia::editor
 {
+    namespace
+    {
+        // A phrase title without its bar count: "Vox Synth Riff · 2 bars" is "Vox Synth Riff" (phraseTitle () puts the
+        // count last). Any other text comes back as it is.
+        juce::String withoutBarCount (const juce::String& title)
+        {
+            const auto dot = middleDot();
+            const auto at = title.lastIndexOf (dot);
+            if (at <= 0)
+                return title;
+            const auto tail = title.substring (at + dot.length());
+            const auto count = tail.upToFirstOccurrenceOf (" ", false, false);
+            const auto unit = tail.fromFirstOccurrenceOf (" ", false, false);
+            const auto isCount = count.isNotEmpty() && count.containsOnly ("0123456789") && (unit == "bar" || unit == "bars");
+            return isCount ? title.substring (0, at) : title;
+        }
+    }
+
     DragChip::DragChip (Controller& c, const DragRequest& request, const juce::String& label)
         : controller (c)
     {
@@ -124,7 +142,14 @@ namespace wubansia::editor
     {
         if (failed)
             return compact ? "!" : "Couldn't write";
-        return compact ? juce::String ("MIDI") : text;
+        if (compact)
+            return "MIDI";
+        // A title that doesn't fit even squeezed to 0.8 (drawFittedText's own test) would be cut short: a phrase title
+        // drops its bar count instead, which the tooltip's file name still gives. The platform's font decides: Verdana
+        // and DejaVu Sans run 8 and 12 % wider than Liberation Sans.
+        if (juce::GlyphArrangement::getStringWidth (labelFont(), text) * 0.8f < (float) labelArea().toNearestInt().getWidth())
+            return text;
+        return withoutBarCount (text);
     }
 
     juce::Font DragChip::labelFont() const
