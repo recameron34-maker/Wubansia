@@ -142,7 +142,9 @@ namespace wubansia::gen
     };
 
     // A lane out for `bars` bars inside a section (a drop's lane move), with chance p per section: one
-    // lane drawn by weight, out from a multiple of `bars` (never the first) to `bars` later.
+    // lane drawn by weight, out from a multiple of `bars` (never the first) to `bars` later. A drum
+    // lane never rests through the section's last block: it comes back inside the section (a lane
+    // that can't rest there weighs 0).
     struct RestSpec
     {
         std::int32_t p = 0; // percent
@@ -185,15 +187,20 @@ namespace wubansia::gen
     //                          "rest": { "p", "bars", "lanes": [ { "lane", "w" } ] },
     //                          "dropout": { "p", "every", "lanes": [ { "lanes": [ids], "w" } ] },
     //                          "change": true }, ... } }
-    // The loader refuses a grammar that could draw a form breaking a DJ rule: lengths off the 8-bar
-    // grid; anything but a 32-bar intro first and a 32-bar outro last; a build not followed by a drop
-    // or drop2 that always plays; a mix-in choice that isn't drums only in its first block, lanes only
-    // joining, never three blocks alike (and a mix-out the other way round); a lane the mix-in ends on
-    // that the section after it doesn't play from its start; an entry, rest or dropout lane the kind
-    // doesn't play, or that can't play all through it where it must; a "change" kind with a length
-    // too short for its rest and its dropouts; a layer drop 2 doesn't play all through; and lines it
-    // can draw (each drop and break start on or off a 16-bar line) that no lengths keep inside
-    // [lo, hi]. makeBundle adds that every lane a plan can play has a grid for the kind.
+    // The loader refuses a grammar that could draw a form breaking a DJ rule:
+    // - lengths off the 8-bar grid; anything but a 32-bar intro first and a 32-bar outro last;
+    // - a build not followed by a drop or drop2 that always plays;
+    // - a mix-in choice that isn't drums only in its first block, lanes only joining, never three
+    //   blocks alike (and a mix-out the other way round);
+    // - a lane the mix-in ends on that the section after it doesn't play from its start;
+    // - an entry, rest or dropout lane the kind doesn't play, or that can't play all through it where
+    //   it must;
+    // - a "change" kind with a length too short for its rest (inside the section, for a drum lane)
+    //   and its dropouts;
+    // - a layer drop 2 doesn't play all through;
+    // - lines it can draw (each drop and break start on or off a 16-bar line) that no lengths keep
+    //   inside [lo, hi].
+    // makeBundle adds that every lane a plan can play has a grid for the kind.
     struct FormSpec
     {
         Range bars { 200, 240 }; // the whole form's length

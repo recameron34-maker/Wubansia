@@ -85,6 +85,16 @@ namespace wubansia::gen
             return li ? std::uint64_t (1) << *li : 0;
         }
 
+        // The style's drum lanes (kick, snare, hats...), as a mask.
+        std::uint64_t drumLanes (const Style& style)
+        {
+            std::uint64_t m = 0;
+            for (std::size_t i = 0; i < style.lanes.size() && i < 64; ++i)
+                if (style.lanes[i].kind == LaneKind::drums)
+                    m |= std::uint64_t (1) << i;
+            return m;
+        }
+
         // Pulls (one-bar dropouts) inside one section come at least this many bars apart: a pull
         // before every 16-bar line is the same edit on a loop.
         constexpr std::int32_t pullSpacing = 32;
@@ -93,6 +103,7 @@ namespace wubansia::gen
         void planBlocks (Section& s, const Style& style, const KindPlan& plan, std::uint64_t layer, rng::Key kf)
         {
             const auto blockCount = static_cast<std::size_t> (s.bars / barsPerBlock);
+            const std::uint64_t drums = drumLanes (style);
             if (!plan.choices.empty())
             {
                 std::vector<std::int32_t> weights;
@@ -133,7 +144,9 @@ namespace wubansia::gen
                 for (auto& b : s.blocks)
                     b &= ~layer;
 
-            // the rest: one lane out for rest.bars bars from a multiple of them, never the first
+            // the rest: one lane, drawn by weight, out for rest.bars bars from a multiple of them, never
+            // the first; a drum lane never through the section's last block, so the kick (or the hats)
+            // comes back inside the section, never as the next one starts
             const auto rest = [&] (bool forced) {
                 if (!plan.rest)
                     return false;
@@ -141,26 +154,34 @@ namespace wubansia::gen
                 const rng::Key kr = kf.with (rng::tag ("rest")).with (s.index);
                 if (!forced && !rng::chance (kr.with (rng::tag ("p")), p16FromPercent (r.p)))
                     return false;
-                std::vector<std::int32_t> starts;
-                for (std::int32_t at = r.bars; at + r.bars <= s.bars; at += r.bars)
-                    starts.push_back (at);
-                if (starts.empty())
-                    return false;
-                const std::int32_t at = starts[rng::pickIndex (kr.with (rng::tag ("at")), starts.size())];
-                const auto first = static_cast<std::size_t> (at / barsPerBlock), last = static_cast<std::size_t> ((at + r.bars) / barsPerBlock);
+                // the starts a lane can take: it plays all through them (and isn't drop 2's layer there)
+                const auto startsOf = [&] (const LaneWeight& lw) {
+                    std::vector<std::int32_t> starts;
+                    const std::uint64_t bit = bitOf (style, lw.lane);
+                    if (bit == 0 || (s.kind == "drop2" && bit == layer))
+                        return starts;
+                    const bool drum = (bit & drums) != 0;
+                    for (std::int32_t at = r.bars; at + r.bars <= s.bars; at += r.bars)
+                    {
+                        if (drum && at + r.bars == s.bars)
+                            continue;
+                        bool on = true;
+                        for (auto k = static_cast<std::size_t> (at / barsPerBlock); k < static_cast<std::size_t> ((at + r.bars) / barsPerBlock) && on; ++k)
+                            on = (s.blocks[k] & bit) != 0;
+                        if (on)
+                            starts.push_back (at);
+                    }
+                    return starts;
+                };
                 std::vector<std::int32_t> weights;
                 for (const LaneWeight& lw : r.lanes)
-                {
-                    const std::uint64_t bit = bitOf (style, lw.lane);
-                    bool on = bit != 0 && !(s.kind == "drop2" && bit == layer);
-                    for (std::size_t k = first; k < last && on; ++k)
-                        on = (s.blocks[k] & bit) != 0;
-                    weights.push_back (on ? lw.weight : 0);
-                }
+                    weights.push_back (startsOf (lw).empty() ? 0 : lw.weight);
                 const std::size_t pick = rng::pickWeighted (kr.with (rng::tag ("lane")), weights);
                 if (pick >= r.lanes.size())
                     return false;
-                for (std::size_t k = first; k < last; ++k)
+                const auto starts = startsOf (r.lanes[pick]);
+                const std::int32_t at = starts[rng::pickIndex (kr.with (rng::tag ("at")), starts.size())];
+                for (auto k = static_cast<std::size_t> (at / barsPerBlock); k < static_cast<std::size_t> ((at + r.bars) / barsPerBlock); ++k)
                     s.blocks[k] &= ~bitOf (style, r.lanes[pick].lane);
                 return true;
             };

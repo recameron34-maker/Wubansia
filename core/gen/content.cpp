@@ -1088,6 +1088,7 @@ namespace wubansia::gen
             }
 
             // a kind with "change" can always make one: a rest or a dropout fits every length it takes
+            // (a drum lane rests inside the section, never through its last block: arrange.h)
             for (std::size_t i = 0; i < form.slots.size(); ++i)
             {
                 const KindPlan& plan = *form.plan (form.slots[i].kind);
@@ -1098,7 +1099,9 @@ namespace wubansia::gen
                     const std::int32_t bars = form.slots[i].bars[k].value;
                     if (bars == 0 || form.slots[i].bars[k].weight == 0)
                         continue;
-                    const bool rest = plan.rest && 2 * plan.rest->bars <= bars;
+                    const bool rest = plan.rest && std::any_of (plan.rest->lanes.begin(), plan.rest->lanes.end(), [&] (const LaneWeight& lw) {
+                        return lw.weight > 0 && (isDrumLane (style, lw.lane) ? 2 * plan.rest->bars < bars : 2 * plan.rest->bars <= bars);
+                    });
                     const bool dropout = plan.dropout && plan.dropout->every < bars;
                     if (!rest && !dropout)
                         sections.at (i)["bars"].at (k)["bars"].fail ("a " + plan.kind + " has a lane change inside it, but a " + std::to_string (bars)
