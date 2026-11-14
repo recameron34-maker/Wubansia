@@ -1,4 +1,5 @@
 #include "SamplesPanel.h"
+#include "ExternalDrag.h"
 
 #include "dragout/DragFiles.h"
 #include "sounds/SampleExport.h"
@@ -609,12 +610,10 @@ namespace wubansia::editor
         setTitle ("Samples");
         setLookAndFeel (&look);
 
-        announce = [] (const juce::String& text) { juce::AccessibilityHandler::postAnnouncement (text, juce::AccessibilityHandler::AnnouncementPriority::medium); };
-        startDrag = [] (const juce::File& file, juce::Component& source)
-        {
-            return juce::DragAndDropContainer::performExternalDragDropOfFiles ({ dragout::externalDragPath (file) }, false, &source);
-        };
-        revealFile = [] (const juce::File& file) { dragout::revealToUser (file); };
+        // The functions themselves, not lambdas around them: a test checks each default is the one (DragOutTests).
+        announce = announceToScreenReader;
+        startDrag = startExternalDrag;
+        revealFile = dragout::revealToUser;
         chooseFolder = [this] (std::function<void (const juce::File&)> done)
         {
             const auto start = samplesFolder.isDirectory() ? samplesFolder : juce::File::getSpecialLocation (juce::File::userMusicDirectory);

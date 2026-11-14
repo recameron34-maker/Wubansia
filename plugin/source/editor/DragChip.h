@@ -29,8 +29,8 @@ namespace wubansia::editor
         // Writes the file and starts the external drag; false if either fails. mouseDrag calls it.
         bool beginDrag();
 
-        // How the chip hands a file to the OS. Tests replace them; by default startDrag performs the
-        // external drag of the one file and revealFile shows it in the file browser.
+        // How the chip hands a file to the OS. Tests replace them; by default startDrag is startExternalDrag
+        // (ExternalDrag.h: the OS drag of the one file) and revealFile dragout::revealToUser (the file browser).
         std::function<bool (const juce::File&, juce::Component&)> startDrag;
         std::function<void (const juce::File&)> revealFile;
 

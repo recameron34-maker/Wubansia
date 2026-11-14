@@ -218,15 +218,14 @@ namespace wubansia::editor
         // Whose install steps the banner gives; the build's platform unless a test says otherwise.
         ContentPanel::Platform platform;
 
-        // How the drawer hands a file to the OS and asks for a folder. Tests replace them; by default startDrag
-        // performs the external drag of the one file, revealFile shows it in the file browser, and chooseFolder
-        // opens a folder chooser and calls back with the folder picked.
+        // How the drawer hands a file to the OS and asks for a folder. Tests replace them; by default startDrag is
+        // startExternalDrag (ExternalDrag.h: the OS drag of the one file), revealFile dragout::revealToUser (it shows
+        // the file in the file browser), and chooseFolder opens a folder chooser and calls back with the folder picked.
         std::function<bool (const juce::File&, juce::Component&)> startDrag;
         std::function<void (const juce::File&)> revealFile;
         std::function<void (std::function<void (const juce::File&)>)> chooseFolder;
 
-        // How the drawer says what it shows to a screen reader: by default an AccessibilityHandler announcement. Tests
-        // replace it.
+        // How the drawer says what it shows to a screen reader: by default announceToScreenReader. Tests replace it.
         std::function<void (const juce::String&)> announce;
 
         std::function<void()> chooseContentFolder; // the banner's button; the editor hands it the install panel's chooser
