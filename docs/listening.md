@@ -166,12 +166,14 @@ worked on Logic Pro"; Ableton Live 12 not checked yet.
   extended mixes.
 - The checklist above wasn't reported item by item, so its boxes stay open; tick them as you check each one.
 
-## 2026-11-12 · v0.2 Samples · build: the v0.2 PR's macOS CI zip (not made yet) · Listener: you · DAW: not reported yet · Mac: not reported
+## 2026-11-12 · v0.2: Samples, and Drums on one track · build: the v0.2 PR's macOS CI zip (not made yet) · Listener: you · DAW: not reported yet · Mac: not reported
 
-v0.2 adds the Samples drawer (ADR 0024): every kit's sounds, to hear and to drag into your DAW as WAV files. It
-changes no sound, MIDI or mix, so this entry has no fidelity numbers and no listening test. It records what was
-checked on Linux and holds the DAW checklist for you; nothing here says how the drawer behaves in Live or Logic until
-you report it. How to use it: `dist/INSTALL.md`, "Samples into your DAW".
+v0.2 adds the Samples drawer (ADR 0024): every kit's sounds, to hear and to drag into your DAW as WAV files. It also
+adds Drums on one track (ADR 0025): the drag strip's 1 drum track switch, which makes Loop and Song drags bring their
+drums as one track, Drums. Neither changes a sound, the kits' MIDI files or the mix, so this entry has no fidelity
+numbers and no listening test. It records what was checked on Linux and holds the DAW checklist for you; nothing here
+says how either behaves in Live or Logic until you report it. How to use them: `dist/INSTALL.md`, "Samples into your
+DAW" and "Drag MIDI into Live or Logic".
 
 ### A. Checked here (before you try it)
 
@@ -225,6 +227,20 @@ kits' samples from a checkout's `content/samples` through `WUBANSIA_CONTENT_DIR`
 - [ ] Show in Finder (and a click on the tile) shows the file in Finder; Change... picks a folder, a new one included
 - [ ] The first drag from Logic's AU makes `~/Music/Wubansia/Samples`
 - [ ] Whether either DAW reads anything from the files besides the audio (a root note, a tempo)
+
+Drums on one track (the switch next to Song on the drag strip):
+- [ ] The switch reads "1 drum track" in full in your Mac's font, and FUT01's phrase chips show their titles whole, or
+      without their bar count ("E Piano Stab Rhythm")
+- [ ] With the switch lit, in a new Live 12 set: drop FUT01's Song on a track holding a Drum Rack. The drums land there
+      as one clip, Drums, and the other instruments on the tracks after it (a drop onto your own set writes over the
+      tracks after it)
+- [ ] With the switch lit, in a new Logic project: drop the Song on a Drum Machine Designer track. The drums are one
+      region on it and the rest go on tracks after it; note the region names and how many pads it gives
+- [ ] The pad settings in `dist/INSTALL.md`: the hats in one choke group (the ride outside it), FUT04's rumble on B0
+      (Simpler on Gate in Live, Quick Sampler on Classic in Logic), and F#2 for FUT01's tambourine and FUT03's shaker
+- [ ] A merged Drums clip plays as the separate drum tracks did; muting Wubansia's six other lanes brings only Drums
+- [ ] The switch stays lit in another project and after the DAW restarts; switched off, the drags are the files as
+      before
 
 Drags on Windows and Linux are not on this list: your setup is Live and Logic on a Mac.
 
