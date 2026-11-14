@@ -221,7 +221,10 @@ kits' samples from a checkout's `content/samples` through `WUBANSIA_CONTENT_DIR`
 - [ ] Logic, stopped: start FUT03's Riser (8 bars) with Wubansia's track selected, then select another track; when
       you select Wubansia's track again, the riser doesn't play on from where it was
 - [ ] Logic: a 44.1 kHz project, with "Convert audio file sample rate when importing" on
-- [ ] Names with `#` (`F#m`, `F#4`) arrive whole in Live and in Logic
+- [ ] Before v0.2 ships, when the file names freeze: drag a FUT01 sample into Live and into Logic (every FUT01 name
+      holds `#`: Chrome Pluck's is `Chrome Pluck F#4 v2 - FUT01 134 F#m 11A.wav`). It drops intact: it plays, and the
+      clip or region and the file the project uses keep the whole name, `#` included. If either DAW cuts a name at
+      `#` or refuses the drop, say so: until v0.2 ships, sharps can still be spelled `s` instead
 - [ ] Live's Collect All and Save, and Logic's "Copy audio files into project", take the copies into the project
 - [ ] The Standalone app: drag to Finder
 - [ ] Show in Finder (and a click on the tile) shows the file in Finder; Change... picks a folder, a new one included
