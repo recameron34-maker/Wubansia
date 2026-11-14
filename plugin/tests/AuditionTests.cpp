@@ -1,10 +1,12 @@
 // The Samples drawer's auditions through the real processor (ADR 0024), on the synthetic kit with the host stopped and
 // the player in Off mode, so the engine plays nothing and what comes out is the audition alone: the file dry at -6 dB,
 // sample for sample, then master_gain; at 44.1 kHz its resampled length; a mono output's fold; Stop's 5 ms fade, the
-// host's reset and bypass; offline renders that never print one; a host that runs no blocks (the 300 ms hint); the
-// groove left as it was; latest wins; selectKit stopping it; bytes that aren't kit.json's refused; the sound thread
-// started by the first audition only; and the message, sound and audio threads at once (run it under TSan too:
-// WubansiaPluginTests "[audition]" in a -fsanitize=thread build).
+// host's reset and bypass; offline renders that never print one; a host that runs no blocks, before or after a block
+// took the clip (the 300 ms hint, and nothing stale when blocks come back), and a block that comes just as a clip is
+// given up (a newer clip it took plays on); the groove left as it was; latest wins;
+// selectKit stopping it; bytes that aren't kit.json's refused; the sound thread started by the first audition only;
+// and the message, sound and audio threads at once (run it under TSan too: WubansiaPluginTests "[audition]" in a
+// -fsanitize=thread build).
 
 #include "helpers/test_helpers.h"
 
@@ -282,6 +284,58 @@ TEST_CASE ("Stop fades out within 5 ms; a host reset and bypass silence it at on
     CHECK ((*q).auditionPlayer().sounding() == 0u);
 }
 
+TEST_CASE ("a host's reset or release before a prepare silences auditions at the first block; a prepare alone doesn't", "[audio][audition]")
+{
+    // A deactivate and reactivate (VST3 and CLAP) or a device restart (the Standalone app): reset (), releaseResources ()
+    // and prepareToPlay at the same rate, then blocks. The groove starts from rest, and so must the audition.
+    Quiet q (withKit ("AUD09"));
+    auto& controller = q.controller();
+    const auto clip = clipFor (riser, 48000.0);
+    REQUIRE (clip != nullptr);
+    REQUIRE (controller.audition (q.ref (riser)) > 0u);
+    REQUIRE (waitForOffer (*q));
+    test::process (*q, kBlock); // frames 0-511
+    REQUIRE (controller.auditionState().sounding > 0u);
+
+    SECTION ("reset, release, then a prepare at the same rate: silent from the first block")
+    {
+        (*q).reset();
+        (*q).releaseResources();
+        test::prepare (*q, 48000.0, kBlock);
+        CHECK (test::silent (test::process (*q, kBlock)));
+        CHECK ((*q).auditionPlayer().sounding() == 0u);
+        CHECK (controller.auditionState().sounding == 0u);
+        CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
+    }
+
+    SECTION ("a release alone, then a prepare: silent")
+    {
+        (*q).releaseResources();
+        test::prepare (*q, 48000.0, kBlock);
+        CHECK (test::silent (test::process (*q, kBlock)));
+        CHECK ((*q).auditionPlayer().sounding() == 0u);
+    }
+
+    SECTION ("a reset alone, then a prepare: silent")
+    {
+        (*q).reset();
+        test::prepare (*q, 48000.0, kBlock);
+        CHECK (test::silent (test::process (*q, kBlock)));
+    }
+
+    SECTION ("a prepare at the same rate alone: it plays on where it was")
+    {
+        test::prepare (*q, 48000.0, kBlock);
+        const auto out = test::process (*q, kBlock);
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            const float* x = channel (*clip, ch);
+            CHECK (mismatches (out, ch, 0, kBlock, [x] (int i) { return 0.5f * x[512 + i]; }) == 0);
+        }
+        CHECK ((*q).auditionPlayer().sounding() > 0u);
+    }
+}
+
 TEST_CASE ("an offline render never prints an audition", "[audio][audition]")
 {
     // The same kit rendered offline from bar 1 twice: once with an audition offered just before, once without.
@@ -318,6 +372,11 @@ TEST_CASE ("an offline render never prints an audition", "[audio][audition]")
 
 TEST_CASE ("a host that runs no blocks: the audition is dropped after 300 ms and the hint is raised", "[audio][audition]")
 {
+    // 300 ms, not less: hosts that run large or irregular blocks (2048 samples at 44.1 kHz come 46 ms apart) must not
+    // lose clicks to the hint (ADR 0024 decision 13). The sound thread looks every 50 ms while it has clips out.
+    STATIC_CHECK (SoundService::kUntakenLimit == 300ms);
+    STATIC_CHECK (SoundService::kDrainInterval == 50ms);
+
     Quiet q (withKit ("AUD06"));
     auto& controller = q.controller();
     const auto asked = std::chrono::steady_clock::now();
@@ -341,6 +400,140 @@ TEST_CASE ("a host that runs no blocks: the audition is dropped after 300 ms and
     CHECK (controller.auditionState().hostSilent);
     REQUIRE (controller.audition (q.ref (riser)) > ticket);
     CHECK_FALSE (controller.auditionState().hostSilent);
+}
+
+TEST_CASE ("a host that stops running blocks mid-clip: after 300 ms the clip is given up, and never heard again", "[audio][audition]")
+{
+    Quiet q (withKit ("AUD08"));
+    auto& controller = q.controller();
+    const auto& sounds = (*q).soundService();
+    const auto ticket = controller.audition (q.ref (phrase));
+    REQUIRE (ticket > 0u);
+    REQUIRE (waitForOffer (*q));
+    test::process (*q, kBlock);
+    test::process (*q, kBlock); // the phrase's frames 0-1023; then no block (Logic, once the track isn't selected)
+    REQUIRE (controller.auditionState().sounding == ticket);
+
+    SECTION ("left alone: the hint after 300 ms, and silence when the host runs blocks again")
+    {
+        const auto stopped = std::chrono::steady_clock::now();
+        REQUIRE (test::waitFor ([&] { return controller.auditionState().hostSilent; }, 3000ms));
+        CHECK (std::chrono::steady_clock::now() - stopped >= SoundService::kUntakenLimit);
+        const auto state = controller.auditionState();
+        CHECK (state.latest == ticket);
+        CHECK (state.sounding == 0u); // the row shows play again, and Esc goes back to the host
+        CHECK_FALSE (state.waiting);
+        CHECK (state.problem.isEmpty());
+        CHECK (sounds.clipsGivenUp() == 1);
+
+        // Blocks come back: not the phrase's frames 1024 on, nor a fade of them.
+        CHECK (test::silent (test::process (*q, kBlock)));
+        CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
+        CHECK ((*q).auditionPlayer().sounding() == 0u);
+        CHECK (controller.auditionState().hostSilent); // until the next audition
+        CHECK (test::waitFor ([&] { return sounds.clipsMade() == sounds.clipsDeleted(); }));
+
+        // The next click plays as ever.
+        const auto riserClip = clipFor (riser, 48000.0);
+        REQUIRE (riserClip != nullptr);
+        REQUIRE (controller.audition (q.ref (riser)) > ticket);
+        CHECK_FALSE (controller.auditionState().hostSilent);
+        REQUIRE (waitForOffer (*q));
+        const auto out = test::process (*q, kBlock);
+        for (int ch = 0; ch < 2; ++ch)
+        {
+            const float* x = channel (*riserClip, ch);
+            CHECK (mismatches (out, ch, 0, kBlock, [x] (int i) { return 0.5f * x[i]; }) == 0);
+        }
+    }
+
+    SECTION ("stopped during the gap: no stale fade when the host comes back")
+    {
+        controller.stopAudition();
+        CHECK (controller.auditionState().sounding == 0u);
+        REQUIRE (test::waitFor ([&] { return sounds.clipsGivenUp() > 0; }, 3000ms));
+        CHECK_FALSE (controller.auditionState().hostSilent); // stopped by hand: nothing to explain
+        CHECK (test::silent (test::process (*q, kBlock)));
+        CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
+    }
+}
+
+TEST_CASE ("a block that comes while the sound thread gives up a stale clip keeps the newer clip it took", "[audio][audition]")
+{
+    // The sound thread can be preempted anywhere. Here it is held just after it has decided to give up the clip in the
+    // player's hands (no block for 300 ms), before it acts; the host comes back right then, and its first block takes
+    // the clip of a sound clicked during the gap. That clip plays on, and nothing says the host is silent.
+    struct Hold
+    {
+        std::atomic<bool> armed { true }, held { false }, released { false };
+    };
+    const auto hold = std::make_shared<Hold>();
+    Quiet q (withKit ("AUD10"));
+    (*q).setAuditionGiveUpProbeForTesting ([hold]
+        {
+            if (! hold->armed.exchange (false))
+                return;
+            hold->held = true;
+            const auto until = std::chrono::steady_clock::now() + 5s;
+            while (! hold->released && std::chrono::steady_clock::now() < until)
+                std::this_thread::sleep_for (1ms);
+        });
+    struct Release // before q goes: a held sound thread must not keep the processor's destructor waiting
+    {
+        std::shared_ptr<Hold> hold;
+        ~Release() { hold->released = true; }
+    } release { hold };
+
+    auto& controller = q.controller();
+    const auto& sounds = (*q).soundService();
+    const auto stale = controller.audition (q.ref (phrase));
+    REQUIRE (stale > 0u);
+    REQUIRE (waitForOffer (*q));
+    test::process (*q, kBlock);
+    test::process (*q, kBlock); // the phrase's frames 0-1023; then no block
+
+    // Half way to the give-up, a sound is clicked: it waits for the host's next block.
+    std::this_thread::sleep_for (150ms);
+    REQUIRE (sounds.clipsGivenUp() == 0);
+    const auto fresh = controller.audition (q.ref (riser));
+    REQUIRE (fresh > stale);
+    REQUIRE (waitForOffer (*q));
+    REQUIRE (controller.auditionState().sounding == stale);
+
+    // The give-up is decided; the host's block comes before it acts, and takes the riser.
+    REQUIRE (test::waitFor ([&] { return hold->held.load(); }, 3000ms));
+    REQUIRE ((*q).auditionPlayer().offered());
+    const auto first = test::process (*q, kBlock);
+    hold->released = true;
+    REQUIRE (test::waitFor ([&] { return sounds.clipsGivenUp() == 1; }, 3000ms));
+
+    const auto riserClip = clipFor (riser, 48000.0);
+    const auto phraseClip = clipFor (phrase, 48000.0);
+    REQUIRE (riserClip != nullptr);
+    REQUIRE (phraseClip != nullptr);
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        // The phrase, replaced, fades out from frame 1024 over 5 ms; the riser starts at its first frame.
+        const float* r = channel (*riserClip, ch);
+        const float* p = channel (*phraseClip, ch);
+        CHECK (mismatches (first, ch, 0, kFade, [r, p] (int i) { return 0.5f * (p[1024 + i] * fadeGain (i)) + 0.5f * r[i]; }) == 0);
+        CHECK (mismatches (first, ch, kFade, kBlock - kFade, [r] (int i) { return 0.5f * r[kFade + i]; }) == 0);
+    }
+
+    // Only the stale phrase was given up: the riser plays on, and the drawer doesn't say the host is silent.
+    const auto state = controller.auditionState();
+    CHECK (state.latest == fresh);
+    CHECK (state.sounding == fresh);
+    CHECK_FALSE (state.hostSilent);
+    const auto second = test::process (*q, kBlock);
+    const auto third = test::process (*q, kBlock);
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        const float* r = channel (*riserClip, ch);
+        CHECK (mismatches (second, ch, 0, kBlock, [r] (int i) { return 0.5f * r[kBlock + i]; }) == 0);
+        CHECK (mismatches (third, ch, 0, kBlock, [r] (int i) { return 0.5f * r[2 * kBlock + i]; }) == 0);
+    }
+    CHECK ((*q).auditionPlayer().sounding() == fresh);
 }
 
 TEST_CASE ("an audition plays over the groove without changing it", "[audio][audition]")
@@ -415,23 +608,73 @@ TEST_CASE ("a new audition replaces the last: the old fades out in 5 ms, the new
     }
 }
 
-TEST_CASE ("selectKit stops the audition", "[audio][audition]")
+TEST_CASE ("an audition of a kit that isn't playing reads that kit's own folder", "[audio][audition]")
 {
+    SyntheticContent::Options options;
+    options.ids = { "ANP01", "ANP02" };
+    Quiet q (options);
+    auto& controller = q.controller();
+    REQUIRE (test::waitFor ([&] { return controller.kits()[1].content.state == ContentState::ready; })); // ANP02 surveyed
+
+    // Every synthetic kit serves the same bytes: only the folder read tells the browsed kit's from the playing one's.
+    q.plugin.content->clearFoldersRead();
+    REQUIRE (controller.audition ({ "ANP02", riser }) > 0u);
+    REQUIRE (waitForOffer (*q));
+    CHECK (q.plugin.content->foldersRead() == std::vector<juce::File> { SyntheticContent::folderOf ("ANP02") });
+    CHECK (controller.currentKit() == "ANP01"); // the kit that plays doesn't change
+    const auto clip = clipFor (riser, 48000.0);
+    REQUIRE (clip != nullptr);
+    const auto out = test::process (*q, kBlock);
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        const float* x = channel (*clip, ch);
+        CHECK (mismatches (out, ch, 0, kBlock, [x] (int i) { return 0.5f * x[i]; }) == 0);
+    }
+}
+
+TEST_CASE ("selectKit stops the audition, even of the kit already playing; an unknown id stops nothing", "[audio][audition]")
+{
+    // Controller.h's contract for selectKit, on the real Controller (FakeControllerTests check the fake keeps to it).
     SyntheticContent::Options options;
     options.ids = { "SEL01", "SEL02" };
     Quiet q (options);
     auto& controller = q.controller();
-    REQUIRE (controller.audition (q.ref (riser)) > 0u);
-    REQUIRE (waitForOffer (*q));
-    test::process (*q, kBlock);
-    REQUIRE (controller.auditionState().sounding > 0u);
+    const auto play = [&]
+    {
+        const auto ticket = controller.audition (q.ref (riser));
+        REQUIRE (ticket > 0u);
+        REQUIRE (waitForOffer (*q));
+        test::process (*q, kBlock);
+        REQUIRE (controller.auditionState().sounding == ticket);
+        return ticket;
+    };
+    const auto fadesOut = [&]
+    {
+        CHECK (controller.auditionState().sounding == 0u);
+        const auto out = test::process (*q, kBlock);
+        CHECK_FALSE (test::silent (out, 0, kFade)); // it fades out...
+        CHECK (test::silent (out, kFade)); // ...within 5 ms
+        CHECK ((*q).auditionPlayer().sounding() == 0u);
+    };
 
+    // An id this build doesn't carry is ignored: the riser plays on, past what a stop's fade would last.
+    const auto ticket = play();
+    controller.selectKit ("NOPE");
+    CHECK (controller.auditionState().sounding == ticket);
+    CHECK (controller.currentKit() == "SEL01");
+    const auto on = test::process (*q, kBlock);
+    CHECK_FALSE (test::silent (on, kFade));
+    CHECK ((*q).auditionPlayer().sounding() == ticket);
+
+    // The kit already playing: chosen again, it stops the audition all the same.
+    controller.selectKit ("SEL01");
+    fadesOut();
+    CHECK (controller.currentKit() == "SEL01");
+
+    // Another kit.
+    play();
     controller.selectKit ("SEL02");
-    CHECK (controller.auditionState().sounding == 0u);
-    const auto out = test::process (*q, kBlock);
-    CHECK_FALSE (test::silent (out, 0, kFade)); // it fades out...
-    CHECK (test::silent (out, kFade)); // ...within 5 ms
-    CHECK ((*q).auditionPlayer().sounding() == 0u);
+    fadesOut();
     CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
 }
 
@@ -491,6 +734,81 @@ TEST_CASE ("bytes that aren't kit.json's are never played, and say so", "[audio]
         const auto out = test::process (*q, kBlock);
         CHECK (test::silent (out, kFade)); // the phrase faded out
         CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
+    }
+}
+
+TEST_CASE ("a request the Controller turns down stops what plays", "[audio][audition]")
+{
+    // Controller.h: "a request turned down stops what plays", as a new sound would have replaced it. Each section
+    // starts afresh with the riser playing, one block in, and the Controller refusing the next request itself.
+    SyntheticContent::Options options;
+    options.ids = { "RFS01", "RFS02" };
+    Quiet q (options);
+    auto& controller = q.controller();
+    REQUIRE (test::waitFor ([&] { return controller.kits()[1].content.state == ContentState::ready; })); // RFS02 surveyed
+    REQUIRE (controller.audition (q.ref (riser)) > 0u);
+    REQUIRE (waitForOffer (*q));
+    test::process (*q, kBlock);
+    REQUIRE (controller.auditionState().sounding > 0u);
+
+    // Polls done (), running a block every 50 ms meanwhile, as a host does: a longer gap would give the clip up.
+    const auto whilePlaying = [&] (const std::function<bool()>& done) {
+        auto last = std::chrono::steady_clock::now();
+        return test::waitFor ([&] {
+            if (std::chrono::steady_clock::now() - last >= 50ms)
+            {
+                test::process (*q, kBlock);
+                last = std::chrono::steady_clock::now();
+            }
+            return done();
+        });
+    };
+
+    // Stopped at once, faded out within 5 ms from the next block, and silent after.
+    const auto stopsWhatPlays = [&] {
+        CHECK (controller.auditionState().sounding == 0u);
+        CHECK_FALSE (controller.auditionState().waiting);
+        const auto out = test::process (*q, kBlock);
+        CHECK_FALSE (test::silent (out, 0, kFade));
+        CHECK (test::silent (out, kFade));
+        CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
+        CHECK ((*q).auditionPlayer().sounding() == 0u);
+    };
+
+    SECTION ("a file the kit doesn't list")
+    {
+        CHECK (controller.audition ({ "RFS01", 999 }) == 0u);
+        CHECK (controller.auditionState().problem.contains ("RFS01 lists no file 999"));
+        stopsWhatPlays();
+    }
+
+    SECTION ("a kit this build doesn't carry")
+    {
+        CHECK (controller.audition ({ "NOPE", riser }) == 0u);
+        CHECK (controller.auditionState().problem.contains ("no kit NOPE"));
+        stopsWhatPlays();
+    }
+
+    SECTION ("another kit whose samples aren't there")
+    {
+        // RFS02's folder goes (another instance chose a folder): the survey finds it missing; RFS01 plays on.
+        q.plugin.content->setSamples (SyntheticContent::Samples::missing);
+        q.plugin.content->bumpFolders();
+        REQUIRE (whilePlaying ([&] { return controller.kits()[1].content.state == ContentState::missing; }));
+        REQUIRE (controller.auditionState().sounding > 0u);
+        CHECK (controller.audition ({ "RFS02", riser }) == 0u);
+        CHECK (controller.auditionState().problem.contains ("no content folder holds RFS02"));
+        stopsWhatPlays();
+    }
+
+    SECTION ("an offer no block took yet goes too")
+    {
+        REQUIRE (controller.audition (q.ref (phrase)) > 0u);
+        REQUIRE (waitForOffer (*q));
+        CHECK (controller.audition ({ "RFS01", -1 }) == 0u);
+        CHECK_FALSE (controller.auditionState().waiting);
+        stopsWhatPlays(); // the riser fades out, and the phrase never plays
+        CHECK (test::waitFor ([&] { return ! (*q).auditionPlayer().offered(); }));
     }
 }
 

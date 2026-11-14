@@ -38,6 +38,7 @@ namespace wubansia::editor
         TransportState transport;
         bool preview = false;
         bool standalone = false;
+        bool logicHost = false; // the plugin runs in Logic Pro (juce::PluginHostType): the no-sound hint names it
         engine::MidiInMode midiInMode = engine::MidiInMode::multi;
         engine::Lane midiInLane = engine::Lane::kick;
         engine::PhraseMode phraseMode = engine::PhraseMode::automatic;

@@ -1,5 +1,8 @@
 #include "DragChip.h"
+#include "ExternalDrag.h"
 #include "LookAndFeel.h"
+
+#include "dragout/DragFiles.h"
 
 namespace wubansia::editor
 {
@@ -24,11 +27,9 @@ namespace wubansia::editor
     DragChip::DragChip (Controller& c, const DragRequest& request, const juce::String& label)
         : controller (c)
     {
-        startDrag = [] (const juce::File& file, juce::Component& source)
-        {
-            return juce::DragAndDropContainer::performExternalDragDropOfFiles ({ file.getFullPathName() }, false, &source);
-        };
-        revealFile = [] (const juce::File& file) { file.revealToUser(); };
+        // The functions themselves, not lambdas around them: a test checks each default is the one (DragOutTests).
+        startDrag = startExternalDrag;
+        revealFile = dragout::revealToUser;
         setRequest (request, label);
         setMouseCursor (juce::MouseCursor::DraggingHandCursor);
     }

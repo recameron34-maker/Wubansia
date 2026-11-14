@@ -13,6 +13,7 @@
 
 #include <juce_core/juce_core.h>
 
+#include <functional>
 #include <initializer_list>
 #include <map>
 #include <utility>
@@ -78,11 +79,13 @@ namespace wubansia::test
             const auto warpClean = fakeSound ("FUT01/warp_clean", "Warp Clean", C::bass, notes (89, "Warp Clean", { "F#1", "A1", "C#2" }, 4.1, 2), 1);
             const auto kickSplit = fakeSound ("FUT01/kick_split", "Kick Split", C::drums, layered (0, "Kick Split", 5, 2, 0.457, 1), 8);
             auto pluckPhrase = fakeSound ("FUT01/Loops/Chrome Pluck Phrase.wav", "Chrome Pluck Phrase", C::loops, { { 187, "Chrome Pluck Phrase", 3.5821, 2 } });
+            pluckPhrase.part = C::synths; // a lead phrase
             pluckPhrase.bars = 2;
             pluckPhrase.loopBars = 2;
             soundLists["FUT01"] = { reverseStab, raveStab, alloyBell, shiftRiser, voxSynth, chromePluck, warpClean, kickSplit, pluckPhrase };
 
             auto orbitLine = fakeSound ("FUT02/Loops/Orbit Line Clean.wav", "Orbit Line Clean", C::loops, { { 131, "Orbit Line Clean", 3.6923, 1 } });
+            orbitLine.part = C::bass; // a bass line
             orbitLine.bars = 2;
             orbitLine.loopBars = 2;
             soundLists["FUT02"] = { fakeSound ("FUT02/glass_ping", "Glass Ping", C::accents, layered (109, "Glass Ping", 2, 2, 2.5, 2), 2),
@@ -113,11 +116,13 @@ namespace wubansia::test
         bool dragFails = false;
         std::map<juce::String, std::vector<SoundInfo>> soundLists; // what sounds () gives, by kit
         juce::File samplesFolderChosen; // what samplesFolder () gives; exportSound writes into <it>/<kit>/
-        bool exportFails = false;
+        bool exportFails = false; // the samples folder's fault: "the fake's disk is full"
+        juce::String exportSourceProblem; // when set, every export fails with it, the kit's own file's fault
+        std::function<SoundExport (const SoundRef&)> exportOutcome; // when set, what exportSound gives (it writes nothing)
         bool refuseSamplesFolder = false; // setSamplesFolder () says no, as for a content or drag folder
         // What auditionState () gives. audition () sets it as a host running blocks would: the next ticket, sounding at
-        // once; with auditionFails set, 0 and a problem. stopAudition () clears sounding. Tests may set it directly
-        // (waiting, hostSilent...).
+        // once; with auditionFails set, 0 and a problem. stopAudition () and selectKit () of a kit in kitCards clear
+        // sounding. Tests may set it directly (waiting, hostSilent...).
         AuditionState auditionStatus;
         bool auditionFails = false;
 
@@ -146,6 +151,9 @@ namespace wubansia::test
                 {
                     current = id;
                     contentStatus = card.content;
+                    // As ControllerImpl's: a kit chosen stops the audition (stops counts stopAudition () calls only).
+                    auditionStatus.sounding = 0;
+                    auditionStatus.waiting = false;
                 }
         }
 
@@ -263,11 +271,20 @@ namespace wubansia::test
         AuditionState auditionState() const override { return auditionStatus; }
 
         // Writes a tiny WAV (4 frames of 24-bit silence, 48 kHz mono) named for the file, "<label> - <KIT>.wav", into
-        // <samplesFolderChosen>/<KIT>/; fails, writing nothing, when exportFails is set.
+        // <samplesFolderChosen>/<KIT>/; fails, writing nothing, when exportSourceProblem or exportFails is set. With
+        // exportOutcome set, gives what it returns instead.
         SoundExport exportSound (const SoundRef& sound) override
         {
             exportRequests.push_back (sound);
+            if (exportOutcome != nullptr)
+                return exportOutcome (sound);
             SoundExport result;
+            if (exportSourceProblem.isNotEmpty())
+            {
+                result.problem = exportSourceProblem;
+                result.sourceProblem = true;
+                return result;
+            }
             if (exportFails)
             {
                 result.problem = "the fake's disk is full";
@@ -311,6 +328,7 @@ namespace wubansia::test
             s.id = id;
             s.name = name;
             s.category = category;
+            s.part = category;
             s.files = std::move (files);
             s.defaultFile = defaultFile;
             return s;

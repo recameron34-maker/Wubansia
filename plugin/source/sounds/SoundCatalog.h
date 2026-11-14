@@ -13,12 +13,15 @@
 // 2. The category is the lane's: accents Accents, fx FX, vox Vox, lead and chords Synths, bass Bass, and
 //    kick, snare, hats and perc Drums.
 // 3. Then each phrase stem (stem a, then b), in phrase order, is a Loop, unless a sound already has exactly
-//    that one file.
+//    that one file. Its part is its phrase's lane as a category (a bass line's is Bass); every other sound's part
+//    is its category.
 // 4. files: the zones in order, each zone's layers soft to hard, each layer's round robins; a file seen before
 //    is skipped.
 // 5. The default file is the top layer's first round robin of one zone: for a pitched instrument (a zone with
 //    lo < hi) the first zone rooted on the kit's tonic, else its middle zone (zones[size / 2]); for a one-key
-//    instrument its first zone. It is what the kit's loops play.
+//    instrument its first zone. So it is the kit's key note in the lowest register that has one, at its loudest:
+//    usually a note the kit's loops play, but not always (FUT03's Vox Synth and Keys EP give G3, below the G4 up
+//    the kit plays them; FUT02's Chrome Arp gives D4, below its arp's A4-C6). The File box reaches every file.
 // 6. name: the instrument's, a leading "Accent " dropped ("Dub Chord Cm9"); a loop's, its file name without
 //    folder and ".wav". id: "<KIT>/<instrument id>", or "<KIT>/<path>" for a loop.
 // 7. bars: the default file's length in whole bars at the kit's tempo (48000 x 240 / bpm frames a bar) when
@@ -43,6 +46,9 @@ namespace wubansia::sounds
 
     // "Accents", "FX", "Vox", "Synths", "Bass", "Drums" or "Loops".
     juce::String categoryName (SoundCategory category);
+
+    // A loop's part as the drawer says it, before "loop": "Bass", "Synth", "Vox", "Drum", "Accent", "FX".
+    juce::String partName (SoundCategory part);
 
     // The pitch class (C = 0 ... B = 11) of a key's first word: "F# minor" 6, "D minor" 2, "Bb major" 10;
     // -1 when it isn't a note name.

@@ -2,6 +2,7 @@
 
 #include "dragout/DragFiles.h"
 
+#include "kit/kit_builder.h"
 #include "util/sha256.h"
 
 #include <algorithm>
@@ -50,6 +51,22 @@ namespace wubansia::sounds
                    && std::equal (bytes.begin(), bytes.end(), static_cast<const std::uint8_t*> (existing.getData()));
         }
 
+        // A copy made, or found there already.
+        ExportResult copied (const juce::File& file)
+        {
+            ExportResult result;
+            result.file = file;
+            return result;
+        }
+
+        // No copy, and why: the samples folder's fault, unless the caller sets sourceProblem (the kit's own file).
+        ExportResult refused (std::string problem)
+        {
+            ExportResult result;
+            result.problem = std::move (problem);
+            return result;
+        }
+
         // bytes as target, which doesn't exist yet: a hidden temporary file beside it, written whole and checked,
         // then renamed into place, so target is never a part-written file. Why not, or "".
         // (File::replaceWithData () would rename a temporary file whose write failed half way.)
@@ -84,7 +101,13 @@ namespace wubansia::sounds
     {
         const auto version = kit.contentVersion >= 2 ? " c" + std::to_string (kit.contentVersion) : std::string();
         const auto suffix = dragout::safeName (kit.id + " " + std::to_string (kit.bpm) + " " + dragout::shortKey (kit.key) + " " + kit.camelot + version);
-        auto stem = visible (dragout::safeName (stemOf (file.path)));
+
+        // The installed name, less a leading "Accent " as the drawer's names drop it (SoundCatalog's rule 6): a pad or
+        // Simpler shows the start of a name, which must be the sound.
+        auto installed = stemOf (file.path);
+        if (installed.starts_with ("Accent ") && installed.size() > 7)
+            installed.remove_prefix (7);
+        auto stem = visible (dragout::safeName (installed));
 
         // A long installed name is cut, so the kit's part always fits.
         const auto room = kMaxNameStem > suffix.size() + 3 ? kMaxNameStem - suffix.size() - 3 : std::size_t { 1 };
@@ -114,17 +137,43 @@ namespace wubansia::sounds
                + " lists: reinstall " + kit.id;
     }
 
+    ExportResult unreadableSource (const engine::KitInfo& kit, const engine::FileEntry& file, const std::string& error)
+    {
+        // By the error's code, never its words: a folder named "Missing Kits" says nothing about the file.
+        const auto gone = engine::loadErrorOf (error) == engine::LoadError::missing;
+        auto result = refused (kit.id + "'s " + file.path + (gone ? " is missing" : " can't be read"));
+        result.detail = error;
+        result.sourceProblem = true;
+        return result;
+    }
+
+    SoundExport soundExportOf (const ExportResult& result)
+    {
+        SoundExport copy;
+        copy.file = result.file;
+        copy.problem = text (result.problem);
+        copy.detail = text (result.detail);
+        copy.sourceProblem = result.sourceProblem;
+        copy.reinstall = result.reinstall;
+        return copy;
+    }
+
     ExportResult exportCopy (ContentSourceFactory& content, const ContentStatus& found, const engine::KitInfo& kit,
         const engine::FileEntry& file, const juce::File& samplesFolder)
     {
-        // The installed bytes, checked against kit.json before anything is written.
+        // The installed bytes, checked against kit.json before anything is written: the kit's file is the problem.
         const auto bytes = content.readFile (found, file.path);
         if (! bytes.ok())
-            return { {}, std::string (fileNameOf (file.path)) + " can't be read: " + bytes.error };
+            return unreadableSource (kit, file, bytes.error);
         if (! matchesListing (bytes.value, file))
-            return { {}, listingProblem (kit, file) };
+        {
+            auto result = refused (listingProblem (kit, file)); // which says to reinstall the kit
+            result.sourceProblem = true;
+            result.reinstall = true;
+            return result;
+        }
         if (samplesFolder == juce::File())
-            return { {}, "there is no samples folder to copy " + std::string (fileNameOf (file.path)) + " into" };
+            return refused ("there is no samples folder to copy " + std::string (fileNameOf (file.path)) + " into");
 
         const auto folder = samplesFolder.getChildFile (text (kitFolderName (kit)));
         const auto name = text (exportName (kit, file));
@@ -135,16 +184,16 @@ namespace wubansia::sounds
             if (! target.exists() && ! target.isSymbolicLink())
             {
                 if (folder.createDirectory().failed())
-                    return { {}, "can't make the folder " + folder.getFullPathName().toStdString() };
+                    return refused ("can't make the folder " + folder.getFullPathName().toStdString());
                 if (auto problem = writeNew (target, bytes.value); ! problem.empty())
-                    return { {}, std::move (problem) };
-                return { target, {} };
+                    return refused (std::move (problem));
+                return copied (target);
             }
             if (holds (target, bytes.value))
-                return { target, {} }; // the copy is there already: nothing is written
+                return copied (target); // the copy is there already: nothing is written
             // Another file holds the name (a copy edited in a DAW, say): it is never touched; the next name.
         }
-        return { {}, "every name from " + name.toStdString() + " to its (" + std::to_string (kMaxCopies) + ") is taken in "
-                         + folder.getFullPathName().toStdString() };
+        return refused ("every name from " + name.toStdString() + " to its (" + std::to_string (kMaxCopies) + ") is taken in "
+                        + folder.getFullPathName().toStdString());
     }
 }

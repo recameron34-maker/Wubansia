@@ -333,14 +333,12 @@ namespace wubansia
         if (source.entry == nullptr)
         {
             result.problem = source.problem;
+            result.sourceProblem = true; // the kit, its file or its samples: not the samples folder
             return result;
         }
 
         const auto& file = source.entry->manifest.files[static_cast<std::size_t> (sound.file)];
-        const auto copy = sounds::exportCopy (*processor.content, source.found, source.entry->info, file, samplesFolder());
-        result.file = copy.file;
-        result.problem = juce::String::fromUTF8 (copy.problem.data(), static_cast<int> (copy.problem.size()));
-        return result;
+        return sounds::soundExportOf (sounds::exportCopy (*processor.content, source.found, source.entry->info, file, samplesFolder()));
     }
 
     juce::File ControllerImpl::samplesFolder() const
@@ -360,10 +358,14 @@ namespace wubansia
         }
 
         // Never a content folder (installers expect only their files there, and a DAW writes beside what it
-        // takes) or the drag cache, which is trimmed and purgeable (ADR 0024).
+        // takes), nor Wubansia's own folders (ADR 0024): the app data's "Wubansia Audio", which holds Content and
+        // settings.xml and which INSTALL.md's Uninstall deletes, and the caches' "Wubansia Audio" around the drag
+        // cache, which is trimmed and purgeable.
         const auto inside = [&folder] (const juce::File& place) { return place != juce::File() && (folder == place || folder.isAChildOf (place)); };
         const auto folders = contentFolders();
-        if (std::any_of (folders.begin(), folders.end(), inside) || inside (dragout::cacheFolder()) || inside (dragFolder))
+        const auto ownAppData = ContentLocator::appDataFolder().getParentDirectory();
+        const auto ownCaches = dragout::cacheFolder().getParentDirectory().getParentDirectory();
+        if (std::any_of (folders.begin(), folders.end(), inside) || inside (ownAppData) || inside (ownCaches) || inside (dragFolder))
             return false;
         if (folder.createDirectory().failed())
             return false;

@@ -12,13 +12,14 @@
 // - the sound thread: the Samples drawer's audition clips (services/SoundService.h, ADR 0024), started by
 //   the first audition;
 // - audio thread: processBlock, which in order (the design's): stops denormals and clears the buffer;
-//   acts on a reset (the engine's voices and the audition); in an offline render only, waits for a kit
-//   load in flight (ADR 0005 D5: 1 ms steps, 30 s per load at most; never in real time, never when
-//   content is missing); reads the controls; resolves the transport (the host's, or the internal one);
-//   copies the MIDI into a fixed array of 3-byte messages (no SysEx); runs the engine in pieces no longer
-//   than the prepared block; adds the Samples drawer's audition, dry, over the whole block (7b; never in
-//   an offline render, and with none playing it touches nothing); applies master_gain through its 20 ms
-//   smoother; and leaves the transport for the editor. A bypassed block lets every audition go unplayed.
+//   acts on a reset (the engine's voices and the audition; a prepareToPlay since doesn't cancel it); in an
+//   offline render only, waits for a kit load in flight (ADR 0005 D5: 1 ms steps, 30 s per load at most;
+//   never in real time, never when content is missing); reads the controls; resolves the transport (the
+//   host's, or the internal one); copies the MIDI into a fixed array of 3-byte messages (no SysEx); runs
+//   the engine in pieces no longer than the prepared block; adds the Samples drawer's audition, dry, over
+//   the whole block (7b; never in an offline render, and with none playing it touches nothing); applies
+//   master_gain through its 20 ms smoother; and leaves the transport for the editor. A bypassed block lets
+//   every audition go unplayed.
 //
 // The first prepareToPlay or setStateInformation queues the first kit load; nothing before. The sound
 // thread waits for the first audition.
@@ -43,6 +44,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <utility>
 
 namespace wubansia
 {
@@ -103,6 +105,9 @@ namespace wubansia
 
         // Shortens the offline wait's 30 s, for tests.
         void setOfflineWaitLimitForTesting (std::chrono::milliseconds limit) noexcept { waitLimitMs.store (limit.count()); }
+
+        // For tests: SoundService::setGiveUpProbeForTesting, after setContentForTesting and before any audition.
+        void setAuditionGiveUpProbeForTesting (std::function<void()> probe) { sounds->setGiveUpProbeForTesting (std::move (probe)); }
 
         // For the Controller and the tests.
         const KitService& kitService() const noexcept { return *service; }

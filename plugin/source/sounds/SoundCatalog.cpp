@@ -48,8 +48,9 @@ namespace wubansia::sounds
             return std::any_of (in.zones.begin(), in.zones.end(), [] (const engine::ZoneEntry& z) { return z.lo < z.hi; });
         }
 
-        // The file the kit's loops play: the top layer's first round robin of the zone on the tonic (pitched) or the
-        // first zone (one key). -1 when the instrument has none.
+        // The default file (rule 5): the top layer's first round robin of the first zone on the tonic (pitched; else
+        // the middle zone) or of the first zone (one key). The kit's key note at its lowest and loudest, which the
+        // kit's loops usually play, not always. -1 when the instrument has none.
         int defaultFileOf (const engine::InstrumentEntry& in, int tonic)
         {
             if (in.zones.empty())
@@ -172,16 +173,19 @@ namespace wubansia::sounds
                 c.info.id = kitId + "/" + text (file.path);
                 c.info.name = text (stemOf (file.path));
                 c.info.category = SoundCategory::loops;
+                c.info.part = categoryOf (phrase.lane); // a bass line says so
                 c.info.files = soundFiles (kit, { stem });
                 c.info.loopBars = phrase.cycle16ths / 16;
                 collected.push_back (std::move (c));
             }
 
-        // 7. The default file's numbers.
+        // 7. The default file's numbers; an instrument plays as its category (after any merge) says.
         std::vector<SoundInfo> sounds;
         sounds.reserve (collected.size());
         for (auto& c : collected)
         {
+            if (c.info.category != SoundCategory::loops)
+                c.info.part = c.info.category;
             const auto& file = kit.files[static_cast<std::size_t> (c.info.files[static_cast<std::size_t> (c.info.defaultFile)].file)];
             c.info.bars = barsOf (file.frames, kit.kit.bpm);
             c.info.leadInMs = static_cast<int> (std::floor (static_cast<double> (file.prerollFrames) / 48.0 + 0.5)); // 48 frames a millisecond
@@ -219,6 +223,21 @@ namespace wubansia::sounds
             case SoundCategory::bass: return "Bass";
             case SoundCategory::drums: return "Drums";
             case SoundCategory::loops: return "Loops";
+        }
+        return {};
+    }
+
+    juce::String partName (SoundCategory part)
+    {
+        switch (part)
+        {
+            case SoundCategory::accents: return "Accent";
+            case SoundCategory::fx: return "FX";
+            case SoundCategory::vox: return "Vox";
+            case SoundCategory::synths: return "Synth";
+            case SoundCategory::bass: return "Bass";
+            case SoundCategory::drums: return "Drum";
+            case SoundCategory::loops: break;
         }
         return {};
     }

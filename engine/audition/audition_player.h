@@ -11,6 +11,9 @@
 // Every clip comes back exactly once: from offer ()'s return, from collectRetired (), or to the destructor.
 //
 // At the start of each block the audio thread:
+// - counts the block (blocksRun ());
+// - lets the clips in hand go unplayed, unfaded, if the sound thread gave them up (dropIfIdleSince) and no block ran
+//   since it looked: a host that stopped running blocks mid-clip and comes back hears nothing stale;
 // - takes the offered clip, only while no replaced clip is still fading out and the retire FIFO has room (so it can
 //   always let a clip go);
 // - lets it go unplayed if it was made for another rate or its ticket is stopped; otherwise plays it from its first
@@ -80,6 +83,16 @@ namespace wubansia::engine
         std::uint32_t sounding() const noexcept; // any thread: the ticket playing (not fading out), 0 when none
         bool offered() const noexcept; // any thread: an offer waits for the audio thread (a snapshot)
 
+        // Any thread: how many blocks process () has run, silent ones too. The sound thread watches it to tell a host
+        // that has stopped running blocks.
+        std::uint64_t blocksRun() const noexcept;
+
+        // The sound thread, once the host has run no block for a while: if the next block is the first since `seen`
+        // blocks had run, the clips in hand (the one playing and the one fading out, never the offer) go at its
+        // start, unplayed and unfaded, so a host that comes back plays nothing stale. If a block ran meanwhile, it
+        // changes nothing: what plays plays on (or fades out, if it was stopped).
+        void dropIfIdleSince (std::uint64_t seen) noexcept;
+
     private:
         // One clip in the audio thread's hands.
         struct Slot
@@ -100,12 +113,15 @@ namespace wubansia::engine
         std::atomic<double> rate_ { 0.0 };
         std::atomic<std::uint32_t> stopTicket { 0 };
         std::atomic<std::uint32_t> soundingTicket { 0 };
+        std::atomic<std::uint64_t> blocks { 0 }; // written by the audio thread only; 64 bits never wrap
+        std::atomic<std::uint64_t> dropAt { 0 }; // the block (counted from 1) whose start drops the clips in hand; 0: none
 
         // The audio thread's own: the clip playing (which fades out where it is once stopped), and the one it
         // replaced, fading out.
         Slot current;
         Slot fading;
 
-        static_assert (std::atomic<double>::is_always_lock_free && std::atomic<std::uint32_t>::is_always_lock_free);
+        static_assert (std::atomic<double>::is_always_lock_free && std::atomic<std::uint32_t>::is_always_lock_free
+                       && std::atomic<std::uint64_t>::is_always_lock_free);
     };
 }

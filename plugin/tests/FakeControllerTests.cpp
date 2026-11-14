@@ -184,6 +184,19 @@ TEST_CASE ("the fake records sounds, auditions, stops and exports, and writes a 
         CHECK (controller.auditionState().hostSilent);
     }
 
+    SECTION ("a kit chosen stops the audition, as the Controller's selectKit does; an unknown id stops nothing")
+    {
+        const auto ticket = controller.audition ({ "FUT01", 166 });
+        REQUIRE (controller.auditionState().sounding == ticket);
+        controller.selectKit ("NOPE");
+        CHECK (controller.auditionState().sounding == ticket);
+        controller.selectKit ("FUT01"); // the kit that plays already: it stops all the same
+        CHECK (controller.auditionState().sounding == 0u);
+        CHECK (controller.auditionState().latest == ticket);
+        CHECK_FALSE (controller.auditionState().waiting);
+        CHECK (fake.stops == 0); // stops counts the editor's own stopAudition () calls
+    }
+
     SECTION ("the samples folder: chosen, refused, back to the default")
     {
         const auto mine = samples.getChildFile ("Mine");

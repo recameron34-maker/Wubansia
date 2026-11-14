@@ -335,6 +335,11 @@ TEST_CASE ("the default file: the top layer's first round robin, on the kit's to
         { "FUT03", "Conga", "Drums/Conga G3 v3 rr1.wav" }, // one key per zone: the first zone
         { "FUT04", "Mod Blip", "Music/Mod Blip E5 v2.wav" },
         { "FUT01", "Kick Split", "Drums/Kick Split v5 rr1.wav" },
+        // The rule gives the tonic's lowest zone, which isn't always one the kit's MIDI plays: FUT03 plays its Vox
+        // Synth and Keys EP from G4 up, and FUT02's arp runs A4-C6 above its one tonic zone. Pinned: a choice on record.
+        { "FUT03", "Vox Synth", "Vox/Vox Synth G3 v2.wav" },
+        { "FUT03", "Keys EP", "Music/Keys EP G3 v2.wav" },
+        { "FUT02", "Chrome Arp", "Music/Chrome Arp D4 v2.wav" },
     };
     for (const auto& e : examples)
     {
@@ -454,6 +459,52 @@ TEST_CASE ("lengths: whole bars at the kit's tempo, end-aligned sounds, lead-ins
         CHECK (barsFor (47999) == 0);
         riserFile.prerollFrames = 72; // 1.5 ms rounds to 2
         CHECK (named (sounds::soundsOf (kit), "Riser").leadInMs == 2);
+    }
+}
+
+TEST_CASE ("a loop's part is its phrase's lane, Bass for a bass line; any other sound's is its category", "[sounds]")
+{
+    struct Example
+    {
+        const char* kit;
+        const char* loop;
+        SoundCategory part;
+    };
+    const Example examples[] {
+        { "FUT01", "Chrome Pluck Phrase", SoundCategory::synths }, // lead
+        { "FUT02", "Orbit Line Clean", SoundCategory::bass },
+        { "FUT02", "Relay Line Warm", SoundCategory::bass },
+        { "FUT03", "Line Deep Clean", SoundCategory::bass },
+        { "FUT04", "Acid Line 1 Clean 4 Bars", SoundCategory::bass },
+    };
+    for (const auto& e : examples)
+    {
+        CAPTURE (e.kit, e.loop);
+        const auto& sound = named (sounds::soundsOf (manifestOf (e.kit)), e.loop);
+        CHECK (sound.category == SoundCategory::loops);
+        CHECK (sound.part == e.part);
+    }
+
+    // Every loop's part is its phrase's lane (bass, lead and vox lines in these kits); everything else plays as listed.
+    for (const auto& entry : embedded().entries())
+    {
+        CAPTURE (entry.id);
+        std::array<int, kSoundCategories> loopParts {};
+        for (const auto& sound : sounds::soundsOf (entry.manifest))
+        {
+            CAPTURE (sound.id.toStdString());
+            if (sound.category != SoundCategory::loops)
+            {
+                CHECK (sound.part == sound.category);
+                continue;
+            }
+            CHECK (sound.part != SoundCategory::loops);
+            ++loopParts[(std::size_t) sound.part];
+        }
+        int loops = 0;
+        for (const auto& phrase : entry.manifest.phrases)
+            loops += (phrase.stemA >= 0 ? 1 : 0) + (phrase.stemB >= 0 ? 1 : 0);
+        CHECK (loopParts[(std::size_t) SoundCategory::bass] + loopParts[(std::size_t) SoundCategory::synths] + loopParts[(std::size_t) SoundCategory::vox] == loops);
     }
 }
 

@@ -13,20 +13,30 @@
 #include "services/KitCatalog.h"
 #include "sounds/SampleExport.h"
 
+#include "kit/file_sample_source.h"
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <map>
 #include <set>
 #include <thread>
+#include <tuple>
 #include <utility>
 
+#if JUCE_LINUX || JUCE_BSD
+    #include <dlfcn.h>
+#endif
+
 using Catch::Matchers::ContainsSubstring;
+using Catch::Matchers::EndsWith;
 using Catch::Matchers::WithinAbs;
 using wubansia::PluginEditor;
 using wubansia::test::FakeController;
@@ -1154,6 +1164,57 @@ TEST_CASE ("the Samples button opens the drawer over the lanes, A/B and FX; the 
         });
 }
 
+TEST_CASE ("while the drawer is open, Tab and screen readers reach nothing it covers", "[editor][sounds]")
+{
+    Rig rig;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            // What the drawer hides from sight: a component wholly inside its bounds, and not its own.
+            auto& drawer = openDrawer (editor);
+            auto* face = drawer.getParentComponent();
+            REQUIRE (face != nullptr);
+            const auto under = [&] (juce::Component* c) {
+                return c != &drawer && ! drawer.isParentOf (c) && drawer.getBounds().contains (face->getLocalArea (c, c->getLocalBounds()));
+            };
+            const auto name = [] (juce::Component* c) { return c->getComponentID().isNotEmpty() ? c->getComponentID() : "'" + c->getTitle() + "'"; };
+
+            juce::StringArray tabStops, covered;
+            for (auto* c : juce::KeyboardFocusTraverser().getAllComponents (&editor))
+            {
+                tabStops.add (name (c));
+                if (under (c))
+                    covered.add (name (c));
+            }
+            for (auto* c : juce::FocusTraverser().getAllComponents (&editor)) // what a screen reader walks
+                if (under (c))
+                    covered.addIfNotAlreadyThere (name (c));
+            INFO ("under the drawer: " << covered.joinIntoString (" "));
+            CHECK (covered.isEmpty());
+
+            // The drawer's controls and those around it stay in reach.
+            INFO ("tab stops: " << tabStops.joinIntoString (" "));
+            for (const auto* id : { "samples_kit_FUT01", "sound_list", "sound_drag", "samples_content", "samples", "zoom", "play_mode" })
+            {
+                INFO (id);
+                CHECK (tabStops.contains (id));
+            }
+
+            // Closed, the lanes, A/B and FX are back, and so are their keys.
+            click (get<juce::Button> (editor, "samples_close"));
+            editor.tick();
+            for (const auto l : { engine::Lane::kick, engine::Lane::fx })
+                CHECK (lane (editor, l).isVisible());
+            CHECK (get<juce::Component> (editor, "ab").isVisible());
+            CHECK (get<juce::Component> (editor, "fx").isVisible());
+            juce::StringArray after;
+            for (auto* c : juce::KeyboardFocusTraverser().getAllComponents (&editor))
+                after.add (name (c));
+            CHECK (after.contains (ids::laneMute[0]));
+            CHECK (after.contains (ids::clubMaster));
+        });
+}
+
 TEST_CASE ("the drawer and the content panel never show together; Content... opens the install panel", "[editor][sounds]")
 {
     Rig rig;
@@ -1321,8 +1382,10 @@ TEST_CASE ("the detail pane shows the selected sound: its file, length and forma
             click (get<juce::Button> (editor, "samples_category_synths"));
             CHECK (drawer.hintText() == "9 recorded notes: pick one in File");
 
-            // A loop: its bars at the kit's tempo; with an echo tail beyond its cycle, both.
+            // A loop: what it plays, and its bars at the kit's tempo; with an echo tail beyond its cycle, both.
             click (get<juce::Button> (editor, "samples_category_loops"));
+            CHECK_THAT (detail().toStdString(), ContainsSubstring ("Synth loop" + editor::middleDot().toStdString() + "FUT01"));
+            CHECK (soundRow (editor, 0).getTitle() == "Chrome Pluck Phrase, synth loop, 2 bars");
             CHECK (drawer.hintText() == "2 bars at 134 BPM");
             auto& loops = rig.controller.soundLists["FUT02"];
             loops[2].bars = 6;
@@ -1331,6 +1394,7 @@ TEST_CASE ("the detail pane shows the selected sound: its file, length and forma
             click (get<juce::Button> (editor, "samples_category_loops"));
             CHECK (drawer.hintText() == "6 bars at 130 BPM: a 4-bar loop, then a 2-bar echo tail");
             CHECK_THAT (detail().toStdString(), ContainsSubstring ("mono"));
+            CHECK_THAT (detail().toStdString(), ContainsSubstring ("Bass loop" + editor::middleDot().toStdString() + "FUT02" + editor::middleDot().toStdString() + "Dm"));
         });
 }
 
@@ -1442,6 +1506,61 @@ TEST_CASE ("Up and Down move through the rows and audition each; Space is left t
         });
 }
 
+TEST_CASE ("opening the drawer gives its list the keyboard: Down plays the next sound, Return plays it again", "[editor][sounds]")
+{
+    // Keyboard focus needs the editor in a window the OS lets this process focus: an X display here (xvfb-run does).
+#if ! (JUCE_LINUX || JUCE_BSD)
+    SKIP ("needs a window this test can focus: run it on Linux with a display");
+#else
+    if (juce::SystemStats::getEnvironmentVariable ("DISPLAY", {}).isEmpty())
+        SKIP ("no display: run it under xvfb-run");
+
+    // JUCE leaves Xlib's errors to Xlib's default handler, which ends the process, unless it runs as a standalone app;
+    // a window on a display with no window manager (Xvfb) draws a few harmless ones. They're ignored from here on.
+    using XHandler = int (*) (void*, void*);
+    if (auto* x11 = dlopen ("libX11.so.6", RTLD_NOW | RTLD_GLOBAL))
+        if (auto setHandler = reinterpret_cast<XHandler (*) (XHandler)> (dlsym (x11, "XSetErrorHandler")))
+            setHandler ([] (void*, void*) -> int { return 0; });
+
+    Rig rig;
+    auto& c = rig.controller;
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            juce::DocumentWindow window ("Wubansia", juce::Colours::black, 0, true);
+            window.setUsingNativeTitleBar (false);
+            window.setContentNonOwned (&editor, true);
+            window.setVisible (true);
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (300);
+            auto* peer = editor.getPeer();
+            REQUIRE (peer != nullptr);
+
+            // A click on Samples leaves the keyboard on it, as a real one does; then the drawer opens.
+            auto& samples = get<juce::Button> (editor, "samples");
+            samples.grabKeyboardFocus();
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+            if (! samples.hasKeyboardFocus (false))
+                SKIP ("the window didn't get the keyboard focus");
+            click (samples);
+            editor.tick();
+            REQUIRE (editor.isSamplesPanelShown());
+            auto& drawer = get<editor::SamplesPanel> (editor, "samples_drawer");
+            auto& list = get<juce::Component> (editor, "sound_list");
+            CHECK (list.hasKeyboardFocus (false));
+            CHECK (c.auditions.empty()); // opening plays nothing
+
+            // The keys reach the list, not the host or the Samples button.
+            CHECK (peer->handleKeyPress (juce::KeyPress (juce::KeyPress::downKey)));
+            CHECK (drawer.selectedRow() == 1);
+            REQUIRE (c.auditions.size() == 1);
+            CHECK (peer->handleKeyPress (juce::KeyPress (juce::KeyPress::returnKey)));
+            CHECK (c.auditions.size() == 2);
+            CHECK (editor.isSamplesPanelShown()); // Return played; it didn't close the drawer
+
+            window.clearContentComponent();
+        });
+#endif
+}
+
 TEST_CASE ("the File box changes what plays, drags and reveals", "[editor][sounds]")
 {
     Rig rig;
@@ -1550,8 +1669,9 @@ TEST_CASE ("a 4-pixel drag exports once and hands that one WAV to the OS; a clic
             CHECK (os.dragged.size() == 2);
             CHECK (os.revealed.size() == 1);
 
-            // While the OS runs the drag (Windows in a modal loop, the editor's timer ticking), the drawer holds still,
-            // keeping the row the drag started from; a kit chosen meanwhile is followed once the drag is over.
+            // A tick while startDrag hands the drag over doesn't follow another kit, so the row the drag starts from
+            // stays; the next tick follows it. (JUCE 9.0.4 ticks nothing inside the call: its OS drags return as soon
+            // as they begin.)
             auto followedDuringDrag = true;
             drawer.startDrag = [&] (const juce::File& file, juce::Component&)
             {
@@ -1611,6 +1731,210 @@ TEST_CASE ("an export that fails starts no drag and says why", "[editor][sounds]
         });
 }
 
+TEST_CASE ("an export the kit's own file fails says what fixes the kit, not the folder", "[editor][sounds]")
+{
+    Rig rig;
+    TempFolder samples;
+    rig.controller.samplesFolderChosen = samples.folder;
+    auto& c = rig.controller;
+    const auto refusal = [] (const char* problem, const char* detail, bool reinstall)
+    {
+        wubansia::SoundExport copy;
+        copy.problem = problem;
+        copy.detail = detail;
+        copy.sourceProblem = true;
+        copy.reinstall = reinstall;
+        return copy;
+    };
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openDrawer (editor);
+            juce::StringArray said;
+            drawer.announce = [&said] (const juce::String& text) { said.add (text); };
+            Handoffs os;
+            os.hook (drawer);
+            auto& tile = get<editor::SoundDragTile> (editor, "sound_drag");
+
+            // The installed file is gone (an unplugged drive, say): another samples folder wouldn't help. The line names
+            // the file in the kit and what helps, and nothing else; where it was looked for is in the tooltip, and said.
+            const auto gone = refusal ("FUT01's Music/Reverse Stab v2.wav is missing",
+                "missing: Music/Reverse Stab v2.wav: no such file in /Users/someone/Library/Application Support/Wubansia Audio/Wubansia/Content/fut01/v1",
+                false);
+            c.exportOutcome = [&gone] (const wubansia::SoundRef&) { return gone; };
+            drag (tile, 6.0f);
+            CHECK (os.dragged.isEmpty());
+            CHECK (tile.hasFailed());
+            const juce::String line ("Couldn't save Reverse Stab v2: FUT01's Music/Reverse Stab v2.wav is missing. Check that FUT01's samples are still installed.");
+            CHECK (drawer.statusText() == line);
+            const juce::String where ("Music/Reverse Stab v2.wav: no such file in /Users/someone/Library/Application Support/Wubansia Audio/Wubansia/Content/fut01/v1.");
+            CHECK (drawer.statusTooltip() == line + "\n" + where);
+            REQUIRE_FALSE (said.isEmpty());
+            CHECK (said[said.size() - 1] == line + " " + where);
+
+            // A content folder whose name holds "install" changes nothing: the advice comes from the result, not its words.
+            c.exportOutcome = [&refusal] (const wubansia::SoundRef&)
+            {
+                return refusal ("FUT01's Music/Reverse Stab v2.wav is missing",
+                    "missing: Music/Reverse Stab v2.wav: no such file in /Users/someone/Music/Installed Kits/fut01/v1", false);
+            };
+            click (tile);
+            CHECK (drawer.statusText() == line);
+            CHECK (drawer.statusTooltip().endsWith ("/Users/someone/Music/Installed Kits/fut01/v1."));
+
+            // Bytes that aren't kit.json's: the problem already says what to do, and there's no more to it.
+            c.exportOutcome = [&refusal] (const wubansia::SoundRef&)
+            { return refusal ("Reverse Stab v2.wav isn't the file FUT01's content v1 lists: reinstall FUT01", "", true); };
+            click (get<juce::Button> (editor, "sound_reveal"));
+            CHECK (os.revealed.isEmpty());
+            CHECK (drawer.statusText() == "Couldn't save Reverse Stab v2: Reverse Stab v2.wav isn't the file FUT01's content v1 lists: reinstall FUT01.");
+            CHECK (drawer.statusTooltip() == drawer.statusText());
+            CHECK (said[said.size() - 1] == drawer.statusText());
+
+            // A check's code never shows ("lfs_pointer: ..." from the kit's content status, say).
+            c.exportOutcome = [&refusal] (const wubansia::SoundRef&)
+            { return refusal ("lfs_pointer: Music/Reverse Stab v2.wav: a Git LFS pointer file", "", false); };
+            click (tile);
+            CHECK (drawer.statusText() == "Couldn't save Reverse Stab v2: Music/Reverse Stab v2.wav: a Git LFS pointer file. Check that FUT01's samples are still installed.");
+
+            // A failure at the samples folder still points to Change...
+            c.exportOutcome = nullptr;
+            c.exportFails = true;
+            drag (tile, 6.0f);
+            CHECK_THAT (drawer.statusText().toStdString(), EndsWith (editor::utf8 ("Choose another folder with Change\xe2\x80\xa6").toStdString()));
+            CHECK (drawer.statusTooltip() == drawer.statusText());
+        });
+}
+
+TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for every file of the four kits", "[editor][sounds]")
+{
+    // Every file of the four kits, refused as exportCopy refuses one that's gone from the default macOS content folder
+    // under a long user name: the drawer's line must show all of itself, the advice last, in the footer's font and in
+    // the status area the drawer lays out, beside the default samples folder and beside one long enough to take the
+    // folder text's full width.
+    const wubansia::KitCatalog catalog (wubansia::EmbeddedContent::sources());
+    const auto contentFolder = [] (const std::string& kit)
+    {
+        return "/Users/christopher.henderson/Library/Application Support/Wubansia Audio/Wubansia/Content/" + juce::String (kit).toLowerCase().toStdString() + "/v1";
+    };
+    const auto refused = [&] (const wubansia::KitCatalog::Entry& entry, int file)
+    {
+        const auto& listed = entry.manifest.files[(std::size_t) file];
+        const engine::FileSampleSource gone (std::filesystem::path (contentFolder (entry.id)));
+        const auto read = gone.readBytes (listed.path);
+        REQUIRE_FALSE (read.ok());
+        return wubansia::sounds::soundExportOf (wubansia::sounds::unreadableSource (entry.info, listed, read.error));
+    };
+
+    Rig rig;
+    auto& c = rig.controller;
+    c.kitCards.clear();
+    for (const auto& entry : catalog.entries())
+    {
+        REQUIRE (entry.ok());
+        auto card = entry.card;
+        card.content = {};
+        card.content.state = wubansia::ContentState::ready;
+        card.content.folder = juce::File (contentFolder (entry.id));
+        c.kitCards.push_back (card);
+        c.soundLists[entry.card.id] = entry.sounds;
+    }
+    c.contentStatus = c.kitCards.front().content;
+    c.exportOutcome = [&] (const wubansia::SoundRef& ref)
+    {
+        const auto* entry = catalog.find (ref.kit.toStdString());
+        REQUIRE (entry != nullptr);
+        return refused (*entry, ref.file);
+    };
+
+    // The rail's categories in SoundCategory's order, as their buttons are named.
+    constexpr std::array<const char*, wubansia::kSoundCategories> categoryIds { "accents", "fx", "vox", "synths", "bass", "drums", "loops" };
+
+    // The glyph drawFittedText ends a cut line with.
+    const auto font = editor::uiFont (11.5f, true);
+    juce::GlyphArrangement dots;
+    dots.addLineOfText (font, juce::String::charToString ((juce::juce_wchar) 0x2026), 0.0f, 0.0f);
+    REQUIRE (dots.getNumGlyphs() == 1);
+    const auto ellipsis = dots.getGlyph (0).getGlyphIndex();
+
+    for (const auto* samplesFolder : { "", "/Volumes/Studio Archive 2026/Sample Libraries/Wubansia drags for the next album" })
+    {
+        c.samplesFolderChosen = juce::String (samplesFolder).isEmpty() ? wubansia::sounds::defaultSamplesFolder() : juce::File (samplesFolder);
+        withEditor (rig, [&] (PluginEditor& editor)
+            {
+                editor.setZoom (1.0f);
+                auto& drawer = openDrawer (editor);
+                Handoffs os;
+                os.hook (drawer);
+                const auto area = drawer.statusBounds();
+                INFO ("status area " << area.toString());
+                REQUIRE (area.getWidth() > 400);
+
+                juce::String widest;
+                float widestWidth = 0.0f;
+                std::tuple<juce::String, juce::String, int> widestSound;
+                int lines = 0;
+                for (const auto& entry : catalog.entries())
+                    for (const auto& sound : entry.sounds)
+                        for (int i = 0; i < (int) sound.files.size(); ++i)
+                        {
+                            const auto& file = sound.files[(std::size_t) i];
+                            const auto line = editor::failedCopyLine (file.label, entry.card.id, refused (entry, file.file));
+                            INFO (line);
+                            ++lines;
+                            CHECK (line.endsWith (". Check that " + entry.card.id + "'s samples are still installed."));
+                            CHECK_FALSE (line.contains ("missing:"));
+                            CHECK_FALSE (line.contains ("/Users/"));
+
+                            // Two lines, word by word: what one line leaves for the next is never more than a word.
+                            const auto width = juce::GlyphArrangement::getStringWidth (font, line);
+                            float longestWord = 0.0f;
+                            for (const auto& word : juce::StringArray::fromTokens (line, " ", ""))
+                                longestWord = juce::jmax (longestWord, juce::GlyphArrangement::getStringWidth (font, word + " "));
+                            CHECK (width + longestWord <= 2.0f * (float) area.getWidth());
+
+                            // And as drawFittedText lays it out here: nothing cut.
+                            juce::GlyphArrangement drawn;
+                            drawn.addFittedText (font, line, (float) area.getX(), (float) area.getY(), (float) area.getWidth(), (float) area.getHeight(),
+                                juce::Justification::centredLeft, 2, 0.9f);
+                            bool cut = false;
+                            for (int g = 0; g < drawn.getNumGlyphs(); ++g)
+                                cut = cut || drawn.getGlyph (g).getGlyphIndex() == ellipsis;
+                            CHECK_FALSE (cut);
+
+                            if (width > widestWidth)
+                            {
+                                widestWidth = width;
+                                widest = line;
+                                widestSound = { entry.card.id, sound.name, i };
+                            }
+                        }
+                CHECK (lines >= 618);
+
+                // The widest, through the drawer itself: its kit, its category, its row, its file, and a click on the tile.
+                const auto& [kit, name, fileIndex] = widestSound;
+                INFO ("widest: " << widest);
+                click (get<editor::KitChip> (editor, "samples_kit_" + kit));
+                const auto* entry = catalog.find (kit.toStdString());
+                REQUIRE (entry != nullptr);
+                const auto it = std::find_if (entry->sounds.begin(), entry->sounds.end(), [&] (const wubansia::SoundInfo& s) { return s.name == name; });
+                REQUIRE (it != entry->sounds.end());
+                click (get<editor::CategoryButton> (editor, "samples_category_" + juce::String (categoryIds[(std::size_t) it->category])));
+                editor.tick();
+                int row = -1;
+                for (int i = 0; i < drawer.numRows(); ++i)
+                    if (soundRow (editor, i).look().name == name)
+                        row = i;
+                REQUIRE (row >= 0);
+                press (soundRow (editor, row));
+                get<juce::ComboBox> (editor, "sound_file").setSelectedItemIndex (fileIndex, juce::sendNotificationSync);
+                click (get<editor::SoundDragTile> (editor, "sound_drag"));
+                CHECK (drawer.statusText() == widest);
+                CHECK (os.revealed.isEmpty());
+            });
+    }
+}
+
 TEST_CASE ("a kit chip browses another kit without selecting it; a kit without samples shows why", "[editor][sounds]")
 {
     Rig rig;
@@ -1648,8 +1972,9 @@ TEST_CASE ("a kit chip browses another kit without selecting it; a kit without s
             CHECK (soundRow (editor, 0).look().name == "Glass Ping");
             CHECK (soundRow (editor, 0).look().dimmed);
             const auto banner = drawer.bannerText().toStdString();
-            CHECK_THAT (banner, ContainsSubstring ("FUT02's samples aren't installed") && ContainsSubstring ("no folder holds FUT02", Catch::CaseSensitive::No)
-                                    && ContainsSubstring ("install-macos.sh") && ContainsSubstring ("the folder that holds 'fut02'"));
+            CHECK_THAT (banner, ContainsSubstring ("FUT02's samples aren't installed") && ContainsSubstring ("install-macos.sh")
+                                    && ContainsSubstring ("the folder that holds 'fut02'"));
+            CHECK_THAT (banner, ! ContainsSubstring ("no folder holds FUT02", Catch::CaseSensitive::No)); // the headline says it
             CHECK (get<juce::Button> (editor, "samples_content_folder").isVisible());
             press (soundRow (editor, 0));
             CHECK (c.auditions.empty());
@@ -1705,6 +2030,66 @@ TEST_CASE ("a kit chip browses another kit without selecting it; a kit without s
             CHECK_FALSE (soundRow (editor, 0).look().dimmed);
             CHECK (drawer.bannerText().isEmpty());
             CHECK (drawer.statusText().isEmpty());
+        });
+}
+
+TEST_CASE ("the banner says what's wrong once, in words, without the content check's codes", "[editor][sounds]")
+{
+    // The problems as the content check words them (ContentLocator, P4's FileSampleSource and checkKitFiles).
+    struct Case
+    {
+        const char* what;
+        wubansia::ContentState state;
+        bool folder; // a kit folder was found, with something wrong in it
+        const char* problem;
+        const char* shows; // what the banner's second line holds; "" for nothing but its own advice
+    };
+    const Case cases[] {
+        { "no folder holds it", wubansia::ContentState::missing, false,
+            "No content folder holds FUT02 (fut02/v1 or fut02): install its content, or choose the folder that holds it", "" },
+        { "a file missing from its folder", wubansia::ContentState::missing, true,
+            "missing: Drums/Kick Split v1 rr1.wav: no such file in /x/fut02/v1", "Drums/Kick Split v1 rr1.wav: no such file in /x/fut02/v1. " },
+        { "Git LFS pointers", wubansia::ContentState::lfsPointers, true,
+            "lfs_pointer: Drums/Kick Split v1 rr1.wav: a Git LFS pointer file for 65729 bytes of audio, not the audio itself: fetch the "
+            "samples (git lfs pull) or install the content",
+            "" },
+        { "another version's file", wubansia::ContentState::mismatch, true,
+            "mismatch: Drums/Kick Split v1 rr1.wav: 1000 frames and 1 channel; kit.json lists 19518 frames and 1 channel",
+            "Drums/Kick Split v1 rr1.wav: 1000 frames and 1 channel; kit.json lists 19518 frames and 1 channel. " },
+        { "a 44.1 kHz file", wubansia::ContentState::mismatch, true, "rate: Drums/Kick Split v1 rr1.wav: 44100 Hz; the content is 48000 Hz",
+            "Drums/Kick Split v1 rr1.wav: 44100 Hz; the content is 48000 Hz. " },
+        { "a file that can't be read", wubansia::ContentState::failed, true, "unreadable: Drums/Kick Split v1 rr1.wav: permission denied",
+            "Drums/Kick Split v1 rr1.wav: permission denied. " },
+    };
+
+    Rig rig;
+    auto& c = rig.controller;
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openDrawer (editor);
+            drawer.platform = editor::ContentPanel::Platform::macOS;
+            click (get<editor::KitChip> (editor, "samples_kit_FUT02"));
+            for (const auto& k : cases)
+            {
+                CAPTURE (k.what);
+                c.kitCards[1].content = {};
+                c.kitCards[1].content.state = k.state;
+                c.kitCards[1].content.problem = k.problem;
+                if (k.folder)
+                    c.kitCards[1].content.folder = juce::File ("/x/fut02/v1");
+                editor.tick();
+                const auto lines = juce::StringArray::fromLines (drawer.bannerText());
+                REQUIRE (lines.size() == 2);
+                const auto body = lines[1];
+                CAPTURE (body.toStdString());
+                CHECK (body.startsWith (k.shows));
+                for (const auto* code : { "Missing:", "Mismatch:", "Lfs_pointer:", "Rate:", "Unreadable:", "missing:", "lfs_pointer:" })
+                    CHECK_FALSE (body.contains (code));
+                // Each piece of advice once: the drawer's own, not the check's too.
+                CHECK (body.indexOf ("choose") == body.lastIndexOf ("choose"));
+                CHECK (body.indexOf ("git lfs pull") == body.lastIndexOf ("git lfs pull"));
+                CHECK_FALSE (body.contains ("No content folder holds"));
+            }
         });
 }
 
@@ -1770,13 +2155,14 @@ TEST_CASE ("the drawer follows the playing kit until a chip is picked", "[editor
         });
 }
 
-TEST_CASE ("the playing row shows Stop while its ticket sounds; a silent host gets the Logic hint", "[editor][sounds]")
+TEST_CASE ("the playing row shows Stop while its ticket sounds; a silent Logic gets the Logic hint", "[editor][sounds]")
 {
     Rig rig;
     auto& c = rig.controller;
 
     withEditor (rig, [&] (PluginEditor& editor)
         {
+            editor.setLogicHostForTesting (true); // the plugin in Logic Pro
             auto& drawer = openDrawer (editor);
             auto& stop = get<juce::Button> (editor, "sound_stop");
             press (soundRow (editor, 1));
@@ -1838,6 +2224,64 @@ TEST_CASE ("the playing row shows Stop while its ticket sounds; a silent host ge
             editor.tick();
             CHECK_FALSE (soundRow (editor, 2).look().failed);
             CHECK (soundRow (editor, 1).look().playing);
+            CHECK (drawer.statusText().isEmpty());
+        });
+}
+
+TEST_CASE ("no sound names Logic only in Logic: any other host gets words that fit every DAW", "[editor][sounds]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            // The editor asks juce::PluginHostType which host runs it: this test binary is no DAW, as Live isn't Logic.
+            // Its words send no one to a track's selection or to Play (Live runs no audio with its engine off, say).
+            auto& drawer = openDrawer (editor);
+            press (soundRow (editor, 1));
+            c.auditionStatus.sounding = 0;
+            c.auditionStatus.hostSilent = true;
+            editor.tick();
+            const juce::String anyDaw ("No sound from your DAW: it isn't running Wubansia's audio right now. Check that its audio engine is on and this "
+                                       "track is active.");
+            CHECK (drawer.statusText() == anyDaw);
+            CHECK_FALSE (drawer.statusText().contains ("Logic"));
+            CHECK_FALSE (drawer.statusText().contains ("Play"));
+
+            // In Logic, Logic's own words; and a host given up mid-clip says the same as one that never took it.
+            editor.setLogicHostForTesting (true);
+            editor.tick();
+            CHECK (drawer.statusText()
+                   == "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed. Select this track, or press Play.");
+            editor.setLogicHostForTesting (false);
+            editor.tick();
+            CHECK (drawer.statusText() == anyDaw);
+            CHECK (drawer.keyPressed (juce::KeyPress (juce::KeyPress::escapeKey))); // Esc puts it away, as the others
+            editor.tick();
+            CHECK (drawer.statusText().isEmpty());
+        });
+}
+
+TEST_CASE ("in the Standalone app, no sound says its audio output isn't running, not Logic's hint", "[editor][sounds]")
+{
+    FakeController controller;
+    juce::AudioProcessor::setTypeOfNextNewPlugin (juce::AudioProcessor::wrapperType_Standalone);
+    TestProcessor processor ([&controller] (TestProcessor& p) { return new PluginEditor (p, controller); });
+    juce::AudioProcessor::setTypeOfNextNewPlugin (juce::AudioProcessor::wrapperType_Undefined);
+    REQUIRE (processor.wrapperType == juce::AudioProcessor::wrapperType_Standalone);
+
+    withEditor (processor, [&] (PluginEditor& editor)
+        {
+            // The app runs no blocks while no audio output is on: there is no DAW, track or Play to point at.
+            auto& drawer = openDrawer (editor);
+            press (soundRow (editor, 1));
+            controller.auditionStatus.sounding = 0;
+            controller.auditionStatus.hostSilent = true;
+            editor.tick();
+            CHECK (drawer.statusText() == "No sound: the app's audio output isn't running. Choose one in Options > Audio/MIDI Settings...");
+            CHECK_FALSE (drawer.statusText().contains ("Logic"));
+            CHECK (drawer.keyPressed (juce::KeyPress (juce::KeyPress::escapeKey))); // Esc puts it away, as the hint
+            editor.tick();
             CHECK (drawer.statusText().isEmpty());
         });
 }
@@ -1933,6 +2377,117 @@ TEST_CASE ("the drawer's rows and tile work without a mouse, in the drawer's ord
                 if (i > 0)
                     CHECK (order.indexOf (expected[i - 1]) < order.indexOf (expected[i]));
             }
+        });
+}
+
+TEST_CASE ("screen readers hear which kit and category show, what the tile does, and the drawer's messages", "[editor][sounds]")
+{
+    Rig rig;
+    TempFolder samples;
+    rig.controller.samplesFolderChosen = samples.folder;
+    auto& c = rig.controller;
+    // A vox sound without a lead-in ahead of Vox Synth (6 ms), and a loop with an echo tail, as FUT03's Context Vox Riff
+    // has: 6 bars, 4 of them loop.
+    auto& list = c.soundLists["FUT01"];
+    REQUIRE (list[4].name == "Vox Synth");
+    auto chop = list[4];
+    chop.id = "FUT01/vox_chop";
+    chop.name = "Vox Chop";
+    chop.leadInMs = 0;
+    list.insert (list.begin() + 4, chop);
+    auto& phrase = list.back();
+    REQUIRE (phrase.category == wubansia::SoundCategory::loops);
+    phrase.bars = 6;
+    phrase.loopBars = 4;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openDrawer (editor);
+            drawer.platform = editor::ContentPanel::Platform::macOS;
+            juce::StringArray said;
+            drawer.announce = [&said] (const juce::String& text) { said.add (text); };
+            Handoffs os;
+            os.hook (drawer);
+            auto& fut01 = get<editor::KitChip> (editor, "samples_kit_FUT01");
+            auto& fut02 = get<editor::KitChip> (editor, "samples_kit_FUT02");
+
+            // The chips: the kit, then whether it shows and whether it plays. Not toggles: a press browses.
+            CHECK (fut01.getTitle() == "FUT01 Alloy Signal, shown, playing");
+            CHECK (fut02.getTitle() == "FUT02 Orbit Relay");
+            CHECK_FALSE (fut01.isToggleable());
+
+            // The categories: the name, how many, and the one shown.
+            CHECK (get<juce::Button> (editor, "samples_category_accents").getTitle() == "Accents, 3 sounds, shown");
+            CHECK (get<juce::Button> (editor, "samples_category_fx").getTitle() == "FX, 1 sound");
+            click (get<juce::Button> (editor, "samples_category_fx"));
+            CHECK (get<juce::Button> (editor, "samples_category_fx").getTitle() == "FX, 1 sound, shown");
+            CHECK (get<juce::Button> (editor, "samples_category_accents").getTitle() == "Accents, 3 sounds");
+            click (get<juce::Button> (editor, "samples_category_accents"));
+
+            // The tile: its visible words first, then the file; its help is the detail pane's hint (how the sound sits on
+            // the grid), then what a press does.
+            auto& tile = get<editor::SoundDragTile> (editor, "sound_drag");
+            CHECK (tile.getTitle() == "Drag into your DAW: Reverse Stab v2 - FUT01 134 F#m 11A.wav");
+            CHECK (drawer.hintText() == "Ends on the beat: put its end on the downbeat");
+            CHECK (tile.getHelpText() == "Ends on the beat: put its end on the downbeat. Press to save it into your samples folder and show it in Finder");
+
+            // Every row's title says what its hint says of the grid, selected or not: an end on the beat, a lead-in (slide
+            // it earlier), a loop's echo tail (not a plain loop of its length).
+            CHECK (soundRow (editor, 0).getTitle() == "Reverse Stab, 1.30 seconds, ends on the beat");
+            CHECK (soundRow (editor, 1).getTitle() == "Rave Stab, 0.71 seconds");
+            click (get<juce::Button> (editor, "samples_category_vox"));
+            CHECK (soundRow (editor, 0).getTitle() == "Vox Chop, 1.90 seconds");
+            CHECK_FALSE (soundRow (editor, 1).look().selected);
+            CHECK (soundRow (editor, 1).getTitle() == "Vox Synth, 1.90 seconds, starts 6 ms before its beat");
+            press (soundRow (editor, 1));
+            CHECK (soundRow (editor, 1).look().selected);
+            CHECK (soundRow (editor, 1).getTitle() == "Vox Synth, 1.90 seconds, starts 6 ms before its beat");
+            CHECK (drawer.hintText() == "Starts 6 ms before its beat: slide it 6 ms earlier");
+            CHECK (tile.getHelpText() == "Starts 6 ms before its beat: slide it 6 ms earlier. Press to save it into your samples folder and show it in Finder");
+            click (get<juce::Button> (editor, "samples_category_loops"));
+            CHECK (soundRow (editor, 0).getTitle() == "Chrome Pluck Phrase, synth loop, 6 bars, a 4-bar loop, then a 2-bar echo tail");
+            CHECK (drawer.hintText() == "6 bars at 134 BPM: a 4-bar loop, then a 2-bar echo tail");
+            CHECK (tile.getHelpText() == "6 bars at 134 BPM: a 4-bar loop, then a 2-bar echo tail. Press to save it into your samples folder and show it in Finder");
+            click (get<juce::Button> (editor, "samples_category_accents"));
+            CHECK (tile.getTitle() == "Drag into your DAW: Reverse Stab v2 - FUT01 134 F#m 11A.wav");
+
+            // What the status line says is said aloud once: a copy saved, a copy that failed, the host's silence.
+            click (tile);
+            CHECK (said.contains ("Saved Reverse Stab v2 - FUT01.wav"));
+            c.exportFails = true;
+            click (tile);
+            CHECK (tile.getTitle() == "Couldn't save " + tile.fileName()); // the copy as last written
+            CHECK (said.contains (editor::utf8 ("Couldn't save Reverse Stab v2: the fake's disk is full. Choose another folder with Change\xe2\x80\xa6")));
+            c.exportFails = false;
+            press (soundRow (editor, 1));
+            c.auditionStatus.sounding = 0;
+            c.auditionStatus.hostSilent = true;
+            const auto before = said.size();
+            for (int i = 0; i < 5; ++i)
+                editor.tick();
+            CHECK (said.size() == before + 1); // once, not every tick
+            CHECK (said[said.size() - 1].startsWith ("No sound from your DAW"));
+
+            // A kit that can't play: its chips say so, the banner is said, and its button reads it too.
+            click (fut02);
+            editor.tick();
+            CHECK (fut02.getTitle() == "FUT02 Orbit Relay, shown");
+            CHECK (fut01.getTitle() == "FUT01 Alloy Signal, playing");
+            CHECK (said.contains ("FUT02's samples aren't installed. Install it with install-macos.sh, or choose the folder that holds 'fut02'."));
+            CHECK (get<juce::Button> (editor, "samples_content_folder").getDescription() == said[said.size() - 1]);
+
+            // While its samples load, that is said once, not every percent.
+            c.kitCards[1].content = {};
+            c.kitCards[1].content.state = wubansia::ContentState::loading;
+            c.kitCards[1].content.folder = samples.folder.getChildFile ("fut02");
+            const auto loading = said.size();
+            for (const auto percent : { 10, 42, 77 })
+            {
+                c.kitCards[1].content.percent = percent;
+                editor.tick();
+            }
+            CHECK (said.size() == loading + 1);
+            CHECK (said[said.size() - 1] == editor::utf8 ("Loading FUT02's samples\xe2\x80\xa6"));
         });
 }
 

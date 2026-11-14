@@ -151,6 +151,14 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: ctest --preset release --output-on-failure # needs no display; validate.sh uses xvfb for pluginval
 
+      - name: Window test (Xvfb)
+        # The one case that needs a window the OS can give the keyboard to: opening the Samples drawer gives its list
+        # the keys. ctest runs with no display, where it skips. Run on its own here, so that a skip (exit code 4: no
+        # display, or a window that never got the focus) or a name that no longer matches (exit code 2) fails the step.
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        timeout-minutes: 5
+        run: xvfb-run -a build/release/plugin/WubansiaPluginTests "opening the drawer gives its list the keyboard*"
+
       - name: Fetch validators
         # pluginval only. The report-only step below fetches clap-validator itself, so a
         # failed clap-validator download can't turn this job red.

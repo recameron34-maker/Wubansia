@@ -413,6 +413,53 @@ TEST_CASE ("FileSampleSource reads a kit folder by its manifest paths", "[wav]")
         // The pointer message says what to do.
         CHECK (source.read ("Drums/Pointer.wav").error.find ("git lfs pull") != std::string::npos);
     }
+
+    SECTION ("readBytes gives the file's bytes as they are, with read's checks and words")
+    {
+        const auto kick = source.readBytes ("Drums/Kick v1 rr1.wav");
+        REQUIRE (kick.ok());
+        CHECK (kick.value == readFixture ("pcm24_stereo.wav"));
+        const auto pointer = source.readBytes ("Drums/Pointer.wav"); // undecoded: the caller checks what it got
+        REQUIRE (pointer.ok());
+        CHECK (pointer.value == bytesOf (kLfsPointer));
+        const auto vox = source.readBytes (reinterpret_cast<const char*> (u8"Vox/Ahh été.wav"));
+        REQUIRE (vox.ok());
+        CHECK (vox.value == readFixture ("float32_mono.wav"));
+
+        struct Case
+        {
+            std::string_view path;
+            std::string_view error;
+        };
+        const Case cases[] {
+            { "Drums/Folder.wav", "unreadable: Drums/Folder.wav: it is a folder, not a file" },
+            { "../kit/Drums/Kick v1 rr1.wav", "missing: ../kit/Drums/Kick v1 rr1.wav: " },
+            { "Drums/Nothing.wav", "missing: Drums/Nothing.wav: no such file in " },
+        };
+        for (const auto& c : cases)
+        {
+            CAPTURE (c.path);
+            const auto refused = source.readBytes (c.path);
+            CHECK_FALSE (refused.ok());
+            CHECK (refused.error.starts_with (c.error));
+            CHECK (refused.value.empty());
+        }
+
+#if ! defined(_WIN32)
+        // A FIFO is refused before it is opened, so nothing waits for a writer.
+        REQUIRE (mkfifo ((root / "Drums" / "Pipe.wav").c_str(), 0600) == 0);
+        const auto pipe = source.readBytes ("Drums/Pipe.wav");
+        CHECK_FALSE (pipe.ok());
+        CHECK (pipe.error == "unreadable: Drums/Pipe.wav: not a regular file");
+#endif
+
+        // A raised cancel flag stops it before the first chunk.
+        std::atomic<bool> cancel { true };
+        const FileSampleSource cancelled (root, &cancel);
+        const auto stopped = cancelled.readBytes ("Drums/Kick v1 rr1.wav");
+        CHECK_FALSE (stopped.ok());
+        CHECK (stopped.error == "cancelled: Drums/Kick v1 rr1.wav: the read was cancelled");
+    }
 }
 
 TEST_CASE ("FileSampleSource on the checkout's samples: LFS pointers or real WAVs", "[wav]")

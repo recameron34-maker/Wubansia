@@ -5,6 +5,8 @@
 //   stopUpTo fades a playing clip out and lets an offered one go unplayed; a newer ticket still plays.
 // - Silent blocks (offline renders, bypass) and the host's reset write nothing and let every clip go; a clip made for
 //   another rate never plays; an idle player leaves the output bit for bit as it was, -0.0 included.
+// - Blocks are counted; clips the sound thread gave up on while no block ran go unheard at the next block, unless a
+//   block came first.
 // - Every clip comes back exactly once (offer, collectRetired, the destructor); a full retire FIFO holds clips
 //   silently and takes nothing new until there's room; process allocates and frees nothing.
 // - makeAuditionClip: the file itself at 48 kHz; elsewhere ceil (frames x rate / 48000) frames read through the
@@ -417,6 +419,96 @@ TEST_CASE ("silent blocks write nothing and let every clip go", "[audition]")
     CHECK (untouched (after));
 }
 
+TEST_CASE ("dropIfIdleSince: the clips in hand go unheard at the next block, unless a block ran since", "[audition]")
+{
+    AuditionPlayer player;
+    player.prepare (kRate);
+    Returns back;
+    std::vector<float> l (64), r (64);
+    float* scratch[2] { l.data(), r.data() };
+    CHECK (player.blocksRun() == 0u);
+
+    // A riser plays; a pluck replaces it and plays while the riser fades out (64-sample blocks: its fade lasts four).
+    const auto riserLeft = noise (9000, 21);
+    const auto* riser = clipOf (riserLeft, noise (9000, 22), 1);
+    back.add (player.offer (riser));
+    player.process (scratch, 2, 64, false);
+    const auto pluckAudio = noise (9000, 23);
+    const auto* pluck = clipOf (pluckAudio, {}, 2);
+    back.add (player.offer (pluck));
+    player.process (scratch, 2, 64, false);
+    REQUIRE (player.sounding() == 2u);
+    CHECK (player.blocksRun() == 2u);
+
+    SECTION ("no block since: both go at the next block's start, nothing written, nothing faded")
+    {
+        const auto seen = player.blocksRun();
+        player.dropIfIdleSince (seen);
+        Out out (64);
+        player.process (out.ptrs(), 2, 64, false);
+        CHECK (untouched (out));
+        CHECK (player.sounding() == 0u);
+        CHECK (player.blocksRun() == seen + 1);
+        back.collect (player);
+        CHECK (back.count (riser) == 1);
+        CHECK (back.count (pluck) == 1);
+
+        Out after (64);
+        player.process (after.ptrs(), 2, 64, false);
+        CHECK (untouched (after));
+    }
+
+    SECTION ("a block ran since: nothing goes; the riser fades on and the pluck plays on")
+    {
+        const auto seen = player.blocksRun();
+        player.process (scratch, 2, 64, false); // the pluck's frames 64-127, the riser's fade down to 112 samples left
+        player.dropIfIdleSince (seen);
+        Out out (64);
+        player.process (out.ptrs(), 2, 64, false);
+        CHECK (player.sounding() == 2u);
+        CHECK (mismatches (out, 0, 0, 64, [&] (std::size_t i) {
+            float e = out.before[0][i];
+            e += 0.5f * (riserLeft[192 + i] * fadeGain (128 + i));
+            e += 0.5f * pluckAudio[128 + i];
+            return e;
+        }) == 0);
+        back.collect (player);
+        CHECK (back.count (riser) == 0);
+        CHECK (back.count (pluck) == 0);
+    }
+
+    SECTION ("silent blocks count; a drop is for its one block")
+    {
+        player.process (nullptr, 0, 64, true); // a bypassed block lets both go anyway
+        CHECK (player.blocksRun() == 3u);
+        const auto seen = player.blocksRun();
+        player.dropIfIdleSince (seen);
+        player.process (scratch, 2, 64, false); // the block it was for: nothing in hand
+        CHECK (player.blocksRun() == seen + 1);
+        const auto next = noise (2000, 24);
+        back.add (player.offer (clipOf (next, {}, 3)));
+        Out out (64, 1);
+        player.process (out.ptrs(), 1, 64, false); // a later clip plays as ever
+        CHECK (player.sounding() == 3u);
+        CHECK (mismatches (out, 0, 0, 64, [&] (std::size_t i) { return out.before[0][i] + 0.5f * next[i]; }) == 0);
+    }
+
+    SECTION ("an offer waiting is kept: the block that drops the clips in hand plays it from its first frame")
+    {
+        const auto next = noise (2000, 25);
+        back.add (player.offer (clipOf (next, {}, 3))); // waits: the riser still fades out
+        player.dropIfIdleSince (player.blocksRun());
+        CHECK (player.offered());
+        Out out (64, 1);
+        player.process (out.ptrs(), 1, 64, false);
+        CHECK (player.sounding() == 3u);
+        CHECK (mismatches (out, 0, 0, 64, [&] (std::size_t i) { return out.before[0][i] + 0.5f * next[i]; }) == 0);
+        back.collect (player);
+        CHECK (back.count (riser) == 1);
+        CHECK (back.count (pluck) == 1);
+    }
+}
+
 TEST_CASE ("a clip made for another rate never plays", "[audition]")
 {
     AuditionPlayer player;
@@ -460,7 +552,7 @@ TEST_CASE ("a clip made for another rate never plays", "[audition]")
 
 TEST_CASE ("every clip comes back exactly once", "[audition]")
 {
-    SECTION ("from offer, collectRetired and silent blocks, over 3,000 random steps")
+    SECTION ("from offer, collectRetired, silent blocks and drops, over 3,000 random steps")
     {
         AuditionPlayer player;
         player.prepare (kRate);
@@ -476,7 +568,7 @@ TEST_CASE ("every clip comes back exactly once", "[audition]")
         std::uint32_t ticket = 0;
         for (int step = 0; step < 3000; ++step)
         {
-            switch (random() % 8)
+            switch (random() % 9)
             {
                 case 0:
                 case 1:
@@ -492,6 +584,7 @@ TEST_CASE ("every clip comes back exactly once", "[audition]")
                 case 3: player.stopUpTo (ticket - (ticket > 0 ? static_cast<std::uint32_t> (random() % 2) : 0u)); break;
                 case 4: player.collectRetired (back); break;
                 case 5: player.reset(); break;
+                case 6: player.dropIfIdleSince (player.blocksRun() - static_cast<std::uint64_t> (random() % 2)); break; // the next block's, or a stale one
                 default: player.process (out, 1 + static_cast<int> (random() % 2), 1 + static_cast<int> (random() % 128), random() % 6 == 0); break;
             }
         }
@@ -680,6 +773,96 @@ TEST_CASE ("process allocates and frees nothing", "[audition][alloc]")
     CHECK (back.clips.size() == 5);
 }
 
+TEST_CASE ("with the retire FIFO full, process and reset allocate and free nothing", "[audition][alloc]")
+{
+    // The paths that hold a clip because the FIFO has no room are the ones an overflow list would tempt: every block
+    // and reset below is counted on its own; the offers and collects, the sound thread's part, aren't.
+    if (! allocations::available())
+        SKIP ("a sanitizer owns the allocation functions in this build");
+
+    AuditionPlayer player;
+    player.prepare (kRate);
+    Returns back;
+    std::vector<float> l (512), r (512);
+    float* out[2] { l.data(), r.data() };
+    const auto quiet = [] (auto&& step) {
+        allocations::Scope scope;
+        step();
+        return scope.counts().none();
+    };
+    const auto block = [&] (int n, bool silent = false) { return quiet ([&] { player.process (out, 2, n, silent); }); };
+    const auto shortClips = [&] (std::uint32_t count) { // each plays to its end in one block: the FIFO fills up
+        for (std::uint32_t t = 1; t <= count; ++t)
+        {
+            back.add (player.offer (clipOf (noise (10, t), {}, t)));
+            CHECK (block (64));
+        }
+    };
+
+    SECTION ("a clip ends while it is full and is held; an offer waits; a silent block, a drop and a reset while full")
+    {
+        shortClips (7);
+        back.add (player.offer (clipOf (noise (2000, 8), {}, 8)));
+        CHECK (block (64));
+        back.add (player.offer (clipOf (noise (600, 9), {}, 9)));
+        CHECK (block (512)); // the 8th fades out into the last place, the 9th plays
+        REQUIRE (player.sounding() == 9u);
+        CHECK (block (512)); // the 9th ends with the FIFO full: held
+        CHECK (player.sounding() == 0u);
+        back.add (player.offer (clipOf (noise (3000, 10), {}, 10)));
+        CHECK (block (512)); // still full: the 10th waits
+        CHECK (player.offered());
+        player.dropIfIdleSince (player.blocksRun());
+        CHECK (block (512)); // a drop while full
+        CHECK (block (512, true)); // a silent block while full
+        CHECK (quiet ([&] { player.reset(); })); // a reset while full
+        CHECK (player.offered());
+        back.collect (player);
+        REQUIRE (back.clips.size() == 8);
+        CHECK (block (512)); // room: the held 9th goes in, the 10th plays
+        CHECK (player.sounding() == 10u);
+        CHECK (quiet ([&] { player.reset(); }));
+        back.collect (player);
+        CHECK (back.clips.size() == 10);
+    }
+
+    SECTION ("a fade finishes while it is full: the faded clip is held")
+    {
+        shortClips (7);
+        back.add (player.offer (clipOf (noise (2000, 8), {}, 8)));
+        CHECK (block (64)); // the 8th plays
+        back.add (player.offer (clipOf (noise (10, 9), {}, 9)));
+        CHECK (block (64)); // the 9th replaces the 8th (fading, 176 samples left) and ends: the FIFO is full
+        for (int i = 0; i < 4; ++i)
+            CHECK (block (64)); // the fade ends with the FIFO full: the 8th is held
+        back.collect (player);
+        REQUIRE (back.clips.size() == 8);
+        CHECK (block (64)); // the 8th goes in
+        back.collect (player);
+        CHECK (back.clips.size() == 9);
+    }
+
+    SECTION ("a playing clip made for the old rate, after a prepare at another, is held while it is full")
+    {
+        shortClips (6);
+        back.add (player.offer (clipOf (noise (9000, 7), {}, 7)));
+        CHECK (block (64)); // the 7th plays
+        back.add (player.offer (clipOf (noise (100, 8), {}, 8, 44100.0)));
+        CHECK (block (64)); // never played: the FIFO holds 7
+        back.add (player.offer (clipOf (noise (100, 9), {}, 9, 44100.0)));
+        CHECK (block (64)); // never played: the FIFO holds 8; the 7th plays on
+        CHECK (player.sounding() == 7u);
+        player.prepare (96000.0);
+        CHECK (block (64)); // the 7th can't play at 96 kHz and the FIFO is full: held
+        CHECK (player.sounding() == 0u);
+        back.collect (player);
+        REQUIRE (back.clips.size() == 8);
+        CHECK (block (64)); // the 7th goes in
+        back.collect (player);
+        CHECK (back.clips.size() == 9);
+    }
+}
+
 TEST_CASE ("makeAuditionClip: at 48 kHz the file itself; at 44.1 and 96 kHz ceil (frames x rate / 48000) frames, a 1 kHz tone stays 1 kHz; deterministic",
     "[audition]")
 {
@@ -765,8 +948,8 @@ TEST_CASE ("makeAuditionClip: at 48 kHz the file itself; at 44.1 and 96 kHz ceil
 
 TEST_CASE ("a worker, a stopper and the audio thread, 10,000 rounds: every clip accounted for", "[audition][threads]")
 {
-    // The sound thread's part (offers, withdrawals, collecting), the message thread's (stops) and the audio thread's
-    // (blocks of every size, silent ones, resets), all at once. Every clip must come back exactly once.
+    // The sound thread's part (offers, withdrawals, drops, collecting), the message thread's (stops) and the audio
+    // thread's (blocks of every size, silent ones, resets), all at once. Every clip must come back exactly once.
     constexpr std::uint32_t rounds = 10000;
     AuditionPlayer player;
     player.prepare (kRate);
@@ -818,6 +1001,8 @@ TEST_CASE ("a worker, a stopper and the audio thread, 10,000 rounds: every clip 
         back (player.offer (made.back()));
         if (random() % 16 == 0)
             back (player.offer (nullptr)); // withdrawn, as an offer no block took in 300 ms is
+        if (random() % 32 == 0)
+            player.dropIfIdleSince (player.blocksRun()); // given up, as clips are once no block came for 300 ms
         player.collectRetired (back);
         if (random() % 4 == 0)
             std::this_thread::yield();

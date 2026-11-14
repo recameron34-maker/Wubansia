@@ -112,9 +112,9 @@ files.
    another kit's sounds without changing the kit that plays or your project; the playing kit's own chip brings the
    drawer back to it.
 3. Click a sound to hear it. It plays dry, exactly as the file you'll get, 6 dB down on top of whatever plays, and
-   the Output knob acts on it as on the groove. After a click in the list, the Up and Down arrows move through it
-   and play each sound, Return plays it again, and Esc or ■ stops it. If your DAW keeps those keys for itself, use
-   the mouse.
+   the Output knob acts on it as on the groove. From the moment the drawer opens, the Up and Down arrows move
+   through the list and play each sound, Return plays it again, and Esc or ■ stops it. If your DAW keeps those keys
+   for itself, use the mouse.
 4. Drag the sound's row, or the "Drag into your DAW" tile on the right, onto a track. Wubansia copies the kit's own
    48 kHz / 24-bit WAV, byte for byte, into your samples folder, then hands that copy to your DAW. Its name says what
    it is: `Rave Stab v2 - FUT01 134 F#m 11A.wav` is Rave Stab's loud layer, from FUT01 at 134 BPM in F# minor, 11A
@@ -145,7 +145,8 @@ click; an offline bounce never does.
 The drawer's footer says "Drags save to ~/Music/Wubansia/Samples". Each kit gets a folder there, so the copy above
 is `~/Music/Wubansia/Samples/FUT01 Alloy Signal/Rave Stab v2 - FUT01 134 F#m 11A.wav`. **Change…** picks another
 folder; Wubansia keeps your choice for you, not in projects. It refuses a folder inside the content folder, which
-holds only the kits' own files, and one it can't make.
+holds only the kits' own files, or inside Wubansia's own folders (`~/Library/Application Support/Wubansia Audio`,
+which the Uninstall below deletes, and `~/Library/Caches/Wubansia Audio`), and one it can't make.
 
 The folder is yours to keep. Wubansia never deletes or overwrites anything in it: dragging a sound again reuses its
 copy, and if you edited a copy in place, the next drag of that sound saves a new one beside it, `... (2).wav`. A
@@ -162,6 +163,9 @@ content folder…**. **Content…** opens the panel that says where the kits' sa
   every file the Set uses into its project folder; do that before you move the project to another computer.
 - To find your copies again in Live's browser, add the samples folder to Places (Add Folder… under Places).
 - Live may write `.asd` files (its analysis) beside the WAVs. Wubansia leaves them alone.
+- Live plays the drawer whenever its audio runs. When no sound comes, the drawer says: "No sound from your DAW: it
+  isn't running Wubansia's audio right now. Check that its audio engine is on and this track is active." Check that
+  Live has an audio output device (Settings > Audio) and that Wubansia's track isn't deactivated.
 
 ### In Logic Pro
 
@@ -275,7 +279,9 @@ Not yet checked in Live or Logic: where the other instruments land, and these pa
 - **Bitwig's offline bounce stalls with the CLAP.** A known issue with CLAP plug-ins that report latency
   (clap-juce-extensions #184): use the VST3 in Bitwig.
 - **Your DAW won't take a drop from the Samples drawer.** Click the tile, or Show in Finder, and drag the file from
-  Finder. If the drawer says "Couldn't save", choose another folder with Change….
+  Finder. If the drawer says "Couldn't save", it says what helps: another folder with Change… when the copy couldn't
+  be written there, or the kit's samples when its own file is missing or not the one it lists. Hold the pointer over
+  the message to see the folder it looked in.
 
 ## Uninstall
 

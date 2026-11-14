@@ -172,8 +172,21 @@ namespace wubansia::engine
     util::Result<SampleData> FileSampleSource::read (std::string_view relativePath)
     {
         using R = util::Result<SampleData>;
+        const auto bytes = readBytes (relativePath);
+        if (! bytes.ok())
+            return R::failure (bytes.error);
+
+        auto wav = readWav (bytes.value);
+        if (! wav.ok())
+            return R::failure (withPath (wav.error, relativePath));
+        return wav;
+    }
+
+    util::Result<std::vector<std::uint8_t>> FileSampleSource::readBytes (std::string_view relativePath) const
+    {
+        using R = util::Result<std::vector<std::uint8_t>>;
         std::filesystem::path full;
-        const auto size = locate (root_, relativePath, full);
+        const auto size = locate (root_, relativePath, full); // a regular file, small enough to be content
         if (! size.ok())
             return R::failure (size.error);
 
@@ -181,7 +194,7 @@ namespace wubansia::engine
         std::ifstream in (full, std::ios::binary);
         if (! in)
             return R::failure ("unreadable: " + escapeControlCharacters (relativePath) + ": it can't be opened");
-        // In chunks, with the cancel flag checked before each: a slow read stops within one chunk.
+        // Exactly its size, in chunks, with the cancel flag checked before each: a slow read stops within one chunk.
         for (std::size_t done = 0; done < bytes.size();)
         {
             if (cancel_ != nullptr && cancel_->load (std::memory_order_acquire))
@@ -191,11 +204,7 @@ namespace wubansia::engine
                 return R::failure ("unreadable: " + escapeControlCharacters (relativePath) + ": reading it failed");
             done += n;
         }
-
-        auto wav = readWav (bytes);
-        if (! wav.ok())
-            return R::failure (withPath (wav.error, relativePath));
-        return wav;
+        return R::success (std::move (bytes));
     }
 
     util::Result<WavInfo> FileSampleSource::probe (std::string_view relativePath) const

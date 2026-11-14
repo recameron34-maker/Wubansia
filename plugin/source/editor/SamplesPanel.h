@@ -1,7 +1,8 @@
 #pragma once
 
 // The Samples drawer (ADR 0024): every kit's sounds by category, to hear and to drag into a DAW as the
-// kit's own WAV files. It covers the lanes, A/B and FX, at (20, 246), 1080 x 396 in the editor's face,
+// kit's own WAV files. It covers the lanes, A/B and FX, at (20, 246), 1080 x 396 in the editor's face (the
+// editor hides them while it shows, so Tab and screen readers stay out of them),
 // and knows the plugin only through the Controller: sounds () for each kit's list (asked once per kit),
 // audition () and stopAudition () to hear them, exportSound () for the file a drag or Show in Finder
 // hands over, and samplesFolder () and setSamplesFolder () for where those copies go. Nothing it does
@@ -33,16 +34,27 @@ namespace wubansia::editor
 {
     class SamplesPanel;
 
-    // The name exportSound () gives a file: "Rave Stab v2 - FUT01 134 F#m 11A.wav" (sounds::exportName). A copy
-    // only differs when a file of that name holds other bytes, and then takes " (2)".
+    // The name exportSound () gives a file: "Rave Stab v2 - FUT01 134 F#m 11A.wav", "Dub Chord Cm9 - FUT03 128 Gm
+    // 6A.wav" for "Accent Dub Chord Cm9" (sounds::exportName). A copy only differs when a file of that name holds
+    // other bytes, and then takes " (2)".
     juce::String exportFileName (const KitCard& kit, const SoundFile& file);
 
+    // The status line for a copy that failed (exportSound ()'s result): "Couldn't save Rave Stab v2: <problem>." and
+    // what helps: another samples folder (Change...) when the folder was why; when the kit's own file was, a check that
+    // the kit's samples are still installed, unless the problem already says to reinstall the kit (copy.reinstall). No
+    // check's code and no folder a file was looked for in (copy.detail has those): it fits the footer's two lines.
+    juce::String failedCopyLine (const juce::String& label, const juce::String& kit, const SoundExport& copy);
+
+    // The drawer's default announce: text as an AccessibilityHandler announcement, at medium priority, for screen readers.
+    void announceToScreenReader (const juce::String& text);
+
     // A kit in the drawer's header: a click browses its sounds. Lit in its kit's accent while browsed; its LED
-    // marks the kit that plays.
+    // marks the kit that plays. Screen readers hear "FUT01 Alloy Signal, shown, playing" (a title, not a toggle,
+    // whose press action would untick it).
     class KitChip : public juce::Button
     {
     public:
-        explicit KitChip (const juce::String& kitId);
+        explicit KitChip (const juce::String& kitId, const juce::String& kitTitle = {});
 
         void show (bool isBrowsed, bool isPlayingKit);
         const juce::String& kit() const noexcept { return kitId; }
@@ -52,11 +64,14 @@ namespace wubansia::editor
         void paintButton (juce::Graphics&, bool isMouseOver, bool isButtonDown) override;
 
     private:
-        juce::String kitId;
+        void updateTitle();
+
+        juce::String kitId, kitName;
         bool browsed = false, playing = false;
     };
 
-    // A category in the rail, with how many sounds the browsed kit has in it; disabled when none.
+    // A category in the rail, with how many sounds the browsed kit has in it; disabled when none. Screen readers
+    // hear "Accents, 3 sounds, shown".
     class CategoryButton : public juce::Button
     {
     public:
@@ -70,6 +85,8 @@ namespace wubansia::editor
         void paintButton (juce::Graphics&, bool isMouseOver, bool isButtonDown) override;
 
     private:
+        void updateTitle();
+
         SoundCategory which;
         int sounds = 0;
         bool selected = false;
@@ -162,7 +179,7 @@ namespace wubansia::editor
         bool failed = false, hover = false, pressed = false, dragging = false;
     };
 
-    class SamplesPanel : public juce::Component
+    class SamplesPanel : public juce::Component, public juce::TooltipClient
     {
     public:
         explicit SamplesPanel (Controller&);
@@ -176,9 +193,14 @@ namespace wubansia::editor
         // samples and the last audition stand. Does nothing while the drawer is hidden.
         void update (const EditorModel&);
 
+        // Gives the list the keyboard (Up, Down, Return), if it shows and has rows: the editor calls it once the
+        // drawer is visible, so the keys work from the moment it opens.
+        void focusList();
+
         void resized() override;
         void paint (juce::Graphics&) override;
         bool keyPressed (const juce::KeyPress&) override; // Esc stops the audition (and clears the status line)
+        juce::String getTooltip() override; // over the status line: statusTooltip ()
 
         // What it shows, for tests.
         const juce::String& browsedKit() const noexcept { return browsed; }
@@ -186,6 +208,8 @@ namespace wubansia::editor
         int numRows() const noexcept { return rows.size(); }
         int selectedRow() const noexcept { return selected; }
         juce::String statusText() const;
+        juce::String statusTooltip() const; // the status line, then what it leaves out: where a file was looked for
+        juce::Rectangle<int> statusBounds() const noexcept { return statusArea; } // where paint () draws the status line
         juce::String bannerText() const;
         juce::String folderText() const; // "Drags save to ~/Music/Wubansia/Samples"
         juce::String detailText() const; // the selected sound's name, "Accents · FUT01 · F#m · 11A", its length and format
@@ -194,12 +218,15 @@ namespace wubansia::editor
         // Whose install steps the banner gives; the build's platform unless a test says otherwise.
         ContentPanel::Platform platform;
 
-        // How the drawer hands a file to the OS and asks for a folder. Tests replace them; by default startDrag
-        // performs the external drag of the one file, revealFile shows it in the file browser, and chooseFolder
-        // opens a folder chooser and calls back with the folder picked.
+        // How the drawer hands a file to the OS and asks for a folder. Tests replace them; by default startDrag is
+        // startExternalDrag (ExternalDrag.h: the OS drag of the one file), revealFile dragout::revealToUser (it shows
+        // the file in the file browser), and chooseFolder opens a folder chooser and calls back with the folder picked.
         std::function<bool (const juce::File&, juce::Component&)> startDrag;
         std::function<void (const juce::File&)> revealFile;
         std::function<void (std::function<void (const juce::File&)>)> chooseFolder;
+
+        // How the drawer says what it shows to a screen reader: by default announceToScreenReader. Tests replace it.
+        std::function<void (const juce::String&)> announce;
 
         std::function<void()> chooseContentFolder; // the banner's button; the editor hands it the install panel's chooser
         std::function<void()> onClose; // the x
@@ -215,6 +242,7 @@ namespace wubansia::editor
             juce::String text;
             juce::Colour tone;
             juce::uint32 until = 0; // juce::Time::getMillisecondCounter (); 0 until the next action
+            juce::String detail; // what the line leaves out, as a sentence: for the tooltip and the announcement
         };
 
         // The browsed kit and what it holds.
@@ -251,8 +279,8 @@ namespace wubansia::editor
         juce::String auditionMessage() const;
         juce::String kitMessage() const; // "Looking for FUT03's samples..."
         juce::Colour statusTone() const;
-        void setMessage (const juce::String& text, juce::Colour tone, int forMs = 0);
-        void focusList();
+        void setMessage (const juce::String& text, juce::Colour tone, int forMs = 0, const juce::String& detail = {});
+        juce::String statusDetail() const; // the shown message's detail, when the status line shows it
         void refresh();
         void refreshChips();
         void refreshRows();
@@ -272,11 +300,13 @@ namespace wubansia::editor
         juce::String playingKit;
         ContentStatus playingContent;
         AuditionState audition;
+        bool standalone = false; // the Standalone app: no DAW, so no-sound means its audio output isn't running
+        bool logicHost = false; // Logic Pro: no sound is most likely a stopped track that isn't selected or armed
 
         // What the person chose.
         juce::String browsed;
         bool chipPicked = false; // a chip picked another kit: the drawer stops following the playing kit
-        bool handingOver = false; // an OS drag is under way
+        bool handingOver = false; // startDrag is handing a drag to the OS
         SoundCategory wantedCategory = SoundCategory::accents, shownCategory = SoundCategory::accents;
         std::map<juce::String, std::vector<SoundInfo>> catalog; // by kit: sounds () once each
         std::vector<int> shownSounds; // into the browsed kit's sounds, one per row
@@ -297,6 +327,7 @@ namespace wubansia::editor
 
         juce::StringArray fileBoxSound; // the kit and sound whose files the File box lists
         juce::String painted; // what paint () last drew of the text, to repaint only on a change
+        juce::String spokenStatus, spokenBanner; // what announce () last said of each, so each is said once
 
         juce::OwnedArray<KitChip> chips;
         juce::StringArray chipKits;

@@ -1,5 +1,7 @@
 #include "SamplesPanel.h"
+#include "ExternalDrag.h"
 
+#include "dragout/DragFiles.h"
 #include "sounds/SampleExport.h"
 #include "sounds/SoundCatalog.h"
 
@@ -47,6 +49,17 @@ namespace wubansia::editor
             while (text.endsWithChar ('.'))
                 text = text.dropLastCharacters (1);
             return text;
+        }
+
+        // A content check's problem without its leading code ("missing: ", "lfs_pointer: ", "mismatch: ", "rate: ",
+        // "unreadable: "...): a lowercase word, or words joined by '_', then ": ". Anything else is left as it is.
+        juce::String withoutCode (const juce::String& problem)
+        {
+            const auto colon = problem.indexOf (": ");
+            const auto code = problem.substring (0, juce::jmax (0, colon));
+            if (colon <= 0 || ! code.containsOnly ("abcdefghijklmnopqrstuvwxyz_"))
+                return problem;
+            return problem.substring (colon + 2);
         }
 
         // A problem as a sentence: "no folder holds FUT02" becomes "No folder holds FUT02."; a path keeps its case.
@@ -100,6 +113,20 @@ namespace wubansia::editor
             if (const auto notes = recordedNotes (sound); notes > 1)
                 return juce::String (notes) + " recorded notes: pick one in File";
             return {};
+        }
+
+        // What the detail pane's hint says of the grid, for a row's accessible title, the same whichever row is selected:
+        // ", ends on the beat", ", starts 20 ms before its beat", ", a 4-bar loop, then a 2-bar echo tail".
+        juce::String gridWords (const SoundInfo& sound)
+        {
+            juce::String words;
+            if (sound.endAligned)
+                words << ", ends on the beat";
+            else if (sound.leadInMs > 0)
+                words << ", starts " << sound.leadInMs << " ms before its beat";
+            if (sound.loopBars > 0 && sound.bars > sound.loopBars)
+                words << ", a " << sound.loopBars << "-bar loop, then a " << (sound.bars - sound.loopBars) << "-bar echo tail";
+            return words;
         }
 
         const char* categoryId (SoundCategory category)
@@ -166,11 +193,27 @@ namespace wubansia::editor
         return fromUtf8 (sounds::exportName (info, entry));
     }
 
+    juce::String failedCopyLine (const juce::String& label, const juce::String& kit, const SoundExport& copy)
+    {
+        // What helps comes from the result, never from its words (a folder named "Installed Kits" says nothing).
+        const auto problem = withoutFullStop (withoutCode (copy.problem));
+        const auto advice = ! copy.sourceProblem ? utf8 (" Choose another folder with Change\xe2\x80\xa6")
+                            : copy.reinstall     ? juce::String()
+                                                 : " Check that " + kit + "'s samples are still installed.";
+        return "Couldn't save " + label + ": " + problem + "." + advice;
+    }
+
+    void announceToScreenReader (const juce::String& text)
+    {
+        juce::AccessibilityHandler::postAnnouncement (text, juce::AccessibilityHandler::AnnouncementPriority::medium);
+    }
+
     //==============================================================================================================
-    KitChip::KitChip (const juce::String& id)
-        : juce::Button (id), kitId (id)
+    KitChip::KitChip (const juce::String& id, const juce::String& kitTitle)
+        : juce::Button (id), kitId (id), kitName (kitTitle.isNotEmpty() ? id + " " + kitTitle : id)
     {
         setComponentID ("samples_kit_" + id);
+        updateTitle();
     }
 
     void KitChip::show (bool isBrowsed, bool isPlayingKit)
@@ -179,7 +222,13 @@ namespace wubansia::editor
             return;
         browsed = isBrowsed;
         playing = isPlayingKit;
+        updateTitle();
         repaint();
+    }
+
+    void KitChip::updateTitle()
+    {
+        setTitle (kitName + (browsed ? ", shown" : "") + (playing ? ", playing" : ""));
     }
 
     void KitChip::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
@@ -213,8 +262,8 @@ namespace wubansia::editor
     {
         setComponentID (juce::String ("samples_category_") + categoryId (c));
         setTooltip (categoryTip (c));
-        setTitle (getButtonText());
         setEnabled (false); // until show () gives it sounds
+        updateTitle();
     }
 
     void CategoryButton::show (int numSounds, bool isSelected)
@@ -224,8 +273,13 @@ namespace wubansia::editor
         sounds = numSounds;
         selected = isSelected;
         setEnabled (sounds > 0);
-        setTitle (getButtonText() + ", " + juce::String (sounds) + (sounds == 1 ? " sound" : " sounds"));
+        updateTitle();
         repaint();
+    }
+
+    void CategoryButton::updateTitle()
+    {
+        setTitle (getButtonText() + ", " + juce::String (sounds) + (sounds == 1 ? " sound" : " sounds") + (selected ? ", shown" : ""));
     }
 
     void CategoryButton::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
@@ -450,7 +504,8 @@ namespace wubansia::editor
             return;
         name = fileName;
         failed = isFailed;
-        setTitle (name.isNotEmpty() ? "Drag " + name + " into your DAW" : juce::String ("No sound to drag"));
+        // What it shows first, then the file: a screen reader can't drag, and its press is the help text's.
+        setTitle (name.isEmpty() ? juce::String ("No sound to drag") : (failed ? "Couldn't save " : "Drag into your DAW: ") + name);
         repaint();
     }
 
@@ -555,11 +610,10 @@ namespace wubansia::editor
         setTitle ("Samples");
         setLookAndFeel (&look);
 
-        startDrag = [] (const juce::File& file, juce::Component& source)
-        {
-            return juce::DragAndDropContainer::performExternalDragDropOfFiles ({ file.getFullPathName() }, false, &source);
-        };
-        revealFile = [] (const juce::File& file) { file.revealToUser(); };
+        // The functions themselves, not lambdas around them: a test checks each default is the one (DragOutTests).
+        announce = announceToScreenReader;
+        startDrag = startExternalDrag;
+        revealFile = dragout::revealToUser;
         chooseFolder = [this] (std::function<void (const juce::File&)> done)
         {
             const auto start = samplesFolder.isDirectory() ? samplesFolder : juce::File::getSpecialLocation (juce::File::userMusicDirectory);
@@ -675,8 +729,12 @@ namespace wubansia::editor
         playingKit = model.hasKit() ? model.kit.id : juce::String();
         playingContent = model.content;
         audition = model.audition;
+        standalone = model.standalone;
+        logicHost = model.logicHost;
         samplesFolder = controller.samplesFolder();
         chipPicked = false;
+        spokenStatus.clear(); // said afresh once the drawer shows
+        spokenBanner.clear();
         message = {};
         refusal.clear();
         auditionDismissed = true; // closing stopped what played; its words go too
@@ -699,10 +757,13 @@ namespace wubansia::editor
         playingKit = model.hasKit() ? model.kit.id : juce::String();
         playingContent = model.content;
         audition = model.audition;
+        standalone = model.standalone;
+        logicHost = model.logicHost;
         refreshChips();
 
-        // It follows the kit that plays until a chip picks another; never in the middle of an OS drag (Windows runs
-        // one in a modal loop, timer and all), which would delete the row the drag started from.
+        // It follows the kit that plays until a chip picks another, but not while startDrag hands a drag over, which
+        // would delete the row the drag starts from. JUCE 9.0.4 returns from it as soon as the OS drag begins, on every
+        // OS; the drag then goes on with the rows free to change, as no JUCE code holds a plain pointer to them.
         if (! chipPicked && ! handingOver && playingKit.isNotEmpty() && playingKit != browsed)
             browse (playingKit);
 
@@ -984,9 +1045,10 @@ namespace wubansia::editor
 
         if (copy.file == juce::File())
         {
+            // A short line the footer's two lines hold, its advice included; where the file was looked for goes to the
+            // tooltip and the announcement.
             tileFailed = true;
-            setMessage ("Couldn't save " + label + ": " + withoutFullStop (copy.problem) + ". " + utf8 ("Choose another folder with Change\xe2\x80\xa6"),
-                colours::warning);
+            setMessage (failedCopyLine (label, ref.kit, copy), colours::warning, 0, copy.detail.isNotEmpty() ? sentence (withoutCode (copy.detail)) : juce::String());
             refresh();
             return {};
         }
@@ -1023,8 +1085,8 @@ namespace wubansia::editor
         }
         else
         {
-            setMessage ("Couldn't save drags to " + tidy (folder) + ": it's inside a content folder or the drag cache, or it can't be made. "
-                        "Choose another folder.",
+            setMessage ("Couldn't save drags to " + tidy (folder) + ": it's inside a content folder or one of Wubansia's own folders, "
+                        "or it can't be made. Choose another folder.",
                 colours::warning);
         }
         layOutFooter();
@@ -1052,8 +1114,12 @@ namespace wubansia::editor
             return "Couldn't play " + auditionLabel + ": " + refusal;
         if (ticket == 0 || audition.latest != ticket)
             return {};
-        if (audition.hostSilent)
+        if (audition.hostSilent && standalone) // JUCE's standalone window: its Options button and menu item
+            return "No sound: the app's audio output isn't running. Choose one in Options > Audio/MIDI Settings...";
+        if (audition.hostSilent && logicHost)
             return "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed. Select this track, or press Play.";
+        if (audition.hostSilent) // any other host: Live with its audio engine off, a deactivated track, a frozen one...
+            return "No sound from your DAW: it isn't running Wubansia's audio right now. Check that its audio engine is on and this track is active.";
         if (audition.problem.isNotEmpty() && ! audition.waiting && audition.sounding != ticket)
             return "Couldn't play " + auditionLabel + ": " + audition.problem;
         return {};
@@ -1067,6 +1133,22 @@ namespace wubansia::editor
         if (content.folder == juce::File())
             return "Looking for " + browsed + utf8 ("'s samples\xe2\x80\xa6");
         return "Loading " + browsed + utf8 ("'s samples\xe2\x80\xa6 ") + juce::String (juce::jlimit (0, 100, content.percent)) + " %";
+    }
+
+    juce::String SamplesPanel::statusDetail() const
+    {
+        return kitMessage().isEmpty() && message.text.isNotEmpty() ? message.detail : juce::String();
+    }
+
+    juce::String SamplesPanel::statusTooltip() const
+    {
+        const auto detail = statusDetail();
+        return detail.isNotEmpty() ? statusText() + "\n" + detail : statusText();
+    }
+
+    juce::String SamplesPanel::getTooltip()
+    {
+        return statusArea.contains (getMouseXYRelative()) ? statusTooltip() : juce::String();
     }
 
     juce::String SamplesPanel::statusText() const
@@ -1088,11 +1170,12 @@ namespace wubansia::editor
         return audition.hostSilent && refusal.isEmpty() ? colours::busy : colours::warning;
     }
 
-    void SamplesPanel::setMessage (const juce::String& text, juce::Colour tone, int forMs)
+    void SamplesPanel::setMessage (const juce::String& text, juce::Colour tone, int forMs, const juce::String& detail)
     {
         message.text = text;
         message.tone = tone;
         message.until = forMs > 0 ? juce::jmax (static_cast<juce::uint32> (1), juce::Time::getMillisecondCounter() + static_cast<juce::uint32> (forMs)) : 0;
+        message.detail = detail;
     }
 
     juce::String SamplesPanel::bannerText() const
@@ -1135,7 +1218,11 @@ namespace wubansia::editor
             case ContentState::loading:
                 return {};
         }
-        const auto problem = sentence (content.problem);
+        // The check's problem, in words, before the drawer's advice; but not where it only says what the headline
+        // and the advice do: no folder holds the kit at all ("install its content, or choose the folder..."), or the
+        // files are LFS pointers ("git lfs pull or install the content").
+        const auto saysItAll = (content.state == ContentState::missing && content.folder == juce::File()) || content.state == ContentState::lfsPointers;
+        const auto problem = saysItAll ? juce::String() : sentence (withoutCode (content.problem));
         return headline + "\n" + (problem.isNotEmpty() ? problem + " " : juce::String()) + advice;
     }
 
@@ -1151,7 +1238,8 @@ namespace wubansia::editor
         if (sound == nullptr || card == nullptr || sound->files.empty())
             return {};
         const auto& file = sound->files[static_cast<std::size_t> (chosenFile (*sound))];
-        return sound->name + "\n" + sounds::categoryName (sound->category) + middleDot() + card->id + middleDot() + shortKey (card->key) + middleDot()
+        const auto kind = sound->category == SoundCategory::loops ? sounds::partName (sound->part) + " loop" : sounds::categoryName (sound->category);
+        return sound->name + "\n" + kind + middleDot() + card->id + middleDot() + shortKey (card->key) + middleDot()
                + card->camelot + "\n" + secondsText (file.seconds) + " s" + middleDot() + (file.channels == 1 ? "mono" : "stereo") + middleDot()
                + "48 kHz 24-bit";
     }
@@ -1175,6 +1263,11 @@ namespace wubansia::editor
 
         tile.setEnabled (canUse);
         tile.show (tileName(), tileFailed && canUse);
+        const auto hint = hintText(); // how the sound sits on the grid, which only paint () showed
+        tile.setHelpText ((hint.isNotEmpty() ? hint + ". " : juce::String()) + "Press to save it into your samples folder and show it in "
+                          + juce::String (platform == ContentPanel::Platform::macOS     ? "Finder"
+                                          : platform == ContentPanel::Platform::windowsOS ? "Explorer"
+                                                                                          : "your file manager"));
         playButton.setEnabled (canUse);
         revealButton.setEnabled (canUse);
         stopButton.setToggleState (auditioning(), juce::dontSendNotification);
@@ -1188,12 +1281,36 @@ namespace wubansia::editor
         for (std::size_t i = 0; i < categories.size(); ++i)
             categories[i]->show (counts[i], static_cast<SoundCategory> (i) == shownCategory && ! rows.isEmpty());
 
-        // The banner over the list, when the kit can't play.
+        // The banner over the list, when the kit can't play; its button carries it for screen readers.
         const auto banner = bannerText();
         if (banner.isNotEmpty() != contentFolderButton.isVisible())
         {
             contentFolderButton.setVisible (banner.isNotEmpty());
             layOutList();
+        }
+        const auto bannerSpoken = banner.replace ("\n", ". ");
+        contentFolderButton.setDescription (bannerSpoken);
+
+        // What the painted lines say is said aloud too, once each: a new status line (a load once, not every percent),
+        // with what its tooltip adds, and a new banner. Only while the drawer shows; open () lets them be said again.
+        if (isVisible() && announce != nullptr)
+        {
+            const auto loading = kitMessage();
+            const auto detail = statusDetail();
+            const auto status = loading.isNotEmpty() ? loading.upToFirstOccurrenceOf (utf8 ("\xe2\x80\xa6"), true, false)
+                                                      : statusText() + (detail.isNotEmpty() ? " " + detail : juce::String());
+            if (status != spokenStatus)
+            {
+                spokenStatus = status;
+                if (status.isNotEmpty())
+                    announce (status);
+            }
+            if (bannerSpoken != spokenBanner)
+            {
+                spokenBanner = bannerSpoken;
+                if (bannerSpoken.isNotEmpty())
+                    announce (bannerSpoken);
+            }
         }
 
         // What paint () draws of the text; repainted only when it changes.
@@ -1219,10 +1336,9 @@ namespace wubansia::editor
             chips.clear();
             for (int i = 0; i < ids.size(); ++i)
             {
-                auto* chip = chips.add (new KitChip (ids[i]));
                 const auto& card = kits[static_cast<std::size_t> (i)];
+                auto* chip = chips.add (new KitChip (ids[i], card.title));
                 chip->setTooltip ("Browse " + card.id + " " + card.title + "'s sounds. The kit that plays doesn't change.");
-                chip->setTitle (card.id + " " + card.title);
                 chip->setExplicitFocusOrder (chipOrder + i);
                 chip->onClick = [this, kit = ids[i]] { pickKit (kit); };
                 addAndMakeVisible (chip);
@@ -1252,7 +1368,8 @@ namespace wubansia::editor
             SoundRow::Look rowLook;
             rowLook.name = sound.name;
             rowLook.length = wholeBars ? barsText (sound.bars) : seconds + " s";
-            rowLook.spoken = sound.name + ", " + (wholeBars ? barsText (sound.bars) : seconds + " seconds") + (sound.endAligned ? ", ends on the beat" : "");
+            const auto loopPart = sound.category == SoundCategory::loops ? sounds::partName (sound.part).toLowerCase() + " loop, " : juce::String();
+            rowLook.spoken = sound.name + ", " + loopPart + (wholeBars ? barsText (sound.bars) : seconds + " seconds") + gridWords (sound);
             rowLook.endAligned = sound.endAligned;
             rowLook.files = static_cast<int> (sound.files.size());
             rowLook.selected = i == selected;

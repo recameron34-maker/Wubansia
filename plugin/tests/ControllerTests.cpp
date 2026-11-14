@@ -474,12 +474,14 @@ TEST_CASE ("exportSound copies the kit's file into the samples folder; a second 
 
     const auto riser = synFile ("FX/Riser.wav");
     const auto& wav = engine::testing::syntheticContent().wavs[(std::size_t) riser];
+    plugin.content->clearFoldersRead();
     const auto first = controller.exportSound ({ "XPT01", riser });
     INFO (first.problem);
     REQUIRE (first.file.existsAsFile());
     CHECK (first.problem.isEmpty());
     CHECK (first.file == samples.folder.getChildFile ("XPT01 Synthetic 01").getChildFile ("Riser - XPT01 128 Gm 6A.wav"));
     CHECK (bytesOf (first.file) == wav);
+    CHECK (plugin.content->foldersRead() == std::vector<juce::File> { SyntheticContent::folderOf ("XPT01") });
 
     const juce::Time past (2001, 0, 1, 12, 0, 0, 0, false);
     REQUIRE (first.file.setLastModificationTime (past));
@@ -487,24 +489,119 @@ TEST_CASE ("exportSound copies the kit's file into the samples folder; a second 
     CHECK (second.file == first.file);
     CHECK (second.file.getLastModificationTime() == past); // nothing written
 
-    // A kit other than the one playing, once the service has found its samples.
+    // A kit other than the one playing, once the service has found its samples: read from its own folder (every
+    // synthetic kit serves the same bytes, so only the folder tells).
     REQUIRE (test::waitFor ([&] { return controller.kits()[1].content.state == ContentState::ready; }));
+    plugin.content->clearFoldersRead();
     const auto other = controller.exportSound ({ "XPT02", riser });
     INFO (other.problem);
     CHECK (other.file == samples.folder.getChildFile ("XPT02 Synthetic 02").getChildFile ("Riser - XPT02 128 Gm 6A.wav"));
     CHECK (bytesOf (other.file) == wav);
+    CHECK (plugin.content->foldersRead() == std::vector<juce::File> { SyntheticContent::folderOf ("XPT02") });
 
     // Nothing to copy: a kit this build doesn't carry, a file the kit doesn't list.
     const auto unknown = controller.exportSound ({ "NOPE", riser });
     CHECK (unknown.file == juce::File());
     CHECK (unknown.problem.contains ("NOPE"));
+    CHECK (unknown.sourceProblem);
     for (const auto file : { -1, 30 })
     {
         const auto none = controller.exportSound ({ "XPT01", file });
         CHECK (none.file == juce::File());
         CHECK (none.problem.isNotEmpty());
+        CHECK (none.sourceProblem);
     }
     CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 2); // the two kits' folders
+}
+
+TEST_CASE ("exportSound says whose fault a failed copy is, as exportCopy found it: the kit's file or the samples folder", "[controller][sounds]")
+{
+    // The Controller's own checks pass (the kit is found ready), so exportCopy is what refuses: its flags and detail must
+    // reach the drawer as they are, true and false alike, or the drawer gives the wrong advice.
+    const auto riser = synFile ("FX/Riser.wav");
+    TempFolder samples;
+
+    SECTION ("installed bytes that aren't kit.json's: the kit's file, and the problem says to reinstall")
+    {
+        SyntheticContent::Options options;
+        options.ids = { "SPF01" };
+        options.alteredPath = "FX/Riser.wav";
+        SyntheticPlugin plugin (options);
+        auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+        controller.setSamplesFolderForTesting (samples.folder);
+        test::prepareWithKit (*plugin);
+        REQUIRE (controller.status().state == ContentState::ready);
+
+        const auto refused = controller.exportSound ({ "SPF01", riser });
+        INFO (refused.problem);
+        CHECK (refused.file == juce::File());
+        CHECK (refused.problem == "Riser.wav isn't the file SPF01's content v1 lists: reinstall SPF01");
+        CHECK (refused.sourceProblem);
+        CHECK (refused.reinstall);
+        CHECK (refused.detail.isEmpty());
+        CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 0);
+    }
+
+    SECTION ("the installed file gone since the kit loaded: the kit's file, named short, the folder in the detail")
+    {
+        SyntheticContent::Options options;
+        options.ids = { "SPF02" };
+        SyntheticPlugin plugin (options);
+        auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+        controller.setSamplesFolderForTesting (samples.folder);
+        test::prepareWithKit (*plugin);
+        REQUIRE (controller.status().state == ContentState::ready);
+        plugin.content->setSamples (SyntheticContent::Samples::missing); // the drive unplugged, the file deleted
+        REQUIRE (controller.status().state == ContentState::ready); // the Controller still sees the kit ready
+
+        const auto refused = controller.exportSound ({ "SPF02", riser });
+        INFO (refused.problem);
+        CHECK (refused.file == juce::File());
+        CHECK (refused.problem == "SPF02's FX/Riser.wav is missing");
+        CHECK (refused.detail == "missing: FX/Riser.wav: no such file in " + SyntheticContent::folderOf ("SPF02").getFullPathName());
+        CHECK (refused.sourceProblem);
+        CHECK_FALSE (refused.reinstall);
+    }
+
+    SECTION ("a samples folder that can't be written: the folder's fault, not the kit's")
+    {
+        SyntheticContent::Options options;
+        options.ids = { "SPF03" };
+        SyntheticPlugin plugin (options);
+        const auto blocker = samples.folder.getChildFile ("Samples");
+        REQUIRE (samples.folder.createDirectory().wasOk());
+        REQUIRE (blocker.replaceWithText ("a file, not a folder"));
+        auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+        controller.setSamplesFolderForTesting (blocker);
+        test::prepareWithKit (*plugin);
+        REQUIRE (controller.status().state == ContentState::ready);
+
+        const auto refused = controller.exportSound ({ "SPF03", riser });
+        INFO (refused.problem);
+        CHECK (refused.file == juce::File());
+        CHECK (refused.problem.contains (blocker.getChildFile ("SPF03 Synthetic 03").getFullPathName()));
+        CHECK_FALSE (refused.sourceProblem);
+        CHECK_FALSE (refused.reinstall);
+    }
+
+    SECTION ("a copy made: nobody's fault")
+    {
+        SyntheticContent::Options options;
+        options.ids = { "SPF04" };
+        SyntheticPlugin plugin (options);
+        auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+        controller.setSamplesFolderForTesting (samples.folder);
+        test::prepareWithKit (*plugin);
+        REQUIRE (controller.status().state == ContentState::ready);
+
+        const auto copy = controller.exportSound ({ "SPF04", riser });
+        INFO (copy.problem);
+        CHECK (copy.file.existsAsFile());
+        CHECK (copy.problem.isEmpty());
+        CHECK (copy.detail.isEmpty());
+        CHECK_FALSE (copy.sourceProblem);
+        CHECK_FALSE (copy.reinstall);
+    }
 }
 
 TEST_CASE ("exportSound is refused, with the reason, while the kit's samples aren't there", "[controller][sounds]")
@@ -522,12 +619,14 @@ TEST_CASE ("exportSound is refused, with the reason, while the kit's samples are
     const auto early = controller.exportSound ({ "MIS01", riser });
     CHECK (early.file == juce::File());
     CHECK (early.problem.isNotEmpty());
+    CHECK (early.sourceProblem);
 
     test::prepare (*plugin, 48000.0, 512);
     REQUIRE (test::waitForStatus (*plugin, ContentState::missing));
     const auto refused = controller.exportSound ({ "MIS01", riser });
     CHECK (refused.file == juce::File());
     CHECK (refused.problem.contains ("no content folder holds MIS01"));
+    CHECK (refused.sourceProblem); // the kit's samples, not the samples folder
     CHECK (plugin.content->fileReads.load() == 0); // never read
     CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 0);
 }
@@ -598,13 +697,21 @@ TEST_CASE ("setSamplesFolder is kept for the person, never in the project, and r
     CHECK_FALSE (xml->toString().contains (mine.getFullPathName()));
 
     // The content folders (the kit's, and the root that holds it), the installers' content folder and the drag
-    // cache, and anything inside them, are refused, and nothing changes.
+    // cache, and anything inside them, are refused, and nothing changes. So are Wubansia's own folders: the app
+    // data's "Wubansia Audio", which holds Content and settings.xml and which INSTALL.md's Uninstall deletes, and the
+    // caches' "Wubansia Audio" around the drag cache, which cleaners empty.
     test::prepareWithKit (*plugin); // the service has searched SMP01's folder
     const auto kitFolder = SyntheticContent::folderOf ("SMP01");
     const auto contentRoot = kitFolder.getParentDirectory();
+    const auto appData = ContentLocator::appDataFolder(); // <app data>/Wubansia Audio/Wubansia
+    const auto ownCaches = dragout::cacheFolder().getParentDirectory().getParentDirectory(); // <caches>/Wubansia Audio
+    REQUIRE (appData.getParentDirectory().getFileName() == "Wubansia Audio");
+    REQUIRE (ownCaches.getFileName() == "Wubansia Audio");
     const juce::File refusals[] { kitFolder, kitFolder.getChildFile ("Mine"), contentRoot, contentRoot.getChildFile ("Samples"),
         ContentLocator::platformDefaultFolder(), ContentLocator::platformDefaultFolder().getChildFile ("Samples"), drag.folder,
-        drag.folder.getChildFile ("Samples"), dragout::cacheFolder(), dragout::cacheFolder().getChildFile ("Samples") };
+        drag.folder.getChildFile ("Samples"), dragout::cacheFolder(), dragout::cacheFolder().getChildFile ("Samples"), appData,
+        appData.getChildFile ("Samples"), appData.getParentDirectory(), appData.getParentDirectory().getChildFile ("Samples"), ownCaches,
+        ownCaches.getChildFile ("Samples"), ownCaches.getChildFile ("Wubansia") };
     for (const auto& refused : refusals)
     {
         CAPTURE (refused.getFullPathName().toStdString());
