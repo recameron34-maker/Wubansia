@@ -114,6 +114,20 @@ namespace wubansia::editor
             return {};
         }
 
+        // What the detail pane's hint says of the grid, for a row's accessible title, the same whichever row is selected:
+        // ", ends on the beat", ", starts 20 ms before its beat", ", a 4-bar loop, then a 2-bar echo tail".
+        juce::String gridWords (const SoundInfo& sound)
+        {
+            juce::String words;
+            if (sound.endAligned)
+                words << ", ends on the beat";
+            else if (sound.leadInMs > 0)
+                words << ", starts " << sound.leadInMs << " ms before its beat";
+            if (sound.loopBars > 0 && sound.bars > sound.loopBars)
+                words << ", a " << sound.loopBars << "-bar loop, then a " << (sound.bars - sound.loopBars) << "-bar echo tail";
+            return words;
+        }
+
         const char* categoryId (SoundCategory category)
         {
             switch (category)
@@ -1245,7 +1259,8 @@ namespace wubansia::editor
 
         tile.setEnabled (canUse);
         tile.show (tileName(), tileFailed && canUse);
-        tile.setHelpText ("Press to save it into your samples folder and show it in "
+        const auto hint = hintText(); // how the sound sits on the grid, which only paint () showed
+        tile.setHelpText ((hint.isNotEmpty() ? hint + ". " : juce::String()) + "Press to save it into your samples folder and show it in "
                           + juce::String (platform == ContentPanel::Platform::macOS     ? "Finder"
                                           : platform == ContentPanel::Platform::windowsOS ? "Explorer"
                                                                                           : "your file manager"));
@@ -1350,7 +1365,7 @@ namespace wubansia::editor
             rowLook.name = sound.name;
             rowLook.length = wholeBars ? barsText (sound.bars) : seconds + " s";
             const auto loopPart = sound.category == SoundCategory::loops ? sounds::partName (sound.part).toLowerCase() + " loop, " : juce::String();
-            rowLook.spoken = sound.name + ", " + loopPart + (wholeBars ? barsText (sound.bars) : seconds + " seconds") + (sound.endAligned ? ", ends on the beat" : "");
+            rowLook.spoken = sound.name + ", " + loopPart + (wholeBars ? barsText (sound.bars) : seconds + " seconds") + gridWords (sound);
             rowLook.endAligned = sound.endAligned;
             rowLook.files = static_cast<int> (sound.files.size());
             rowLook.selected = i == selected;
