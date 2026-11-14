@@ -632,23 +632,49 @@ TEST_CASE ("an audition of a kit that isn't playing reads that kit's own folder"
     }
 }
 
-TEST_CASE ("selectKit stops the audition", "[audio][audition]")
+TEST_CASE ("selectKit stops the audition, even of the kit already playing; an unknown id stops nothing", "[audio][audition]")
 {
+    // Controller.h's contract for selectKit, on the real Controller (FakeControllerTests check the fake keeps to it).
     SyntheticContent::Options options;
     options.ids = { "SEL01", "SEL02" };
     Quiet q (options);
     auto& controller = q.controller();
-    REQUIRE (controller.audition (q.ref (riser)) > 0u);
-    REQUIRE (waitForOffer (*q));
-    test::process (*q, kBlock);
-    REQUIRE (controller.auditionState().sounding > 0u);
+    const auto play = [&]
+    {
+        const auto ticket = controller.audition (q.ref (riser));
+        REQUIRE (ticket > 0u);
+        REQUIRE (waitForOffer (*q));
+        test::process (*q, kBlock);
+        REQUIRE (controller.auditionState().sounding == ticket);
+        return ticket;
+    };
+    const auto fadesOut = [&]
+    {
+        CHECK (controller.auditionState().sounding == 0u);
+        const auto out = test::process (*q, kBlock);
+        CHECK_FALSE (test::silent (out, 0, kFade)); // it fades out...
+        CHECK (test::silent (out, kFade)); // ...within 5 ms
+        CHECK ((*q).auditionPlayer().sounding() == 0u);
+    };
 
+    // An id this build doesn't carry is ignored: the riser plays on, past what a stop's fade would last.
+    const auto ticket = play();
+    controller.selectKit ("NOPE");
+    CHECK (controller.auditionState().sounding == ticket);
+    CHECK (controller.currentKit() == "SEL01");
+    const auto on = test::process (*q, kBlock);
+    CHECK_FALSE (test::silent (on, kFade));
+    CHECK ((*q).auditionPlayer().sounding() == ticket);
+
+    // The kit already playing: chosen again, it stops the audition all the same.
+    controller.selectKit ("SEL01");
+    fadesOut();
+    CHECK (controller.currentKit() == "SEL01");
+
+    // Another kit.
+    play();
     controller.selectKit ("SEL02");
-    CHECK (controller.auditionState().sounding == 0u);
-    const auto out = test::process (*q, kBlock);
-    CHECK_FALSE (test::silent (out, 0, kFade)); // it fades out...
-    CHECK (test::silent (out, kFade)); // ...within 5 ms
-    CHECK ((*q).auditionPlayer().sounding() == 0u);
+    fadesOut();
     CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
 }
 
