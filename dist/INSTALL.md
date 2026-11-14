@@ -145,8 +145,8 @@ click; an offline bounce never does.
 The drawer's footer says "Drags save to ~/Music/Wubansia/Samples". Each kit gets a folder there, so the copy above
 is `~/Music/Wubansia/Samples/FUT01 Alloy Signal/Rave Stab v2 - FUT01 134 F#m 11A.wav`. **Change…** picks another
 folder; Wubansia keeps your choice for you, not in projects. It refuses a folder inside the content folder, which
-holds only the kits' own files, or inside Wubansia's own folders (`~/Library/Application Support/Wubansia Audio`,
-which the Uninstall below deletes, and `~/Library/Caches/Wubansia Audio`), and one it can't make.
+holds only the kits' own files, or inside Wubansia's own folders, which the Uninstall below deletes
+(`~/Library/Application Support/Wubansia Audio` and `~/Library/Caches/Wubansia Audio`), and one it can't make.
 
 The folder is yours to keep. Wubansia never deletes or overwrites anything in it: dragging a sound again reuses its
 copy, and if you edited a copy in place, the next drag of that sound saves a new one beside it, `... (2).wav`. A
@@ -187,6 +187,8 @@ content folder…**. **Content…** opens the panel that says where the kits' sa
   with the kit's `SHA256SUMS`. A later content version goes in its own `v<N>` folder next to it.
 - `~/Library/Application Support/Wubansia Audio/Wubansia/settings.xml`: the content folder and the samples folder
   you chose, if any, and whether the 1 drum track switch is lit.
+- `~/Library/Caches/Wubansia Audio/Wubansia/drag/`: the MIDI files the Drag MIDI strip wrote for your drags, the
+  newest 32 (Wubansia deletes the older ones).
 - `~/Music/Wubansia/Samples/<KIT> <Title>/`: the WAVs the Samples drawer saved for your drags (or the folder you
   chose with Change…). Wubansia never deletes them, and uninstalling leaves them: your projects use them.
 
@@ -288,7 +290,7 @@ Not yet checked in Live or Logic: where the other instruments land, and these pa
 ```
 rm -rf ~/Library/Audio/Plug-Ins/VST3/Wubansia.vst3 ~/Library/Audio/Plug-Ins/Components/Wubansia.component \
        ~/Library/Audio/Plug-Ins/CLAP/Wubansia.clap /Applications/Wubansia.app ~/Applications/Wubansia.app \
-       "$HOME/Library/Application Support/Wubansia Audio"
+       "$HOME/Library/Application Support/Wubansia Audio" "$HOME/Library/Caches/Wubansia Audio"
 killall -9 AudioComponentRegistrar
 ```
 
