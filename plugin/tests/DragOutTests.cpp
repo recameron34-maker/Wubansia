@@ -35,6 +35,9 @@
 #include <vector>
 
 #if JUCE_LINUX
+    #include <cerrno>
+    #include <fcntl.h>
+    #include <sys/wait.h>
     #include <unistd.h>
 #endif
 
@@ -1351,6 +1354,74 @@ namespace
         }
         return children;
     }
+
+    // Waits up to 2 s for /proc to show pid as this process's zombie: it has ended and nobody has waited for it.
+    bool showsAsZombie (pid_t pid)
+    {
+        const auto zombie = juce::String (static_cast<int> (pid)) + " Z ";
+        const auto until = juce::Time::getMillisecondCounter() + 2000;
+        for (;;)
+        {
+            for (const auto& child : childProcesses())
+                if (child.startsWith (zombie))
+                    return true;
+            if (juce::Time::getMillisecondCounter() >= until)
+                return false;
+            juce::Thread::sleep (5);
+        }
+    }
+
+    // A child of this process that isn't an opener, as an earlier test in the same run can leave one: JUCE's dark-mode
+    // probe (gsettings, started as the Desktop is made) is never waited for once it takes over 200 ms. It runs until
+    // end (), then exits, and stays a zombie until this goes, which waits for it. It runs only close (), read () and
+    // _exit (), which are safe after a fork in a process with threads. The pipe closes on exec, so no opener holds it,
+    // and the child also ends if this process dies first.
+    struct LeftChild
+    {
+        int fds[2] { -1, -1 };
+        pid_t pid = -1;
+
+        LeftChild()
+        {
+            REQUIRE (::pipe2 (fds, O_CLOEXEC) == 0);
+            pid = ::fork();
+            if (pid == 0)
+            {
+                ::close (fds[1]);
+                char byte = 0;
+                while (::read (fds[0], &byte, 1) < 0 && errno == EINTR)
+                {
+                }
+                ::_exit (0);
+            }
+            ::close (fds[0]);
+            fds[0] = -1;
+            REQUIRE (pid > 0);
+        }
+
+        ~LeftChild()
+        {
+            end();
+            if (pid > 0)
+                while (::waitpid (pid, nullptr, 0) < 0 && errno == EINTR)
+                {
+                }
+        }
+
+        LeftChild (const LeftChild&) = delete;
+        LeftChild& operator= (const LeftChild&) = delete;
+
+        void end()
+        {
+            if (fds[1] < 0)
+                return;
+            const char byte = 0;
+            const auto written = ::write (fds[1], &byte, 1); // wakes the child's read (), whoever else holds the pipe
+            juce::ignoreUnused (written);
+            ::close (fds[1]);
+            fds[1] = -1;
+        }
+    };
 }
 #endif
 
@@ -1426,10 +1497,22 @@ TEST_CASE ("revealing a file on Linux opens its folder with xdg-open, the path a
     SKIP ("macOS and Windows reveal without a shell");
 #else
     const StubOpener stub;
+   #if JUCE_LINUX
+    // Two children this process has that aren't the reveal's, as an earlier test can leave them, made here so that
+    // every run has them: one that has ended and that nobody has waited for (a zombie), and one still running at the
+    // reveal that ends during the check below.
+    LeftChild zombie;
+    zombie.end();
+    REQUIRE (showsAsZombie (zombie.pid));
+    LeftChild ending;
+   #endif
     CHECK (stub.reveal (dragout::revealToUser) == juce::StringArray { "1", stub.kitFolder.getFullPathName() }); // the folder, exactly
     CHECK_FALSE (stub.injected());
 
    #if JUCE_LINUX
+    ending.end();
+    REQUIRE (showsAsZombie (ending.pid));
+
     // The opener has written its log and ends now. Nothing of it stays this process's child: in a host, a child nobody
     // waits for stays in the process table as a zombie until the host quits (or until something reaps it).
     auto children = childProcesses();
