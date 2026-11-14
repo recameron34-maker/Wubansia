@@ -163,6 +163,9 @@ content folder…**. **Content…** opens the panel that says where the kits' sa
   every file the Set uses into its project folder; do that before you move the project to another computer.
 - To find your copies again in Live's browser, add the samples folder to Places (Add Folder… under Places).
 - Live may write `.asd` files (its analysis) beside the WAVs. Wubansia leaves them alone.
+- Live plays the drawer whenever its audio runs. When no sound comes, the drawer says: "No sound from your DAW: it
+  isn't running Wubansia's audio right now. Check that its audio engine is on and this track is active." Check that
+  Live has an audio output device (Settings > Audio) and that Wubansia's track isn't deactivated.
 
 ### In Logic Pro
 
