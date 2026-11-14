@@ -118,8 +118,8 @@ namespace wubansia::test
         juce::String exportSourceProblem; // when set, every export fails with it, the kit's own file's fault
         bool refuseSamplesFolder = false; // setSamplesFolder () says no, as for a content or drag folder
         // What auditionState () gives. audition () sets it as a host running blocks would: the next ticket, sounding at
-        // once; with auditionFails set, 0 and a problem. stopAudition () clears sounding. Tests may set it directly
-        // (waiting, hostSilent...).
+        // once; with auditionFails set, 0 and a problem. stopAudition () and selectKit () of a kit in kitCards clear
+        // sounding. Tests may set it directly (waiting, hostSilent...).
         AuditionState auditionStatus;
         bool auditionFails = false;
 
@@ -147,6 +147,9 @@ namespace wubansia::test
                 {
                     current = id;
                     contentStatus = card.content;
+                    // As ControllerImpl's: a kit chosen stops the audition (stops counts stopAudition () calls only).
+                    auditionStatus.sounding = 0;
+                    auditionStatus.waiting = false;
                 }
         }
 

@@ -177,7 +177,9 @@ namespace wubansia
         // Kits and content.
         virtual std::vector<KitCard> kits() const = 0; // in the kit picker's order
         virtual juce::String currentKit() const = 0;
-        virtual void selectKit (const juce::String& id) = 0; // queues the load; an unknown id is ignored
+        // Queues the load and stops the Samples drawer's audition, even when id is the kit already playing; an
+        // unknown id is ignored and stops nothing.
+        virtual void selectKit (const juce::String& id) = 0;
         virtual ContentStatus status() const = 0; // the current kit's
         virtual void setContentFolder (const juce::File& folder) = 0; // kept per user, never in project state
 
