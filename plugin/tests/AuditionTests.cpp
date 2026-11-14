@@ -2,7 +2,8 @@
 // the player in Off mode, so the engine plays nothing and what comes out is the audition alone: the file dry at -6 dB,
 // sample for sample, then master_gain; at 44.1 kHz its resampled length; a mono output's fold; Stop's 5 ms fade, the
 // host's reset and bypass; offline renders that never print one; a host that runs no blocks, before or after a block
-// took the clip (the 300 ms hint, and nothing stale when blocks come back); the groove left as it was; latest wins;
+// took the clip (the 300 ms hint, and nothing stale when blocks come back), and a block that comes just as a clip is
+// given up (a newer clip it took plays on); the groove left as it was; latest wins;
 // selectKit stopping it; bytes that aren't kit.json's refused; the sound thread started by the first audition only;
 // and the message, sound and audio threads at once (run it under TSan too: WubansiaPluginTests "[audition]" in a
 // -fsanitize=thread build).

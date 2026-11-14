@@ -19,7 +19,8 @@
 // click when it next plays. A clip a block took is given up the same way once no block has come for 300 ms (the host
 // stopped running blocks mid-clip): it reads as stopped at once, the hint shows if it was the latest, and the player
 // lets it go unheard at the next block (engine::AuditionPlayer::dropIfIdleSince), so blocks that come back play
-// nothing stale, not even a fade. With no clip of its out, it sleeps until the next request.
+// nothing stale, not even a fade. (A block that slips in while it gives up only fades that stale clip out; a newer
+// clip the block took plays on, with no hint.) With no clip of its out, it sleeps until the next request.
 //
 // stop () stops every ticket so far at once (a playing clip fades out over 5 ms) and drops the queued request. Every
 // clip is made here with new and deleted here, once the player hands it back; one the player still holds when it is

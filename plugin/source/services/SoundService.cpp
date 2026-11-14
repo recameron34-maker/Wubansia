@@ -290,8 +290,12 @@ namespace wubansia
 
     void SoundService::checkHeld()
     {
-        // The offer first, then the blocks: a block that takes the offer has counted itself before it does.
+        // The offer, then the playing ticket, then the blocks: a block that takes the offer has counted itself before it
+        // does. A block that runs between these reads moves the count, so nothing is given up; one that runs after them
+        // (before the drop below) meets only a stop for the ticket read here, older than any clip that block took, which
+        // fades out as a stop does. A newer clip it took plays on, and no hint shows.
         const bool offerWaits = player.offered();
+        const auto playing = player.sounding();
         const auto blocks = player.blocksRun();
         const auto now = Clock::now();
         const int held = outstanding - (offerWaits ? 1 : 0); // clips a block took, still in the player's hands
@@ -310,7 +314,6 @@ namespace wubansia
         givenUpAt = blocks;
         if (giveUpProbe != nullptr)
             giveUpProbe();
-        const auto playing = player.sounding();
         player.stopUpTo (playing);
         player.dropIfIdleSince (blocks);
         {
