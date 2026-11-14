@@ -32,7 +32,7 @@ What the code fixed before the design:
 8. **The default file** is the top velocity layer's first round robin, from the lowest zone rooted on the kit's tonic (pitched instruments; else the middle zone) or the first zone (one-key instruments): the kit's key note at its lowest and loudest. That is usually a note the kit's loops play, but not for three sounds: FUT03's Vox Synth and Keys EP give G3, below the G4 up the kit plays them, and FUT02's Chrome Arp gives D4, below its arp's A4-C6 (SoundCatalogTests pins all three). A File box reaches every file.
 
 ### Audition (step 2)
-9. **A dry clip player, summed after the engine and before master_gain**: you hear exactly what you drop, untouched by lane mutes, ducks, sends, A/B, CC120/123 or kit swaps.
+9. **A dry clip player, summed after the engine and before master_gain**: you hear exactly what you drop, untouched by lane mutes, ducks, sends, A/B, CC120/123 or the engine's kit-swap fades. Choosing a kit (`selectKit ()`) stops it; a kit the host's project brings back (`setStateInformation`) doesn't.
 10. **Clips own their audio and are made on a sound thread, one per processor.** The player and the clip maker live in `engine/audition/`, JUCE-free, resampling with the voices' `SincBank`. No clip refers to a Kit.
 11. **The real-time protocol**: clips in through a `PendingSlot` (latest wins), back through a `RetireFifo` of 8; stops are tickets (`stopUpTo`), and a `sounding ()` atomic reports the ticket playing. The audio thread never frees anything, and every clip comes back exactly once.
 12. **Offline renders and bypassed blocks never play an audition, and an idle player touches nothing**, so a bounce stays bit-identical (RenderTests).
