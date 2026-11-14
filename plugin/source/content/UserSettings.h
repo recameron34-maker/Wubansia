@@ -1,15 +1,17 @@
 #pragma once
 
-// The person's own settings (P9): the content folder chosen with "Choose content folder…" and the
-// samples folder chosen with the Samples drawer's "Change…" (ADR 0024). They live in one file per user,
+// The person's own settings (P9): the content folder chosen with "Choose content folder…", the
+// samples folder chosen with the Samples drawer's "Change…" (ADR 0024) and the drag strip's 1 drum
+// track switch (ADR 0025). They live in one file per user,
 // <app data>/Wubansia Audio/Wubansia/settings.xml next to the default content folder
-// (ContentLocator::appDataFolder), as the root's attributes content_folder and samples_folder, never in
-// a project's state, and every plugin instance in the process shares them: instance () is one object,
-// and generation () tells the others that the content folder changed.
+// (ContentLocator::appDataFolder), as the root's attributes content_folder, samples_folder and
+// drag_drums_one_track ("1" while the switch is lit), never in a project's state, and every plugin
+// instance in the process shares them: instance () is one object, and generation () tells the others
+// that the content folder changed.
 //
-// Nothing reads the file before the first contentFolder () or samplesFolder (): the processor's
-// constructor never touches it. The setters write the file at once, keeping whatever else it holds;
-// call them on the message thread.
+// Nothing reads the file before the first contentFolder (), samplesFolder () or dragDrumsOnOneTrack ():
+// the processor's constructor never touches it. The setters write the file at once, keeping whatever
+// else it holds; call them on the message thread.
 
 #include <juce_core/juce_core.h>
 

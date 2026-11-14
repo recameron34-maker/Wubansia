@@ -4,8 +4,8 @@
 // thread and returns at once: loads go to the kit service's thread, and snapshot () reads the
 // engine's telemetry atomics. The state-only settings set here (the kit, the Standalone tempo, the
 // MIDI-in mode and the phrase mode) tell the host the project changed
-// (updateHostDisplay withNonParameterStateChanged); the content and samples folders are the person's,
-// not the project's, and don't.
+// (updateHostDisplay withNonParameterStateChanged); the content and samples folders and the drag
+// strip's drum option (drag_drums_one_track) are the person's, kept in settings.xml, and don't.
 
 #include "Controller.h"
 
