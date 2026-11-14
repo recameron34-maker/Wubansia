@@ -2240,6 +2240,19 @@ TEST_CASE ("screen readers hear which kit and category show, what the tile does,
     TempFolder samples;
     rig.controller.samplesFolderChosen = samples.folder;
     auto& c = rig.controller;
+    // A vox sound without a lead-in ahead of Vox Synth (6 ms), and a loop with an echo tail, as FUT03's Context Vox Riff
+    // has: 6 bars, 4 of them loop.
+    auto& list = c.soundLists["FUT01"];
+    REQUIRE (list[4].name == "Vox Synth");
+    auto chop = list[4];
+    chop.id = "FUT01/vox_chop";
+    chop.name = "Vox Chop";
+    chop.leadInMs = 0;
+    list.insert (list.begin() + 4, chop);
+    auto& phrase = list.back();
+    REQUIRE (phrase.category == wubansia::SoundCategory::loops);
+    phrase.bars = 6;
+    phrase.loopBars = 4;
 
     withEditor (rig, [&] (PluginEditor& editor)
         {
@@ -2265,10 +2278,32 @@ TEST_CASE ("screen readers hear which kit and category show, what the tile does,
             CHECK (get<juce::Button> (editor, "samples_category_accents").getTitle() == "Accents, 3 sounds");
             click (get<juce::Button> (editor, "samples_category_accents"));
 
-            // The tile: its visible words first, then the file; what a press does is its help.
+            // The tile: its visible words first, then the file; its help is the detail pane's hint (how the sound sits on
+            // the grid), then what a press does.
             auto& tile = get<editor::SoundDragTile> (editor, "sound_drag");
             CHECK (tile.getTitle() == "Drag into your DAW: Reverse Stab v2 - FUT01 134 F#m 11A.wav");
-            CHECK (tile.getHelpText() == "Press to save it into your samples folder and show it in Finder");
+            CHECK (drawer.hintText() == "Ends on the beat: put its end on the downbeat");
+            CHECK (tile.getHelpText() == "Ends on the beat: put its end on the downbeat. Press to save it into your samples folder and show it in Finder");
+
+            // Every row's title says what its hint says of the grid, selected or not: an end on the beat, a lead-in (slide
+            // it earlier), a loop's echo tail (not a plain loop of its length).
+            CHECK (soundRow (editor, 0).getTitle() == "Reverse Stab, 1.30 seconds, ends on the beat");
+            CHECK (soundRow (editor, 1).getTitle() == "Rave Stab, 0.71 seconds");
+            click (get<juce::Button> (editor, "samples_category_vox"));
+            CHECK (soundRow (editor, 0).getTitle() == "Vox Chop, 1.90 seconds");
+            CHECK_FALSE (soundRow (editor, 1).look().selected);
+            CHECK (soundRow (editor, 1).getTitle() == "Vox Synth, 1.90 seconds, starts 6 ms before its beat");
+            press (soundRow (editor, 1));
+            CHECK (soundRow (editor, 1).look().selected);
+            CHECK (soundRow (editor, 1).getTitle() == "Vox Synth, 1.90 seconds, starts 6 ms before its beat");
+            CHECK (drawer.hintText() == "Starts 6 ms before its beat: slide it 6 ms earlier");
+            CHECK (tile.getHelpText() == "Starts 6 ms before its beat: slide it 6 ms earlier. Press to save it into your samples folder and show it in Finder");
+            click (get<juce::Button> (editor, "samples_category_loops"));
+            CHECK (soundRow (editor, 0).getTitle() == "Chrome Pluck Phrase, synth loop, 6 bars, a 4-bar loop, then a 2-bar echo tail");
+            CHECK (drawer.hintText() == "6 bars at 134 BPM: a 4-bar loop, then a 2-bar echo tail");
+            CHECK (tile.getHelpText() == "6 bars at 134 BPM: a 4-bar loop, then a 2-bar echo tail. Press to save it into your samples folder and show it in Finder");
+            click (get<juce::Button> (editor, "samples_category_accents"));
+            CHECK (tile.getTitle() == "Drag into your DAW: Reverse Stab v2 - FUT01 134 F#m 11A.wav");
 
             // What the status line says is said aloud once: a copy saved, a copy that failed, the host's silence.
             click (tile);
