@@ -52,6 +52,9 @@ namespace wubansia
         static constexpr std::array<int, 5> zoomPercents { 100, 125, 150, 175, 200 };
 
         const editor::EditorModel& model() const noexcept { return state; }
+
+        // For tests: whether the editor runs in Logic Pro (juce::PluginHostType, asked once when it opens).
+        void setLogicHostForTesting (bool isLogic) noexcept { logicHost = isLogic; }
         bool isContentPanelShown() const noexcept { return contentPanel.isVisible(); }
         bool isSamplesPanelShown() const noexcept { return samplesPanel.isVisible(); }
 
@@ -76,6 +79,7 @@ namespace wubansia
 
         Controller& controller;
         const bool standalone;
+        bool logicHost = false;
         float zoom = 1.0f;
 
         editor::LookAndFeel lookAndFeel; // outlives every component below

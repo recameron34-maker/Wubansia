@@ -2009,13 +2009,14 @@ TEST_CASE ("the drawer follows the playing kit until a chip is picked", "[editor
         });
 }
 
-TEST_CASE ("the playing row shows Stop while its ticket sounds; a silent host gets the Logic hint", "[editor][sounds]")
+TEST_CASE ("the playing row shows Stop while its ticket sounds; a silent Logic gets the Logic hint", "[editor][sounds]")
 {
     Rig rig;
     auto& c = rig.controller;
 
     withEditor (rig, [&] (PluginEditor& editor)
         {
+            editor.setLogicHostForTesting (true); // the plugin in Logic Pro
             auto& drawer = openDrawer (editor);
             auto& stop = get<juce::Button> (editor, "sound_stop");
             press (soundRow (editor, 1));
@@ -2077,6 +2078,40 @@ TEST_CASE ("the playing row shows Stop while its ticket sounds; a silent host ge
             editor.tick();
             CHECK_FALSE (soundRow (editor, 2).look().failed);
             CHECK (soundRow (editor, 1).look().playing);
+            CHECK (drawer.statusText().isEmpty());
+        });
+}
+
+TEST_CASE ("no sound names Logic only in Logic: any other host gets words that fit every DAW", "[editor][sounds]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            // The editor asks juce::PluginHostType which host runs it: this test binary is no DAW, as Live isn't Logic.
+            // Its words send no one to a track's selection or to Play (Live runs no audio with its engine off, say).
+            auto& drawer = openDrawer (editor);
+            press (soundRow (editor, 1));
+            c.auditionStatus.sounding = 0;
+            c.auditionStatus.hostSilent = true;
+            editor.tick();
+            const juce::String anyDaw ("No sound from your DAW: it isn't running Wubansia's audio right now. Check that its audio engine is on and this "
+                                       "track is active.");
+            CHECK (drawer.statusText() == anyDaw);
+            CHECK_FALSE (drawer.statusText().contains ("Logic"));
+            CHECK_FALSE (drawer.statusText().contains ("Play"));
+
+            // In Logic, Logic's own words; and a host given up mid-clip says the same as one that never took it.
+            editor.setLogicHostForTesting (true);
+            editor.tick();
+            CHECK (drawer.statusText()
+                   == "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed. Select this track, or press Play.");
+            editor.setLogicHostForTesting (false);
+            editor.tick();
+            CHECK (drawer.statusText() == anyDaw);
+            CHECK (drawer.keyPressed (juce::KeyPress (juce::KeyPress::escapeKey))); // Esc puts it away, as the others
+            editor.tick();
             CHECK (drawer.statusText().isEmpty());
         });
 }
