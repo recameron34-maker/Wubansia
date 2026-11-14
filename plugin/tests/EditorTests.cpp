@@ -13,17 +13,22 @@
 #include "services/KitCatalog.h"
 #include "sounds/SampleExport.h"
 
+#include "kit/file_sample_source.h"
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <map>
 #include <set>
 #include <thread>
+#include <tuple>
 #include <utility>
 
 #if JUCE_LINUX || JUCE_BSD
@@ -1586,35 +1591,202 @@ TEST_CASE ("an export the kit's own file fails says what fixes the kit, not the 
     TempFolder samples;
     rig.controller.samplesFolderChosen = samples.folder;
     auto& c = rig.controller;
+    const auto refusal = [] (const char* problem, const char* detail, bool reinstall)
+    {
+        wubansia::SoundExport copy;
+        copy.problem = problem;
+        copy.detail = detail;
+        copy.sourceProblem = true;
+        copy.reinstall = reinstall;
+        return copy;
+    };
 
     withEditor (rig, [&] (PluginEditor& editor)
         {
             auto& drawer = openDrawer (editor);
+            juce::StringArray said;
+            drawer.announce = [&said] (const juce::String& text) { said.add (text); };
             Handoffs os;
             os.hook (drawer);
             auto& tile = get<editor::SoundDragTile> (editor, "sound_drag");
 
-            // The installed file is gone (an unplugged drive, say): another samples folder wouldn't help.
-            c.exportSourceProblem = "Reverse Stab v2.wav can't be read: missing: Music/Reverse Stab v2.wav: no such file in /x/fut01/v1";
+            // The installed file is gone (an unplugged drive, say): another samples folder wouldn't help. The line names
+            // the file in the kit and what helps, and nothing else; where it was looked for is in the tooltip, and said.
+            const auto gone = refusal ("FUT01's Music/Reverse Stab v2.wav is missing",
+                "missing: Music/Reverse Stab v2.wav: no such file in /Users/someone/Library/Application Support/Wubansia Audio/Wubansia/Content/fut01/v1",
+                false);
+            c.exportOutcome = [&gone] (const wubansia::SoundRef&) { return gone; };
             drag (tile, 6.0f);
             CHECK (os.dragged.isEmpty());
             CHECK (tile.hasFailed());
-            CHECK (drawer.statusText()
-                   == "Couldn't save Reverse Stab v2: Reverse Stab v2.wav can't be read: missing: Music/Reverse Stab v2.wav: no such file in "
-                      "/x/fut01/v1. Check that FUT01's samples are still installed.");
+            const juce::String line ("Couldn't save Reverse Stab v2: FUT01's Music/Reverse Stab v2.wav is missing. Check that FUT01's samples are still installed.");
+            CHECK (drawer.statusText() == line);
+            const juce::String where ("Music/Reverse Stab v2.wav: no such file in /Users/someone/Library/Application Support/Wubansia Audio/Wubansia/Content/fut01/v1.");
+            CHECK (drawer.statusTooltip() == line + "\n" + where);
+            REQUIRE_FALSE (said.isEmpty());
+            CHECK (said[said.size() - 1] == line + " " + where);
 
-            // Bytes that aren't kit.json's: the problem already says what to do.
-            c.exportSourceProblem = "Reverse Stab v2.wav isn't the file FUT01's content v1 lists: reinstall FUT01";
+            // A content folder whose name holds "install" changes nothing: the advice comes from the result, not its words.
+            c.exportOutcome = [&refusal] (const wubansia::SoundRef&)
+            {
+                return refusal ("FUT01's Music/Reverse Stab v2.wav is missing",
+                    "missing: Music/Reverse Stab v2.wav: no such file in /Users/someone/Music/Installed Kits/fut01/v1", false);
+            };
+            click (tile);
+            CHECK (drawer.statusText() == line);
+            CHECK (drawer.statusTooltip().endsWith ("/Users/someone/Music/Installed Kits/fut01/v1."));
+
+            // Bytes that aren't kit.json's: the problem already says what to do, and there's no more to it.
+            c.exportOutcome = [&refusal] (const wubansia::SoundRef&)
+            { return refusal ("Reverse Stab v2.wav isn't the file FUT01's content v1 lists: reinstall FUT01", "", true); };
             click (get<juce::Button> (editor, "sound_reveal"));
             CHECK (os.revealed.isEmpty());
             CHECK (drawer.statusText() == "Couldn't save Reverse Stab v2: Reverse Stab v2.wav isn't the file FUT01's content v1 lists: reinstall FUT01.");
+            CHECK (drawer.statusTooltip() == drawer.statusText());
+            CHECK (said[said.size() - 1] == drawer.statusText());
+
+            // A check's code never shows ("lfs_pointer: ..." from the kit's content status, say).
+            c.exportOutcome = [&refusal] (const wubansia::SoundRef&)
+            { return refusal ("lfs_pointer: Music/Reverse Stab v2.wav: a Git LFS pointer file", "", false); };
+            click (tile);
+            CHECK (drawer.statusText() == "Couldn't save Reverse Stab v2: Music/Reverse Stab v2.wav: a Git LFS pointer file. Check that FUT01's samples are still installed.");
 
             // A failure at the samples folder still points to Change...
-            c.exportSourceProblem.clear();
+            c.exportOutcome = nullptr;
             c.exportFails = true;
             drag (tile, 6.0f);
             CHECK_THAT (drawer.statusText().toStdString(), EndsWith (editor::utf8 ("Choose another folder with Change\xe2\x80\xa6").toStdString()));
+            CHECK (drawer.statusTooltip() == drawer.statusText());
         });
+}
+
+TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for every file of the four kits", "[editor][sounds]")
+{
+    // Every file of the four kits, refused as exportCopy refuses one that's gone from the default macOS content folder
+    // under a long user name: the drawer's line must show all of itself, the advice last, in the footer's font and in
+    // the status area the drawer lays out, beside the default samples folder and beside one long enough to take the
+    // folder text's full width.
+    const wubansia::KitCatalog catalog (wubansia::EmbeddedContent::sources());
+    const auto contentFolder = [] (const std::string& kit)
+    {
+        return "/Users/christopher.henderson/Library/Application Support/Wubansia Audio/Wubansia/Content/" + juce::String (kit).toLowerCase().toStdString() + "/v1";
+    };
+    const auto refused = [&] (const wubansia::KitCatalog::Entry& entry, int file)
+    {
+        const auto& listed = entry.manifest.files[(std::size_t) file];
+        const engine::FileSampleSource gone (std::filesystem::path (contentFolder (entry.id)));
+        const auto read = gone.readBytes (listed.path);
+        REQUIRE_FALSE (read.ok());
+        return wubansia::sounds::soundExportOf (wubansia::sounds::unreadableSource (entry.info, listed, read.error));
+    };
+
+    Rig rig;
+    auto& c = rig.controller;
+    c.kitCards.clear();
+    for (const auto& entry : catalog.entries())
+    {
+        REQUIRE (entry.ok());
+        auto card = entry.card;
+        card.content = {};
+        card.content.state = wubansia::ContentState::ready;
+        card.content.folder = juce::File (contentFolder (entry.id));
+        c.kitCards.push_back (card);
+        c.soundLists[entry.card.id] = entry.sounds;
+    }
+    c.contentStatus = c.kitCards.front().content;
+    c.exportOutcome = [&] (const wubansia::SoundRef& ref)
+    {
+        const auto* entry = catalog.find (ref.kit.toStdString());
+        REQUIRE (entry != nullptr);
+        return refused (*entry, ref.file);
+    };
+
+    // The rail's categories in SoundCategory's order, as their buttons are named.
+    constexpr std::array<const char*, wubansia::kSoundCategories> categoryIds { "accents", "fx", "vox", "synths", "bass", "drums", "loops" };
+
+    // The glyph drawFittedText ends a cut line with.
+    const auto font = editor::uiFont (11.5f, true);
+    juce::GlyphArrangement dots;
+    dots.addLineOfText (font, juce::String::charToString ((juce::juce_wchar) 0x2026), 0.0f, 0.0f);
+    REQUIRE (dots.getNumGlyphs() == 1);
+    const auto ellipsis = dots.getGlyph (0).getGlyphIndex();
+
+    for (const auto* samplesFolder : { "", "/Volumes/Studio Archive 2026/Sample Libraries/Wubansia drags for the next album" })
+    {
+        c.samplesFolderChosen = juce::String (samplesFolder).isEmpty() ? wubansia::sounds::defaultSamplesFolder() : juce::File (samplesFolder);
+        withEditor (rig, [&] (PluginEditor& editor)
+            {
+                editor.setZoom (1.0f);
+                auto& drawer = openDrawer (editor);
+                Handoffs os;
+                os.hook (drawer);
+                const auto area = drawer.statusBounds();
+                INFO ("status area " << area.toString());
+                REQUIRE (area.getWidth() > 400);
+
+                juce::String widest;
+                float widestWidth = 0.0f;
+                std::tuple<juce::String, juce::String, int> widestSound;
+                int lines = 0;
+                for (const auto& entry : catalog.entries())
+                    for (const auto& sound : entry.sounds)
+                        for (int i = 0; i < (int) sound.files.size(); ++i)
+                        {
+                            const auto& file = sound.files[(std::size_t) i];
+                            const auto line = editor::failedCopyLine (file.label, entry.card.id, refused (entry, file.file));
+                            INFO (line);
+                            ++lines;
+                            CHECK (line.endsWith (". Check that " + entry.card.id + "'s samples are still installed."));
+                            CHECK_FALSE (line.contains ("missing:"));
+                            CHECK_FALSE (line.contains ("/Users/"));
+
+                            // Two lines, word by word: what one line leaves for the next is never more than a word.
+                            const auto width = juce::GlyphArrangement::getStringWidth (font, line);
+                            float longestWord = 0.0f;
+                            for (const auto& word : juce::StringArray::fromTokens (line, " ", ""))
+                                longestWord = juce::jmax (longestWord, juce::GlyphArrangement::getStringWidth (font, word + " "));
+                            CHECK (width + longestWord <= 2.0f * (float) area.getWidth());
+
+                            // And as drawFittedText lays it out here: nothing cut.
+                            juce::GlyphArrangement drawn;
+                            drawn.addFittedText (font, line, (float) area.getX(), (float) area.getY(), (float) area.getWidth(), (float) area.getHeight(),
+                                juce::Justification::centredLeft, 2, 0.9f);
+                            bool cut = false;
+                            for (int g = 0; g < drawn.getNumGlyphs(); ++g)
+                                cut = cut || drawn.getGlyph (g).getGlyphIndex() == ellipsis;
+                            CHECK_FALSE (cut);
+
+                            if (width > widestWidth)
+                            {
+                                widestWidth = width;
+                                widest = line;
+                                widestSound = { entry.card.id, sound.name, i };
+                            }
+                        }
+                CHECK (lines >= 618);
+
+                // The widest, through the drawer itself: its kit, its category, its row, its file, and a click on the tile.
+                const auto& [kit, name, fileIndex] = widestSound;
+                INFO ("widest: " << widest);
+                click (get<editor::KitChip> (editor, "samples_kit_" + kit));
+                const auto* entry = catalog.find (kit.toStdString());
+                REQUIRE (entry != nullptr);
+                const auto it = std::find_if (entry->sounds.begin(), entry->sounds.end(), [&] (const wubansia::SoundInfo& s) { return s.name == name; });
+                REQUIRE (it != entry->sounds.end());
+                click (get<editor::CategoryButton> (editor, "samples_category_" + juce::String (categoryIds[(std::size_t) it->category])));
+                editor.tick();
+                int row = -1;
+                for (int i = 0; i < drawer.numRows(); ++i)
+                    if (soundRow (editor, i).look().name == name)
+                        row = i;
+                REQUIRE (row >= 0);
+                press (soundRow (editor, row));
+                get<juce::ComboBox> (editor, "sound_file").setSelectedItemIndex (fileIndex, juce::sendNotificationSync);
+                click (get<editor::SoundDragTile> (editor, "sound_drag"));
+                CHECK (drawer.statusText() == widest);
+                CHECK (os.revealed.isEmpty());
+            });
+    }
 }
 
 TEST_CASE ("a kit chip browses another kit without selecting it; a kit without samples shows why", "[editor][sounds]")

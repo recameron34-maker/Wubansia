@@ -165,8 +165,10 @@ namespace wubansia
     struct SoundExport
     {
         juce::File file; // the copy; juce::File () on failure
-        juce::String problem; // for people: why there is no copy
+        juce::String problem; // for people: why there is no copy; the kit's own file is named in the kit, never by its folder
+        juce::String detail; // the problem as the disk or the reader gave it, folder and code included; may be empty
         bool sourceProblem = false; // the kit's own file is why (missing, unreadable, not kit.json's), not the samples folder
+        bool reinstall = false; // the kit's file isn't the one kit.json lists, and the problem says to reinstall the kit
     };
 
     class Controller

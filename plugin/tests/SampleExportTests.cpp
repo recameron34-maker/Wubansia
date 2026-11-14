@@ -340,6 +340,8 @@ TEST_CASE ("bytes that aren't the ones kit.json lists are refused, and nothing i
         CHECK (refused.problem == "Riser.wav isn't the file SYN01's content v1 lists: reinstall SYN01");
         CHECK (refused.problem == sounds::listingProblem (synInfo(), riser));
         CHECK (refused.sourceProblem); // the kit's file, not the samples folder
+        CHECK (refused.reinstall); // the problem says what helps
+        CHECK (refused.detail.empty()); // and says it all
         CHECK_FALSE (samples.exists()); // not even the folder
 
         // The kit's other files are still copied.
@@ -355,20 +357,62 @@ TEST_CASE ("bytes that aren't the ones kit.json lists are refused, and nothing i
         CHECK (refused.file == juce::File());
         CHECK (refused.problem == sounds::listingProblem (synInfo(), riser));
         CHECK (refused.sourceProblem);
+        CHECK (refused.reinstall);
         CHECK_FALSE (samples.exists());
     }
 
-    SECTION ("a file that can't be read: named, and nothing written")
+    SECTION ("a file that's gone: named in the kit, short, and nothing written")
     {
         test::SyntheticContent content;
         const auto found = content.locate (syn());
         content.setSamples (test::SyntheticSamples::missing); // gone since the kit was found
         const auto refused = sounds::exportCopy (content, found, synInfo(), fileAt (syn(), "Drums/Snare v1 rr2.wav"), samples);
         CHECK (refused.file == juce::File());
-        CHECK (text (refused.problem).contains ("Drums/Snare v1 rr2.wav"));
-        CHECK (text (refused.problem).contains ("missing"));
+
+        // The file as kit.json lists it and what's wrong, by the reader's code: never the code or the folder, which can
+        // be long (a user's Library folder) and would push what helps out of the drawer's two lines.
+        CHECK (refused.problem == "SYN01's Drums/Snare v1 rr2.wav is missing");
         CHECK (refused.sourceProblem);
+        CHECK_FALSE (refused.reinstall);
+
+        // The reader's own words, the folder included, are the detail: the drawer's tooltip and its announcement.
+        INFO (refused.detail);
+        CHECK (refused.detail == "missing: Drums/Snare v1 rr2.wav: no such file in " + found.folder.getFullPathName().toStdString());
         CHECK_FALSE (samples.exists());
+    }
+
+    SECTION ("a file that's there but can't be read: the same, in other words")
+    {
+        test::SyntheticContent content;
+        const auto found = content.locate (syn());
+        content.setSamples (test::SyntheticSamples::failed);
+        const auto refused = sounds::exportCopy (content, found, synInfo(), riser, samples);
+        CHECK (refused.file == juce::File());
+        CHECK (refused.problem == "SYN01's FX/Riser.wav can't be read");
+        CHECK (refused.detail == "unreadable: FX/Riser.wav: it can't be opened");
+        CHECK (refused.sourceProblem);
+        CHECK_FALSE (refused.reinstall);
+        CHECK_FALSE (samples.exists());
+    }
+
+    SECTION ("the words for a file the reader refused come from its code, never its words")
+    {
+        const auto& snare = fileAt (syn(), "Drums/Snare v1 rr2.wav");
+        const auto missing = sounds::unreadableSource (synInfo(), snare, "missing: Drums/Snare v1 rr2.wav: no such file in /Volumes/Installed Kits/syn01/v1");
+        CHECK (missing.problem == "SYN01's Drums/Snare v1 rr2.wav is missing"); // "Installed" in the folder changes nothing
+        CHECK (missing.detail == "missing: Drums/Snare v1 rr2.wav: no such file in /Volumes/Installed Kits/syn01/v1");
+        CHECK (missing.sourceProblem);
+        CHECK_FALSE (missing.reinstall);
+        CHECK (missing.file == juce::File());
+        for (const auto* error : { "unreadable: Drums/Snare v1 rr2.wav: permission denied", "format: Drums/Snare v1 rr2.wav: 99 bytes, more than any content file holds",
+                 "the file is missing, in words but no code" })
+        {
+            CAPTURE (error);
+            const auto other = sounds::unreadableSource (synInfo(), snare, error);
+            CHECK (other.problem == "SYN01's Drums/Snare v1 rr2.wav can't be read");
+            CHECK (other.detail == error);
+            CHECK (other.sourceProblem);
+        }
     }
 
     SECTION ("the listed size: 44 bytes of header, the audio, and a pad byte when it is odd")
@@ -406,6 +450,7 @@ TEST_CASE ("a folder that can't be written gives a problem naming it", "[sounds]
     const auto refused = exportSyn (content, "FX/Riser.wav", blocker);
     CHECK (refused.file == juce::File());
     CHECK_FALSE (refused.sourceProblem); // the folder's: another one helps
+    CHECK_FALSE (refused.reinstall);
     INFO (refused.problem);
     CHECK (text (refused.problem).contains (blocker.getChildFile ("SYN01 Synthetic Test Kit").getFullPathName()));
     CHECK (blocker.loadFileAsString() == "a file, not a folder");

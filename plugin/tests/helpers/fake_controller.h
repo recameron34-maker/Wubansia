@@ -13,6 +13,7 @@
 
 #include <juce_core/juce_core.h>
 
+#include <functional>
 #include <initializer_list>
 #include <map>
 #include <utility>
@@ -116,6 +117,7 @@ namespace wubansia::test
         juce::File samplesFolderChosen; // what samplesFolder () gives; exportSound writes into <it>/<kit>/
         bool exportFails = false; // the samples folder's fault: "the fake's disk is full"
         juce::String exportSourceProblem; // when set, every export fails with it, the kit's own file's fault
+        std::function<SoundExport (const SoundRef&)> exportOutcome; // when set, what exportSound gives (it writes nothing)
         bool refuseSamplesFolder = false; // setSamplesFolder () says no, as for a content or drag folder
         // What auditionState () gives. audition () sets it as a host running blocks would: the next ticket, sounding at
         // once; with auditionFails set, 0 and a problem. stopAudition () and selectKit () of a kit in kitCards clear
@@ -259,10 +261,13 @@ namespace wubansia::test
         AuditionState auditionState() const override { return auditionStatus; }
 
         // Writes a tiny WAV (4 frames of 24-bit silence, 48 kHz mono) named for the file, "<label> - <KIT>.wav", into
-        // <samplesFolderChosen>/<KIT>/; fails, writing nothing, when exportSourceProblem or exportFails is set.
+        // <samplesFolderChosen>/<KIT>/; fails, writing nothing, when exportSourceProblem or exportFails is set. With
+        // exportOutcome set, gives what it returns instead.
         SoundExport exportSound (const SoundRef& sound) override
         {
             exportRequests.push_back (sound);
+            if (exportOutcome != nullptr)
+                return exportOutcome (sound);
             SoundExport result;
             if (exportSourceProblem.isNotEmpty())
             {

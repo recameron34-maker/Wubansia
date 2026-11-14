@@ -39,6 +39,12 @@ namespace wubansia::editor
     // other bytes, and then takes " (2)".
     juce::String exportFileName (const KitCard& kit, const SoundFile& file);
 
+    // The status line for a copy that failed (exportSound ()'s result): "Couldn't save Rave Stab v2: <problem>." and
+    // what helps: another samples folder (Change...) when the folder was why; when the kit's own file was, a check that
+    // the kit's samples are still installed, unless the problem already says to reinstall the kit (copy.reinstall). No
+    // check's code and no folder a file was looked for in (copy.detail has those): it fits the footer's two lines.
+    juce::String failedCopyLine (const juce::String& label, const juce::String& kit, const SoundExport& copy);
+
     // A kit in the drawer's header: a click browses its sounds. Lit in its kit's accent while browsed; its LED
     // marks the kit that plays. Screen readers hear "FUT01 Alloy Signal, shown, playing" (a title, not a toggle,
     // whose press action would untick it).
@@ -198,6 +204,8 @@ namespace wubansia::editor
         int numRows() const noexcept { return rows.size(); }
         int selectedRow() const noexcept { return selected; }
         juce::String statusText() const;
+        juce::String statusTooltip() const; // the status line, then what it leaves out: where a file was looked for
+        juce::Rectangle<int> statusBounds() const noexcept { return statusArea; } // where paint () draws the status line
         juce::String bannerText() const;
         juce::String folderText() const; // "Drags save to ~/Music/Wubansia/Samples"
         juce::String detailText() const; // the selected sound's name, "Accents · FUT01 · F#m · 11A", its length and format

@@ -178,6 +178,16 @@ namespace wubansia::editor
         return fromUtf8 (sounds::exportName (info, entry));
     }
 
+    juce::String failedCopyLine (const juce::String& label, const juce::String& kit, const SoundExport& copy)
+    {
+        // Not yet: the tests come first.
+        const auto problem = withoutFullStop (copy.problem);
+        const auto advice = ! copy.sourceProblem                    ? utf8 (" Choose another folder with Change\xe2\x80\xa6")
+                            : problem.containsIgnoreCase ("install") ? juce::String()
+                                                                     : " Check that " + kit + "'s samples are still installed.";
+        return "Couldn't save " + label + ": " + problem + "." + advice;
+    }
+
     //==============================================================================================================
     KitChip::KitChip (const juce::String& id, const juce::String& kitTitle)
         : juce::Button (id), kitId (id), kitName (kitTitle.isNotEmpty() ? id + " " + kitTitle : id)
@@ -1015,14 +1025,8 @@ namespace wubansia::editor
 
         if (copy.file == juce::File())
         {
-            // What helps: another samples folder when the copy couldn't be written; when the kit's own file is the
-            // problem, the kit's samples (unless the problem already says to reinstall).
-            const auto problem = withoutFullStop (copy.problem);
-            const auto advice = ! copy.sourceProblem                    ? utf8 (" Choose another folder with Change\xe2\x80\xa6")
-                                : problem.containsIgnoreCase ("install") ? juce::String()
-                                                                         : " Check that " + ref.kit + "'s samples are still installed.";
             tileFailed = true;
-            setMessage ("Couldn't save " + label + ": " + problem + "." + advice, colours::warning);
+            setMessage (failedCopyLine (label, ref.kit, copy), colours::warning);
             refresh();
             return {};
         }
@@ -1105,6 +1109,11 @@ namespace wubansia::editor
         if (content.folder == juce::File())
             return "Looking for " + browsed + utf8 ("'s samples\xe2\x80\xa6");
         return "Loading " + browsed + utf8 ("'s samples\xe2\x80\xa6 ") + juce::String (juce::jlimit (0, 100, content.percent)) + " %";
+    }
+
+    juce::String SamplesPanel::statusTooltip() const
+    {
+        return statusText(); // not yet: the tests come first
     }
 
     juce::String SamplesPanel::statusText() const

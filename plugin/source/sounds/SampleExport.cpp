@@ -50,6 +50,22 @@ namespace wubansia::sounds
                    && std::equal (bytes.begin(), bytes.end(), static_cast<const std::uint8_t*> (existing.getData()));
         }
 
+        // A copy made, or found there already.
+        ExportResult copied (const juce::File& file)
+        {
+            ExportResult result;
+            result.file = file;
+            return result;
+        }
+
+        // No copy, for a reason that isn't the kit's own file: the samples folder's.
+        ExportResult refused (std::string problem)
+        {
+            ExportResult result;
+            result.problem = std::move (problem);
+            return result;
+        }
+
         // bytes as target, which doesn't exist yet: a hidden temporary file beside it, written whole and checked,
         // then renamed into place, so target is never a part-written file. Why not, or "".
         // (File::replaceWithData () would rename a temporary file whose write failed half way.)
@@ -120,17 +136,37 @@ namespace wubansia::sounds
                + " lists: reinstall " + kit.id;
     }
 
+    ExportResult unreadableSource (const engine::KitInfo&, const engine::FileEntry& file, const std::string& error)
+    {
+        auto result = refused (std::string (fileNameOf (file.path)) + " can't be read: " + error); // not yet: the tests come first
+        result.sourceProblem = true;
+        return result;
+    }
+
+    SoundExport soundExportOf (const ExportResult& result)
+    {
+        SoundExport copy;
+        copy.file = result.file;
+        copy.problem = text (result.problem);
+        copy.sourceProblem = result.sourceProblem;
+        return copy; // not yet: the tests come first
+    }
+
     ExportResult exportCopy (ContentSourceFactory& content, const ContentStatus& found, const engine::KitInfo& kit,
         const engine::FileEntry& file, const juce::File& samplesFolder)
     {
         // The installed bytes, checked against kit.json before anything is written: the kit's file is the problem.
         const auto bytes = content.readFile (found, file.path);
         if (! bytes.ok())
-            return { {}, std::string (fileNameOf (file.path)) + " can't be read: " + bytes.error, true };
+            return unreadableSource (kit, file, bytes.error);
         if (! matchesListing (bytes.value, file))
-            return { {}, listingProblem (kit, file), true };
+        {
+            auto result = refused (listingProblem (kit, file));
+            result.sourceProblem = true;
+            return result;
+        }
         if (samplesFolder == juce::File())
-            return { {}, "there is no samples folder to copy " + std::string (fileNameOf (file.path)) + " into" };
+            return refused ("there is no samples folder to copy " + std::string (fileNameOf (file.path)) + " into");
 
         const auto folder = samplesFolder.getChildFile (text (kitFolderName (kit)));
         const auto name = text (exportName (kit, file));
@@ -141,16 +177,16 @@ namespace wubansia::sounds
             if (! target.exists() && ! target.isSymbolicLink())
             {
                 if (folder.createDirectory().failed())
-                    return { {}, "can't make the folder " + folder.getFullPathName().toStdString() };
+                    return refused ("can't make the folder " + folder.getFullPathName().toStdString());
                 if (auto problem = writeNew (target, bytes.value); ! problem.empty())
-                    return { {}, std::move (problem) };
-                return { target, {} };
+                    return refused (std::move (problem));
+                return copied (target);
             }
             if (holds (target, bytes.value))
-                return { target, {} }; // the copy is there already: nothing is written
+                return copied (target); // the copy is there already: nothing is written
             // Another file holds the name (a copy edited in a DAW, say): it is never touched; the next name.
         }
-        return { {}, "every name from " + name.toStdString() + " to its (" + std::to_string (kMaxCopies) + ") is taken in "
-                         + folder.getFullPathName().toStdString() };
+        return refused ("every name from " + name.toStdString() + " to its (" + std::to_string (kMaxCopies) + ") is taken in "
+                        + folder.getFullPathName().toStdString());
     }
 }

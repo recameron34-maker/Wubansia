@@ -66,11 +66,23 @@ namespace wubansia::sounds
     {
         juce::File file; // the copy; juce::File () on failure
         std::string problem; // why there is none, for people
+        std::string detail; // when the kit's file can't be read: the reader's words, its code and folder included
         bool sourceProblem = false; // the installed file is why (it can't be read, or isn't kit.json's), not the folder
+        bool reinstall = false; // the installed file isn't kit.json's: the problem (listingProblem) says to reinstall
     };
 
     // The file's copy in samplesFolder/kitFolderName (kit)/, made if missing (see the top). found is the kit's
     // ready content status, whose folder content.readFile () reads. Blocks on the disk: the message thread.
     ExportResult exportCopy (ContentSourceFactory& content, const ContentStatus& found, const engine::KitInfo& kit,
         const engine::FileEntry& file, const juce::File& samplesFolder);
+
+    // exportCopy ()'s refusal when the kit's own file can't be read, from the reader's error ("missing: <path>: no such
+    // file in <folder>", "unreadable: <path>: <why>"): the problem names the file as kit.json lists it and says what's
+    // wrong by the error's code (engine::loadErrorOf), never its words or folder, so it stays short however long the
+    // content folder's path: "FUT04's Stems/Acid Line 1 Clean 4 Bars.wav is missing", or "... can't be read". The
+    // error, as it is, is the detail.
+    ExportResult unreadableSource (const engine::KitInfo& kit, const engine::FileEntry& file, const std::string& error);
+
+    // What the Controller hands the editor for a copy: the result as it is.
+    SoundExport soundExportOf (const ExportResult& result);
 }
