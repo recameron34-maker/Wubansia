@@ -176,7 +176,9 @@ you report it. How to use it: `dist/INSTALL.md`, "Samples into your DAW".
 ### A. Checked here (before you try it)
 
 Linux x86-64, Clang 18 release build, at 8967fa7 (the code of 353d639; the later commits change only docs and their
-tests), with the four kits' content installed from their zips.
+tests). ctest ran without the samples. pluginval with content, `[.real]`, `[.render]` and the copy benchmark read the
+four kits' samples from a checkout's `content/samples` through `WUBANSIA_CONTENT_DIR`: the `<kit>/` layout, not the
+`<kit>/v1/` that the content zips install.
 - ctest: 801 tests, 799 passed and 2 skipped (the real kits' renders, which want the content, and a read-only folder,
   which root can write anyway). `golden_check`: the 516 legacy files match `legacy-v21.sha256` and every metric
   value matches.
