@@ -20,7 +20,7 @@ What the code fixed before the design:
 ## Decision
 
 ### Scope and entry
-1. **v0.2, ahead of S1b2.** It touches only `plugin/`, `engine/audition/` and docs (with a test of `dist/INSTALL.md` in `tools/content/tests`); ADR 0017 set the precedent for pulling work forward. S1b2 (PR #6) carries on untouched.
+1. **v0.2, ahead of S1b2.** It touches `plugin/`, `engine/audition/`, `engine/kit/`'s `FileSampleSource` (`readBytes`, which `read ()` now goes through), the engine's tests of both (`test_audition.cpp`, `test_wav_reader.cpp`), `README.md`, `dist/INSTALL.md` and `docs/`, with a test of `dist/INSTALL.md` in `tools/content/tests`; ADR 0017 set the precedent for pulling work forward. S1b2 (PR #6) carries on untouched.
 2. **The header's Samples button opens the drawer** (component ID `samples` kept, its LED lit while open). The drag strip has no room, and it is the user's own word for the feature.
 3. **The drawer covers the lanes, A/B and FX**: (20, 246), 1080 × 396 inside the zoomed content, and they are hidden while it shows, so Tab and screen readers never reach a control under it. The editor stays 1120 × 700; the header, display, transport, section strip and MIDI drag strip stay usable.
 4. **All four kits are browsable; one sound plays at a time.** Kit chips browse another kit without changing what plays or the project.
