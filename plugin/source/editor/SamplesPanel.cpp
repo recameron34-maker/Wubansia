@@ -731,8 +731,9 @@ namespace wubansia::editor
         standalone = model.standalone;
         refreshChips();
 
-        // It follows the kit that plays until a chip picks another; never in the middle of an OS drag (Windows runs
-        // one in a modal loop, timer and all), which would delete the row the drag started from.
+        // It follows the kit that plays until a chip picks another, but not while startDrag hands a drag over, which
+        // would delete the row the drag starts from. JUCE 9.0.4 returns from it as soon as the OS drag begins, on every
+        // OS; the drag then goes on with the rows free to change, as no JUCE code holds a plain pointer to them.
         if (! chipPicked && ! handingOver && playingKit.isNotEmpty() && playingKit != browsed)
             browse (playingKit);
 

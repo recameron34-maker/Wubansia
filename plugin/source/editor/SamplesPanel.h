@@ -292,7 +292,7 @@ namespace wubansia::editor
         // What the person chose.
         juce::String browsed;
         bool chipPicked = false; // a chip picked another kit: the drawer stops following the playing kit
-        bool handingOver = false; // an OS drag is under way
+        bool handingOver = false; // startDrag is handing a drag to the OS
         SoundCategory wantedCategory = SoundCategory::accents, shownCategory = SoundCategory::accents;
         std::map<juce::String, std::vector<SoundInfo>> catalog; // by kit: sounds () once each
         std::vector<int> shownSounds; // into the browsed kit's sounds, one per row

@@ -1518,8 +1518,9 @@ TEST_CASE ("a 4-pixel drag exports once and hands that one WAV to the OS; a clic
             CHECK (os.dragged.size() == 2);
             CHECK (os.revealed.size() == 1);
 
-            // While the OS runs the drag (Windows in a modal loop, the editor's timer ticking), the drawer holds still,
-            // keeping the row the drag started from; a kit chosen meanwhile is followed once the drag is over.
+            // A tick while startDrag hands the drag over doesn't follow another kit, so the row the drag starts from
+            // stays; the next tick follows it. (JUCE 9.0.4 ticks nothing inside the call: its OS drags return as soon
+            // as they begin.)
             auto followedDuringDrag = true;
             drawer.startDrag = [&] (const juce::File& file, juce::Component&)
             {
