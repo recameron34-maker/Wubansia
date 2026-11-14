@@ -38,11 +38,13 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <thread>
+#include <utility>
 
 namespace wubansia
 {
@@ -85,6 +87,15 @@ namespace wubansia
 
         // For tests: how often the thread gave up the clips in the player's hands because no block came for 300 ms.
         int clipsGivenUp() const noexcept { return givenUp.load (std::memory_order_acquire); }
+
+        // For tests: probe runs on the sound thread each time it has decided to give up the clips in the player's hands,
+        // before it stops or drops anything: where a preemption could let the host's next block in. Before the first
+        // audition () only.
+        void setGiveUpProbeForTesting (std::function<void()> probe)
+        {
+            jassert (! started());
+            giveUpProbe = std::move (probe);
+        }
 
     private:
         using Clock = std::chrono::steady_clock;
@@ -136,5 +147,6 @@ namespace wubansia
         std::uint64_t blocksSeen = 0;
         Clock::time_point blocksSeenAt {};
         std::uint64_t givenUpAt = ~std::uint64_t { 0 };
+        std::function<void()> giveUpProbe; // set before the thread starts; the thread only reads it
     };
 }

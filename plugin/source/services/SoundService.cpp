@@ -308,6 +308,8 @@ namespace wubansia
         // one playing is stopped (if a block comes before the drop, it fades out as a stop does), and the next block
         // lets them all go unheard. The player is told first, so status () never reads stopped before it knows.
         givenUpAt = blocks;
+        if (giveUpProbe != nullptr)
+            giveUpProbe();
         const auto playing = player.sounding();
         player.stopUpTo (playing);
         player.dropIfIdleSince (blocks);

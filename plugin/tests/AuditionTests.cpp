@@ -457,6 +457,84 @@ TEST_CASE ("a host that stops running blocks mid-clip: after 300 ms the clip is 
     }
 }
 
+TEST_CASE ("a block that comes while the sound thread gives up a stale clip keeps the newer clip it took", "[audio][audition]")
+{
+    // The sound thread can be preempted anywhere. Here it is held just after it has decided to give up the clip in the
+    // player's hands (no block for 300 ms), before it acts; the host comes back right then, and its first block takes
+    // the clip of a sound clicked during the gap. That clip plays on, and nothing says the host is silent.
+    struct Hold
+    {
+        std::atomic<bool> armed { true }, held { false }, released { false };
+    };
+    const auto hold = std::make_shared<Hold>();
+    Quiet q (withKit ("AUD09"));
+    (*q).setAuditionGiveUpProbeForTesting ([hold]
+        {
+            if (! hold->armed.exchange (false))
+                return;
+            hold->held = true;
+            const auto until = std::chrono::steady_clock::now() + 5s;
+            while (! hold->released && std::chrono::steady_clock::now() < until)
+                std::this_thread::sleep_for (1ms);
+        });
+    struct Release // before q goes: a held sound thread must not keep the processor's destructor waiting
+    {
+        std::shared_ptr<Hold> hold;
+        ~Release() { hold->released = true; }
+    } release { hold };
+
+    auto& controller = q.controller();
+    const auto& sounds = (*q).soundService();
+    const auto stale = controller.audition (q.ref (phrase));
+    REQUIRE (stale > 0u);
+    REQUIRE (waitForOffer (*q));
+    test::process (*q, kBlock);
+    test::process (*q, kBlock); // the phrase's frames 0-1023; then no block
+
+    // Half way to the give-up, a sound is clicked: it waits for the host's next block.
+    std::this_thread::sleep_for (150ms);
+    REQUIRE (sounds.clipsGivenUp() == 0);
+    const auto fresh = controller.audition (q.ref (riser));
+    REQUIRE (fresh > stale);
+    REQUIRE (waitForOffer (*q));
+    REQUIRE (controller.auditionState().sounding == stale);
+
+    // The give-up is decided; the host's block comes before it acts, and takes the riser.
+    REQUIRE (test::waitFor ([&] { return hold->held.load(); }, 3000ms));
+    REQUIRE ((*q).auditionPlayer().offered());
+    const auto first = test::process (*q, kBlock);
+    hold->released = true;
+    REQUIRE (test::waitFor ([&] { return sounds.clipsGivenUp() == 1; }, 3000ms));
+
+    const auto riserClip = clipFor (riser, 48000.0);
+    const auto phraseClip = clipFor (phrase, 48000.0);
+    REQUIRE (riserClip != nullptr);
+    REQUIRE (phraseClip != nullptr);
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        // The phrase, replaced, fades out from frame 1024 over 5 ms; the riser starts at its first frame.
+        const float* r = channel (*riserClip, ch);
+        const float* p = channel (*phraseClip, ch);
+        CHECK (mismatches (first, ch, 0, kFade, [r, p] (int i) { return 0.5f * (p[1024 + i] * fadeGain (i)) + 0.5f * r[i]; }) == 0);
+        CHECK (mismatches (first, ch, kFade, kBlock - kFade, [r] (int i) { return 0.5f * r[kFade + i]; }) == 0);
+    }
+
+    // Only the stale phrase was given up: the riser plays on, and the drawer doesn't say the host is silent.
+    const auto state = controller.auditionState();
+    CHECK (state.latest == fresh);
+    CHECK (state.sounding == fresh);
+    CHECK_FALSE (state.hostSilent);
+    const auto second = test::process (*q, kBlock);
+    const auto third = test::process (*q, kBlock);
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        const float* r = channel (*riserClip, ch);
+        CHECK (mismatches (second, ch, 0, kBlock, [r] (int i) { return 0.5f * r[kBlock + i]; }) == 0);
+        CHECK (mismatches (third, ch, 0, kBlock, [r] (int i) { return 0.5f * r[2 * kBlock + i]; }) == 0);
+    }
+    CHECK ((*q).auditionPlayer().sounding() == fresh);
+}
+
 TEST_CASE ("an audition plays over the groove without changing it", "[audio][audition]")
 {
     // The kit's Loop from bar 1, twice: once alone, once with an audition. The difference is exactly the clip x 0.5.

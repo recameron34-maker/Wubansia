@@ -44,6 +44,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <utility>
 
 namespace wubansia
 {
@@ -104,6 +105,9 @@ namespace wubansia
 
         // Shortens the offline wait's 30 s, for tests.
         void setOfflineWaitLimitForTesting (std::chrono::milliseconds limit) noexcept { waitLimitMs.store (limit.count()); }
+
+        // For tests: SoundService::setGiveUpProbeForTesting, after setContentForTesting and before any audition.
+        void setAuditionGiveUpProbeForTesting (std::function<void()> probe) { sounds->setGiveUpProbeForTesting (std::move (probe)); }
 
         // For the Controller and the tests.
         const KitService& kitService() const noexcept { return *service; }
