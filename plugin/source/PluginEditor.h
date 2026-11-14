@@ -79,7 +79,7 @@ namespace wubansia
 
         Controller& controller;
         const bool standalone;
-        bool logicHost = false;
+        bool logicHost; // asked once: PluginHostType reads the host's path
         float zoom = 1.0f;
 
         editor::LookAndFeel lookAndFeel; // outlives every component below

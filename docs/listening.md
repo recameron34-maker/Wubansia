@@ -212,7 +212,9 @@ kits' samples from a checkout's `content/samples` through `WUBANSIA_CONTENT_DIR`
 - [ ] Logic, from the AU: drag to an audio track and to Quick Sampler
 - [ ] The CLAP, if one of your DAWs loads it: drag a one-shot to a track
 - [ ] Logic: an audition plays while stopped with Wubansia's track selected; unselected, the drawer shows "No sound
-      from your DAW..."
+      from your DAW..." with Logic's advice
+- [ ] Live 12: with no audio output device (or Live's audio engine off), a click shows "No sound from your DAW: it
+      isn't running Wubansia's audio right now..." and never Logic's words
 - [ ] Logic, stopped: start FUT03's Riser (8 bars) with Wubansia's track selected, then select another track; when
       you select Wubansia's track again, the riser doesn't play on from where it was
 - [ ] Logic: a 44.1 kHz project, with "Convert audio file sample rate when importing" on

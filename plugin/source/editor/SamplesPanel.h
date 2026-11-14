@@ -299,6 +299,7 @@ namespace wubansia::editor
         ContentStatus playingContent;
         AuditionState audition;
         bool standalone = false; // the Standalone app: no DAW, so no-sound means its audio output isn't running
+        bool logicHost = false; // Logic Pro: no sound is most likely a stopped track that isn't selected or armed
 
         // What the person chose.
         juce::String browsed;

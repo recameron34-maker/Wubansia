@@ -22,6 +22,7 @@ namespace wubansia
         : AudioProcessorEditor (&audioProcessor),
           controller (c),
           standalone (audioProcessor.wrapperType == juce::AudioProcessor::wrapperType_Standalone),
+          logicHost (! standalone && juce::PluginHostType().isLogic()),
           kitPanel (controller),
           transport (controller, standalone),
           modePanel (controller),
@@ -258,6 +259,7 @@ namespace wubansia
         m.transport = controller.transport();
         m.preview = controller.preview();
         m.standalone = standalone;
+        m.logicHost = logicHost;
         m.midiInMode = controller.midiInMode();
         m.midiInLane = controller.midiInLane();
         m.phraseMode = controller.phraseMode();
