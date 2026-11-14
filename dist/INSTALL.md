@@ -281,7 +281,7 @@ Not yet checked in Live or Logic: where the other instruments land, and these pa
 - **Your DAW won't take a drop from the Samples drawer.** Click the tile, or Show in Finder, and drag the file from
   Finder. If the drawer says "Couldn't save", it says what helps: another folder with Change… when the copy couldn't
   be written there, or the kit's samples when its own file is missing or not the one it lists. Hold the pointer over
-  the message to see the folder it looked in.
+  the message to see the folder it looked in, or the file it couldn't write.
 
 ## Uninstall
 

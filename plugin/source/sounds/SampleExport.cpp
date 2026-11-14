@@ -150,17 +150,21 @@ namespace wubansia::sounds
 
     ExportResult folderRefusal (FolderProblem problem, const juce::File& target)
     {
-        // Not yet the short words: as exportCopy has said so far, the path in the problem.
+        // The path goes in the detail only: in the problem it would push the drawer's advice out of its two lines.
         const auto path = target.getFullPathName().toStdString();
+        auto result = refused (problem == FolderProblem::namesTaken ? "every name for it is taken in the samples folder"
+                                                                    : "the samples folder can't be written to");
         switch (problem)
         {
-            case FolderProblem::makeFolder: return refused ("can't make the folder " + path);
-            case FolderProblem::write: return refused ("can't write " + path);
-            case FolderProblem::move: return refused ("can't move the copy into place as " + path);
-            case FolderProblem::namesTaken: break;
+            case FolderProblem::makeFolder: result.detail = "can't make the folder " + path; break;
+            case FolderProblem::write: result.detail = "can't write " + path; break;
+            case FolderProblem::move: result.detail = "can't move the copy into place as " + path; break;
+            case FolderProblem::namesTaken:
+                result.detail = "every name from " + target.getFileName().toStdString() + " to its (" + std::to_string (kMaxCopies) + ") is taken in "
+                                + target.getParentDirectory().getFullPathName().toStdString();
+                break;
         }
-        return refused ("every name from " + target.getFileName().toStdString() + " to its (" + std::to_string (kMaxCopies) + ") is taken in "
-                        + target.getParentDirectory().getFullPathName().toStdString());
+        return result;
     }
 
     SoundExport soundExportOf (const ExportResult& result)

@@ -66,7 +66,7 @@ namespace wubansia::sounds
     {
         juce::File file; // the copy; juce::File () on failure
         std::string problem; // why there is none, for people
-        std::string detail; // when the kit's file can't be read: the reader's words, its code and folder included
+        std::string detail; // the reader's words, code and folder included, or the disk's, the path included; may be empty
         bool sourceProblem = false; // the installed file is why (it can't be read, or isn't kit.json's), not the folder
         bool reinstall = false; // the installed file isn't kit.json's: the problem (listingProblem) says to reinstall
     };
