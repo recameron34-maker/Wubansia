@@ -45,6 +45,9 @@ namespace wubansia::editor
     // check's code and no folder a file was looked for in (copy.detail has those): it fits the footer's two lines.
     juce::String failedCopyLine (const juce::String& label, const juce::String& kit, const SoundExport& copy);
 
+    // The drawer's default announce: text as an AccessibilityHandler announcement, at medium priority, for screen readers.
+    void announceToScreenReader (const juce::String& text);
+
     // A kit in the drawer's header: a click browses its sounds. Lit in its kit's accent while browsed; its LED
     // marks the kit that plays. Screen readers hear "FUT01 Alloy Signal, shown, playing" (a title, not a toggle,
     // whose press action would untick it).

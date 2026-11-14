@@ -7,6 +7,10 @@
 // which a small walker here finds on its own.
 
 #include "dragout/DragFiles.h"
+#include "editor/DragChip.h"
+#include "editor/ExternalDrag.h"
+#include "editor/SamplesPanel.h"
+#include "helpers/fake_controller.h"
 
 #include "kit/channel_map.h"
 #include "midi/reader.h"
@@ -20,6 +24,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <map>
 #include <set>
 #include <span>
@@ -39,6 +44,7 @@ using Catch::Matchers::StartsWith;
 namespace
 {
     namespace dragout = wubansia::dragout;
+    namespace editor = wubansia::editor;
     namespace engine = wubansia::engine;
     namespace midi = wubansia::midi;
     using wubansia::DragRequest;
@@ -1032,57 +1038,80 @@ namespace
 }
 #endif
 
+#if JUCE_LINUX || JUCE_BSD
+namespace
+{
+    // A stub xdg-open first on PATH that logs the arguments it gets, and a copy in a samples folder whose name a shell
+    // would act on: the person picks that folder with Change..., so it can hold $HOME, backticks, $(...) and quotes. The
+    // working folder is a fresh one, where a command smuggled in through the name would leave a file. PATH, the working
+    // folder and the temp files come back as they were however the test ends.
+    struct StubOpener
+    {
+        struct Restore
+        {
+            juce::File folder = juce::File::getSpecialLocation (juce::File::tempDirectory).getNonexistentChildFile ("WubansiaRevealTest", "", false);
+            juce::String path = juce::SystemStats::getEnvironmentVariable ("PATH", {});
+            juce::File cwd = juce::File::getCurrentWorkingDirectory();
+
+            ~Restore()
+            {
+                setenv ("PATH", path.toRawUTF8(), 1);
+                cwd.setAsCurrentWorkingDirectory();
+                folder.deleteRecursively();
+            }
+        } restore; // first, so it is undone even when a REQUIRE below throws
+        juce::File log, work, kitFolder, copy;
+
+        StubOpener()
+        {
+            const auto& temp = restore.folder;
+            REQUIRE (temp.createDirectory().wasOk());
+            const auto bin = temp.getChildFile ("bin");
+            log = temp.getChildFile ("args.txt");
+            REQUIRE (bin.createDirectory().wasOk());
+            const auto stub = bin.getChildFile ("xdg-open");
+            REQUIRE (stub.replaceWithText ("#!/bin/sh\nprintf '%s\\n' \"$#\" \"$@\" > '" + log.getFullPathName() + ".part' && mv '"
+                                               + log.getFullPathName() + ".part' '" + log.getFullPathName() + "'\n",
+                false, false, "\n")); // Unix line ends: "#!/bin/sh\r" names no interpreter
+            REQUIRE (stub.setExecutePermission (true));
+            REQUIRE (setenv ("PATH", (bin.getFullPathName() + ":" + restore.path).toRawUTF8(), 1) == 0);
+
+            work = temp.getChildFile ("cwd");
+            REQUIRE (work.createDirectory().wasOk());
+            REQUIRE (work.setAsCurrentWorkingDirectory());
+
+            const auto samples = temp.getChildFile ("Beats $HOME `touch INJECTED` \"2025\" $(touch INJECTED2)");
+            kitFolder = samples.getChildFile ("FUT02 Orbit Relay");
+            REQUIRE (kitFolder.createDirectory().wasOk());
+            copy = kitFolder.getChildFile ("Glass Ping v2 - FUT02 130 Dm 7A.wav");
+            REQUIRE (copy.replaceWithText ("RIFF"));
+        }
+
+        // reveal (copy), then what the stub got: how many arguments, then each one.
+        juce::StringArray reveal (const std::function<void (const juce::File&)>& revealer) const
+        {
+            REQUIRE (revealer != nullptr);
+            revealer (copy);
+            const auto deadline = juce::Time::getMillisecondCounter() + 5000;
+            while (! log.existsAsFile() && juce::Time::getMillisecondCounter() < deadline)
+                juce::Thread::sleep (5);
+            REQUIRE (log.existsAsFile());
+            return juce::StringArray::fromLines (log.loadFileAsString().trimEnd());
+        }
+
+        bool injected() const { return work.getChildFile ("INJECTED").exists() || work.getChildFile ("INJECTED2").exists(); }
+    };
+}
+#endif
+
 TEST_CASE ("revealing a file on Linux opens its folder with xdg-open, the path as one argument and no shell", "[dragout]")
 {
 #if ! (JUCE_LINUX || JUCE_BSD)
     SKIP ("macOS and Windows reveal without a shell");
 #else
-    // A stub xdg-open first on PATH records its arguments. The samples folder is the person's, chosen with Change...,
-    // so its name can hold anything a shell acts on: $HOME, backticks, $(...) and quotes.
-    const auto temp = juce::File::getSpecialLocation (juce::File::tempDirectory).getNonexistentChildFile ("WubansiaRevealTest", "", false);
-    REQUIRE (temp.createDirectory().wasOk());
-    struct Cleanup
-    {
-        juce::File folder;
-        juce::String path = juce::SystemStats::getEnvironmentVariable ("PATH", {});
-        juce::File cwd = juce::File::getCurrentWorkingDirectory();
-        ~Cleanup()
-        {
-            setenv ("PATH", path.toRawUTF8(), 1);
-            cwd.setAsCurrentWorkingDirectory();
-            folder.deleteRecursively();
-        }
-    } cleanup { temp };
-
-    const auto bin = temp.getChildFile ("bin");
-    const auto log = temp.getChildFile ("args.txt");
-    REQUIRE (bin.createDirectory().wasOk());
-    const auto stub = bin.getChildFile ("xdg-open");
-    REQUIRE (stub.replaceWithText ("#!/bin/sh\nprintf '%s\\n' \"$#\" \"$@\" > '" + log.getFullPathName() + ".part' && mv '" + log.getFullPathName() + ".part' '"
-                                       + log.getFullPathName() + "'\n",
-        false, false, "\n")); // Unix line ends: "#!/bin/sh\r" names no interpreter
-    REQUIRE (stub.setExecutePermission (true));
-    REQUIRE (setenv ("PATH", (bin.getFullPathName() + ":" + cleanup.path).toRawUTF8(), 1) == 0);
-
-    const auto work = temp.getChildFile ("cwd"); // where a command smuggled in a name would run
-    REQUIRE (work.createDirectory().wasOk());
-    REQUIRE (work.setAsCurrentWorkingDirectory());
-
-    const auto samples = temp.getChildFile ("Beats $HOME `touch INJECTED` \"2025\" $(touch INJECTED2)");
-    const auto kitFolder = samples.getChildFile ("FUT02 Orbit Relay");
-    REQUIRE (kitFolder.createDirectory().wasOk());
-    const auto copy = kitFolder.getChildFile ("Glass Ping v2 - FUT02 130 Dm 7A.wav");
-    REQUIRE (copy.replaceWithText ("RIFF"));
-
-    dragout::revealToUser (copy);
-    const auto deadline = juce::Time::getMillisecondCounter() + 5000;
-    while (! log.existsAsFile() && juce::Time::getMillisecondCounter() < deadline)
-        juce::Thread::sleep (5);
-    REQUIRE (log.existsAsFile());
-    const auto lines = juce::StringArray::fromLines (log.loadFileAsString().trimEnd());
-    CHECK (lines == juce::StringArray { "1", kitFolder.getFullPathName() }); // one argument: the folder, exactly
-    CHECK_FALSE (work.getChildFile ("INJECTED").exists());
-    CHECK_FALSE (work.getChildFile ("INJECTED2").exists());
+    const StubOpener stub;
+    CHECK (stub.reveal (dragout::revealToUser) == juce::StringArray { "1", stub.kitFolder.getFullPathName() }); // the folder, exactly
+    CHECK_FALSE (stub.injected());
 
    #if JUCE_LINUX
     // The opener has written its log and ends now. Nothing of it stays this process's child: in a host, a child nobody
@@ -1098,4 +1127,72 @@ TEST_CASE ("revealing a file on Linux opens its folder with xdg-open, the path a
     CHECK (children.isEmpty());
    #endif
 #endif
+}
+
+TEST_CASE ("the drawer's and the MIDI chips' own reveal opens the folder with xdg-open, no shell, on Linux", "[dragout]")
+{
+#if ! (JUCE_LINUX || JUCE_BSD)
+    SKIP ("macOS and Windows reveal without a shell; the hooks' own case checks they are dragout::revealToUser");
+#else
+    // Each component as the plugin builds it, its default hooks untouched: the call the plugin makes, not the helper alone.
+    wubansia::test::FakeController fake;
+    const editor::SamplesPanel drawer (fake);
+    const editor::DragChip chip (fake, DragRequest {}, "Loop");
+    for (const auto* revealFile : { &drawer.revealFile, &chip.revealFile })
+    {
+        const StubOpener stub;
+        CHECK (stub.reveal (*revealFile) == juce::StringArray { "1", stub.kitFolder.getFullPathName() });
+        CHECK_FALSE (stub.injected());
+    }
+#endif
+}
+
+TEST_CASE ("the drawer's and the MIDI chips' default hooks are drag-out's own functions, on every OS", "[dragout]")
+{
+    // A default the OS can't be asked about here (no window can start a drag; only Linux reveals through a stub) is
+    // checked by what it is: the very function, not a lambda that might call something else.
+    using Drag = bool (*) (const juce::File&, juce::Component&);
+    using Reveal = void (*) (const juce::File&);
+    using Announce = void (*) (const juce::String&);
+    wubansia::test::FakeController fake;
+    editor::SamplesPanel drawer (fake);
+    editor::DragChip chip (fake, DragRequest {}, "Loop");
+    for (auto* startDrag : { &drawer.startDrag, &chip.startDrag })
+    {
+        const auto* drag = startDrag->target<Drag>();
+        REQUIRE (drag != nullptr);
+        CHECK (*drag == &editor::startExternalDrag);
+    }
+    for (auto* revealFile : { &drawer.revealFile, &chip.revealFile })
+    {
+        const auto* reveal = revealFile->target<Reveal>();
+        REQUIRE (reveal != nullptr);
+        CHECK (*reveal == &dragout::revealToUser);
+    }
+    const auto* say = drawer.announce.target<Announce>();
+    REQUIRE (say != nullptr);
+    CHECK (*say == &editor::announceToScreenReader);
+}
+
+TEST_CASE ("an OS drag from the drawer or a MIDI chip hands over its one file as externalDragPath gives it", "[dragout]")
+{
+    static juce::StringArray handed;
+    static bool movable = true, called = false;
+    static juce::Component* from = nullptr;
+    const editor::PerformExternalDrag perform = [] (const juce::StringArray& files, bool canMoveFiles, juce::Component* source, std::function<void()> callback)
+    {
+        handed = files;
+        movable = canMoveFiles;
+        from = source;
+        called = callback != nullptr;
+        return true;
+    };
+    juce::Component source;
+    const auto file = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("FUT01 Alloy Signal").getChildFile ("Rave Stab v2 - FUT01 134 F#m 11A.wav");
+    CHECK (editor::handOverDrag (file, source, perform));
+    CHECK (handed == juce::StringArray { dragout::externalDragPath (file) }); // a file:// URL on Linux, the path elsewhere
+    CHECK_FALSE (movable); // a copy: the DAW never moves it
+    CHECK (from == &source);
+    CHECK_FALSE (called);
+    CHECK_FALSE (editor::handOverDrag (file, source, nullptr));
 }

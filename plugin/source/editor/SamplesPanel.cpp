@@ -202,6 +202,11 @@ namespace wubansia::editor
         return "Couldn't save " + label + ": " + problem + "." + advice;
     }
 
+    void announceToScreenReader (const juce::String& text)
+    {
+        juce::AccessibilityHandler::postAnnouncement (text, juce::AccessibilityHandler::AnnouncementPriority::medium);
+    }
+
     //==============================================================================================================
     KitChip::KitChip (const juce::String& id, const juce::String& kitTitle)
         : juce::Button (id), kitId (id), kitName (kitTitle.isNotEmpty() ? id + " " + kitTitle : id)
