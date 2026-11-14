@@ -1482,7 +1482,8 @@ def cpp_text(*paths):
 
 class TestSamplesDocs(unittest.TestCase):
     """dist/INSTALL.md's "Samples into your DAW" says what the plugin does: the drawer's own words, the folder and
-    the names exportCopy () writes, and an uninstall that leaves the copies projects use (ADR 0024)."""
+    the names exportCopy () writes, and an uninstall that leaves the copies projects use (ADR 0024) and deletes
+    Wubansia's own folders, the MIDI drag cache's included."""
 
     @classmethod
     def setUpClass(cls):
@@ -1539,6 +1540,26 @@ class TestSamplesDocs(unittest.TestCase):
         self.assertIn('rm -rf', commands)
         self.assertNotIn('Music', commands)  # projects still refer to the files the drawer copied
         self.assertIn('~/Music/Wubansia/Samples', uninstall)
+
+    def test_the_midi_drag_cache_is_listed_and_the_uninstall_deletes_it(self):
+        # dragout::cacheFolder (): <the user's caches>/<manufacturer>/<product>/drag, ~/Library/Caches on a Mac. Every
+        # MIDI drag writes there and the newest kKeepFiles stay. The samples folder's paragraph names its Wubansia Audio
+        # as one of Wubansia's own folders, which setSamplesFolder refuses, so deleting it never takes a samples folder.
+        drag_files = (PLUGIN_SOURCE / 'dragout' / 'DragFiles.cpp').read_text(encoding='utf-8')
+        self.assertIn('getChildFile ("Caches"); // ~/Library/Caches', drag_files)
+        self.assertIn('caches.getChildFile (JucePlugin_Manufacturer).getChildFile (JucePlugin_Name).getChildFile ("drag")', drag_files)
+        identity = (REPO / 'cmake' / 'WubansiaIdentity.cmake').read_text(encoding='utf-8')
+        self.assertIn('set(WUBANSIA_COMPANY_NAME "Wubansia Audio")', identity)
+        self.assertIn('set(WUBANSIA_PRODUCT_NAME "Wubansia")', identity)
+        plugin_cmake = (REPO / 'plugin' / 'CMakeLists.txt').read_text(encoding='utf-8')
+        self.assertIn('COMPANY_NAME "${WUBANSIA_COMPANY_NAME}"', plugin_cmake)  # JucePlugin_Manufacturer
+        self.assertIn('PRODUCT_NAME "${WUBANSIA_PRODUCT_NAME}"', plugin_cmake)  # JucePlugin_Name
+        keep = re.search(r'kKeepFiles = (\d+);', (PLUGIN_SOURCE / 'dragout' / 'DragFiles.h').read_text(encoding='utf-8')).group(1)
+
+        where = md_section(self.text, 'Where everything goes')
+        self.assertIsNotNone(where)
+        self.assertRegex(where, r'`~/Library/Caches/Wubansia Audio/Wubansia/drag/`: [^.]*\b' + keep + r'\b')
+        self.assertIn('"$HOME/Library/Caches/Wubansia Audio"', md_code(self.text, 'Uninstall'))
 
     def test_it_names_no_artist(self):
         try:
