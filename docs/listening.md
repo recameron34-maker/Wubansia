@@ -175,27 +175,29 @@ you report it. How to use it: `dist/INSTALL.md`, "Samples into your DAW".
 
 ### A. Checked here (before you try it)
 
-Linux x86-64, Clang 18 release build, at 8967fa7 (the code of 353d639; the later commits change only docs and their
-tests). ctest ran without the samples. pluginval with content, `[.real]`, `[.render]` and the copy benchmark read the
-four kits' samples from a checkout's `content/samples` through `WUBANSIA_CONTENT_DIR`: the `<kit>/` layout, not the
+Linux x86-64, Clang 18 release build, at 51e0743, after the review's fixes (the later commits change only docs).
+ctest ran without the samples. pluginval with content, `[.real]`, `[.render]` and the copy benchmark read the four
+kits' samples from a checkout's `content/samples` through `WUBANSIA_CONTENT_DIR`: the `<kit>/` layout, not the
 `<kit>/v1/` that the content zips install.
-- ctest: 801 tests, 799 passed and 2 skipped (the real kits' renders, which want the content, and a read-only folder,
-  which root can write anyway). `golden_check`: the 516 legacy files match `legacy-v21.sha256` and every metric
-  value matches.
+- ctest: 819 tests, 816 passed and 3 skipped (the real kits' renders, which want the samples; the drawer's keyboard
+  focus, which wants a display and passed on its own under `xvfb-run`; a read-only folder, which root can write
+  anyway). `golden_check`: the 516 legacy files match `legacy-v21.sha256` and all 5,842 metric values match.
 - The catalog: FUT01 35 sounds, FUT02 37, FUT03 36, FUT04 32, which reach all 618 files. Every export name is unique
   in its kit and the longest is 46 characters.
 - The default file of every sound in the four kits (140 sounds, 139 files: two of FUT02's sounds share one) copied
-  from those samples byte for byte, each with kit.json's SHA-256, in 791 ms (`[.real]`).
+  from those samples byte for byte, each with kit.json's SHA-256, in 742 ms (`[.real]`).
 - Offline renders: the processor still plays each kit's Loop as `groovecore render` does, bit for bit (`[.render]`).
   An audition never reaches an offline render.
 - pluginval 1.0.4 at strictness 10 on the VST3, with and without content: pass. clap-validator 0.4.1 (report-only):
   41 run, 30 passed, 0 failed, 1 warning, 10 skipped, as in v0.1.
-- TSan (clang 18, run locally; CI has no TSan job), no reports: the engine's audition tests (12 cases: 10 passed, 2
-  skipped, the allocation counters, which a sanitizer replaces); the plugin's audition, sounds, real-time and
-  service tests (70 cases: 66 passed, 4 skipped); its editor and controller tests (52 cases, all passed).
+- TSan (clang 18, run locally; CI has no TSan job), no reports: the engine's audition tests (14 cases: 11 passed, 3
+  skipped, the allocation counters, which a sanitizer owns); the plugin's audition, sounds, real-time and service
+  tests (84 cases: 79 passed, 5 skipped: two allocation counters, the display, root, the samples); its editor and
+  controller tests (58 cases: 57 passed, 1 skipped, the display).
 - CPU at 48 kHz / 128 samples on this shared machine, % of one core on average, plain and then with an audition
-  playing in 97-98 % of the blocks (gate 15 %): FUT01 11.9 and 12.0 %, FUT04 10.8 and 10.7 %, SYN01 11.4 and 11.3 %.
-  Copying the largest file, FUT03's 8-bar riser (4.3 MB), took 24 ms; its 44.1 kHz audition was ready in 48 ms.
+  playing in about 98 % of the blocks (budget 15 %; the test fails above 30 %): FUT01 11.7 and 12.0 %, FUT04 10.5
+  and 10.6 %, SYN01 11.2 and 11.0 %. Copying the largest file, FUT03's 8-bar riser (4.3 MB), took 24 ms; its
+  44.1 kHz audition was ready in 45 ms.
 
 ### B. In your DAW (the checklist; not a listening test)
 - [ ] The Samples button opens the drawer in each format your DAWs host (AU, VST3, CLAP); the groove keeps playing
