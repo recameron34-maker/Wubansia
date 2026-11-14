@@ -177,7 +177,7 @@ DAW" and "Drag MIDI into Live or Logic".
 
 ### A. Checked here (before you try it)
 
-Linux x86-64, Clang 18 release build, at a54f9e9 on the integration branch: both features with their review fixes
+Linux x86-64, Clang 18 release build, at d171e67 on the integration branch: both features with their review fixes
 and the integration's own (the later commits change only docs). ctest ran without the samples. pluginval with content,
 `[.real]`, `[.render]` and the copy benchmark read the four kits' samples from a checkout's `content/samples` through
 `WUBANSIA_CONTENT_DIR`: the `<kit>/` layout, not the `<kit>/v1/` that the content zips install.
@@ -188,7 +188,7 @@ and the integration's own (the later commits change only docs). ctest ran withou
 - The catalog: FUT01 35 sounds, FUT02 37, FUT03 36, FUT04 32, which reach all 618 files. Every export name is unique
   in its kit and the longest is 46 characters.
 - The default file of every sound in the four kits (140 sounds, 139 files: two of FUT02's sounds share one) copied
-  from those samples byte for byte, each with kit.json's SHA-256, in 846 ms (`[.real]`).
+  from those samples byte for byte, each with kit.json's SHA-256, in 752 ms (`[.real]`).
 - Offline renders: the processor still plays each kit's Loop as `groovecore render` does, bit for bit (`[.render]`).
   An audition never reaches an offline render.
 - Drums on one track: with the switch lit, every Loop and Song drag of the four kits, with the vox synth and without,
@@ -204,8 +204,8 @@ and the integration's own (the later commits change only docs). ctest ran withou
   tests (96 cases: 91 passed, 5 skipped: two allocation counters, the display, root, the samples); its editor,
   controller and drag-out tests, the drum option's included (97 cases: 96 passed, 1 skipped, the display).
 - CPU at 48 kHz / 128 samples on this shared machine, % of one core on average, plain and then with an audition
-  playing in about 98 % of the blocks (budget 15 %; the test fails above 30 %): FUT01 11.7 and 11.7 %, FUT04 10.6
-  and 10.2 %, SYN01 11.5 and 11.2 %. Copying the largest file, FUT03's 8-bar riser (4.3 MB), took 22 ms; its
+  playing in about 98 % of the blocks (budget 15 %; the test fails above 30 %): FUT01 11.4 and 11.8 %, FUT04 10.7
+  and 10.3 %, SYN01 10.8 and 11.7 %. Copying the largest file, FUT03's 8-bar riser (4.3 MB), took 18 ms; its
   44.1 kHz audition was ready in 44 ms.
 
 ### B. In your DAW (the checklist; not a listening test)
