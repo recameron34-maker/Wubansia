@@ -121,7 +121,7 @@ namespace wubansia::test
         std::function<SoundExport (const SoundRef&)> exportOutcome; // when set, what exportSound gives (it writes nothing)
         bool refuseSamplesFolder = false; // setSamplesFolder () says no, as for a content or drag folder
         // What auditionState () gives. audition () sets it as a host running blocks would: the next ticket, sounding at
-        // once; with auditionFails set, 0 and a problem. stopAudition () and selectKit () of a kit in kitCards clear
+        // once; with auditionFails set, 0 and a problem of its own. stopAudition () and selectKit () of a kit in kitCards clear
         // sounding. Tests may set it directly (waiting, hostSilent...).
         AuditionState auditionStatus;
         bool auditionFails = false;
@@ -252,6 +252,9 @@ namespace wubansia::test
                 auditionStatus.waiting = false;
                 auditionStatus.hostSilent = false;
                 auditionStatus.problem = "the fake can't play " + sound.kit + " file " + juce::String (sound.file);
+                auditionStatus.detail = {}; // its own words, as the Controller's refusal: nothing of a failure before it
+                auditionStatus.sourceProblem = false;
+                auditionStatus.reinstall = false;
                 return 0;
             }
             const auto ticket = auditionStatus.latest + 1;

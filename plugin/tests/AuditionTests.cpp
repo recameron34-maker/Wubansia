@@ -690,30 +690,61 @@ TEST_CASE ("bytes that aren't kit.json's are never played, and say so", "[audio]
         REQUIRE (ticket > 0u); // the kit is ready: the sound thread finds out
         REQUIRE (test::waitFor ([&] { return ! controller.auditionState().waiting; }));
         const auto state = controller.auditionState();
-        CHECK (state.problem.contains ("Riser.wav isn't the file BAD01's content v1 lists"));
+        CHECK (state.problem == "Riser.wav isn't the file BAD01's content v1 lists: reinstall BAD01"); // as a copy would be refused
+        CHECK (state.sourceProblem); // the kit's file, and the problem says what helps
+        CHECK (state.reinstall);
+        CHECK (state.detail.isEmpty());
         CHECK (state.latest == ticket);
         CHECK (state.sounding == 0u);
         CHECK_FALSE ((*q).auditionPlayer().offered());
         CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
 
         REQUIRE (controller.audition (q.ref (phrase)) > ticket);
-        CHECK (controller.auditionState().problem.isEmpty());
+        const auto next = controller.auditionState();
+        CHECK (next.problem.isEmpty());
+        CHECK (next.detail.isEmpty());
+        CHECK_FALSE (next.sourceProblem);
+        CHECK_FALSE (next.reinstall);
         REQUIRE (waitForOffer (*q));
         CHECK_FALSE (test::silent (test::process (*q, kBlock)));
     }
 
-    SECTION ("a file that can't be read")
+    SECTION ("a file that can't be read: named in the kit, short, the reader's words as the detail")
     {
         Quiet q (withKit ("BAD02"));
         auto& controller = q.controller();
         q.plugin.content->setSamples (SyntheticContent::Samples::failed); // the kit stays loaded; its files can't be read now
         REQUIRE (controller.audition (q.ref (riser)) > 0u);
         REQUIRE (test::waitFor ([&] { return ! controller.auditionState().waiting; }));
-        const auto problem = controller.auditionState().problem;
-        CHECK (problem.contains ("Riser.wav can't be read"));
-        CHECK (problem.contains ("unreadable"));
+        const auto state = controller.auditionState();
+        CHECK (state.problem == "BAD02's FX/Riser.wav can't be read"); // by the reader's code, never its words
+        CHECK (state.detail == "unreadable: FX/Riser.wav: it can't be opened");
+        CHECK (state.sourceProblem);
+        CHECK_FALSE (state.reinstall);
         CHECK_FALSE ((*q).auditionPlayer().offered());
         CHECK (test::silent (test::render (*q, 8 * kBlock, kBlock)));
+    }
+
+    SECTION ("a file gone since the kit loaded: named in the kit, short, the folder it was looked for in as the detail")
+    {
+        Quiet q (withKit ("BAD04"));
+        auto& controller = q.controller();
+        q.plugin.content->setSamples (SyntheticContent::Samples::missing); // the drive unplugged, the file deleted
+        REQUIRE (controller.audition (q.ref (riser)) > 0u);
+        REQUIRE (test::waitFor ([&] { return ! controller.auditionState().waiting; }));
+        const auto state = controller.auditionState();
+        CHECK (state.problem == "BAD04's FX/Riser.wav is missing");
+        CHECK (state.detail == "missing: FX/Riser.wav: no such file in " + SyntheticContent::folderOf ("BAD04").getFullPathName());
+        CHECK (state.sourceProblem);
+        CHECK_FALSE (state.reinstall);
+
+        // A request the Controller turns down says why in its own words, with nothing of the failure before it.
+        CHECK (controller.audition ({ "NOPE", riser }) == 0u);
+        const auto refused = controller.auditionState();
+        CHECK (refused.problem.contains ("NOPE"));
+        CHECK (refused.detail.isEmpty());
+        CHECK_FALSE (refused.sourceProblem);
+        CHECK_FALSE (refused.reinstall);
     }
 
     SECTION ("a request that fails stops the one before, as a new sound would have replaced it")

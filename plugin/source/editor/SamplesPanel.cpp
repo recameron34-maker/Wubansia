@@ -203,6 +203,12 @@ namespace wubansia::editor
         return "Couldn't save " + label + ": " + problem + "." + advice;
     }
 
+    juce::String failedPlayLine (const juce::String& label, const juce::String&, const AuditionState& audition)
+    {
+        // Not yet as a failed copy's: the problem as it comes.
+        return "Couldn't play " + label + ": " + audition.problem;
+    }
+
     void announceToScreenReader (const juce::String& text)
     {
         juce::AccessibilityHandler::postAnnouncement (text, juce::AccessibilityHandler::AnnouncementPriority::medium);

@@ -171,9 +171,17 @@ TEST_CASE ("the fake records sounds, auditions, stops and exports, and writes a 
         CHECK (controller.auditionState().latest == second);
         CHECK (fake.stops == 1);
 
+        // A request turned down says why in its own words, as the Controller's does: nothing of a failure before it stays.
+        fake.auditionStatus.problem = "FUT01's Music/Reverse Stab v2.wav is missing";
+        fake.auditionStatus.detail = "missing: Music/Reverse Stab v2.wav: no such file in /Volumes/Kits/fut01/v1";
+        fake.auditionStatus.sourceProblem = true;
+        fake.auditionStatus.reinstall = true;
         fake.auditionFails = true;
         CHECK (controller.audition ({ "FUT02", 109 }) == 0u);
-        CHECK (controller.auditionState().problem.isNotEmpty());
+        CHECK (controller.auditionState().problem == "the fake can't play FUT02 file 109");
+        CHECK (controller.auditionState().detail.isEmpty());
+        CHECK_FALSE (controller.auditionState().sourceProblem);
+        CHECK_FALSE (controller.auditionState().reinstall);
         CHECK (controller.auditionState().sounding == 0u);
         REQUIRE (fake.auditions.size() == 3);
         CHECK (fake.auditions[0] == rave);

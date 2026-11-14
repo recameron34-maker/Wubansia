@@ -1862,12 +1862,103 @@ TEST_CASE ("an export the samples folder fails names no path: the line keeps Cha
         });
 }
 
-TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for every file of the four kits", "[editor][sounds]")
+TEST_CASE ("an audition the kit's own file fails says what fixes the kit, as a failed copy does", "[editor][sounds]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+    // What the sound thread reports for the latest audition, as the fake would hand it on after its ticket.
+    const auto failWith = [&c] (const char* problem, const char* detail, bool sourceProblem, bool reinstall)
+    {
+        const auto ticket = c.auditionStatus.latest;
+        c.auditionStatus = {};
+        c.auditionStatus.latest = ticket;
+        c.auditionStatus.problem = problem;
+        c.auditionStatus.detail = detail;
+        c.auditionStatus.sourceProblem = sourceProblem;
+        c.auditionStatus.reinstall = reinstall;
+    };
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openDrawer (editor);
+            juce::StringArray said;
+            drawer.announce = [&said] (const juce::String& text) { said.add (text); };
+
+            // The installed file is gone (an unplugged drive, say): the line names the file in the kit and what helps, and
+            // nothing else; where it was looked for is in the tooltip, and said.
+            press (soundRow (editor, 0));
+            failWith ("FUT01's Music/Reverse Stab v2.wav is missing",
+                "missing: Music/Reverse Stab v2.wav: no such file in /Users/someone/Library/Application Support/Wubansia Audio/Wubansia/Content/fut01/v1",
+                true, false);
+            editor.tick();
+            CHECK (soundRow (editor, 0).look().failed);
+            const juce::String line ("Couldn't play Reverse Stab v2: FUT01's Music/Reverse Stab v2.wav is missing. Check that FUT01's samples are still installed.");
+            CHECK (drawer.statusText() == line);
+            const juce::String where ("Music/Reverse Stab v2.wav: no such file in /Users/someone/Library/Application Support/Wubansia Audio/Wubansia/Content/fut01/v1.");
+            CHECK (drawer.statusTooltip() == line + "\n" + where);
+            REQUIRE_FALSE (said.isEmpty());
+            CHECK (said[said.size() - 1] == line + " " + where);
+
+            // A content folder whose name holds "install" changes nothing: the advice comes from the state, not its words.
+            press (soundRow (editor, 0));
+            failWith ("FUT01's Music/Reverse Stab v2.wav is missing", "missing: Music/Reverse Stab v2.wav: no such file in /Users/someone/Music/Installed Kits/fut01/v1",
+                true, false);
+            editor.tick();
+            CHECK (drawer.statusText() == line);
+            CHECK (drawer.statusTooltip().endsWith ("/Users/someone/Music/Installed Kits/fut01/v1."));
+
+            // Bytes that aren't kit.json's: the problem already says what to do, and there's no more to it.
+            press (soundRow (editor, 0));
+            failWith ("Reverse Stab v2.wav isn't the file FUT01's content v1 lists: reinstall FUT01", "", true, true);
+            editor.tick();
+            CHECK (drawer.statusText() == "Couldn't play Reverse Stab v2: Reverse Stab v2.wav isn't the file FUT01's content v1 lists: reinstall FUT01.");
+            CHECK (drawer.statusTooltip() == drawer.statusText());
+            CHECK (said[said.size() - 1] == drawer.statusText());
+
+            // A check's code never shows.
+            press (soundRow (editor, 0));
+            failWith ("unreadable: Music/Reverse Stab v2.wav: permission denied", "", true, false);
+            editor.tick();
+            CHECK (drawer.statusText() == "Couldn't play Reverse Stab v2: Music/Reverse Stab v2.wav: permission denied. Check that FUT01's samples are still installed.");
+
+            // Not the kit's file (a rate the clip can't be made at): no advice, and never Change...: no samples folder plays.
+            press (soundRow (editor, 0));
+            failWith ("Reverse Stab v2.wav can't be played at 800000 Hz", "", false, false);
+            editor.tick();
+            CHECK (drawer.statusText() == "Couldn't play Reverse Stab v2: Reverse Stab v2.wav can't be played at 800000 Hz.");
+            CHECK (drawer.statusTooltip() == drawer.statusText());
+
+            // A request turned down before a ticket reads the same way; Esc puts it away, tooltip and all.
+            c.auditionFails = true;
+            press (soundRow (editor, 0));
+            CHECK (drawer.statusText() == "Couldn't play Reverse Stab v2: the fake can't play FUT01 file 159.");
+            CHECK (drawer.statusTooltip() == drawer.statusText());
+            CHECK (drawer.keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+            editor.tick();
+            CHECK (drawer.statusText().isEmpty());
+            CHECK (drawer.statusTooltip().isEmpty());
+
+            // The next audition clears the line and its tooltip.
+            c.auditionFails = false;
+            press (soundRow (editor, 0));
+            failWith ("FUT01's Music/Reverse Stab v2.wav is missing", "missing: Music/Reverse Stab v2.wav: no such file in /Volumes/Kits/fut01/v1", true, false);
+            editor.tick();
+            CHECK (drawer.statusTooltip().endsWith ("/Volumes/Kits/fut01/v1."));
+            press (soundRow (editor, 1));
+            editor.tick();
+            CHECK (soundRow (editor, 1).look().playing);
+            CHECK (drawer.statusText().isEmpty());
+            CHECK (drawer.statusTooltip().isEmpty());
+        });
+}
+
+TEST_CASE ("a failed copy's or audition's line keeps what helps on the footer's two lines, for every file of the four kits", "[editor][sounds]")
 {
     // Every file of the four kits, refused as exportCopy refuses one that's gone from the default macOS content folder
-    // under a long user name, and as it refuses a copy, each way, that a samples folder deep in the home folder can't
-    // take: the drawer's line must show all of itself, the advice last, in the footer's font and in the status area the
-    // drawer lays out, beside the default samples folder and beside one long enough to take the folder text's full width.
+    // under a long user name, as the sound thread then refuses its audition, and as exportCopy refuses a copy, each way,
+    // that a samples folder deep in the home folder can't take: the drawer's line must show all of itself, the advice
+    // last, in the footer's font and in the status area the drawer lays out, beside the default samples folder and beside
+    // one long enough to take the folder text's full width.
     const wubansia::KitCatalog catalog (wubansia::EmbeddedContent::sources());
     const auto contentFolder = [] (const std::string& kit)
     {
@@ -1880,6 +1971,18 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
         const auto read = gone.readBytes (listed.path);
         REQUIRE_FALSE (read.ok());
         return wubansia::sounds::soundExportOf (wubansia::sounds::unreadableSource (entry.info, listed, read.error));
+    };
+
+    // The sound thread's state for an audition of the same file: the copy's refusal, word for word and flag for flag.
+    const auto unplayable = [&] (const wubansia::KitCatalog::Entry& entry, int file)
+    {
+        const auto copy = refused (entry, file);
+        wubansia::AuditionState state;
+        state.problem = copy.problem;
+        state.detail = copy.detail;
+        state.sourceProblem = copy.sourceProblem;
+        state.reinstall = copy.reinstall;
+        return state;
     };
 
     // The samples folder's refusals, every kind, for a copy into a folder deep in the home folder.
@@ -1980,7 +2083,7 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
                     if (width > widest.width)
                         widest = { line, width, kit, sound.name, file };
                 };
-                Widest copy;
+                Widest copy, play;
                 std::array<Widest, folderProblems.size()> folder;
 
                 int lines = 0;
@@ -1999,6 +2102,14 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
                             CHECK_FALSE (copyLine.contains ("/Users/"));
                             keep (copy, copyLine, fits (copyLine), kit, sound, i);
 
+                            // The same file, auditioned: the same words and advice, as "Couldn't play".
+                            const auto playLine = editor::failedPlayLine (file.label, kit, unplayable (entry, file.file));
+                            CHECK (playLine.startsWith ("Couldn't play " + file.label + ": "));
+                            CHECK (playLine.endsWith (". Check that " + kit + "'s samples are still installed."));
+                            CHECK_FALSE (playLine.contains ("missing:"));
+                            CHECK_FALSE (playLine.contains ("/Users/"));
+                            keep (play, playLine, fits (playLine), kit, sound, i);
+
                             // The samples folder is why: another one helps, and no path shows.
                             for (std::size_t k = 0; k < folderProblems.size(); ++k)
                             {
@@ -2010,8 +2121,9 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
                         }
                 CHECK (lines >= 618);
 
-                // Each widest, through the drawer itself: its kit, its category, its row, its file, and a click on the tile.
-                const auto save = [&] (const Widest& widest)
+                // Each widest, through the drawer itself: its kit, its category, its row and its file (which plays it),
+                // then a click on the tile, or the sound thread's refusal of that audition.
+                const auto pick = [&] (const Widest& widest)
                 {
                     INFO ("widest: " << widest.line);
                     click (get<editor::KitChip> (editor, "samples_kit_" + widest.kit));
@@ -2028,6 +2140,11 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
                     REQUIRE (row >= 0);
                     press (soundRow (editor, row));
                     get<juce::ComboBox> (editor, "sound_file").setSelectedItemIndex (widest.file, juce::sendNotificationSync);
+                };
+                const auto save = [&] (const Widest& widest)
+                {
+                    INFO ("widest: " << widest.line);
+                    pick (widest);
                     click (get<editor::SoundDragTile> (editor, "sound_drag"));
                     CHECK (drawer.statusText() == widest.line);
                 };
@@ -2038,6 +2155,16 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
                     const auto problem = folderProblems[k];
                     c.exportOutcome = [&, problem] (const wubansia::SoundRef& ref) { return unwritable (entryOf (ref), ref.file, problem); };
                     save (folder[k]);
+                }
+                {
+                    INFO ("widest: " << play.line);
+                    pick (play);
+                    const auto& shown = c.auditions.back();
+                    auto failed = unplayable (entryOf (shown), shown.file);
+                    failed.latest = c.auditionStatus.latest;
+                    c.auditionStatus = failed;
+                    editor.tick();
+                    CHECK (drawer.statusText() == play.line);
                 }
                 CHECK (os.revealed.isEmpty());
             });
@@ -2312,7 +2439,7 @@ TEST_CASE ("the playing row shows Stop while its ticket sounds; a silent Logic g
             c.auditionFails = true;
             press (soundRow (editor, 0));
             CHECK (soundRow (editor, 0).look().failed);
-            CHECK (drawer.statusText() == "Couldn't play Reverse Stab v2: the fake can't play FUT01 file 159");
+            CHECK (drawer.statusText() == "Couldn't play Reverse Stab v2: the fake can't play FUT01 file 159.");
             editor.tick();
             CHECK (soundRow (editor, 0).look().failed);
 
@@ -2324,9 +2451,11 @@ TEST_CASE ("the playing row shows Stop while its ticket sounds; a silent Logic g
             c.auditionStatus = {};
             c.auditionStatus.latest = ticket;
             c.auditionStatus.problem = "Alloy Bell v4 rr1.wav isn't the file FUT01's content v1 lists: reinstall FUT01";
+            c.auditionStatus.sourceProblem = true;
+            c.auditionStatus.reinstall = true;
             editor.tick();
             CHECK (soundRow (editor, 2).look().failed);
-            CHECK (drawer.statusText() == "Couldn't play Alloy Bell v4 rr1: Alloy Bell v4 rr1.wav isn't the file FUT01's content v1 lists: reinstall FUT01");
+            CHECK (drawer.statusText() == "Couldn't play Alloy Bell v4 rr1: Alloy Bell v4 rr1.wav isn't the file FUT01's content v1 lists: reinstall FUT01.");
 
             // The next audition clears it.
             press (soundRow (editor, 1));

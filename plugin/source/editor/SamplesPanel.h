@@ -45,6 +45,12 @@ namespace wubansia::editor
     // check's code and no folder a file was looked for in (copy.detail has those): it fits the footer's two lines.
     juce::String failedCopyLine (const juce::String& label, const juce::String& kit, const SoundExport& copy);
 
+    // The status line for an audition that failed (auditionState ()'s problem, or a request turned down), as a failed
+    // copy's: "Couldn't play Rave Stab v2: <problem>." and, when the kit's own file is why, a check that the kit's samples
+    // are still installed, unless the problem already says to reinstall the kit. Never Change...: the samples folder
+    // has nothing to do with an audition. No check's code and no folder (audition.detail has those).
+    juce::String failedPlayLine (const juce::String& label, const juce::String& kit, const AuditionState& audition);
+
     // The drawer's default announce: text as an AccessibilityHandler announcement, at medium priority, for screen readers.
     void announceToScreenReader (const juce::String& text);
 

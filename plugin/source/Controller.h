@@ -160,7 +160,10 @@ namespace wubansia
         std::uint32_t latest = 0; // the last ticket audition () gave
         bool waiting = false; // latest is being read, or waits for the host's next block
         bool hostSilent = false; // latest got no block for 300 ms, before or after one took it, and was dropped: the host runs no audio
-        juce::String problem; // why latest (or a request turned down) can't play, for people
+        juce::String problem; // why latest (or a request turned down) can't play, for people; the kit's own file is named in the kit, never by its folder
+        juce::String detail; // the problem as the reader gave it, folder and code included; may be empty
+        bool sourceProblem = false; // the kit's own file is why (missing, unreadable, not kit.json's)
+        bool reinstall = false; // the kit's file isn't the one kit.json lists, and the problem says to reinstall the kit
     };
 
     struct SoundExport
