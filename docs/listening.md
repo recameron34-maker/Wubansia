@@ -197,7 +197,7 @@ tests), with the four kits' content installed from their zips.
 
 ### B. In your DAW (the checklist; not a listening test)
 - [ ] The Samples button opens the drawer in each format your DAWs host (AU, VST3, CLAP); the groove keeps playing
-- [ ] A click plays the sound; Up, Down, Return and Esc reach the drawer after a click in the list, in Live and in
+- [ ] A click plays the sound; Up, Down, Return and Esc reach the drawer from the moment it opens, in Live and in
       Logic, and Space still reaches the DAW
 - [ ] How the auditions sound, and their level over a loud groove (6 dB down, under Output, with no limiter)
 - [ ] Live 12, from the VST3: drag a one-shot to an audio track, to a Drum Rack pad and to a MIDI track (Simpler)
@@ -209,6 +209,8 @@ tests), with the four kits' content installed from their zips.
 - [ ] The CLAP, if one of your DAWs loads it: drag a one-shot to a track
 - [ ] Logic: an audition plays while stopped with Wubansia's track selected; unselected, the drawer shows "No sound
       from your DAW..."
+- [ ] Logic, stopped: start FUT03's Riser (8 bars) with Wubansia's track selected, then select another track; when
+      you select Wubansia's track again, the riser doesn't play on from where it was
 - [ ] Logic: a 44.1 kHz project, with "Convert audio file sample rate when importing" on
 - [ ] Names with `#` (`F#m`, `F#4`) arrive whole in Live and in Logic
 - [ ] Live's Collect All and Save, and Logic's "Copy audio files into project", take the copies into the project
