@@ -1920,12 +1920,16 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
     // The rail's categories in SoundCategory's order, as their buttons are named.
     constexpr std::array<const char*, wubansia::kSoundCategories> categoryIds { "accents", "fx", "vox", "synths", "bass", "drums", "loops" };
 
-    // The glyph drawFittedText ends a cut line with.
+    // The glyph drawFittedText ends a cut line with, and dots no narrower than it, to stand in for a line's own.
     const auto font = editor::uiFont (11.5f, true);
+    const auto ellipsisText = juce::String::charToString ((juce::juce_wchar) 0x2026);
     juce::GlyphArrangement dots;
-    dots.addLineOfText (font, juce::String::charToString ((juce::juce_wchar) 0x2026), 0.0f, 0.0f);
+    dots.addLineOfText (font, ellipsisText, 0.0f, 0.0f);
     REQUIRE (dots.getNumGlyphs() == 1);
     const auto ellipsis = dots.getGlyph (0).getGlyphIndex();
+    juce::String standIn ("...");
+    while (juce::GlyphArrangement::getStringWidth (font, standIn) < juce::GlyphArrangement::getStringWidth (font, ellipsisText))
+        standIn << ".";
 
     for (const auto* samplesFolder : { "", "/Volumes/Studio Archive 2026/Sample Libraries/Wubansia drags for the next album" })
     {
@@ -1951,9 +1955,11 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
                         longestWord = juce::jmax (longestWord, juce::GlyphArrangement::getStringWidth (font, word + " "));
                     CHECK (width + longestWord <= 2.0f * (float) area.getWidth());
 
+                    // The line's own ellipsis ("Change…") laid out as dots no narrower than it, so that any ellipsis glyph
+                    // drawn is drawFittedText's cut.
                     juce::GlyphArrangement drawn;
-                    drawn.addFittedText (font, line, (float) area.getX(), (float) area.getY(), (float) area.getWidth(), (float) area.getHeight(),
-                        juce::Justification::centredLeft, 2, 0.9f);
+                    drawn.addFittedText (font, line.replace (ellipsisText, standIn), (float) area.getX(), (float) area.getY(), (float) area.getWidth(),
+                        (float) area.getHeight(), juce::Justification::centredLeft, 2, 0.9f);
                     bool cut = false;
                     for (int g = 0; g < drawn.getNumGlyphs(); ++g)
                         cut = cut || drawn.getGlyph (g).getGlyphIndex() == ellipsis;
