@@ -468,7 +468,7 @@ TEST_CASE ("a block that comes while the sound thread gives up a stale clip keep
         std::atomic<bool> armed { true }, held { false }, released { false };
     };
     const auto hold = std::make_shared<Hold>();
-    Quiet q (withKit ("AUD09"));
+    Quiet q (withKit ("AUD10"));
     (*q).setAuditionGiveUpProbeForTesting ([hold]
         {
             if (! hold->armed.exchange (false))
