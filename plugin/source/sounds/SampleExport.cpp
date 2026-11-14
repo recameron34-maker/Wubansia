@@ -59,7 +59,7 @@ namespace wubansia::sounds
             return result;
         }
 
-        // No copy, for a reason that isn't the kit's own file: the samples folder's.
+        // No copy, and why: the samples folder's fault, unless the caller sets sourceProblem (the kit's own file).
         ExportResult refused (std::string problem)
         {
             ExportResult result;
