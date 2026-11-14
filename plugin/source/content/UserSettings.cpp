@@ -50,7 +50,7 @@ namespace wubansia
         dragDrums = ours && xml->getStringAttribute (dragDrumsAttribute) == "1";
     }
 
-    bool UserSettings::saveLocked (const char* attribute, const juce::File& chosen) const
+    bool UserSettings::saveLocked (const char* attribute, const juce::String& value) const
     {
         // Keep whatever else the file holds.
         std::unique_ptr<juce::XmlElement> xml;
@@ -58,10 +58,10 @@ namespace wubansia
             xml = juce::XmlDocument::parse (settingsFile);
         if (xml == nullptr || ! xml->hasTagName (rootTag))
             xml = std::make_unique<juce::XmlElement> (rootTag);
-        if (chosen == juce::File())
+        if (value.isEmpty())
             xml->removeAttribute (attribute);
         else
-            xml->setAttribute (attribute, chosen.getFullPathName());
+            xml->setAttribute (attribute, value);
 
         return settingsFile.getParentDirectory().createDirectory().wasOk() && xml->writeTo (settingsFile);
     }
@@ -86,23 +86,7 @@ namespace wubansia
         const std::lock_guard lock (mutex);
         loadLocked();
         dragDrums = on;
-        return saveAttributeLocked (dragDrumsAttribute, on ? juce::String ("1") : juce::String());
-    }
-
-    bool UserSettings::saveAttributeLocked (const char* attribute, const juce::String& value) const
-    {
-        // Keep whatever else the file holds.
-        std::unique_ptr<juce::XmlElement> xml;
-        if (settingsFile.existsAsFile())
-            xml = juce::XmlDocument::parse (settingsFile);
-        if (xml == nullptr || ! xml->hasTagName (rootTag))
-            xml = std::make_unique<juce::XmlElement> (rootTag);
-        if (value.isEmpty())
-            xml->removeAttribute (attribute);
-        else
-            xml->setAttribute (attribute, value);
-
-        return settingsFile.getParentDirectory().createDirectory().wasOk() && xml->writeTo (settingsFile);
+        return saveLocked (dragDrumsAttribute, on ? juce::String ("1") : juce::String());
     }
 
     bool UserSettings::setContentFolder (const juce::File& chosen)
@@ -112,7 +96,7 @@ namespace wubansia
             const std::lock_guard lock (mutex);
             loadLocked();
             folder = chosen;
-            saved = saveLocked (contentFolderAttribute, chosen);
+            saved = saveLocked (contentFolderAttribute, chosen.getFullPathName());
         }
         changes.fetch_add (1, std::memory_order_acq_rel);
         return saved;
@@ -131,6 +115,6 @@ namespace wubansia
         const std::lock_guard lock (mutex);
         loadLocked();
         samples = chosen;
-        return saveLocked (samplesFolderAttribute, chosen);
+        return saveLocked (samplesFolderAttribute, chosen.getFullPathName());
     }
 }

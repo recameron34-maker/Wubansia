@@ -406,7 +406,7 @@ TEST_CASE ("drag-out: 1 drum track gives the Loop's and Song's drums as one trac
     // Every instance shares the person's settings: a second plugin on the same ones sees the option.
     SyntheticPlugin other (twoKits ("DRM01", "DRM02"));
     auto& otherController = static_cast<ControllerImpl&> (other->controller());
-    otherController.setDragSettingsForTesting (*plugin.settings);
+    otherController.setUserSettingsForTesting (*plugin.settings);
     otherController.setDragFolderForTesting (drag.folder);
     CHECK (otherController.dragDrumsOnOneTrack());
     CHECK (bytesOf (otherController.writeDragFile (loop)) == mergedLoop);
