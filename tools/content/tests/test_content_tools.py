@@ -1506,7 +1506,9 @@ class TestSamplesDocs(unittest.TestCase):
         for words in ('Show in Finder', 'Change…', 'Content…', 'Choose content folder…', 'Drags save to',
                       'Ends on the beat: put its end on the downbeat', 'before its beat: slide it',
                       'recorded notes: pick one in File',
-                      "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed"):
+                      "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed",
+                      # Any host but Logic (Live, the user's other DAW) gets words that fit every DAW.
+                      "No sound from your DAW: it isn't running Wubansia's audio right now"):
             with self.subTest(words=words):
                 self.assertIn(words, self.samples)
                 self.assertIn(words, code)
