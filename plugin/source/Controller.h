@@ -6,12 +6,15 @@
 // editor can be built and tested without an engine.
 //
 // Every call comes from the message thread and returns at once: a kit load or a content check that
-// takes time is queued on the service thread, and status () and snapshot () report on it. Two calls
-// read and write files before they return, because the OS drag they start must begin inside its
-// mouse event: writeDragFile () (a MIDI file) and exportSound () (a sample, tens of milliseconds for the
-// largest). The state-only settings set here (the kit, the Standalone tempo, the MIDI-in mode and the
-// phrase mode) mark the host's project as changed; the content and samples folders are the person's,
-// kept in their settings file, and don't.
+// takes time is queued on the service thread, and status () and snapshot () report on it. Four calls
+// touch the disk before they return. writeDragFile () (a MIDI file) and exportSound () (a sample, tens
+// of milliseconds for the largest) read and write files, because the OS drag they start must begin
+// inside its mouse event; setContentFolder () and setSamplesFolder () write the person's settings.xml
+// at once (setSamplesFolder () also makes the folder). That file is read once per process, by the
+// first call that needs it: samplesFolder (), say, unless the service thread's first content check
+// came before. The state-only settings set here (the kit, the Standalone tempo, the MIDI-in mode and
+// the phrase mode) mark the host's project as changed; the content and samples folders are the
+// person's, kept in their settings file, and don't.
 
 #include "engine.h"
 
