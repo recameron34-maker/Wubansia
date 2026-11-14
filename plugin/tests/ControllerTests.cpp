@@ -398,6 +398,96 @@ TEST_CASE ("exportSound copies the kit's file into the samples folder; a second 
     CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 2); // the two kits' folders
 }
 
+TEST_CASE ("exportSound says whose fault a failed copy is, as exportCopy found it: the kit's file or the samples folder", "[controller][sounds]")
+{
+    // The Controller's own checks pass (the kit is found ready), so exportCopy is what refuses: its flags and detail must
+    // reach the drawer as they are, true and false alike, or the drawer gives the wrong advice.
+    const auto riser = synFile ("FX/Riser.wav");
+    TempFolder samples;
+
+    SECTION ("installed bytes that aren't kit.json's: the kit's file, and the problem says to reinstall")
+    {
+        SyntheticContent::Options options;
+        options.ids = { "SPF01" };
+        options.alteredPath = "FX/Riser.wav";
+        SyntheticPlugin plugin (options);
+        auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+        controller.setSamplesFolderForTesting (samples.folder);
+        test::prepareWithKit (*plugin);
+        REQUIRE (controller.status().state == ContentState::ready);
+
+        const auto refused = controller.exportSound ({ "SPF01", riser });
+        INFO (refused.problem);
+        CHECK (refused.file == juce::File());
+        CHECK (refused.problem == "Riser.wav isn't the file SPF01's content v1 lists: reinstall SPF01");
+        CHECK (refused.sourceProblem);
+        CHECK (refused.reinstall);
+        CHECK (refused.detail.isEmpty());
+        CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 0);
+    }
+
+    SECTION ("the installed file gone since the kit loaded: the kit's file, named short, the folder in the detail")
+    {
+        SyntheticContent::Options options;
+        options.ids = { "SPF02" };
+        SyntheticPlugin plugin (options);
+        auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+        controller.setSamplesFolderForTesting (samples.folder);
+        test::prepareWithKit (*plugin);
+        REQUIRE (controller.status().state == ContentState::ready);
+        plugin.content->setSamples (SyntheticContent::Samples::missing); // the drive unplugged, the file deleted
+        REQUIRE (controller.status().state == ContentState::ready); // the Controller still sees the kit ready
+
+        const auto refused = controller.exportSound ({ "SPF02", riser });
+        INFO (refused.problem);
+        CHECK (refused.file == juce::File());
+        CHECK (refused.problem == "SPF02's FX/Riser.wav is missing");
+        CHECK (refused.detail == "missing: FX/Riser.wav: no such file in " + SyntheticContent::folderOf ("SPF02").getFullPathName());
+        CHECK (refused.sourceProblem);
+        CHECK_FALSE (refused.reinstall);
+    }
+
+    SECTION ("a samples folder that can't be written: the folder's fault, not the kit's")
+    {
+        SyntheticContent::Options options;
+        options.ids = { "SPF03" };
+        SyntheticPlugin plugin (options);
+        const auto blocker = samples.folder.getChildFile ("Samples");
+        REQUIRE (samples.folder.createDirectory().wasOk());
+        REQUIRE (blocker.replaceWithText ("a file, not a folder"));
+        auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+        controller.setSamplesFolderForTesting (blocker);
+        test::prepareWithKit (*plugin);
+        REQUIRE (controller.status().state == ContentState::ready);
+
+        const auto refused = controller.exportSound ({ "SPF03", riser });
+        INFO (refused.problem);
+        CHECK (refused.file == juce::File());
+        CHECK (refused.problem.contains (blocker.getChildFile ("SPF03 Synthetic 03").getFullPathName()));
+        CHECK_FALSE (refused.sourceProblem);
+        CHECK_FALSE (refused.reinstall);
+    }
+
+    SECTION ("a copy made: nobody's fault")
+    {
+        SyntheticContent::Options options;
+        options.ids = { "SPF04" };
+        SyntheticPlugin plugin (options);
+        auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+        controller.setSamplesFolderForTesting (samples.folder);
+        test::prepareWithKit (*plugin);
+        REQUIRE (controller.status().state == ContentState::ready);
+
+        const auto copy = controller.exportSound ({ "SPF04", riser });
+        INFO (copy.problem);
+        CHECK (copy.file.existsAsFile());
+        CHECK (copy.problem.isEmpty());
+        CHECK (copy.detail.isEmpty());
+        CHECK_FALSE (copy.sourceProblem);
+        CHECK_FALSE (copy.reinstall);
+    }
+}
+
 TEST_CASE ("exportSound is refused, with the reason, while the kit's samples aren't there", "[controller][sounds]")
 {
     SyntheticContent::Options options;
