@@ -176,7 +176,7 @@ namespace wubansia::editor
         bool failed = false, hover = false, pressed = false, dragging = false;
     };
 
-    class SamplesPanel : public juce::Component
+    class SamplesPanel : public juce::Component, public juce::TooltipClient
     {
     public:
         explicit SamplesPanel (Controller&);
@@ -197,6 +197,7 @@ namespace wubansia::editor
         void resized() override;
         void paint (juce::Graphics&) override;
         bool keyPressed (const juce::KeyPress&) override; // Esc stops the audition (and clears the status line)
+        juce::String getTooltip() override; // over the status line: statusTooltip ()
 
         // What it shows, for tests.
         const juce::String& browsedKit() const noexcept { return browsed; }
@@ -239,6 +240,7 @@ namespace wubansia::editor
             juce::String text;
             juce::Colour tone;
             juce::uint32 until = 0; // juce::Time::getMillisecondCounter (); 0 until the next action
+            juce::String detail; // what the line leaves out, as a sentence: for the tooltip and the announcement
         };
 
         // The browsed kit and what it holds.
@@ -275,7 +277,8 @@ namespace wubansia::editor
         juce::String auditionMessage() const;
         juce::String kitMessage() const; // "Looking for FUT03's samples..."
         juce::Colour statusTone() const;
-        void setMessage (const juce::String& text, juce::Colour tone, int forMs = 0);
+        void setMessage (const juce::String& text, juce::Colour tone, int forMs = 0, const juce::String& detail = {});
+        juce::String statusDetail() const; // the shown message's detail, when the status line shows it
         void refresh();
         void refreshChips();
         void refreshRows();

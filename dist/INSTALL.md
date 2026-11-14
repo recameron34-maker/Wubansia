@@ -211,7 +211,8 @@ On Windows the content folder is `%APPDATA%\Wubansia Audio\Wubansia\Content`, an
   (clap-juce-extensions #184): use the VST3 in Bitwig.
 - **Your DAW won't take a drop from the Samples drawer.** Click the tile, or Show in Finder, and drag the file from
   Finder. If the drawer says "Couldn't save", it says what helps: another folder with Change… when the copy couldn't
-  be written there, or the kit's samples when its own file is missing or not the one it lists.
+  be written there, or the kit's samples when its own file is missing or not the one it lists. Hold the pointer over
+  the message to see the folder it looked in.
 
 ## Uninstall
 

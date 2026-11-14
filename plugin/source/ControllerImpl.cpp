@@ -321,11 +321,7 @@ namespace wubansia
         }
 
         const auto& file = source.entry->manifest.files[static_cast<std::size_t> (sound.file)];
-        const auto copy = sounds::exportCopy (*processor.content, source.found, source.entry->info, file, samplesFolder());
-        result.file = copy.file;
-        result.problem = juce::String::fromUTF8 (copy.problem.data(), static_cast<int> (copy.problem.size()));
-        result.sourceProblem = copy.sourceProblem;
-        return result;
+        return sounds::soundExportOf (sounds::exportCopy (*processor.content, source.found, source.entry->info, file, samplesFolder()));
     }
 
     juce::File ControllerImpl::samplesFolder() const

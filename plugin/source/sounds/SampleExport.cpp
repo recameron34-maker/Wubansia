@@ -2,6 +2,7 @@
 
 #include "dragout/DragFiles.h"
 
+#include "kit/kit_builder.h"
 #include "util/sha256.h"
 
 #include <algorithm>
@@ -136,9 +137,12 @@ namespace wubansia::sounds
                + " lists: reinstall " + kit.id;
     }
 
-    ExportResult unreadableSource (const engine::KitInfo&, const engine::FileEntry& file, const std::string& error)
+    ExportResult unreadableSource (const engine::KitInfo& kit, const engine::FileEntry& file, const std::string& error)
     {
-        auto result = refused (std::string (fileNameOf (file.path)) + " can't be read: " + error); // not yet: the tests come first
+        // By the error's code, never its words: a folder named "Missing Kits" says nothing about the file.
+        const auto gone = engine::loadErrorOf (error) == engine::LoadError::missing;
+        auto result = refused (kit.id + "'s " + file.path + (gone ? " is missing" : " can't be read"));
+        result.detail = error;
         result.sourceProblem = true;
         return result;
     }
@@ -148,8 +152,10 @@ namespace wubansia::sounds
         SoundExport copy;
         copy.file = result.file;
         copy.problem = text (result.problem);
+        copy.detail = text (result.detail);
         copy.sourceProblem = result.sourceProblem;
-        return copy; // not yet: the tests come first
+        copy.reinstall = result.reinstall;
+        return copy;
     }
 
     ExportResult exportCopy (ContentSourceFactory& content, const ContentStatus& found, const engine::KitInfo& kit,
@@ -161,8 +167,9 @@ namespace wubansia::sounds
             return unreadableSource (kit, file, bytes.error);
         if (! matchesListing (bytes.value, file))
         {
-            auto result = refused (listingProblem (kit, file));
+            auto result = refused (listingProblem (kit, file)); // which says to reinstall the kit
             result.sourceProblem = true;
+            result.reinstall = true;
             return result;
         }
         if (samplesFolder == juce::File())

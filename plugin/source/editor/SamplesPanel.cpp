@@ -180,11 +180,11 @@ namespace wubansia::editor
 
     juce::String failedCopyLine (const juce::String& label, const juce::String& kit, const SoundExport& copy)
     {
-        // Not yet: the tests come first.
-        const auto problem = withoutFullStop (copy.problem);
-        const auto advice = ! copy.sourceProblem                    ? utf8 (" Choose another folder with Change\xe2\x80\xa6")
-                            : problem.containsIgnoreCase ("install") ? juce::String()
-                                                                     : " Check that " + kit + "'s samples are still installed.";
+        // What helps comes from the result, never from its words (a folder named "Installed Kits" says nothing).
+        const auto problem = withoutFullStop (withoutCode (copy.problem));
+        const auto advice = ! copy.sourceProblem ? utf8 (" Choose another folder with Change\xe2\x80\xa6")
+                            : copy.reinstall     ? juce::String()
+                                                 : " Check that " + kit + "'s samples are still installed.";
         return "Couldn't save " + label + ": " + problem + "." + advice;
     }
 
@@ -1025,8 +1025,10 @@ namespace wubansia::editor
 
         if (copy.file == juce::File())
         {
+            // A short line the footer's two lines hold, its advice included; where the file was looked for goes to the
+            // tooltip and the announcement.
             tileFailed = true;
-            setMessage (failedCopyLine (label, ref.kit, copy), colours::warning);
+            setMessage (failedCopyLine (label, ref.kit, copy), colours::warning, 0, copy.detail.isNotEmpty() ? sentence (withoutCode (copy.detail)) : juce::String());
             refresh();
             return {};
         }
@@ -1111,9 +1113,20 @@ namespace wubansia::editor
         return "Loading " + browsed + utf8 ("'s samples\xe2\x80\xa6 ") + juce::String (juce::jlimit (0, 100, content.percent)) + " %";
     }
 
+    juce::String SamplesPanel::statusDetail() const
+    {
+        return kitMessage().isEmpty() && message.text.isNotEmpty() ? message.detail : juce::String();
+    }
+
     juce::String SamplesPanel::statusTooltip() const
     {
-        return statusText(); // not yet: the tests come first
+        const auto detail = statusDetail();
+        return detail.isNotEmpty() ? statusText() + "\n" + detail : statusText();
+    }
+
+    juce::String SamplesPanel::getTooltip()
+    {
+        return statusArea.contains (getMouseXYRelative()) ? statusTooltip() : juce::String();
     }
 
     juce::String SamplesPanel::statusText() const
@@ -1135,11 +1148,12 @@ namespace wubansia::editor
         return audition.hostSilent && refusal.isEmpty() ? colours::busy : colours::warning;
     }
 
-    void SamplesPanel::setMessage (const juce::String& text, juce::Colour tone, int forMs)
+    void SamplesPanel::setMessage (const juce::String& text, juce::Colour tone, int forMs, const juce::String& detail)
     {
         message.text = text;
         message.tone = tone;
         message.until = forMs > 0 ? juce::jmax (static_cast<juce::uint32> (1), juce::Time::getMillisecondCounter() + static_cast<juce::uint32> (forMs)) : 0;
+        message.detail = detail;
     }
 
     juce::String SamplesPanel::bannerText() const
@@ -1254,12 +1268,14 @@ namespace wubansia::editor
         const auto bannerSpoken = banner.replace ("\n", ". ");
         contentFolderButton.setDescription (bannerSpoken);
 
-        // What the painted lines say is said aloud too, once each: a new status line (a load once, not every percent)
-        // and a new banner. Only while the drawer shows; open () lets them be said again.
+        // What the painted lines say is said aloud too, once each: a new status line (a load once, not every percent),
+        // with what its tooltip adds, and a new banner. Only while the drawer shows; open () lets them be said again.
         if (isVisible() && announce != nullptr)
         {
             const auto loading = kitMessage();
-            const auto status = loading.isNotEmpty() ? loading.upToFirstOccurrenceOf (utf8 ("\xe2\x80\xa6"), true, false) : statusText();
+            const auto detail = statusDetail();
+            const auto status = loading.isNotEmpty() ? loading.upToFirstOccurrenceOf (utf8 ("\xe2\x80\xa6"), true, false)
+                                                      : statusText() + (detail.isNotEmpty() ? " " + detail : juce::String());
             if (status != spokenStatus)
             {
                 spokenStatus = status;
