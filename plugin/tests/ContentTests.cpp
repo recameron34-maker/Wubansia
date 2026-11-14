@@ -24,6 +24,7 @@
 #include <set>
 #include <sstream>
 #include <thread>
+#include <tuple>
 #include <vector>
 
 #if ! JUCE_WINDOWS
@@ -258,28 +259,30 @@ TEST_CASE ("the chosen content folder is kept in the person's settings file", "[
     CHECK (UserSettings (file).contentFolder() == juce::File());
 }
 
-TEST_CASE ("the drag strip's drum option is kept in the person's settings file, beside the content folder", "[content][dragout]")
+TEST_CASE ("the drag strip's drum option is kept in the person's settings file, beside the content and samples folders", "[content][dragout][sounds]")
 {
     TempFolder temp;
     const auto file = (temp / "Wubansia Audio").getChildFile ("settings.xml");
     const auto chosen = temp / "My Samples";
+    const auto drags = temp / "My Drags"; // the Samples drawer's folder (ADR 0024)
     const auto attributes = [&file]
     {
         const auto xml = juce::XmlDocument::parse (file);
         REQUIRE (xml != nullptr);
-        return std::pair { xml->hasAttribute ("drag_drums_one_track") ? xml->getStringAttribute ("drag_drums_one_track") : juce::String ("(none)"),
-            xml->getStringAttribute ("content_folder") };
+        return std::tuple { xml->hasAttribute ("drag_drums_one_track") ? xml->getStringAttribute ("drag_drums_one_track") : juce::String ("(none)"),
+            xml->getStringAttribute ("content_folder"), xml->getStringAttribute ("samples_folder") };
     };
 
     {
         UserSettings settings (file);
         CHECK_FALSE (settings.dragDrumsOnOneTrack()); // off by default, with no file at all
         REQUIRE (settings.setContentFolder (chosen));
+        REQUIRE (settings.setSamplesFolder (drags));
         const auto generation = settings.generation();
 
         CHECK (settings.setDragDrumsOnOneTrack (true));
         CHECK (settings.dragDrumsOnOneTrack());
-        CHECK (attributes() == std::pair { juce::String ("1"), chosen.getFullPathName() });
+        CHECK (attributes() == std::tuple { juce::String ("1"), chosen.getFullPathName(), drags.getFullPathName() });
         CHECK (settings.generation() == generation); // the content folders didn't change
         CHECK (settings.fileReads() == 1);
     }
@@ -287,12 +290,14 @@ TEST_CASE ("the drag strip's drum option is kept in the person's settings file, 
         UserSettings again (file);
         CHECK (again.dragDrumsOnOneTrack());
         CHECK (again.contentFolder() == chosen);
+        CHECK (again.samplesFolder() == drags);
         CHECK (again.setDragDrumsOnOneTrack (false));
         CHECK_FALSE (again.dragDrumsOnOneTrack());
     }
-    CHECK (attributes() == std::pair { juce::String ("(none)"), chosen.getFullPathName() }); // gone, the folder kept
+    CHECK (attributes() == std::tuple { juce::String ("(none)"), chosen.getFullPathName(), drags.getFullPathName() }); // gone, the folders kept
     CHECK_FALSE (UserSettings (file).dragDrumsOnOneTrack());
     CHECK (UserSettings (file).contentFolder() == chosen);
+    CHECK (UserSettings (file).samplesFolder() == drags);
 
     // Only "1" lights it; any other value, or another root tag, reads as off.
     for (const auto* value : { "true", "0", "" })
@@ -307,11 +312,12 @@ TEST_CASE ("the drag strip's drum option is kept in the person's settings file, 
     CHECK (UserSettings (file).dragDrumsOnOneTrack());
 }
 
-TEST_CASE ("each setter of the settings file keeps whatever else the file holds", "[content][dragout]")
+TEST_CASE ("each setter of the settings file keeps whatever else the file holds", "[content][dragout][sounds]")
 {
     TempFolder temp;
     const auto file = (temp / "Wubansia Audio").getChildFile ("settings.xml");
     const auto chosen = temp / "My Samples";
+    const auto drags = temp / "My Drags";
 
     // Every setting this build writes: its attribute, its value when set, its setter, and what a new reader sees.
     struct Setting
@@ -324,6 +330,8 @@ TEST_CASE ("each setter of the settings file keeps whatever else the file holds"
     const std::vector<Setting> settings {
         { "content_folder", chosen.getFullPathName(), [&chosen] (UserSettings& s, bool on) { return s.setContentFolder (on ? chosen : juce::File()); },
             [&chosen] (const UserSettings& s) { return s.contentFolder() == chosen; } },
+        { "samples_folder", drags.getFullPathName(), [&drags] (UserSettings& s, bool on) { return s.setSamplesFolder (on ? drags : juce::File()); },
+            [&drags] (const UserSettings& s) { return s.samplesFolder() == drags; } },
         { "drag_drums_one_track", "1", [] (UserSettings& s, bool on) { return s.setDragDrumsOnOneTrack (on); },
             [] (const UserSettings& s) { return s.dragDrumsOnOneTrack(); } },
     };
@@ -377,13 +385,14 @@ TEST_CASE ("each setter of the settings file keeps whatever else the file holds"
     }
 }
 
-TEST_CASE ("a settings file that can't be written: the setters say so, and the choices hold until the process ends", "[content][dragout]")
+TEST_CASE ("a settings file that can't be written: the setters say so, and the choices hold until the process ends", "[content][dragout][sounds]")
 {
     TempFolder temp;
     const auto blocker = temp / "Wubansia Audio"; // a file where the settings file's folder should be
     REQUIRE (blocker.replaceWithText ("a file, not a folder"));
     const auto file = blocker.getChildFile ("settings.xml");
     const auto chosen = temp / "My Samples";
+    const auto drags = temp / "My Drags";
 
     UserSettings settings (file);
     CHECK_FALSE (settings.setDragDrumsOnOneTrack (true));
@@ -391,11 +400,18 @@ TEST_CASE ("a settings file that can't be written: the setters say so, and the c
     CHECK_FALSE (settings.setContentFolder (chosen));
     CHECK (settings.contentFolder() == chosen);
     CHECK (settings.dragDrumsOnOneTrack());
+    CHECK_FALSE (settings.setSamplesFolder (drags));
+    CHECK (settings.samplesFolder() == drags);
+    CHECK (settings.contentFolder() == chosen);
+    CHECK (settings.dragDrumsOnOneTrack());
 
     CHECK_FALSE (settings.setDragDrumsOnOneTrack (false));
     CHECK_FALSE (settings.dragDrumsOnOneTrack());
+    CHECK (settings.samplesFolder() == drags);
     CHECK_FALSE (settings.setContentFolder ({}));
     CHECK (settings.contentFolder() == juce::File());
+    CHECK_FALSE (settings.setSamplesFolder ({}));
+    CHECK (settings.samplesFolder() == juce::File());
 
     CHECK (blocker.loadFileAsString() == "a file, not a folder");
     CHECK_FALSE (file.exists());

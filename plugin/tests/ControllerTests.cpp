@@ -742,6 +742,58 @@ TEST_CASE ("setSamplesFolder is kept for the person, never in the project, and r
     plugin->removeListener (&host);
 }
 
+TEST_CASE ("the drum option and the samples folder share one settings file, a test processor's own, and keep each other", "[controller][dragout][sounds]")
+{
+    // A processor test's settings are a file of its own (test::SyntheticPlugin): the Controller keeps both of its
+    // settings there, so no test reads or writes the person's settings.xml for either, and neither setter drops the other.
+    SyntheticPlugin plugin (twoKits ("SET01", "SET02"));
+    auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+    TempFolder temp;
+    const auto file = plugin.settings->file();
+    const auto attribute = [&file] (const char* name)
+    {
+        const auto xml = juce::XmlDocument::parse (file);
+        REQUIRE (xml != nullptr);
+        return xml->hasAttribute (name) ? xml->getStringAttribute (name) : juce::String ("(none)");
+    };
+
+    // A samples folder in the test's own file is the Controller's. Required: otherwise the calls below would write the
+    // person's settings.xml.
+    const auto mine = temp.folder.getChildFile ("My Samples");
+    REQUIRE (plugin.settings->setSamplesFolder (mine));
+    REQUIRE (controller.samplesFolder().getFullPathName() == mine.getFullPathName());
+
+    controller.setDragDrumsOnOneTrack (true);
+    CHECK (attribute ("drag_drums_one_track") == "1");
+    CHECK (attribute ("samples_folder") == mine.getFullPathName());
+
+    const auto other = temp.folder.getChildFile ("Other Samples");
+    CHECK (controller.setSamplesFolder (other));
+    CHECK (attribute ("samples_folder") == other.getFullPathName());
+    CHECK (attribute ("drag_drums_one_track") == "1");
+
+    // Another instance on the same settings sees both, and so does a fresh reader of the file.
+    SyntheticPlugin second (twoKits ("SET01", "SET02"));
+    auto& secondController = static_cast<ControllerImpl&> (second->controller());
+    secondController.setUserSettingsForTesting (*plugin.settings);
+    CHECK (secondController.samplesFolder() == other);
+    CHECK (secondController.dragDrumsOnOneTrack());
+    CHECK (UserSettings (file).samplesFolder() == other);
+    CHECK (UserSettings (file).dragDrumsOnOneTrack());
+
+    // Each, cleared, removes its own attribute and nothing else.
+    controller.setDragDrumsOnOneTrack (false);
+    CHECK (attribute ("drag_drums_one_track") == "(none)");
+    CHECK (attribute ("samples_folder") == other.getFullPathName());
+    CHECK_FALSE (secondController.dragDrumsOnOneTrack());
+    controller.setDragDrumsOnOneTrack (true);
+    CHECK (controller.setSamplesFolder ({}));
+    CHECK (attribute ("samples_folder") == "(none)");
+    CHECK (attribute ("drag_drums_one_track") == "1");
+    CHECK (controller.samplesFolder() == sounds::defaultSamplesFolder());
+    CHECK (secondController.samplesFolder() == sounds::defaultSamplesFolder());
+}
+
 TEST_CASE ("the editor on the real processor: it opens, shows the kits, and closes", "[controller][editor]")
 {
     SyntheticPlugin plugin (twoKits ("EDT01", "EDT02"));
