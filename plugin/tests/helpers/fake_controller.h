@@ -303,7 +303,8 @@ namespace wubansia::test
             const auto file = folder.getChildFile (label + " - " + sound.kit + ".wav");
             if (! folder.createDirectory() || ! file.replaceWithData (wav, sizeof (wav)))
             {
-                result.problem = "can't write " + file.getFullPathName();
+                result.problem = "the samples folder can't be written to"; // as exportCopy says it, the path in the detail
+                result.detail = "can't write " + file.getFullPathName();
                 return result;
             }
             result.file = file;

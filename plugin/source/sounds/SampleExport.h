@@ -83,6 +83,17 @@ namespace wubansia::sounds
     // error, as it is, is the detail.
     ExportResult unreadableSource (const engine::KitInfo& kit, const engine::FileEntry& file, const std::string& error);
 
+    // How a copy failed at the samples folder (exportCopy ()): the kit's folder in it couldn't be made, the copy
+    // couldn't be written or moved into place, or every name up to " (999)" holds other bytes.
+    enum class FolderProblem : std::uint8_t { makeFolder, write, move, namesTaken };
+
+    // exportCopy ()'s refusal when the samples folder is why (sourceProblem false): the problem in a few words that never
+    // hold a path, so the drawer's line keeps its advice however deep the folder ("the samples folder can't be written
+    // to", "every name for it is taken in the samples folder"), and the disk's words, the path included, as the detail
+    // ("can't write /Users/.../FUT04 Furnace Code/Acid Line 1 Clean 4 Bars - FUT04 132 Em 9A.wav"). target is the
+    // folder it was making, or the file: for namesTaken, the plain name's.
+    ExportResult folderRefusal (FolderProblem problem, const juce::File& target);
+
     // What the Controller hands the editor for a copy: the result as it is.
     SoundExport soundExportOf (const ExportResult& result);
 }

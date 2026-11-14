@@ -579,7 +579,8 @@ TEST_CASE ("exportSound says whose fault a failed copy is, as exportCopy found i
         const auto refused = controller.exportSound ({ "SPF03", riser });
         INFO (refused.problem);
         CHECK (refused.file == juce::File());
-        CHECK (refused.problem.contains (blocker.getChildFile ("SPF03 Synthetic 03").getFullPathName()));
+        CHECK (refused.problem == "the samples folder can't be written to"); // no path: the drawer's line stays short
+        CHECK (refused.detail == "can't make the folder " + blocker.getChildFile ("SPF03 Synthetic 03").getFullPathName());
         CHECK_FALSE (refused.sourceProblem);
         CHECK_FALSE (refused.reinstall);
     }

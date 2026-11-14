@@ -1806,12 +1806,68 @@ TEST_CASE ("an export the kit's own file fails says what fixes the kit, not the 
         });
 }
 
+TEST_CASE ("an export the samples folder fails names no path: the line keeps Change..., the path is in the tooltip", "[editor][sounds]")
+{
+    Rig rig;
+    TempFolder samples;
+    rig.controller.samplesFolderChosen = samples.folder;
+    auto& c = rig.controller;
+
+    // exportCopy's refusals for a samples folder deep in the home folder, as the Controller hands them on.
+    const auto kitFolder = juce::File::getSpecialLocation (juce::File::userHomeDirectory)
+                               .getChildFile ("Music/Sample Libraries/Wubansia drags for the next album/FUT01 Alloy Signal");
+    const auto target = kitFolder.getChildFile ("Reverse Stab v2 - FUT01 134 F#m 11A.wav");
+    const auto refusal = [] (wubansia::sounds::FolderProblem problem, const juce::File& at)
+    { return wubansia::sounds::soundExportOf (wubansia::sounds::folderRefusal (problem, at)); };
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openDrawer (editor);
+            juce::StringArray said;
+            drawer.announce = [&said] (const juce::String& text) { said.add (text); };
+            Handoffs os;
+            os.hook (drawer);
+            auto& tile = get<editor::SoundDragTile> (editor, "sound_drag");
+
+            // The copy can't be written: the line says so in a few words and keeps Change...; the path it couldn't write
+            // is in the tooltip, and said.
+            const auto unwritten = refusal (wubansia::sounds::FolderProblem::write, target);
+            c.exportOutcome = [&unwritten] (const wubansia::SoundRef&) { return unwritten; };
+            drag (tile, 6.0f);
+            CHECK (os.dragged.isEmpty());
+            CHECK (tile.hasFailed());
+            const auto line = editor::utf8 ("Couldn't save Reverse Stab v2: the samples folder can't be written to. Choose another folder with Change\xe2\x80\xa6");
+            CHECK (drawer.statusText() == line);
+            const auto where = "Can't write " + target.getFullPathName() + ".";
+            CHECK (drawer.statusTooltip() == line + "\n" + where);
+            REQUIRE_FALSE (said.isEmpty());
+            CHECK (said[said.size() - 1] == line + " " + where);
+
+            // The kit's folder in it can't be made, or every name is taken: the same, in their own words.
+            const auto unmade = refusal (wubansia::sounds::FolderProblem::makeFolder, kitFolder);
+            c.exportOutcome = [&unmade] (const wubansia::SoundRef&) { return unmade; };
+            click (tile);
+            CHECK (drawer.statusText() == line);
+            CHECK (drawer.statusTooltip() == line + "\nCan't make the folder " + kitFolder.getFullPathName() + ".");
+
+            const auto taken = refusal (wubansia::sounds::FolderProblem::namesTaken, target);
+            c.exportOutcome = [&taken] (const wubansia::SoundRef&) { return taken; };
+            click (get<juce::Button> (editor, "sound_reveal"));
+            CHECK (os.revealed.isEmpty());
+            const auto takenLine = editor::utf8 ("Couldn't save Reverse Stab v2: every name for it is taken in the samples folder. Choose another folder with Change\xe2\x80\xa6");
+            CHECK (drawer.statusText() == takenLine);
+            CHECK (drawer.statusTooltip()
+                   == takenLine + "\nEvery name from Reverse Stab v2 - FUT01 134 F#m 11A.wav to its (999) is taken in " + kitFolder.getFullPathName() + ".");
+            CHECK (said[said.size() - 1] == drawer.statusTooltip().replace ("\n", " "));
+        });
+}
+
 TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for every file of the four kits", "[editor][sounds]")
 {
     // Every file of the four kits, refused as exportCopy refuses one that's gone from the default macOS content folder
-    // under a long user name: the drawer's line must show all of itself, the advice last, in the footer's font and in
-    // the status area the drawer lays out, beside the default samples folder and beside one long enough to take the
-    // folder text's full width.
+    // under a long user name, and as it refuses a copy, each way, that a samples folder deep in the home folder can't
+    // take: the drawer's line must show all of itself, the advice last, in the footer's font and in the status area the
+    // drawer lays out, beside the default samples folder and beside one long enough to take the folder text's full width.
     const wubansia::KitCatalog catalog (wubansia::EmbeddedContent::sources());
     const auto contentFolder = [] (const std::string& kit)
     {
@@ -1824,6 +1880,26 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
         const auto read = gone.readBytes (listed.path);
         REQUIRE_FALSE (read.ok());
         return wubansia::sounds::soundExportOf (wubansia::sounds::unreadableSource (entry.info, listed, read.error));
+    };
+
+    // The samples folder's refusals, every kind, for a copy into a folder deep in the home folder.
+    using wubansia::sounds::FolderProblem;
+    constexpr std::array<FolderProblem, 4> folderProblems { FolderProblem::makeFolder, FolderProblem::write, FolderProblem::move,
+        FolderProblem::namesTaken };
+    const auto deepSamples = juce::File::getSpecialLocation (juce::File::userHomeDirectory)
+                                 .getChildFile ("Music/Sample Libraries/Wubansia drags for the next album, kept here until it ships");
+    const auto unwritable = [&] (const wubansia::KitCatalog::Entry& entry, int file, FolderProblem problem)
+    {
+        const auto& listed = entry.manifest.files[(std::size_t) file];
+        const auto kitFolder = deepSamples.getChildFile (juce::String::fromUTF8 (wubansia::sounds::kitFolderName (entry.info).c_str()));
+        const auto target = kitFolder.getChildFile (juce::String::fromUTF8 (wubansia::sounds::exportName (entry.info, listed).c_str()));
+        return wubansia::sounds::soundExportOf (wubansia::sounds::folderRefusal (problem, problem == FolderProblem::makeFolder ? kitFolder : target));
+    };
+    const auto entryOf = [&] (const wubansia::SoundRef& ref) -> const wubansia::KitCatalog::Entry&
+    {
+        const auto* entry = catalog.find (ref.kit.toStdString());
+        REQUIRE (entry != nullptr);
+        return *entry;
     };
 
     Rig rig;
@@ -1840,12 +1916,6 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
         c.soundLists[entry.card.id] = entry.sounds;
     }
     c.contentStatus = c.kitCards.front().content;
-    c.exportOutcome = [&] (const wubansia::SoundRef& ref)
-    {
-        const auto* entry = catalog.find (ref.kit.toStdString());
-        REQUIRE (entry != nullptr);
-        return refused (*entry, ref.file);
-    };
 
     // The rail's categories in SoundCategory's order, as their buttons are named.
     constexpr std::array<const char*, wubansia::kSoundCategories> categoryIds { "accents", "fx", "vox", "synths", "bass", "drums", "loops" };
@@ -1870,66 +1940,99 @@ TEST_CASE ("a failed copy's line keeps what helps on the footer's two lines, for
                 INFO ("status area " << area.toString());
                 REQUIRE (area.getWidth() > 400);
 
-                juce::String widest;
-                float widestWidth = 0.0f;
-                std::tuple<juce::String, juce::String, int> widestSound;
+                // A line on the footer's two lines, word by word: what one line leaves for the next is never more than a
+                // word. And as drawFittedText lays it out here: nothing cut. Its width.
+                const auto fits = [&] (const juce::String& line)
+                {
+                    INFO (line);
+                    const auto width = juce::GlyphArrangement::getStringWidth (font, line);
+                    float longestWord = 0.0f;
+                    for (const auto& word : juce::StringArray::fromTokens (line, " ", ""))
+                        longestWord = juce::jmax (longestWord, juce::GlyphArrangement::getStringWidth (font, word + " "));
+                    CHECK (width + longestWord <= 2.0f * (float) area.getWidth());
+
+                    juce::GlyphArrangement drawn;
+                    drawn.addFittedText (font, line, (float) area.getX(), (float) area.getY(), (float) area.getWidth(), (float) area.getHeight(),
+                        juce::Justification::centredLeft, 2, 0.9f);
+                    bool cut = false;
+                    for (int g = 0; g < drawn.getNumGlyphs(); ++g)
+                        cut = cut || drawn.getGlyph (g).getGlyphIndex() == ellipsis;
+                    CHECK_FALSE (cut);
+                    return width;
+                };
+
+                // The widest line of each kind, and the sound and file that give it.
+                struct Widest
+                {
+                    juce::String line;
+                    float width = 0.0f;
+                    juce::String kit, name;
+                    int file = 0; // into the sound's files: the File box's item
+                };
+                const auto keep = [] (Widest& widest, const juce::String& line, float width, const juce::String& kit, const wubansia::SoundInfo& sound, int file)
+                {
+                    if (width > widest.width)
+                        widest = { line, width, kit, sound.name, file };
+                };
+                Widest copy;
+                std::array<Widest, folderProblems.size()> folder;
+
                 int lines = 0;
                 for (const auto& entry : catalog.entries())
                     for (const auto& sound : entry.sounds)
                         for (int i = 0; i < (int) sound.files.size(); ++i)
                         {
                             const auto& file = sound.files[(std::size_t) i];
-                            const auto line = editor::failedCopyLine (file.label, entry.card.id, refused (entry, file.file));
-                            INFO (line);
+                            const auto& kit = entry.card.id;
                             ++lines;
-                            CHECK (line.endsWith (". Check that " + entry.card.id + "'s samples are still installed."));
-                            CHECK_FALSE (line.contains ("missing:"));
-                            CHECK_FALSE (line.contains ("/Users/"));
 
-                            // Two lines, word by word: what one line leaves for the next is never more than a word.
-                            const auto width = juce::GlyphArrangement::getStringWidth (font, line);
-                            float longestWord = 0.0f;
-                            for (const auto& word : juce::StringArray::fromTokens (line, " ", ""))
-                                longestWord = juce::jmax (longestWord, juce::GlyphArrangement::getStringWidth (font, word + " "));
-                            CHECK (width + longestWord <= 2.0f * (float) area.getWidth());
+                            // The kit's own file is why: the kit's samples help, and no code or folder shows.
+                            const auto copyLine = editor::failedCopyLine (file.label, kit, refused (entry, file.file));
+                            CHECK (copyLine.endsWith (". Check that " + kit + "'s samples are still installed."));
+                            CHECK_FALSE (copyLine.contains ("missing:"));
+                            CHECK_FALSE (copyLine.contains ("/Users/"));
+                            keep (copy, copyLine, fits (copyLine), kit, sound, i);
 
-                            // And as drawFittedText lays it out here: nothing cut.
-                            juce::GlyphArrangement drawn;
-                            drawn.addFittedText (font, line, (float) area.getX(), (float) area.getY(), (float) area.getWidth(), (float) area.getHeight(),
-                                juce::Justification::centredLeft, 2, 0.9f);
-                            bool cut = false;
-                            for (int g = 0; g < drawn.getNumGlyphs(); ++g)
-                                cut = cut || drawn.getGlyph (g).getGlyphIndex() == ellipsis;
-                            CHECK_FALSE (cut);
-
-                            if (width > widestWidth)
+                            // The samples folder is why: another one helps, and no path shows.
+                            for (std::size_t k = 0; k < folderProblems.size(); ++k)
                             {
-                                widestWidth = width;
-                                widest = line;
-                                widestSound = { entry.card.id, sound.name, i };
+                                const auto folderLine = editor::failedCopyLine (file.label, kit, unwritable (entry, file.file, folderProblems[k]));
+                                CHECK (folderLine.endsWith (editor::utf8 (". Choose another folder with Change\xe2\x80\xa6")));
+                                CHECK_FALSE (folderLine.containsChar ('/'));
+                                keep (folder[k], folderLine, fits (folderLine), kit, sound, i);
                             }
                         }
                 CHECK (lines >= 618);
 
-                // The widest, through the drawer itself: its kit, its category, its row, its file, and a click on the tile.
-                const auto& [kit, name, fileIndex] = widestSound;
-                INFO ("widest: " << widest);
-                click (get<editor::KitChip> (editor, "samples_kit_" + kit));
-                const auto* entry = catalog.find (kit.toStdString());
-                REQUIRE (entry != nullptr);
-                const auto it = std::find_if (entry->sounds.begin(), entry->sounds.end(), [&] (const wubansia::SoundInfo& s) { return s.name == name; });
-                REQUIRE (it != entry->sounds.end());
-                click (get<editor::CategoryButton> (editor, "samples_category_" + juce::String (categoryIds[(std::size_t) it->category])));
-                editor.tick();
-                int row = -1;
-                for (int i = 0; i < drawer.numRows(); ++i)
-                    if (soundRow (editor, i).look().name == name)
-                        row = i;
-                REQUIRE (row >= 0);
-                press (soundRow (editor, row));
-                get<juce::ComboBox> (editor, "sound_file").setSelectedItemIndex (fileIndex, juce::sendNotificationSync);
-                click (get<editor::SoundDragTile> (editor, "sound_drag"));
-                CHECK (drawer.statusText() == widest);
+                // Each widest, through the drawer itself: its kit, its category, its row, its file, and a click on the tile.
+                const auto save = [&] (const Widest& widest)
+                {
+                    INFO ("widest: " << widest.line);
+                    click (get<editor::KitChip> (editor, "samples_kit_" + widest.kit));
+                    const auto* entry = catalog.find (widest.kit.toStdString());
+                    REQUIRE (entry != nullptr);
+                    const auto it = std::find_if (entry->sounds.begin(), entry->sounds.end(), [&] (const wubansia::SoundInfo& s) { return s.name == widest.name; });
+                    REQUIRE (it != entry->sounds.end());
+                    click (get<editor::CategoryButton> (editor, "samples_category_" + juce::String (categoryIds[(std::size_t) it->category])));
+                    editor.tick();
+                    int row = -1;
+                    for (int i = 0; i < drawer.numRows(); ++i)
+                        if (soundRow (editor, i).look().name == widest.name)
+                            row = i;
+                    REQUIRE (row >= 0);
+                    press (soundRow (editor, row));
+                    get<juce::ComboBox> (editor, "sound_file").setSelectedItemIndex (widest.file, juce::sendNotificationSync);
+                    click (get<editor::SoundDragTile> (editor, "sound_drag"));
+                    CHECK (drawer.statusText() == widest.line);
+                };
+                c.exportOutcome = [&] (const wubansia::SoundRef& ref) { return refused (entryOf (ref), ref.file); };
+                save (copy);
+                for (std::size_t k = 0; k < folderProblems.size(); ++k)
+                {
+                    const auto problem = folderProblems[k];
+                    c.exportOutcome = [&, problem] (const wubansia::SoundRef& ref) { return unwritable (entryOf (ref), ref.file, problem); };
+                    save (folder[k]);
+                }
                 CHECK (os.revealed.isEmpty());
             });
     }

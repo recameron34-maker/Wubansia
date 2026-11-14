@@ -440,7 +440,7 @@ TEST_CASE ("bytes that aren't the ones kit.json lists are refused, and nothing i
     }
 }
 
-TEST_CASE ("a folder that can't be written gives a problem naming it", "[sounds][export]")
+TEST_CASE ("a samples folder that can't be written: a short problem, the folder it couldn't make in the detail", "[sounds][export]")
 {
     TempFolder temp;
     test::SyntheticContent content;
@@ -451,13 +451,71 @@ TEST_CASE ("a folder that can't be written gives a problem naming it", "[sounds]
     CHECK (refused.file == juce::File());
     CHECK_FALSE (refused.sourceProblem); // the folder's: another one helps
     CHECK_FALSE (refused.reinstall);
-    INFO (refused.problem);
-    CHECK (text (refused.problem).contains (blocker.getChildFile ("SYN01 Synthetic Test Kit").getFullPathName()));
+
+    // No path in the problem, so the drawer's line keeps its advice however deep the folder; the disk's words, the
+    // folder it couldn't make included, are the detail: the line's tooltip and its announcement.
+    CHECK (refused.problem == "the samples folder can't be written to");
+    INFO (refused.detail);
+    CHECK (refused.detail == "can't make the folder " + blocker.getChildFile ("SYN01 Synthetic Test Kit").getFullPathName().toStdString());
     CHECK (blocker.loadFileAsString() == "a file, not a folder");
     CHECK (entriesIn (temp.folder) == 1);
 }
 
-TEST_CASE ("a read-only kit folder gives a problem naming it and leaves nothing in it", "[sounds][export]")
+TEST_CASE ("every name up to (999) holding other bytes: a short problem, the names and the folder in the detail, nothing written", "[sounds][export]")
+{
+    TempFolder temp;
+    test::SyntheticContent content;
+    const auto samples = temp / "Samples";
+    const auto kitFolder = samples.getChildFile ("SYN01 Synthetic Test Kit");
+    REQUIRE (kitFolder.createDirectory().wasOk());
+    REQUIRE (kitFolder.getChildFile ("Riser - SYN01 128 Gm 6A.wav").replaceWithText ("edited in a DAW"));
+    for (int k = 2; k <= 999; ++k)
+        REQUIRE (kitFolder.getChildFile ("Riser - SYN01 128 Gm 6A (" + juce::String (k) + ").wav").replaceWithText ("edited in a DAW"));
+
+    const auto refused = exportSyn (content, "FX/Riser.wav", samples);
+    CHECK (refused.file == juce::File());
+    CHECK_FALSE (refused.sourceProblem);
+    CHECK_FALSE (refused.reinstall);
+    CHECK (refused.problem == "every name for it is taken in the samples folder");
+    CHECK (refused.detail == "every name from Riser - SYN01 128 Gm 6A.wav to its (999) is taken in " + kitFolder.getFullPathName().toStdString());
+    CHECK (entriesIn (kitFolder) == 999); // nothing written, nothing touched
+    CHECK (kitFolder.getChildFile ("Riser - SYN01 128 Gm 6A (999).wav").loadFileAsString() == "edited in a DAW");
+}
+
+TEST_CASE ("the samples folder's refusals: a few words without a path, and the disk's words, the path included, as the detail", "[sounds][export]")
+{
+    // A samples folder deep in the home folder: the problem must not grow with it.
+    const auto kitFolder = juce::File::getSpecialLocation (juce::File::userHomeDirectory)
+                               .getChildFile ("Music/Sample Libraries/Wubansia drags for the next album/FUT04 Furnace Code");
+    const auto target = kitFolder.getChildFile ("Acid Line 1 Clean 4 Bars - FUT04 132 Em 9A.wav");
+    const auto folderPath = kitFolder.getFullPathName().toStdString();
+    const auto targetPath = target.getFullPathName().toStdString();
+    struct Case
+    {
+        sounds::FolderProblem problem;
+        juce::File at;
+        std::string words, detail;
+    };
+    const Case cases[] {
+        { sounds::FolderProblem::makeFolder, kitFolder, "the samples folder can't be written to", "can't make the folder " + folderPath },
+        { sounds::FolderProblem::write, target, "the samples folder can't be written to", "can't write " + targetPath },
+        { sounds::FolderProblem::move, target, "the samples folder can't be written to", "can't move the copy into place as " + targetPath },
+        { sounds::FolderProblem::namesTaken, target, "every name for it is taken in the samples folder",
+            "every name from Acid Line 1 Clean 4 Bars - FUT04 132 Em 9A.wav to its (999) is taken in " + folderPath },
+    };
+    for (const auto& c : cases)
+    {
+        const auto refused = sounds::folderRefusal (c.problem, c.at);
+        CAPTURE (refused.problem, refused.detail);
+        CHECK (refused.problem == c.words);
+        CHECK (refused.detail == c.detail);
+        CHECK (refused.file == juce::File());
+        CHECK_FALSE (refused.sourceProblem);
+        CHECK_FALSE (refused.reinstall);
+    }
+}
+
+TEST_CASE ("a read-only kit folder gives a short problem, the file it couldn't write in the detail, and leaves nothing in it", "[sounds][export]")
 {
 #if JUCE_WINDOWS
     SKIP ("POSIX permissions only");
@@ -475,8 +533,9 @@ TEST_CASE ("a read-only kit folder gives a problem naming it and leaves nothing 
     chmod (kitFolder.getFullPathName().toRawUTF8(), 0755);
 
     CHECK (refused.file == juce::File());
-    INFO (refused.problem);
-    CHECK (text (refused.problem).contains (kitFolder.getFullPathName()));
+    CHECK (refused.problem == "the samples folder can't be written to");
+    INFO (refused.detail);
+    CHECK (refused.detail == "can't write " + kitFolder.getChildFile ("Riser - SYN01 128 Gm 6A.wav").getFullPathName().toStdString());
     CHECK (entriesIn (kitFolder) == 0); // no temporary file left behind
 #endif
 }
@@ -544,7 +603,8 @@ TEST_CASE ("a write that fails part-way leaves nothing under the export name; th
     REQUIRE (capped);
     CHECK (refused.file == juce::File());
     CHECK_FALSE (refused.sourceProblem);
-    CHECK (text (refused.problem).contains (target.getFullPathName()));
+    CHECK (refused.problem == "the samples folder can't be written to");
+    CHECK (refused.detail == "can't write " + target.getFullPathName().toStdString());
     CHECK_FALSE (target.exists());
     CHECK (entriesIn (kitFolder) == 0); // no hidden temporary file left behind
 

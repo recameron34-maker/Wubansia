@@ -6,6 +6,7 @@
 #include "util/sha256.h"
 
 #include <algorithm>
+#include <optional>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -68,9 +69,9 @@ namespace wubansia::sounds
         }
 
         // bytes as target, which doesn't exist yet: a hidden temporary file beside it, written whole and checked,
-        // then renamed into place, so target is never a part-written file. Why not, or "".
+        // then renamed into place, so target is never a part-written file. Why not, or nothing.
         // (File::replaceWithData () would rename a temporary file whose write failed half way.)
-        std::string writeNew (const juce::File& target, const std::vector<std::uint8_t>& bytes)
+        std::optional<FolderProblem> writeNew (const juce::File& target, const std::vector<std::uint8_t>& bytes)
         {
             const juce::TemporaryFile temp (target, juce::TemporaryFile::useHiddenFile);
             bool written = false;
@@ -80,10 +81,10 @@ namespace wubansia::sounds
                 written = out.openedOk() && out.write (bytes.data(), bytes.size());
             }
             if (! written || temp.getFile().getSize() != static_cast<juce::int64> (bytes.size()))
-                return "can't write " + target.getFullPathName().toStdString();
+                return FolderProblem::write;
             if (! temp.overwriteTargetFileWithTemporary())
-                return "can't move the copy into place as " + target.getFullPathName().toStdString();
-            return {};
+                return FolderProblem::move;
+            return std::nullopt;
         }
     }
 
@@ -147,6 +148,21 @@ namespace wubansia::sounds
         return result;
     }
 
+    ExportResult folderRefusal (FolderProblem problem, const juce::File& target)
+    {
+        // Not yet the short words: as exportCopy has said so far, the path in the problem.
+        const auto path = target.getFullPathName().toStdString();
+        switch (problem)
+        {
+            case FolderProblem::makeFolder: return refused ("can't make the folder " + path);
+            case FolderProblem::write: return refused ("can't write " + path);
+            case FolderProblem::move: return refused ("can't move the copy into place as " + path);
+            case FolderProblem::namesTaken: break;
+        }
+        return refused ("every name from " + target.getFileName().toStdString() + " to its (" + std::to_string (kMaxCopies) + ") is taken in "
+                        + target.getParentDirectory().getFullPathName().toStdString());
+    }
+
     SoundExport soundExportOf (const ExportResult& result)
     {
         SoundExport copy;
@@ -184,16 +200,15 @@ namespace wubansia::sounds
             if (! target.exists() && ! target.isSymbolicLink())
             {
                 if (folder.createDirectory().failed())
-                    return refused ("can't make the folder " + folder.getFullPathName().toStdString());
-                if (auto problem = writeNew (target, bytes.value); ! problem.empty())
-                    return refused (std::move (problem));
+                    return folderRefusal (FolderProblem::makeFolder, folder);
+                if (const auto problem = writeNew (target, bytes.value))
+                    return folderRefusal (*problem, target);
                 return copied (target);
             }
             if (holds (target, bytes.value))
                 return copied (target); // the copy is there already: nothing is written
             // Another file holds the name (a copy edited in a DAW, say): it is never touched; the next name.
         }
-        return refused ("every name from " + name.toStdString() + " to its (" + std::to_string (kMaxCopies) + ") is taken in "
-                        + folder.getFullPathName().toStdString());
+        return folderRefusal (FolderProblem::namesTaken, folder.getChildFile (name));
     }
 }
