@@ -28,6 +28,10 @@
 #include <utility>
 #include <vector>
 
+#if JUCE_LINUX
+    #include <unistd.h>
+#endif
+
 using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::EndsWith;
 using Catch::Matchers::StartsWith;
@@ -1004,6 +1008,30 @@ TEST_CASE ("an OS drag hands over a percent-encoded file URL on Linux, and the p
     }
 }
 
+#if JUCE_LINUX
+namespace
+{
+    // This process's child processes, from /proc: "<pid> <state> <name>" each, the state Z for one that has ended and
+    // that nobody has waited for (a zombie, kept in the process table until its parent waits or quits).
+    juce::StringArray childProcesses()
+    {
+        juce::StringArray children;
+        const auto self = juce::String (static_cast<int> (getpid()));
+        for (const auto& entry : juce::File ("/proc").findChildFiles (juce::File::findDirectories, false))
+        {
+            if (! entry.getFileName().containsOnly ("0123456789"))
+                continue;
+            const auto stat = entry.getChildFile ("stat").loadFileAsString(); // "<pid> (<name>) <state> <ppid> ..."
+            const auto name = stat.fromFirstOccurrenceOf ("(", false, false).upToLastOccurrenceOf (")", false, false);
+            const auto fields = juce::StringArray::fromTokens (stat.fromLastOccurrenceOf (")", false, false).trim(), " ", "");
+            if (fields.size() >= 2 && fields[1] == self)
+                children.add (entry.getFileName() + " " + fields[0] + " " + name);
+        }
+        return children;
+    }
+}
+#endif
+
 TEST_CASE ("revealing a file on Linux opens its folder with xdg-open, the path as one argument and no shell", "[dragout]")
 {
 #if ! (JUCE_LINUX || JUCE_BSD)
@@ -1055,5 +1083,19 @@ TEST_CASE ("revealing a file on Linux opens its folder with xdg-open, the path a
     CHECK (lines == juce::StringArray { "1", kitFolder.getFullPathName() }); // one argument: the folder, exactly
     CHECK_FALSE (work.getChildFile ("INJECTED").exists());
     CHECK_FALSE (work.getChildFile ("INJECTED2").exists());
+
+   #if JUCE_LINUX
+    // The opener has written its log and ends now. Nothing of it stays this process's child: in a host, a child nobody
+    // waits for stays in the process table as a zombie until the host quits (or until something reaps it).
+    auto children = childProcesses();
+    const auto until = juce::Time::getMillisecondCounter() + 2000;
+    while (! children.isEmpty() && juce::Time::getMillisecondCounter() < until)
+    {
+        juce::Thread::sleep (10);
+        children = childProcesses();
+    }
+    CAPTURE (children.joinIntoString (", ").toStdString());
+    CHECK (children.isEmpty());
+   #endif
 #endif
 }
