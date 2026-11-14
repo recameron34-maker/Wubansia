@@ -125,6 +125,7 @@ namespace wubansia::dragout
     // Shows file in the system's file browser: the Samples drawer's tile and Show in Finder, and a MIDI chip's click.
     // On Linux and the BSDs it opens the file's folder with xdg-open, the folder as its one argument and no shell
     // between: File::revealToUser () there runs the path through /bin/sh in double quotes, where $, ` and " in a
-    // folder's name act. Elsewhere it is File::revealToUser (). Message thread.
+    // folder's name act. xdg-open is started by a middle child that exits at once, so it never stays the host's child
+    // (a zombie once it ends) and nothing is kept between calls. Elsewhere it is File::revealToUser (). Message thread.
     void revealToUser (const juce::File& file);
 }

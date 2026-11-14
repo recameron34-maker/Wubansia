@@ -7,8 +7,14 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
-#include <memory>
 #include <utility>
+
+#if JUCE_LINUX || JUCE_BSD
+    #include <cerrno>
+    #include <fcntl.h>
+    #include <sys/wait.h>
+    #include <unistd.h>
+#endif
 
 namespace wubansia::dragout
 {
@@ -374,15 +380,41 @@ namespace wubansia::dragout
     void revealToUser (const juce::File& file)
     {
 #if JUCE_LINUX || JUCE_BSD
-        // xdg-open with the folder as its one argument: no shell, so nothing in the name acts. Its output goes to
-        // /dev/null (stream flags 0), so it can't die writing to a pipe nobody reads. Each opener is kept until it
-        // ends, then reaped by isRunning (), so none lingers as a zombie; all of this on the message thread.
-        static std::vector<std::unique_ptr<juce::ChildProcess>> openers;
-        openers.erase (std::remove_if (openers.begin(), openers.end(), [] (const auto& opener) { return ! opener->isRunning(); }), openers.end());
+        // xdg-open with the folder as its one argument: no shell, so nothing in the name acts. It is started by a
+        // middle child that only starts it, in a session of its own (as JUCE's Process::openDocument does), and exits:
+        // this waits for that child alone, a moment, and init reaps xdg-open when it ends. So no opener stays the
+        // host's child (a zombie until the host quits) and no process object outlives the call (a static one would
+        // set off JUCE's leak detector at a Debug build's exit). The arguments are made before the fork; the children
+        // call only what is safe after a fork in a process with threads, and never exit (), which would run the
+        // host's atexit handlers and static destructors in them. xdg-open's input and output are /dev/null.
         const auto folder = file.isDirectory() ? file : file.getParentDirectory();
-        auto opener = std::make_unique<juce::ChildProcess>();
-        if (opener->start (juce::StringArray { "xdg-open", folder.getFullPathName() }, 0))
-            openers.push_back (std::move (opener));
+        const auto path = folder.getFullPathName().toStdString();
+        char program[] = "xdg-open";
+        char* const argv[] { program, const_cast<char*> (path.c_str()), nullptr };
+
+        const pid_t middle = fork();
+        if (middle == 0)
+        {
+            setsid();
+            if (fork() == 0)
+            {
+                if (const int devNull = open ("/dev/null", O_RDWR); devNull >= 0)
+                {
+                    dup2 (devNull, STDIN_FILENO);
+                    dup2 (devNull, STDOUT_FILENO);
+                    dup2 (devNull, STDERR_FILENO);
+                    if (devNull > STDERR_FILENO)
+                        close (devNull);
+                }
+                execvp (argv[0], argv);
+                _exit (127);
+            }
+            _exit (0);
+        }
+        if (middle > 0)
+            while (waitpid (middle, nullptr, 0) < 0 && errno == EINTR)
+            {
+            }
 #else
         file.revealToUser();
 #endif
