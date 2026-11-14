@@ -1355,6 +1355,26 @@ namespace
         return children;
     }
 
+    // The PIDs of childProcesses ()'s entries: the first word of each.
+    juce::StringArray pidsOf (const juce::StringArray& children)
+    {
+        juce::StringArray pids;
+        for (const auto& child : children)
+            pids.add (child.upToFirstOccurrenceOf (" ", false, false));
+        return pids;
+    }
+
+    // This process's children whose PIDs aren't among before's (pidsOf ()): the ones that came since. By PID, not the
+    // whole entry: a child that was running then shows as S before and as Z once it ends.
+    juce::StringArray childProcessesSince (const juce::StringArray& before)
+    {
+        juce::StringArray since;
+        for (const auto& child : childProcesses())
+            if (! before.contains (child.upToFirstOccurrenceOf (" ", false, false)))
+                since.add (child);
+        return since;
+    }
+
     // Waits up to 2 s for /proc to show pid as this process's zombie: it has ended and nobody has waited for it.
     bool showsAsZombie (pid_t pid)
     {
@@ -1505,6 +1525,7 @@ TEST_CASE ("revealing a file on Linux opens its folder with xdg-open, the path a
     zombie.end();
     REQUIRE (showsAsZombie (zombie.pid));
     LeftChild ending;
+    const auto before = pidsOf (childProcesses()); // none of them is the opener
    #endif
     CHECK (stub.reveal (dragout::revealToUser) == juce::StringArray { "1", stub.kitFolder.getFullPathName() }); // the folder, exactly
     CHECK_FALSE (stub.injected());
@@ -1513,17 +1534,17 @@ TEST_CASE ("revealing a file on Linux opens its folder with xdg-open, the path a
     ending.end();
     REQUIRE (showsAsZombie (ending.pid));
 
-    // The opener has written its log and ends now. Nothing of it stays this process's child: in a host, a child nobody
-    // waits for stays in the process table as a zombie until the host quits (or until something reaps it).
-    auto children = childProcesses();
+    // The opener has written its log and ends now. Nothing the reveal started stays this process's child: in a host, a
+    // child nobody waits for stays in the process table as a zombie until the host quits (or until something reaps it).
+    auto added = childProcessesSince (before);
     const auto until = juce::Time::getMillisecondCounter() + 2000;
-    while (! children.isEmpty() && juce::Time::getMillisecondCounter() < until)
+    while (! added.isEmpty() && juce::Time::getMillisecondCounter() < until)
     {
         juce::Thread::sleep (10);
-        children = childProcesses();
+        added = childProcessesSince (before);
     }
-    CAPTURE (children.joinIntoString (", ").toStdString());
-    CHECK (children.isEmpty());
+    CAPTURE (added.joinIntoString (", ").toStdString());
+    CHECK (added.isEmpty());
    #endif
 #endif
 }
