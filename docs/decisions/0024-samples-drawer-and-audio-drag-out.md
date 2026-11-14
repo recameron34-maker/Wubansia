@@ -1,6 +1,6 @@
 # 0024. The Samples drawer: browse, hear and drag every kit's sounds (v0.2)
 
-**Status:** Accepted (2026-11-12). The user asked for the feature and took the spec's three defaults, which they can still change before v0.2 ships:
+**Status:** Proposed (2026-11-12). The user asked for the feature on 2026-11-11: "make sure I can pull specific samples out of the DAW plug-in too. I also want to be able to select sounds from the plug-in; like cool accent synths or flair and drop them into my DAW". The spec's three defaults were announced to the user, who can change any of them, and await their OK; the build follows them meanwhile, and they can still change before v0.2 ships:
 - **dry samples now**: the drawer hears and drags each file exactly as installed; renders "as heard in the kit" (Space, Echo, the kit's level) come with M6's audio export;
 - **the kit's own note spelling** in file names: middle C is C4, so `Chrome Pluck F#4 v2` is the note Live and Logic call F#3 (the File box's tooltip says so). Names freeze once v0.2 ships, so this one can change only until then;
 - **the header's Samples button opens the drawer**: the install panel moves behind the drawer's "Content…" button, and still opens by itself when the current kit's samples are missing.
