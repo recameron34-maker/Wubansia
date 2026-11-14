@@ -52,7 +52,7 @@ namespace wubansia
                 return 0;
             ticket = ++latest; // 4 billion requests before it wraps
             queued = Job { ticket, std::move (request) };
-            problem = {};
+            failure = {};
             hostSilent = false;
             if (! thread.joinable())
             {
@@ -69,12 +69,14 @@ namespace wubansia
         stopAll (nullptr);
     }
 
-    void SoundService::refuse (const juce::String& why)
+    void SoundService::refuse (const juce::String& problem)
     {
-        stopAll (&why);
+        Failure turnedDown; // its own words only: no detail, and not the kit's file's fault
+        turnedDown.problem = problem;
+        stopAll (&turnedDown);
     }
 
-    void SoundService::stopAll (const juce::String* why)
+    void SoundService::stopAll (const Failure* why)
     {
         std::uint32_t upTo = 0;
         {
@@ -84,7 +86,7 @@ namespace wubansia
             queued.reset();
             if (why != nullptr)
             {
-                problem = *why;
+                failure = *why;
                 hostSilent = false;
             }
             checkWanted = thread.joinable(); // the thread withdraws an offer no block has taken yet
@@ -99,7 +101,10 @@ namespace wubansia
         const std::lock_guard lock (mutex);
         s.latest = latest;
         s.hostSilent = hostSilent;
-        s.problem = problem;
+        s.problem = failure.problem;
+        s.detail = failure.detail;
+        s.sourceProblem = failure.sourceProblem;
+        s.reinstall = failure.reinstall;
         const auto playing = player.sounding();
         s.sounding = playing > stoppedUpTo ? playing : 0; // a stopped ticket only fades out
         const bool live = latest != 0 && latest > stoppedUpTo && ! hostSilent;
@@ -165,7 +170,13 @@ namespace wubansia
     void SoundService::work (const Job& job)
     {
         const auto& file = job.request.file;
-        const auto name = fileNameOf (file.path);
+        engine::KitInfo kit; // for the words: the kit and its content version
+        kit.id = job.request.kit.toStdString();
+        kit.contentVersion = job.request.contentVersion;
+
+        // The kit's own file is why: said as a copy of it is refused (SampleExport.h), the reader's words the detail.
+        const auto refused = [this, &job] (const sounds::ExportResult& why)
+        { fail (job, { text (why.problem), text (why.detail), why.sourceProblem, why.reinstall }); };
 
         // 1. The bytes, as installed.
         auto bytes = content.readFile (job.request.found, file.path);
@@ -173,17 +184,14 @@ namespace wubansia
             return;
         if (! bytes.ok())
         {
-            fail (job, name + " can't be read: " + bytes.error);
+            refused (sounds::unreadableSource (kit, file, bytes.error));
             return;
         }
 
         // 2. Exactly the file kit.json lists: its size, then its SHA-256.
-        engine::KitInfo kit;
-        kit.id = job.request.kit.toStdString();
-        kit.contentVersion = job.request.contentVersion;
         if (! sounds::matchesListing (bytes.value, file))
         {
-            fail (job, sounds::listingProblem (kit, file));
+            refused (sounds::mismatchedSource (kit, file));
             return;
         }
 
@@ -192,24 +200,26 @@ namespace wubansia
         std::vector<std::uint8_t>().swap (bytes.value);
         if (! decoded.ok())
         {
-            fail (job, name + " can't be read: " + decoded.error);
+            refused (sounds::unreadableSource (kit, file, decoded.error));
             return;
         }
         if (decoded.value.frames != file.frames || decoded.value.channels != file.channels)
         {
-            fail (job, sounds::listingProblem (kit, file));
+            refused (sounds::mismatchedSource (kit, file));
             return;
         }
         if (superseded (job.ticket))
             return;
 
-        // 4. The clip, for the rate the player plays at (48 kHz before the first prepare).
+        // 4. The clip, for the rate the player plays at (48 kHz before the first prepare). The file is fine.
         const double prepared = player.rate();
         const double rate = prepared > 0.0 ? prepared : static_cast<double> (engine::kContentSampleRate);
         auto clip = engine::makeAuditionClip (decoded.value, rate, job.ticket);
         if (clip == nullptr)
         {
-            fail (job, name + " can't be played at " + std::to_string (static_cast<long long> (rate)) + " Hz");
+            Failure unplayable;
+            unplayable.problem = text (fileNameOf (file.path) + " can't be played at " + std::to_string (static_cast<long long> (rate)) + " Hz");
+            fail (job, unplayable);
             return;
         }
         made.fetch_add (1, std::memory_order_acq_rel);
@@ -218,13 +228,13 @@ namespace wubansia
         offer (job, std::move (clip));
     }
 
-    void SoundService::fail (const Job& job, const std::string& why)
+    void SoundService::fail (const Job& job, const Failure& why)
     {
         {
             const std::lock_guard lock (mutex);
             if (quit || job.ticket != latest || job.ticket <= stoppedUpTo)
                 return; // replaced or stopped meanwhile: the newer request reports
-            problem = text (why);
+            failure = why;
             stoppedUpTo = job.ticket;
         }
         player.stopUpTo (job.ticket); // what played before stops, as this sound would have replaced it

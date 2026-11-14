@@ -11,7 +11,10 @@
 // 3. decodes them (engine::readWav) and checks the frames and channels;
 // 4. makes the clip at the player's rate, 48 kHz before the first prepare (engine::makeAuditionClip);
 // 5. offers it to the player, unless a newer request or a stop came in meanwhile: then it deletes it.
-// A request that fails stops what plays and says why (status ().problem), as a new sound would have replaced it.
+// A request that fails stops what plays and says why, as a new sound would have replaced it. When the kit's own file is
+// why, status () says it as a copy of that file is refused (sounds::unreadableSource, sounds::mismatchedSource): the
+// file named in the kit, never by its folder, in problem, and the reader's own words, folder and code included, in
+// detail.
 //
 // While the player holds clips of its (every 50 ms, and whenever woken) the thread deletes the clips the player let go,
 // and withdraws an offer that is stopped, replaced by a newer request, or that no block took within 300 ms: a host that
@@ -76,7 +79,8 @@ namespace wubansia
         void stop();
 
         // Message thread: a request turned down before it got a ticket (the kit's samples aren't there, say). What plays
-        // stops, as the request would have replaced it, and status ().problem says why.
+        // stops, as the request would have replaced it, and status ().problem says why, in its own words: nothing else of
+        // a failure before it stays.
         void refuse (const juce::String& problem);
 
         AuditionState status() const; // any thread but the audio thread
@@ -107,17 +111,24 @@ namespace wubansia
             Request request;
         };
 
+        // Why a request can't play, as status () reports it (AuditionState's problem, detail, sourceProblem, reinstall).
+        struct Failure
+        {
+            juce::String problem, detail;
+            bool sourceProblem = false, reinstall = false;
+        };
+
         void run();
         void work (const Job& job);
         bool superseded (std::uint32_t ticket) const;
-        void fail (const Job& job, const std::string& problem);
+        void fail (const Job& job, const Failure& why);
         void offer (const Job& job, std::unique_ptr<engine::AuditionClip> clip);
         void checkOffer();
         void checkHeld(); // clips a block took, and no block for kUntakenLimit: given up
         void drain();
         void back (const engine::AuditionClip* clip); // a clip the player handed back: deleted
         void discard (std::unique_ptr<engine::AuditionClip> clip); // one it never had: deleted
-        void stopAll (const juce::String* problem);
+        void stopAll (const Failure* why);
 
         ContentSourceFactory& content;
         engine::AuditionPlayer& player;
@@ -132,7 +143,7 @@ namespace wubansia
         std::uint32_t offeredTicket = 0; // the ticket of the clip offered last, until the audio thread takes it or it's withdrawn
         Clock::time_point offeredAt {};
         bool hostSilent = false;
-        juce::String problem;
+        Failure failure; // why latest (or a request turned down) can't play; empty while it can
         bool checkWanted = false; // stop () asks the thread to withdraw a stopped offer
         bool quit = false;
         std::thread thread;

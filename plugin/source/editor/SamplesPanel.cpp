@@ -203,10 +203,13 @@ namespace wubansia::editor
         return "Couldn't save " + label + ": " + problem + "." + advice;
     }
 
-    juce::String failedPlayLine (const juce::String& label, const juce::String&, const AuditionState& audition)
+    juce::String failedPlayLine (const juce::String& label, const juce::String& kit, const AuditionState& audition)
     {
-        // Not yet as a failed copy's: the problem as it comes.
-        return "Couldn't play " + label + ": " + audition.problem;
+        // As failedCopyLine: what helps comes from the state, never from its words. An audition plays from the kit's
+        // folder, so there's no samples folder to change.
+        const auto problem = withoutFullStop (withoutCode (audition.problem));
+        const auto advice = audition.sourceProblem && ! audition.reinstall ? " Check that " + kit + "'s samples are still installed." : juce::String();
+        return "Couldn't play " + label + ": " + problem + "." + advice;
     }
 
     void announceToScreenReader (const juce::String& text)
@@ -742,7 +745,7 @@ namespace wubansia::editor
         spokenStatus.clear(); // said afresh once the drawer shows
         spokenBanner.clear();
         message = {};
-        refusal.clear();
+        refused = {};
         auditionDismissed = true; // closing stopped what played; its words go too
         exported = juce::File();
         refreshChips();
@@ -986,7 +989,7 @@ namespace wubansia::editor
             return;
 
         message = {};
-        refusal.clear();
+        refused = {};
         auditionDismissed = false;
         auditionKit = browsed;
         auditionSound = sound->id;
@@ -994,7 +997,11 @@ namespace wubansia::editor
         ticket = controller.audition (refOf (*sound));
         audition = controller.auditionState();
         if (ticket == 0)
-            refusal = audition.problem.isNotEmpty() ? audition.problem : juce::String ("it can't play now");
+        {
+            refused = audition;
+            if (refused.problem.isEmpty())
+                refused.problem = "it can't play now";
+        }
         refresh();
     }
 
@@ -1112,13 +1119,22 @@ namespace wubansia::editor
         return ticket != 0 && (audition.sounding == ticket || (audition.waiting && audition.latest == ticket));
     }
 
-    juce::String SamplesPanel::auditionMessage() const
+    const AuditionState* SamplesPanel::playFailure() const
     {
         if (auditionDismissed)
-            return {};
-        if (refusal.isNotEmpty())
-            return "Couldn't play " + auditionLabel + ": " + refusal;
-        if (ticket == 0 || audition.latest != ticket)
+            return nullptr;
+        if (refused.problem.isNotEmpty())
+            return &refused;
+        const auto failed = ticket != 0 && audition.latest == ticket && ! audition.hostSilent && audition.problem.isNotEmpty() && ! audition.waiting
+                            && audition.sounding != ticket;
+        return failed ? &audition : nullptr;
+    }
+
+    juce::String SamplesPanel::auditionMessage() const
+    {
+        if (const auto* failed = playFailure())
+            return failedPlayLine (auditionLabel, auditionKit, *failed);
+        if (auditionDismissed || ticket == 0 || audition.latest != ticket)
             return {};
         if (audition.hostSilent && standalone) // JUCE's standalone window: its Options button and menu item
             return "No sound: the app's audio output isn't running. Choose one in Options > Audio/MIDI Settings...";
@@ -1126,8 +1142,6 @@ namespace wubansia::editor
             return "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed. Select this track, or press Play.";
         if (audition.hostSilent) // any other host: Live with its audio engine off, a deactivated track, a frozen one...
             return "No sound from your DAW: it isn't running Wubansia's audio right now. Check that its audio engine is on and this track is active.";
-        if (audition.problem.isNotEmpty() && ! audition.waiting && audition.sounding != ticket)
-            return "Couldn't play " + auditionLabel + ": " + audition.problem;
         return {};
     }
 
@@ -1143,7 +1157,12 @@ namespace wubansia::editor
 
     juce::String SamplesPanel::statusDetail() const
     {
-        return kitMessage().isEmpty() && message.text.isNotEmpty() ? message.detail : juce::String();
+        if (kitMessage().isNotEmpty())
+            return {};
+        if (message.text.isNotEmpty())
+            return message.detail;
+        const auto* failed = playFailure(); // the status line shows the audition's words
+        return failed != nullptr && failed->detail.isNotEmpty() ? sentence (withoutCode (failed->detail)) : juce::String();
     }
 
     juce::String SamplesPanel::statusTooltip() const
@@ -1173,7 +1192,7 @@ namespace wubansia::editor
             return colours::busy;
         if (message.text.isNotEmpty())
             return message.tone;
-        return audition.hostSilent && refusal.isEmpty() ? colours::busy : colours::warning;
+        return audition.hostSilent && refused.problem.isEmpty() ? colours::busy : colours::warning;
     }
 
     void SamplesPanel::setMessage (const juce::String& text, juce::Colour tone, int forMs, const juce::String& detail)
@@ -1383,7 +1402,7 @@ namespace wubansia::editor
             rowLook.playing = isLast && audition.sounding == ticket;
             rowLook.waiting = isLast && ! rowLook.playing && audition.waiting && audition.latest == ticket;
             rowLook.failed = sound.id == auditionSound && browsed == auditionKit && ! auditionDismissed
-                          && (refusal.isNotEmpty() || (isLast && audition.latest == ticket && audition.problem.isNotEmpty() && ! audition.waiting && ! rowLook.playing));
+                          && (refused.problem.isNotEmpty() || (isLast && audition.latest == ticket && audition.problem.isNotEmpty() && ! audition.waiting && ! rowLook.playing));
             rowLook.dimmed = ! ready;
             rows[i]->show (rowLook);
         }

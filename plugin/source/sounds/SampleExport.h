@@ -83,6 +83,10 @@ namespace wubansia::sounds
     // error, as it is, is the detail.
     ExportResult unreadableSource (const engine::KitInfo& kit, const engine::FileEntry& file, const std::string& error);
 
+    // exportCopy ()'s refusal when the installed file isn't the one kit.json lists: listingProblem ()'s words, which say
+    // to reinstall the kit, with sourceProblem and reinstall set. The sound thread refuses an audition in the same words.
+    ExportResult mismatchedSource (const engine::KitInfo& kit, const engine::FileEntry& file);
+
     // How a copy failed at the samples folder (exportCopy ()): the kit's folder in it couldn't be made, the copy
     // couldn't be written or moved into place, or every name up to " (999)" holds other bytes.
     enum class FolderProblem : std::uint8_t { makeFolder, write, move, namesTaken };

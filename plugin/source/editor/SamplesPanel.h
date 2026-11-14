@@ -46,9 +46,10 @@ namespace wubansia::editor
     juce::String failedCopyLine (const juce::String& label, const juce::String& kit, const SoundExport& copy);
 
     // The status line for an audition that failed (auditionState ()'s problem, or a request turned down), as a failed
-    // copy's: "Couldn't play Rave Stab v2: <problem>." and, when the kit's own file is why, a check that the kit's samples
-    // are still installed, unless the problem already says to reinstall the kit. Never Change...: the samples folder
-    // has nothing to do with an audition. No check's code and no folder (audition.detail has those).
+    // copy's: "Couldn't play Rave Stab v2: <problem>." and, when the kit's own file is why (audition.sourceProblem), a
+    // check that the kit's samples are still installed, unless the problem already says to reinstall the kit
+    // (audition.reinstall). Never Change...: the samples folder has nothing to do with an audition. No check's code and
+    // no folder (audition.detail has those): it fits the footer's two lines.
     juce::String failedPlayLine (const juce::String& label, const juce::String& kit, const AuditionState& audition);
 
     // The drawer's default announce: text as an AccessibilityHandler announcement, at medium priority, for screen readers.
@@ -214,7 +215,7 @@ namespace wubansia::editor
         int numRows() const noexcept { return rows.size(); }
         int selectedRow() const noexcept { return selected; }
         juce::String statusText() const;
-        juce::String statusTooltip() const; // the status line, then what it leaves out: where a file was looked for
+        juce::String statusTooltip() const; // the status line, then what it leaves out: the reader's or the disk's words, path and all
         juce::Rectangle<int> statusBounds() const noexcept { return statusArea; } // where paint () draws the status line
         juce::String bannerText() const;
         juce::String folderText() const; // "Drags save to ~/Music/Wubansia/Samples"
@@ -282,11 +283,12 @@ namespace wubansia::editor
 
         // What it shows.
         bool auditioning() const; // the last audition plays, or waits for the host
+        const AuditionState* playFailure() const; // what the status line says couldn't play (turned down, or failed); or nullptr
         juce::String auditionMessage() const;
         juce::String kitMessage() const; // "Looking for FUT03's samples..."
         juce::Colour statusTone() const;
         void setMessage (const juce::String& text, juce::Colour tone, int forMs = 0, const juce::String& detail = {});
-        juce::String statusDetail() const; // the shown message's detail, when the status line shows it
+        juce::String statusDetail() const; // the detail of the failed copy or audition the status line shows, as a sentence
         void refresh();
         void refreshChips();
         void refreshRows();
@@ -320,9 +322,10 @@ namespace wubansia::editor
         std::map<juce::String, int> chosenFiles; // by sound id: the file picked in File
 
         // The last audition: its ticket (0 when turned down), the sound and file it played, why it was turned
-        // down, and whether Stop or Esc put its message away.
+        // down (auditionState () then: an empty problem when it wasn't), and whether Stop or Esc put its message away.
         std::uint32_t ticket = 0;
-        juce::String auditionKit, auditionSound, auditionLabel, refusal;
+        juce::String auditionKit, auditionSound, auditionLabel;
+        AuditionState refused;
         bool auditionDismissed = true;
 
         Message message;

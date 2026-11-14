@@ -148,6 +148,14 @@ namespace wubansia::sounds
         return result;
     }
 
+    ExportResult mismatchedSource (const engine::KitInfo& kit, const engine::FileEntry& file)
+    {
+        auto result = refused (listingProblem (kit, file)); // which says to reinstall the kit
+        result.sourceProblem = true;
+        result.reinstall = true;
+        return result;
+    }
+
     ExportResult folderRefusal (FolderProblem problem, const juce::File& target)
     {
         // The path goes in the detail only: in the problem it would push the drawer's advice out of its two lines.
@@ -186,12 +194,7 @@ namespace wubansia::sounds
         if (! bytes.ok())
             return unreadableSource (kit, file, bytes.error);
         if (! matchesListing (bytes.value, file))
-        {
-            auto result = refused (listingProblem (kit, file)); // which says to reinstall the kit
-            result.sourceProblem = true;
-            result.reinstall = true;
-            return result;
-        }
+            return mismatchedSource (kit, file);
         if (samplesFolder == juce::File())
             return refused ("there is no samples folder to copy " + std::string (fileNameOf (file.path)) + " into");
 
