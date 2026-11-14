@@ -200,10 +200,13 @@ tests), with the four kits' content installed from their zips.
 - [ ] A click plays the sound; Up, Down, Return and Esc reach the drawer after a click in the list, in Live and in
       Logic, and Space still reaches the DAW
 - [ ] How the auditions sound, and their level over a loud groove (6 dB down, under Output, with no limiter)
-- [ ] Live 12: drag a one-shot to an audio track, to a Drum Rack pad and to a MIDI track (Simpler)
+- [ ] Live 12, from the VST3: drag a one-shot to an audio track, to a Drum Rack pad and to a MIDI track (Simpler)
+- [ ] Live 12, from the AU: the same three drags (a drop from a JUCE VST3 into Live has been reported to raise an
+      error dialog, so each format needs its own try)
 - [ ] Live 12: drag a loop; FUT03's Context Vox Riff (6 bars at 128 BPM: a 4-bar loop, then its echo tail) warps
       at the right tempo
-- [ ] Logic: drag to an audio track and to Quick Sampler
+- [ ] Logic, from the AU: drag to an audio track and to Quick Sampler
+- [ ] The CLAP, if one of your DAWs loads it: drag a one-shot to a track
 - [ ] Logic: an audition plays while stopped with Wubansia's track selected; unselected, the drawer shows "No sound
       from your DAW..."
 - [ ] Logic: a 44.1 kHz project, with "Convert audio file sample rate when importing" on
