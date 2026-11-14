@@ -681,7 +681,7 @@ TEST_CASE ("every sound's default file of the four kits exports byte for byte", 
     CHECK (exported == 140);
     CHECK (files.size() == 139); // FUT02's Laser Chord Stab D4 v2 is two sounds' default: one file
     std::ostringstream line;
-    line << exported << " default files exported byte for byte from " << places.environment.getFullPathName() << " in "
+    line << exported << " sounds' default files (" << files.size() << " files) exported byte for byte from " << places.environment.getFullPathName() << " in "
          << std::chrono::duration_cast<std::chrono::milliseconds> (took).count() << " ms";
     WARN (line.str());
 }

@@ -184,8 +184,8 @@ four kits' samples from a checkout's `content/samples` through `WUBANSIA_CONTENT
   value matches.
 - The catalog: FUT01 35 sounds, FUT02 37, FUT03 36, FUT04 32, which reach all 618 files. Every export name is unique
   in its kit and the longest is 46 characters.
-- Every sound's default file in the four kits (140 files) copied from the installed content byte for byte, each
-  with kit.json's SHA-256, in 791 ms (`[.real]`).
+- The default file of every sound in the four kits (140 sounds, 139 files: two of FUT02's sounds share one) copied
+  from those samples byte for byte, each with kit.json's SHA-256, in 791 ms (`[.real]`).
 - Offline renders: the processor still plays each kit's Loop as `groovecore render` does, bit for bit (`[.render]`).
   An audition never reaches an offline render.
 - pluginval 1.0.4 at strictness 10 on the VST3, with and without content: pass. clap-validator 0.4.1 (report-only):
