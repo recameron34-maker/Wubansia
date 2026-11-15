@@ -9,6 +9,7 @@
 #include "gen/feel.h"
 #include "gen/harmony.h"
 #include "gen/hold.h"
+#include "gen/hook.h"
 #include "gen/lanes.h"
 #include "gen/song.h"
 
@@ -71,6 +72,8 @@ namespace wubansia::gen
                 scoreChords (song, bundle, i, root);
                 holdPads (song, bundle, i); // nothing unless a pad grid holds
             }
+        // the hook (hook.h): nothing without the style's hook block; its draws hang below their own tag
+        planHook (song, bundle, root);
         for (std::size_t i = 0; i < style.lanes.size(); ++i)
         {
             if (style.lanes[i].kind == LaneKind::bass)
