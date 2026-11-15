@@ -3,7 +3,12 @@
 Every MIDI file in `content/midi/` follows this map, and so does Wubansia: its player plays those files, its drag strip
 hands them out, and its MIDI input reads the same channels. The table lives in code as `tools/sound/channels.py`, which
 `tools/sound/midi.py` and the manifest exporters import, and as its C++ copy in the engine; change a number only there,
-through ADR 0019 (status: Proposed), and re-export.
+through ADR 0019 (status: Accepted), and re-export.
+
+The generator's files (`groovecore gen`, ADR 0013) follow the channel table, not every convention below: they are
+480 PPQ, a slide overlaps its next note by its style's overlap (30 ticks in FUT01 and FUT04, 24 in FUT03, 20 in
+FUT02), FUT04's rumble sits on reserved channel 9 until it becomes drum note 35, and Wubansia plays no generated
+chords, since they sit on channel 3.
 
 ## Channels
 
