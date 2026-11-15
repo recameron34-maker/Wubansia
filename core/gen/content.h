@@ -60,6 +60,7 @@ namespace wubansia::gen
         std::uint8_t channel = 0; // 0-15
         std::vector<KitVoiceNote> notes; // drum lanes: one per voice of the style's lane
         Range range { 0, 127 }; // pitched lanes: the lowest and highest note it may play
+        std::uint32_t rangeLine = 0; // the kit file's line of "range" (0: none given), for makeBundle's refusals
         std::int32_t root = -1; // bass: the tonic in the bass register (its lowest root)
     };
 
@@ -521,7 +522,27 @@ namespace wubansia::gen
     // ---- the hook (hook.h, docs/plans/S1b2b-plan.md): the style's "hook" block. planHook draws one
     // hook per seed from it (rhythm first, pitched key-relative), places it per 8-bar line over the
     // drawn form and realizes it on its carrier, a lead lane. Integers only, like the rest; the
-    // loader refuses everything the plan's "The loader's refusals" lists, with the JSON path.
+    // loader refuses everything the plan's "The loader's refusals" lists, with the file, the JSON
+    // path and the line:
+    //   "hook": { "lane": the carrier, the style's one lead lane (every lead lane is it),
+    //     "register": { "center", "span", "floor" (optional) },        (in the carrier's kit range, which
+    //                                                                    starts at harmony.mud.minorSecond or above)
+    //     "contours": [ { "shape": "late" | "early" | "twin", "w" } ],
+    //     "cells": [ { "on": [16ths], "len": [16ths], "acc": [16ths], "w" } ],
+    //     "mutate": { "drop", "add", "extra": [16ths] }, "answer": { "same", "move", "add", "drop", "headDiffers": 0 | 1 },
+    //     "pitch": { "pool", "start": [7 weights], "end": [7], "moves": [8], "leap", "strong": "accents" | "beats",
+    //                "peak": [lo, hi], "early": [lo, hi], "tones", "clash" },
+    //     "vel": { "down" (optional), "beat" (optional), "accent", "other", "peak", "shape" }, "guard": { "second" },
+    //     "period": { "idiom": "organ", "halves": [ { "on", "w" } ], "octave" (optional), "cadence": [7 weights], "register" (optional) }
+    //            or { "idiom": "glass", "halves", "octave", "register" } or { "idiom": "stab", "cells", "octave", "register" },
+    //     "pedal": { "degrees", "vel", "in": ["full", "answer", "fragment", "new"], "max" },   (optional: a pedal style)
+    //     "withhold": [kinds],
+    //     "plan": { kind: { "enter" (a groove's), "first", "next", "last", "holdFull" (drop 1's), "cover" (a drop's) }, ...,
+    //               "after": { kind: { ... } or, a build's, { "continue": 1 } } } }
+    // The plan has a menu for each kind the carrier's plans play it in (before the first drop, and
+    // "after" it for a groove, break or build) and for no other; drop 2's first menu is "new"; a
+    // drop's cover is 500 permille or more and reachable with a line to spare at every length the form
+    // draws; and some groove or build before the first drop always plants the hook (plan §5.1).
 
     enum class HookContour : std::uint8_t {
         late, // one peak, the highest note alone, on a bar-2 onset in the "peak" window
@@ -593,6 +614,7 @@ namespace wubansia::gen
         std::int32_t center = 74; // the tonic's octave puts the 3rd above the start nearest this key
         std::int32_t span = 15; // the riff spans at most this many semitones
         std::int32_t floor = -1; // the top voice's lowest key (FUT02: C5); -1: the kit range's low end
+        std::uint32_t line = 0; // the style file's line of "register", for makeBundle's refusals (it checks the block against the kit range)
     };
 
     // "mutate": per seed, at most one non-accent onset of the cell drops out and one extra comes in.
@@ -646,7 +668,8 @@ namespace wubansia::gen
         std::vector<std::pair<std::vector<std::int32_t>, std::int32_t>> halves; // organ: bar a's second-half onsets (8-15) by weight
         std::int32_t octave = 0; // its octave against the riff's, -1 to 1
         std::array<std::int32_t, 7> cadence {}; // organ: weights of the fall's end degree (the tonic's is 0)
-        std::optional<Range> range; // glass: its own register ("register")
+        std::optional<Range> range; // its own register ("register", FUT02's glass), inside the kit range; none: the riff's
+        std::uint32_t rangeLine = 0; // the style file's line of "register", for makeBundle's refusals
         std::vector<HookCell> cells; // stab: its cells
     };
 

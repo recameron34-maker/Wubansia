@@ -3,12 +3,16 @@
 #include "gen/arrange.h"
 #include "gen/json.h"
 #include "util/file_io.h"
+#include "util/ints.h"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <set>
 #include <string>
+#include <utility>
 
 namespace wubansia::gen
 {
@@ -512,6 +516,22 @@ namespace wubansia::gen
                 if (grid.octave % 12 != 0)
                     g["octave"].fail ("the octave is a multiple of 12 semitones, not " + std::to_string (grid.octave));
                 a.grids.push_back (std::move (grid));
+            }
+        }
+
+        // A lead lane (lead.h): the hook's carrier. Its grids hold only the scales scoreLead puts on the
+        // hook's notes: "grids": { "plant": { "vel": 920, "len": 850 }, ... }, permille.
+        void leadLane (const Node& n, LaneSpec& lane)
+        {
+            n.only ({ "id", "kind", "use", "grids", "cc" });
+            for (const auto& [name, g] : n["grids"].members())
+            {
+                g.only ({ "vel", "len" });
+                LeadGrid grid;
+                grid.name = name;
+                grid.vel = g["vel"].int32 (1, 2000);
+                grid.len = g["len"].int32 (1, 2000);
+                lane.lead.grids.push_back (std::move (grid));
             }
         }
 
@@ -1237,6 +1257,568 @@ namespace wubansia::gen
             }
         }
 
+        // ------------------------------------------------------------------ the hook (hook.h)
+
+        bool containsInt (const std::vector<std::int32_t>& v, std::int32_t x) { return std::find (v.begin(), v.end(), x) != v.end(); }
+
+        std::string_view laneKindName (LaneKind kind)
+        {
+            switch (kind)
+            {
+                case LaneKind::drums:
+                    return "drums";
+                case LaneKind::bass:
+                    return "bass";
+                case LaneKind::chords:
+                    return "chords";
+                case LaneKind::arp:
+                    return "arp";
+                case LaneKind::lead:
+                    return "lead";
+            }
+            return "?";
+        }
+
+        std::optional<HookOp> hookOpNamed (std::string_view name)
+        {
+            static constexpr std::array<std::pair<std::string_view, HookOp>, 12> ops { {
+                { "out", HookOp::out },
+                { "repeat", HookOp::repeat },
+                { "full", HookOp::full },
+                { "fragment", HookOp::fragment },
+                { "skeleton", HookOp::skeleton },
+                { "answer", HookOp::answer },
+                { "augment", HookOp::augment },
+                { "vary", HookOp::vary },
+                { "cadence", HookOp::cadence },
+                { "breath", HookOp::breath },
+                { "new", HookOp::newPhrase },
+                { "sequence", HookOp::sequence },
+            } };
+            for (const auto& [n, op] : ops)
+                if (n == name)
+                    return op;
+            return std::nullopt;
+        }
+
+        // A bar-1 rhythm ("cells", "period.cells"): onsets on 16ths 0-15 in ascending order, a length of
+        // 1-16 16ths per onset, accents among the onsets, an onset in each half of the bar, and an onset
+        // that isn't an accent, so the skeleton (the accents alone) differs from the riff in every bar.
+        // A pedal style's cells start on 16th 0 instead and may be all accents: there FULL differs from
+        // SKELETON by the pedal, which never plays before a bar's first top note.
+        HookCell hookCell (const Node& c, bool pedal)
+        {
+            c.only ({ "on", "len", "acc", "w" });
+            HookCell cell;
+            cell.on = c["on"].ints (1, 16, 0, 15);
+            for (std::size_t i = 1; i < cell.on.size(); ++i)
+                if (cell.on[i] <= cell.on[i - 1])
+                {
+                    c["on"].fail ("the onsets are 16ths in ascending order, each once: " + std::to_string (cell.on[i]) + " comes after " + std::to_string (cell.on[i - 1]));
+                    break;
+                }
+            const Node len = c["len"];
+            if (len.isArray() && len.size() != cell.on.size())
+                len.fail ("one length per onset: " + std::to_string (cell.on.size()) + " onsets, " + std::to_string (len.size()) + " lengths");
+            else
+                cell.len = len.ints (cell.on.size(), cell.on.size(), 1, 16);
+            cell.acc = c["acc"].ints (0, 16, 0, 15);
+            for (const auto a : cell.acc)
+                if (!containsInt (cell.on, a))
+                {
+                    c["acc"].fail ("the accent on 16th " + std::to_string (a) + " isn't one of the onsets");
+                    break;
+                }
+            cell.weight = c["w"].int32 (0, 100);
+            if (cell.on.empty())
+                return cell;
+            const bool firstHalf = std::any_of (cell.on.begin(), cell.on.end(), [] (std::int32_t s) { return s < 8; });
+            const bool secondHalf = std::any_of (cell.on.begin(), cell.on.end(), [] (std::int32_t s) { return s >= 8; });
+            if (!firstHalf || !secondHalf)
+                c.fail (std::string ("each half of the bar holds an onset, but 16ths ") + (firstHalf ? "8-15" : "0-7") + " hold none");
+            else if (pedal && cell.on.front() != 0)
+                c.fail ("a pedal style's cells start on 16th 0, as the written arp does (the pedal never plays before a bar's first top note), not on 16th "
+                        + std::to_string (cell.on.front()));
+            else if (!pedal && std::all_of (cell.on.begin(), cell.on.end(), [&] (std::int32_t s) { return containsInt (cell.acc, s); }))
+                c.fail ("every onset is an accent: a cell needs one that isn't, so the skeleton (the accents alone) differs from the riff in every bar");
+            return cell;
+        }
+
+        std::vector<HookCell> hookCells (const Node& n, bool pedal)
+        {
+            std::vector<HookCell> out;
+            const std::size_t count = n.size();
+            if (n.isArray() && count == 0)
+                n.fail ("at least one cell is needed");
+            std::int64_t total = 0;
+            for (std::size_t i = 0; i < count; ++i)
+            {
+                out.push_back (hookCell (n.at (i), pedal));
+                total += out.back().weight;
+            }
+            if (count > 0 && total == 0)
+                n.fail ("every weight is 0: no cell could be picked");
+            return out;
+        }
+
+        // A menu's ops by weight: [ { "op": name, "w": 0-100 } ]. [] is allowed (an empty "next" repeats,
+        // an empty "last" plays "next"); a list that holds entries can draw one.
+        std::vector<HookOpWeight> hookOps (const Node& n)
+        {
+            std::vector<HookOpWeight> out;
+            const std::size_t count = n.size();
+            std::int64_t total = 0;
+            for (std::size_t i = 0; i < count; ++i)
+            {
+                const Node e = n.at (i);
+                e.only ({ "op", "w" });
+                const std::string name = e["op"].string();
+                const auto op = hookOpNamed (name);
+                if (!op)
+                    e["op"].fail ("unknown op \"" + name + "\" (out, repeat, full, fragment, skeleton, answer, augment, vary, cadence, breath, new or sequence)");
+                HookOpWeight w;
+                w.op = op.value_or (HookOp::out);
+                w.weight = e["w"].int32 (0, 100);
+                total += w.weight;
+                out.push_back (w);
+            }
+            if (count > 0 && total == 0)
+                n.fail ("every weight is 0: no op could be picked");
+            return out;
+        }
+
+        bool isDropKind (std::string_view kind) { return kind == "drop" || kind == "drop2"; }
+
+        // One kind's line plan: { "enter" (a groove's), "first", "next", "last", "holdFull" (drop 1's),
+        // "cover" (a drop's and drop 2's) }, or an after build's { "continue": 1 }.
+        HookMenu hookMenu (const Node& m, const std::string& kind, bool after, const std::vector<std::string>& withhold)
+        {
+            m.only ({ "enter", "first", "next", "last", "holdFull", "cover", "continue" });
+            HookMenu menu;
+            menu.kind = kind;
+            menu.after = after;
+            if (const Node c = m.optional ("continue"); c.exists())
+            {
+                (void) c.int32 (1, 1);
+                menu.carry = true;
+                if (!after || kind != "build")
+                    c.fail ("\"continue\" is an after build's: from the first drop on, a build keeps the section before's last state (\"plan\": { \"after\": { \"build\": { \"continue\": 1 } } }); a "
+                            + kind + (after ? "" : " before it") + " draws its own lines");
+                else if (m.optional ("enter").exists() || m.optional ("first").exists() || m.optional ("next").exists() || m.optional ("last").exists())
+                    m.fail ("a build that continues the section before draws no ops: it has no \"enter\", \"first\", \"next\" or \"last\"");
+                return menu;
+            }
+            if (const Node e = m.optional ("enter"); e.exists())
+            {
+                if (kind != "groove")
+                    e.fail ("only a groove has leading OUT lines (\"enter\"), not a " + kind);
+                menu.enter = weightedOf (e, "lines", 0, 32);
+            }
+            const Node first = m["first"];
+            if (first.isArray() && first.size() == 0)
+                first.fail ("a section's first playing line draws an op from it: at least one is needed");
+            menu.first = hookOps (first);
+            menu.next = hookOps (m.optional ("next"));
+            menu.last = hookOps (m.optional ("last"));
+            for (std::size_t i = 0; i < menu.first.size(); ++i)
+            {
+                const HookOp op = menu.first[i].op;
+                if (op == HookOp::vary || op == HookOp::cadence || op == HookOp::breath)
+                    first.at (i)["op"].fail ("VARY, CADENCE and BREATH end the line before, and a section's first playing line has none: not in a \"first\" menu");
+                else if (kind == "drop2" && op != HookOp::newPhrase)
+                    first.at (i)["op"].fail ("drop 2 opens on its new phrase: its \"first\" menu is \"new\" only");
+            }
+            if (!after && contains (withhold, kind))
+                for (const auto& [name, list] : { std::pair { "first", &menu.first }, std::pair { "next", &menu.next }, std::pair { "last", &menu.last } })
+                    for (std::size_t i = 0; i < list->size(); ++i)
+                        if ((*list)[i].op == HookOp::full || (*list)[i].op == HookOp::newPhrase)
+                            m[name].at (i)["op"].fail ("the " + kind + " is withheld (\"withhold\"): before the first drop it plays no FULL or NEW line, so not in its menu");
+            if (const Node h = m.optional ("holdFull"); h.exists())
+            {
+                menu.holdFull = h.int32 (0, 1) == 1;
+                if (kind != "drop")
+                    h.fail ("drop 1 holds a FULL line (\"holdFull\"), not a " + kind);
+            }
+            if (isDropKind (kind))
+            {
+                const Node cover = m["cover"];
+                menu.cover = cover.int32 (0, 1000);
+                if (cover.exists() && menu.cover < 500)
+                    cover.fail ("a " + kind + " plays the hook in half its lines or more: a cover of 500 permille at least, not " + std::to_string (menu.cover));
+            }
+            else if (const Node cover = m.optional ("cover"); cover.exists())
+                cover.fail ("a drop's and drop 2's menus have a cover, not a " + kind + "'s");
+            return menu;
+        }
+
+        // The line plan against the drawn forms (plan §5.1 at every length the form can draw): a menu
+        // for each kind the carrier's plans play it in (a groove's, break's or build's before the first
+        // drop, and its after menu from then on) and for no other; a cover every drawable drop length
+        // can reach with a line to spare; a section before the first drop that always plants the hook.
+        void hookAgainstForm (const Node& plan, const Style& style, const HookSpec& hook)
+        {
+            if (plan.errors().any() || hook.lane.empty())
+                return;
+            const FormSpec& form = style.form;
+            std::size_t firstDrop = form.slots.size();
+            for (std::size_t i = 0; i < form.slots.size(); ++i)
+                if (form.slots[i].kind == "drop")
+                {
+                    firstDrop = i;
+                    break;
+                }
+            for (const HookMenu& m : hook.menus)
+            {
+                const Node at = m.after ? plan["after"][m.kind] : plan[m.kind];
+                if (!form.mayPlay (m.kind, hook.lane))
+                {
+                    at.fail ("the form's " + m.kind + " plan doesn't play the hook's carrier \"" + hook.lane + "\": no menu for it");
+                    return;
+                }
+                bool used = false;
+                for (std::size_t i = 0; i < form.slots.size(); ++i)
+                    used = used || (form.slots[i].kind == m.kind && (isDropKind (m.kind) || (m.after ? i > firstDrop : i < firstDrop)));
+                if (!used)
+                {
+                    at.fail ("no " + m.kind + " of the form comes " + (m.after ? "after" : "before") + " the first drop, so no section plays this menu");
+                    return;
+                }
+            }
+            for (std::size_t i = 0; i < form.slots.size(); ++i)
+            {
+                const std::string& kind = form.slots[i].kind;
+                if (!form.mayPlay (kind, hook.lane))
+                    continue;
+                const bool after = !isDropKind (kind) && i > firstDrop;
+                if (hook.menu (kind, after) == nullptr)
+                {
+                    plan.fail ("the form plays the hook's carrier \"" + hook.lane + "\" in its " + kind + " (form.sections[" + std::to_string (i) + "]"
+                               + (isDropKind (kind) ? "" : after ? ", after the first drop"
+                                                                 : ", before the first drop")
+                               + "), but the plan has no menu for that "
+                               + (after ? "\"after\" " : "") + kind);
+                    return;
+                }
+            }
+            // a cover each drawable length can reach with a line to spare (drop 1's first line may rest:
+            // r2): cover x lines <= (lines - 1) x 1000
+            for (const HookMenu& m : hook.menus)
+                if (isDropKind (m.kind))
+                    for (const FormSlot& slot : form.slots)
+                        if (slot.kind == m.kind)
+                            for (const Weighted& w : slot.bars)
+                            {
+                                const std::int64_t lines = w.value / 8;
+                                if (w.weight > 0 && lines > 0 && m.cover * lines > (lines - 1) * 1000)
+                                {
+                                    plan[m.kind]["cover"].fail ("a " + std::to_string (w.value) + "-bar " + m.kind + " has " + std::to_string (lines) + " lines: a cover of "
+                                                                + std::to_string (m.cover) + " permille needs " + std::to_string (util::ceilDiv (m.cover * lines, std::int64_t (1000)))
+                                                                + " of them to play, and with one to spare (drop 1's first line may rest) at most " + std::to_string (lines - 1) + " can");
+                                    return;
+                                }
+                            }
+            // a section before the first drop always plants the hook: a groove that plays the carrier all
+            // through (no entry or rest takes it out) and whose "first" menu holds no OUT (its "enter" is
+            // clamped, so its first playing line draws from "first"), or such a build whose menus hold none
+            const auto drawsOut = [] (const std::vector<HookOpWeight>& ops) {
+                return std::any_of (ops.begin(), ops.end(), [] (const HookOpWeight& o) { return o.op == HookOp::out && o.weight > 0; });
+            };
+            bool plants = false;
+            for (std::size_t i = 0; i < firstDrop && i < form.slots.size() && !plants; ++i)
+            {
+                const FormSlot& slot = form.slots[i];
+                if (slot.kind != "groove" && slot.kind != "build")
+                    continue;
+                if (std::any_of (slot.bars.begin(), slot.bars.end(), [] (const Weighted& w) { return w.value == 0 && w.weight > 0; }))
+                    continue; // it may be left out
+                const KindPlan* kp = form.plan (slot.kind);
+                if (kp == nullptr || !contains (kp->lanes, hook.lane))
+                    continue;
+                if (std::any_of (kp->entries.begin(), kp->entries.end(), [&] (const LaneEntry& e) { return contains (e.lanes, hook.lane); }))
+                    continue;
+                if (kp->rest && std::any_of (kp->rest->lanes.begin(), kp->rest->lanes.end(), [&] (const LaneWeight& lw) { return lw.weight > 0 && lw.lane == hook.lane; }))
+                    continue;
+                const HookMenu* m = hook.menu (slot.kind, false);
+                if (m == nullptr || m->carry)
+                    continue;
+                plants = slot.kind == "groove" ? !drawsOut (m->first) : !drawsOut (m->first) && !drawsOut (m->next) && !drawsOut (m->last);
+            }
+            if (!plants)
+                plan.fail ("no section before the first drop always plants the hook: a groove or build the form never leaves out, that plays \"" + hook.lane
+                           + "\" all through (no entry or rest), whose menu draws no OUT for its first playing line (a groove's \"first\") or for any line (a build's)");
+        }
+
+        // The hook block (hook.h; content.h's HookSpec has the keys), read after the lanes, the form
+        // and the harmony, which it names. makeBundle checks it against the carrier's kit range.
+        std::optional<HookSpec> hookBlock (const Node& h, const Style& style)
+        {
+            if (!h.exists())
+                return std::nullopt;
+            h.only ({ "lane", "register", "contours", "cells", "mutate", "answer", "pitch", "vel", "guard", "period", "pedal", "withhold", "plan" });
+            HookSpec hook;
+            const bool pedal = h.optional ("pedal").exists();
+
+            // the carrier: one lead lane of the style
+            const Node lane = h.optional ("lane");
+            if (!lane.exists()) // a missing key has no line of its own: the block's
+                h.errors().add (lane.path(), "line " + std::to_string (h.value()->line) + ": missing \"lane\": the hook needs its carrier, a lead lane of the style");
+            else
+            {
+                hook.lane = lane.string (1, 32);
+                const auto li = style.laneIndex (hook.lane);
+                if (!li)
+                    lane.fail ("unknown lane \"" + hook.lane + "\"");
+                else if (style.lanes[*li].kind != LaneKind::lead)
+                    lane.fail ("the hook plays on a lead lane, and \"" + hook.lane + "\" is a " + std::string (laneKindName (style.lanes[*li].kind)) + " lane");
+            }
+
+            const Node reg = h["register"];
+            reg.only ({ "center", "span", "floor" });
+            hook.reg.center = reg["center"].int32 (0, 127);
+            hook.reg.span = reg["span"].int32 (1, 127);
+            hook.reg.floor = reg.int32Or ("floor", -1, 0, 127);
+            hook.reg.line = reg.exists() ? reg.value()->line : 0;
+
+            const Node contours = h["contours"];
+            if (contours.isArray() && contours.size() == 0)
+                contours.fail ("at least one contour is needed");
+            std::int64_t contourWeight = 0;
+            for (std::size_t i = 0; i < contours.size(); ++i)
+            {
+                const Node c = contours.at (i);
+                c.only ({ "shape", "w" });
+                const std::string shape = c["shape"].string();
+                HookContour contour = HookContour::late;
+                if (shape == "early")
+                    contour = HookContour::early;
+                else if (shape == "twin")
+                    contour = HookContour::twin;
+                else if (shape != "late")
+                    c["shape"].fail ("a contour is late, early or twin, not \"" + shape + "\"");
+                const std::int32_t w = c["w"].int32 (0, 100);
+                contourWeight += w;
+                hook.contours.emplace_back (contour, w);
+            }
+            if (contours.isArray() && contours.size() > 0 && contourWeight == 0)
+                contours.fail ("every weight is 0: no contour could be picked");
+
+            hook.cells = hookCells (h["cells"], pedal);
+
+            const Node mutate = h["mutate"];
+            mutate.only ({ "drop", "add", "extra" });
+            hook.mutate.drop = mutate["drop"].int32 (0, 100);
+            hook.mutate.add = mutate["add"].int32 (0, 100);
+            hook.mutate.extra = mutate["extra"].ints (0, 16, 0, 15);
+            if (pedal && containsInt (hook.mutate.extra, 15))
+                mutate["extra"].fail ("in a pedal style no onset falls on 16th 15 (the note before it holds through it): no extra onset there");
+
+            const Node answer = h["answer"];
+            answer.only ({ "same", "move", "add", "drop", "headDiffers" });
+            hook.answer.same = answer["same"].int32 (0, 100);
+            hook.answer.move = answer["move"].int32 (0, 100);
+            hook.answer.add = answer["add"].int32 (0, 100);
+            hook.answer.drop = answer["drop"].int32 (0, 100);
+            hook.answer.headDiffers = answer["headDiffers"].int32 (0, 1) == 1;
+            if (answer.exists() && hook.answer.same + hook.answer.move + hook.answer.add + hook.answer.drop == 0)
+                answer.fail ("every weight is 0: bar 2's edit (same, move, add or drop) could not be picked");
+
+            const Node pitch = h["pitch"];
+            pitch.only ({ "pool", "start", "end", "moves", "leap", "strong", "peak", "early", "tones", "clash" });
+            HookPitch& p = hook.pitch;
+            p.pool = pitch["pool"].ints (1, 7, 0, 6);
+            for (std::size_t i = 0; i < p.pool.size(); ++i)
+                if (std::count (p.pool.begin(), p.pool.end(), p.pool[i]) > 1)
+                {
+                    pitch["pool"].fail ("the degree " + std::to_string (p.pool[i]) + " is listed twice");
+                    break;
+                }
+            for (const auto& [key, out] : { std::pair { "start", &p.start }, std::pair { "end", &p.end } })
+            {
+                const Node n = pitch[key];
+                const auto w = n.ints (7, 7, 0, 100);
+                std::int32_t total = 0;
+                for (std::size_t d = 0; d < w.size(); ++d)
+                {
+                    (*out)[d] = w[d];
+                    total += w[d];
+                }
+                if (w.size() == 7 && total == 0)
+                    n.fail (std::string ("every weight is 0: no ") + key + " degree could be picked");
+            }
+            for (std::size_t d = 0; d < 7 && !p.pool.empty(); ++d)
+                if ((p.start[d] > 0 || p.end[d] > 0) && !containsInt (p.pool, static_cast<std::int32_t> (d)))
+                {
+                    pitch["pool"].fail ("the start or end weights can draw degree " + std::to_string (d) + ", which the pool doesn't hold");
+                    break;
+                }
+            const auto moves = pitch["moves"].ints (8, 8, 0, 100);
+            for (std::size_t k = 0; k < moves.size(); ++k)
+                p.moves[k] = moves[k];
+            p.leap = pitch["leap"].int32 (1, 12);
+            const std::string strong = pitch["strong"].string();
+            if (strong == "beats")
+                p.beats = true;
+            else if (pitch["strong"].exists() && strong != "accents")
+                pitch["strong"].fail ("a strong onset is a beat or an accent (\"accents\") or a beat alone (\"beats\"), not \"" + strong + "\"");
+            p.peak = rangeOf (pitch["peak"], 0, 31);
+            p.early = rangeOf (pitch["early"], 0, 31);
+            p.tones = pitch["tones"].ints (1, 9, 0, 8);
+            p.clash = pitch["clash"].ints (0, 9, 0, 8);
+
+            const Node vel = h["vel"];
+            vel.only ({ "down", "beat", "accent", "other", "peak", "shape" });
+            hook.vel.down = vel.int32Or ("down", -1, 1, 127);
+            hook.vel.beat = vel.int32Or ("beat", -1, 1, 127);
+            hook.vel.accent = vel["accent"].int32 (1, 127);
+            hook.vel.other = vel["other"].int32 (1, 127);
+            hook.vel.peak = vel["peak"].int32 (0, 20);
+            hook.vel.shape = vel["shape"].int32 (0, 12);
+
+            const Node guard = h["guard"];
+            guard.only ({ "second" });
+            hook.guard = guard["second"].int32 (0, 127);
+
+            const Node period = h["period"];
+            HookPeriod& per = hook.period;
+            const std::string idiom = period["idiom"].string();
+            if (idiom == "organ")
+            {
+                per.idiom = HookIdiom::organ;
+                period.only ({ "idiom", "halves", "octave", "cadence", "register" });
+            }
+            else if (idiom == "glass")
+            {
+                per.idiom = HookIdiom::glass;
+                period.only ({ "idiom", "halves", "octave", "register" });
+            }
+            else if (idiom == "stab")
+            {
+                per.idiom = HookIdiom::stab;
+                period.only ({ "idiom", "cells", "octave", "register" });
+            }
+            else if (period["idiom"].exists())
+                period["idiom"].fail ("the new phrase's idiom is organ, glass or stab, not \"" + idiom + "\"");
+            per.octave = period.int32Or ("octave", 0, -1, 1);
+            if (idiom == "organ" || idiom == "glass")
+            {
+                const Node halves = period["halves"];
+                if (halves.isArray() && halves.size() == 0)
+                    halves.fail ("at least one second half is needed");
+                std::int64_t total = 0;
+                for (std::size_t i = 0; i < halves.size(); ++i)
+                {
+                    const Node hv = halves.at (i);
+                    hv.only ({ "on", "w" });
+                    auto on = hv["on"].ints (1, 8, 8, 15);
+                    for (std::size_t k = 1; k < on.size(); ++k)
+                        if (on[k] <= on[k - 1])
+                        {
+                            hv["on"].fail ("the onsets are 16ths of the second half (8-15) in ascending order, each once: " + std::to_string (on[k]) + " comes after " + std::to_string (on[k - 1]));
+                            break;
+                        }
+                    const std::int32_t w = hv["w"].int32 (0, 100);
+                    total += w;
+                    per.halves.emplace_back (std::move (on), w);
+                }
+                if (halves.isArray() && halves.size() > 0 && total == 0)
+                    halves.fail ("every weight is 0: no second half could be picked");
+            }
+            if (idiom == "organ")
+            {
+                const Node cadence = period["cadence"];
+                const auto w = cadence.ints (7, 7, 0, 100);
+                std::int32_t total = 0;
+                for (std::size_t d = 0; d < w.size(); ++d)
+                {
+                    per.cadence[d] = w[d];
+                    total += w[d];
+                }
+                if (w.size() == 7 && w[0] > 0)
+                    cadence.fail ("the organ's fall ends on 5, 2 or b3, never on the tonic: the tonic's weight (the first) is 0, not " + std::to_string (w[0]));
+                else if (w.size() == 7 && total == 0)
+                    cadence.fail ("every weight is 0: the fall's end could not be picked");
+            }
+            if (idiom == "stab")
+                per.cells = hookCells (period["cells"], pedal);
+            if (const Node r = period.optional ("register"); r.exists())
+            {
+                per.range = rangeOf (r, 0, 127);
+                per.rangeLine = r.value()->line;
+            }
+
+            if (const Node ped = h.optional ("pedal"); ped.exists())
+            {
+                ped.only ({ "degrees", "vel", "in", "max" });
+                HookPedal pd;
+                pd.degrees = ped["degrees"].ints (1, 7, -7, 7);
+                const Node pv = ped["vel"];
+                if (pv.isArray() && pv.size() != pd.degrees.size())
+                    pv.fail ("one velocity per pedal degree: " + std::to_string (pd.degrees.size()) + " degrees, " + std::to_string (pv.size()) + " velocities");
+                else
+                    pd.vel = pv.ints (pd.degrees.size(), pd.degrees.size(), 1, 127);
+                const Node in = ped["in"];
+                for (const auto& name : in.strings (1, 4))
+                {
+                    const auto op = hookOpNamed (name);
+                    if (!op || (*op != HookOp::full && *op != HookOp::answer && *op != HookOp::fragment && *op != HookOp::newPhrase))
+                    {
+                        in.fail ("the pedal plays under full, answer, fragment and new only, not \"" + name + "\"");
+                        break;
+                    }
+                    if (std::find (pd.in.begin(), pd.in.end(), *op) != pd.in.end())
+                    {
+                        in.fail ("\"" + name + "\" is listed twice");
+                        break;
+                    }
+                    pd.in.push_back (*op);
+                }
+                pd.max = ped["max"].int32 (1, 2);
+                hook.pedal = std::move (pd);
+            }
+
+            const Node withhold = h["withhold"];
+            hook.withhold = withhold.strings (0, 7);
+            for (std::size_t i = 0; i < hook.withhold.size(); ++i)
+            {
+                if (!knownKind (hook.withhold[i]))
+                {
+                    withhold.fail ("unknown section kind \"" + hook.withhold[i] + "\"");
+                    break;
+                }
+                if (std::count (hook.withhold.begin(), hook.withhold.end(), hook.withhold[i]) > 1)
+                {
+                    withhold.fail ("\"" + hook.withhold[i] + "\" is listed twice");
+                    break;
+                }
+            }
+
+            const Node plan = h["plan"];
+            for (const auto& [kind, m] : plan.members())
+            {
+                if (kind == "after")
+                {
+                    for (const auto& [k, am] : m.members())
+                    {
+                        if (!knownKind (k))
+                            am.fail ("unknown section kind \"" + k + "\"");
+                        else if (isDropKind (k))
+                            am.fail ("a " + k + " plays its own menu wherever it comes: no \"after\" menu for it");
+                        else
+                            hook.menus.push_back (hookMenu (am, k, true, hook.withhold));
+                    }
+                    continue;
+                }
+                if (!knownKind (kind))
+                {
+                    m.fail ("unknown section kind \"" + kind + "\"");
+                    continue;
+                }
+                hook.menus.push_back (hookMenu (m, kind, false, hook.withhold));
+            }
+            hookAgainstForm (plan, style, hook);
+            return hook;
+        }
+
         // ------------------------------------------------------------------ feel
 
         FeelLane feelLane (const Node& n)
@@ -1471,8 +2053,11 @@ namespace wubansia::gen
             lane.channel = static_cast<std::uint8_t> (ln["channel"].int32 (0, 15));
             for (const auto& [voice, note] : ln.optional ("notes").members())
                 lane.notes.push_back ({ voice, static_cast<std::uint8_t> (note.int32 (35, 59)) }); // plan §2.6: drums and perc stay in 35-59
-            if (ln.optional ("range").exists())
-                lane.range = rangeOf (ln["range"], 0, 127);
+            if (const Node range = ln.optional ("range"); range.exists())
+            {
+                lane.range = rangeOf (range, 0, 127);
+                lane.rangeLine = range.value()->line;
+            }
             if (ln.optional ("root").exists())
             {
                 lane.root = ln["root"].int32 (0, 127);
@@ -1494,7 +2079,7 @@ namespace wubansia::gen
             return util::Result<Style>::failure (std::string (source) + ": " + parsed.error);
         json::Errors errors { std::string (source) };
         const Node root = json::root (parsed.value, errors);
-        root.only ({ "format", "id", "about", "sections", "form", "changes", "attempts", "harmony", "lanes" });
+        root.only ({ "format", "id", "about", "sections", "form", "changes", "attempts", "harmony", "lanes", "hook" });
         Style style;
         (void) root["format"].int32 (1, 1);
         style.id = root["id"].string (1, 64);
@@ -1517,8 +2102,10 @@ namespace wubansia::gen
                 lane.kind = LaneKind::chords;
             else if (kind == "arp")
                 lane.kind = LaneKind::arp;
+            else if (kind == "lead")
+                lane.kind = LaneKind::lead;
             else
-                ln["kind"].fail ("a lane's kind is drums, bass, chords or arp, not \"" + kind + "\"");
+                ln["kind"].fail ("a lane's kind is drums, bass, chords, arp or lead, not \"" + kind + "\"");
             if (style.laneIndex (lane.id))
                 ln["id"].fail ("the lane \"" + lane.id + "\" is listed twice");
             lane.use = kindMap (ln["use"]);
@@ -1537,7 +2124,8 @@ namespace wubansia::gen
                     arpLane (ln, lane);
                     break;
                 case LaneKind::lead:
-                    break; // not read yet: the hook's loader (S1b2b) reads the lead lane and the hook block
+                    leadLane (ln, lane);
+                    break;
             }
             lane.cc = ccSpecs (ln.optional ("cc"));
             for (const auto& [k, g] : lane.use)
@@ -1601,6 +2189,19 @@ namespace wubansia::gen
                 root["harmony"]["use"].fail ("the form has a " + slot.kind + " section, but \"use\" gives it no slot");
             if (style.harmony.paletteFor (slot.kind) == nullptr)
                 root["harmony"]["palette"].fail ("the form has a " + slot.kind + " section, but the palette has no voicings for it");
+        }
+
+        // the hook (hook.h): its block, and its carrier, the style's one lead lane
+        style.hook = hookBlock (root.optional ("hook"), style);
+        for (std::size_t i = 0; i < style.lanes.size(); ++i)
+        {
+            const LaneSpec& lane = style.lanes[i];
+            if (lane.kind != LaneKind::lead)
+                continue;
+            if (!style.hook)
+                lanes.at (i)["kind"].fail ("a lead lane carries the style's hook, but the style has no \"hook\" block");
+            else if (!style.hook->lane.empty() && lane.id != style.hook->lane)
+                lanes.at (i)["id"].fail ("\"" + lane.id + "\" is a second lead lane, but the hook has one carrier, \"" + style.hook->lane + "\"");
         }
         return finish (errors, std::move (style));
     }
@@ -1680,6 +2281,32 @@ namespace wubansia::gen
         for (const auto& kl : kit.lanes)
             if (!style.laneIndex (kl.id))
                 return R::failure (where + "the kit's lane \"" + kl.id + "\" isn't a lane of the style");
+        // the hook against its carrier's kit range: the range clear of the chords' low rubs (from the
+        // style's mud.minorSecond up), and the register, its floor and the new phrase's register in it
+        if (style.hook)
+        {
+            const HookSpec& hook = *style.hook;
+            const KitLane* kl = kit.lane (hook.lane);
+            if (kl == nullptr)
+                return R::failure (where + "the kit has no lane \"" + hook.lane + "\", the hook's carrier");
+            const Range r = kl->range;
+            const std::string kitRange = std::to_string (r.lo) + " to " + std::to_string (r.hi);
+            const auto at = [] (std::string_view file, const std::string& path, std::uint32_t line) {
+                return "the " + std::string (file) + "'s " + path + (line > 0 ? ", line " + std::to_string (line) : std::string()) + ": ";
+            };
+            if (r.lo < style.harmony.mud.minorSecond)
+                return R::failure (where + at ("kit", "lanes." + hook.lane + ".range", kl->rangeLine) + "the hook's carrier plays clear of the chords' low rubs, from the style's mud.minorSecond ("
+                                   + std::to_string (style.harmony.mud.minorSecond) + ") up, but its range starts at " + std::to_string (r.lo));
+            if (hook.reg.center < r.lo || hook.reg.center > r.hi)
+                return R::failure (where + at ("style", "hook.register.center", hook.reg.line) + "the center " + std::to_string (hook.reg.center) + " is outside the carrier's kit range, " + kitRange);
+            if (hook.reg.span > r.hi - r.lo)
+                return R::failure (where + at ("style", "hook.register.span", hook.reg.line) + "a span of " + std::to_string (hook.reg.span) + " is wider than the carrier's kit range, " + kitRange);
+            if (hook.reg.floor >= 0 && (hook.reg.floor < r.lo || hook.reg.floor > r.hi))
+                return R::failure (where + at ("style", "hook.register.floor", hook.reg.line) + "the floor " + std::to_string (hook.reg.floor) + " is outside the carrier's kit range, " + kitRange);
+            if (hook.period.range && (hook.period.range->lo < r.lo || hook.period.range->hi > r.hi))
+                return R::failure (where + at ("style", "hook.period.register", hook.period.rangeLine) + "the new phrase's register, " + std::to_string (hook.period.range->lo) + " to "
+                                   + std::to_string (hook.period.range->hi) + ", is outside the carrier's kit range, " + kitRange);
+        }
         for (const auto& plan : style.form.plans)
             for (const auto& lane : style.lanes)
                 if (style.form.mayPlay (plan.kind, lane.id) && lane.gridFor (plan.kind).empty())
