@@ -352,7 +352,7 @@ TEST_CASE ("styles: the loader refuses broken new fields and says where", "[gen]
     CHECK_THAT (withStyle (sciclub, "{ \"idx\": [0, 4, 2], \"w\": 12 }", "{ \"idx\": [], \"w\": 12 }"), ContainsSubstring ("idx"));
     CHECK_THAT (withStyle (sciclub, "\"kind\": \"arp\"", "\"kind\": \"arpeggio\""), ContainsSubstring ("arpeggio"));
     // an arp needs a register: a range in the kit, not drum notes
-    CHECK_THAT (withKit (sciclub, "\"arp\": { \"track\": \"Arp Chrome\", \"channel\": 3, \"range\": [62, 86] }", "\"arp\": { \"track\": \"Arp Chrome\", \"channel\": 3, \"notes\": { \"zap\": 47 } }"),
+    CHECK_THAT (withKit (sciclub, "\"arp\": { \"track\": \"Arp Chrome\", \"channel\": 1, \"range\": [62, 86] }", "\"arp\": { \"track\": \"Arp Chrome\", \"channel\": 1, \"notes\": { \"zap\": 47 } }"),
         ContainsSubstring ("arp"));
     // the feel can't spread or follow an arp's notes like a chord's or a drum's
     CHECK_THAT (withFeel (sciclub, "\"arp\": {", "\"arp\": { \"spread\": [0, 2],"), ContainsSubstring ("spread"));

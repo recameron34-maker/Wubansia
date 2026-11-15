@@ -189,6 +189,42 @@ TEST_CASE ("both bundles use the GM drum notes inside 35-59 and the lanes of the
     }
 }
 
+TEST_CASE ("generator kits follow the MIDI v2 channels", "[gen][content]")
+{
+    // docs/midi-map.md's channels, 1-based as there (a kit's "channel" counts from 0): the bass on 1
+    // (Wubansia's bass multisample), a lead on 2 (its lead multisample: FUT02's arp), the voiced
+    // chords on 3 (the chord voicing, which Wubansia ignores: on 4 it would trigger the kit's chord
+    // sample at every note), the drums on 10. FUT04's rumble, the one bass-kind lane that isn't the
+    // bass, sits on 9, reserved, where Wubansia plays nothing, until it becomes drum note 35.
+    const auto midiV2 = [] (std::string_view kit, const LaneSpec& lane) -> int {
+        if (kit == "FUT04" && lane.id == "rumble")
+            return 9;
+        switch (lane.kind)
+        {
+            case LaneKind::drums: return 10;
+            case LaneKind::bass: return 1;
+            case LaneKind::chords: return 3;
+            case LaneKind::arp: return 2;
+        }
+        return 0; // a new kind: give it its channel from the table first
+    };
+    for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
+    {
+        const auto b = loadBundle (contentDir, id);
+        REQUIRE (b.ok());
+        std::set<int> pitched;
+        for (const auto& lane : b.value.style.lanes)
+        {
+            INFO (id << " " << lane.id);
+            const KitLane* kl = b.value.kit.lane (lane.id);
+            REQUIRE (kl != nullptr);
+            CHECK (kl->channel + 1 == midiV2 (id, lane));
+            if (lane.kind != LaneKind::drums)
+                CHECK (pitched.insert (kl->channel + 1).second); // one instrument per channel
+        }
+    }
+}
+
 TEST_CASE ("the kit loader refuses broken kits and says where", "[gen][content]")
 {
     const Texts t = texts ("fut01", "garage2step");
