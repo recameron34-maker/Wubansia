@@ -636,15 +636,27 @@ TEST_CASE ("no chord stack voices a minor 9th over its root", "[gen][harmony]")
         }
 }
 
-TEST_CASE ("the arp's chord tones agree with the chord lane's stacks", "[gen][harmony]")
+TEST_CASE ("the arp's chord tones agree with the chord lane's stacks", "[gen][harmony][arp]")
 {
-    // FUT02's arp climbs the mode's own chord tones, so the stacks under it voice the same third
-    // and fifth: no 4th over a major third (a quartal stack on a major chord), no other third, no
-    // b5 or #5 against its fifth.
+    // An arp lane (arp.h) climbs the mode's own chord tones, so the stacks under it voice the same
+    // third and fifth: no 4th over a major third (a quartal stack on a major chord), no other third,
+    // no b5 or #5 against its fifth. On FUT02 as it was before the hook (core/tests/fixtures/nohook),
+    // whose arp lane is kind arp: the shipped FUT02's arp carries the hook (S1b2b).
+    static const Bundle before = [] {
+        auto b = loadBundle (std::filesystem::path (WUBANSIA_SOURCE_DIR) / "core" / "tests" / "fixtures" / "nohook", "FUT02");
+        INFO (b.error);
+        REQUIRE (b.ok());
+        return std::move (b.value);
+    }();
     std::size_t checked = 0;
     for (std::uint64_t seed = 0; seed < 32; ++seed)
     {
-        const Song s = songFor ("FUT02", seed);
+        Options o;
+        o.seed = seed;
+        const auto generated = generate (before, o);
+        REQUIRE (generated.ok());
+        const Song& s = generated.value;
+        REQUIRE (laneOf (s, "arp").kind == LaneKind::arp);
         const auto voiced = voicedOver (s);
         for (const Note& n : laneOf (s, "arp").score)
         {

@@ -121,7 +121,9 @@ namespace
 
     // Perturbs one lane's own parameters (gen-core's test, extended to the new fields): every
     // non-anchor probability p becomes 100 - p, velocities rise by 3, a CC lane's ramp rises by 5, and
-    // the feel's 1/f spread doubles. Nothing else in the style changes.
+    // the feel's 1/f spread doubles; a lead lane's grids scale its velocities and lengths 50 permille
+    // lower, and, as the hook's carrier, its hook block's cell weights w become 100 - w. Nothing else
+    // in the style changes.
     void perturbLane (Bundle& b, const std::string& id)
     {
         const auto flip = [] (Grid& g) {
@@ -171,6 +173,11 @@ namespace
                 flip (g.p);
                 louder (g.vel);
             }
+            for (auto& g : lane.lead.grids)
+            {
+                g.vel -= 50;
+                g.len -= 50;
+            }
             for (auto& cc : lane.cc)
                 for (auto& row : cc.rows)
                 {
@@ -178,6 +185,9 @@ namespace
                     row.to = Range { std::min (127, row.to.lo + 5), std::min (127, row.to.hi + 5) };
                 }
         }
+        if (b.style.hook && b.style.hook->lane == id)
+            for (auto& c : b.style.hook->cells)
+                c.weight = 100 - c.weight;
         for (auto& [laneId, fl] : b.feel.lanes)
             if (laneId == id && fl.sd)
                 fl.sd = Range { fl.sd->lo * 2 + 2, fl.sd->hi * 2 + 2 };
@@ -358,8 +368,9 @@ TEST_CASE ("styles: changing one lane's parameters leaves the other lanes' bytes
 {
     // The bass and the rumble follow, lock to and duck under the kick, so they may change with it;
     // the bass's third, seventh and fifth agree with what the chords voice, so it may change with
-    // them too; nothing else depends on another lane (the arp follows the harmony, not a lane).
-    const std::map<std::string, std::set<std::string>> dependents = { { "kick", { "bass", "rumble" } }, { "chords", { "bass" } } };
+    // them too; the hook's carrier (FUT04's lead, FUT02's arp: S1b2b) reads the chord lanes for its
+    // voicing guard, so it may change with them as well; nothing else depends on another lane.
+    const std::map<std::string, std::set<std::string>> dependents = { { "kick", { "bass", "rumble" } }, { "chords", { "bass", "lead", "arp" } } };
     for (const char* id : kits)
         for (const auto& lane : bundleFor (id).style.lanes)
         {
@@ -1029,15 +1040,24 @@ TEST_CASE ("sci-fi club: the bass rolls on the offbeats with octave jumps and re
     CHECK (velE * nA > velA * nE); // ...and the a before the kick the ghost
 }
 
-TEST_CASE ("sci-fi club: the arp runs 16ths on the chord tones with 3-3-2 accents", "[gen][styles][sciclub]")
+TEST_CASE ("sci-fi club before the hook: the arp lane runs 16ths on the chord tones with 3-3-2 accents", "[gen][styles][sciclub][arp]")
 {
-    const Bundle& b = bundleFor ("FUT02");
+    // The arp lane (arp.h) on FUT02 as it was before the hook (core/tests/fixtures/nohook), since FUT02's
+    // arp now carries the hook as the written ChromeArp (test_gen_hook.cpp, test 19).
+    static const Bundle b = [] {
+        auto loaded = loadBundle (std::filesystem::path (WUBANSIA_SOURCE_DIR) / "core" / "tests" / "fixtures" / "nohook", "FUT02");
+        INFO (loaded.error);
+        REQUIRE (loaded.ok());
+        REQUIRE_FALSE (loaded.value.style.hook.has_value());
+        return std::move (loaded.value);
+    }();
+    REQUIRE (specOf (b, "arp").kind == LaneKind::arp);
     const Range reg = b.kit.lane ("arp")->range;
     std::size_t bars = 0, onsets = 0;
     std::int64_t accentVel = 0, otherVel = 0, nAccent = 0, nOther = 0;
     for (std::uint64_t seed = 0; seed < 32; ++seed)
     {
-        const Song s = songFor ("FUT02", seed);
+        const Song s = songOf (b, seed);
         const std::size_t li = laneIndexOf (s, "arp");
         const LaneOut& arp = s.lanes[li];
         REQUIRE_FALSE (arp.score.empty());

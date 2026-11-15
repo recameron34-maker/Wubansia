@@ -137,6 +137,13 @@ TEST_CASE ("the full file is SMF type 1 with a conductor and one track per lane"
             const std::set<std::string> chordWords = { "chords", "stabs", "stab", "pad", "organ", "strings", "piano" };
             CHECK (bassWords.contains (firstWord (b.kit.lane ("bass")->track)));
             CHECK (chordWords.contains (firstWord (b.kit.lane ("chords")->track)));
+            // the hook's lead lane (S1b2b), the eighth: 'Lead Pluck' and 'Lead Keys', leads to the metrics
+            const std::set<std::string> leadWords = { "melody", "lead", "pluck", "arp", "counter", "talkbox", "hoover" };
+            CHECK (b.style.lanes.size() == 8);
+            REQUIRE (b.style.hook.has_value());
+            REQUIRE (b.kit.lane (b.style.hook->lane) != nullptr);
+            CHECK (b.kit.lane (b.style.hook->lane)->track == (std::string_view (id) == "FUT01" ? "Lead Pluck" : "Lead Keys"));
+            CHECK (leadWords.contains (firstWord (b.kit.lane (b.style.hook->lane)->track)));
             for (std::size_t l = 0; l < b.style.lanes.size(); ++l)
             {
                 const KitLane* kl = b.kit.lane (b.style.lanes[l].id);

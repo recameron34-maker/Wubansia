@@ -577,6 +577,8 @@ namespace wubansia::gen
                     return hasName (lane.chords.grids, grid);
                 case LaneKind::arp:
                     return hasName (lane.arp.grids, grid);
+                case LaneKind::lead:
+                    return hasName (lane.lead.grids, grid);
             }
             return false;
         }
@@ -1358,6 +1360,15 @@ namespace wubansia::gen
         return std::any_of (p->choices.begin(), p->choices.end(), [&] (const BlockChoice& c) { return std::any_of (c.blocks.begin(), c.blocks.end(), has); });
     }
 
+    const HookMenu* HookSpec::menu (std::string_view kind, bool afterFirstDrop) const noexcept
+    {
+        const bool drop = kind == "drop" || kind == "drop2";
+        for (const auto& m : menus)
+            if (m.kind == kind && m.after == (afterFirstDrop && !drop))
+                return &m;
+        return nullptr;
+    }
+
     const SectionSpec* Style::section (std::string_view kind) const noexcept
     {
         for (const auto& s : sections)
@@ -1525,6 +1536,8 @@ namespace wubansia::gen
                 case LaneKind::arp:
                     arpLane (ln, lane);
                     break;
+                case LaneKind::lead:
+                    break; // not read yet: the hook's loader (S1b2b) reads the lead lane and the hook block
             }
             lane.cc = ccSpecs (ln.optional ("cc"));
             for (const auto& [k, g] : lane.use)

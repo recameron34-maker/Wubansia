@@ -125,6 +125,26 @@ TEST_CASE ("key paths match the reference vectors", "[rng]")
     }
 }
 
+TEST_CASE ("the hook's permanent tags match the reference vectors", "[rng]")
+{
+    // The hook (S1b2b) hangs every draw below root.with (tag ("hook")), and the vox reply below
+    // root.with (tag ("reply")): permanent top-level tags, so a renamed one fails here, not only in
+    // the generator snapshots (test_gen_hook.cpp checks the generator's own keys against these).
+    CHECK (rng::tag ("hook") == 0x4033F5CC7E757B8Aull);
+    CHECK (rng::tag ("reply") == 0xF53601F2B1E97107ull);
+    CHECK (rng::tag ("rhythm") == 0xCA2349BBCC0E5951ull);
+    CHECK (rng::tag ("cell") == 0xD98B1E90FD653435ull);
+    CHECK (rng::tag ("FUT01") == 0x67B52ECE1F719483ull);
+
+    // FUT01 seed 7's root (gen::songRoot), then the hook's, the reply's and A's bar-1 cell's keys
+    const rng::Key root = rng::seedKey (7).with (rng::tag ("FUT01"));
+    CHECK (root.h == 0x4E503AB4C67A1176ull);
+    CHECK (root.with (rng::tag ("hook")).h == 0x305D75E36F54C6F0ull);
+    CHECK (root.with (rng::tag ("reply")).h == 0x25344576E166B7ACull);
+    CHECK (root.with (rng::tag ("hook")).with (rng::tag ("rhythm")).with (rng::tag ("cell")).h == 0xC989FB08A5C35F99ull);
+    CHECK (rng::derive (root, rng::tag ("hook"), rng::tag ("rhythm"), rng::tag ("cell")) == root.with (rng::tag ("hook")).with (rng::tag ("rhythm")).with (rng::tag ("cell")));
+}
+
 TEST_CASE ("below is Lemire's multiply-shift on the high 32 bits", "[rng]")
 {
     CHECK (rng::below (bassKey, 0) == 0u);

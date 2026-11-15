@@ -51,6 +51,13 @@ namespace
             readText (contentDir / "feels" / (std::string (style) + ".json")) };
     }
 
+    // The hook fixture (core/tests/fixtures/hook): FUT01 with the plan's lead lane and hook block.
+    Texts hookTexts()
+    {
+        const auto dir = std::filesystem::path (WUBANSIA_SOURCE_DIR) / "core" / "tests" / "fixtures" / "hook";
+        return { readText (dir / "kits" / "fut01.json"), readText (dir / "styles" / "garage2step.json"), readText (dir / "feels" / "garage2step.json") };
+    }
+
     // The error makeBundle gives for these texts, or "" if they load.
     std::string bundleError (const Texts& t)
     {
@@ -166,7 +173,7 @@ TEST_CASE ("both bundles use the GM drum notes inside 35-59 and the lanes of the
         std::set<std::string> lanes;
         for (const auto& lane : b.value.style.lanes)
             lanes.insert (lane.id);
-        CHECK (lanes == std::set<std::string> { "kick", "snare", "hats", "shaker", "perc", "bass", "chords" });
+        CHECK (lanes == std::set<std::string> { "kick", "snare", "hats", "shaker", "perc", "bass", "chords", "lead" }); // the lead: the hook's carrier (S1b2b)
         for (const auto& lane : b.value.kit.lanes)
             for (const auto& n : lane.notes)
             {
@@ -192,10 +199,11 @@ TEST_CASE ("both bundles use the GM drum notes inside 35-59 and the lanes of the
 TEST_CASE ("generator kits follow the MIDI v2 channels", "[gen][content]")
 {
     // docs/midi-map.md's channels, 1-based as there (a kit's "channel" counts from 0): the bass on 1
-    // (Wubansia's bass multisample), a lead on 2 (its lead multisample: FUT02's arp), the voiced
-    // chords on 3 (the chord voicing, which Wubansia ignores: on 4 it would trigger the kit's chord
-    // sample at every note), the drums on 10. FUT04's rumble, the one bass-kind lane that isn't the
-    // bass, sits on 9, reserved, where Wubansia plays nothing, until it becomes drum note 35.
+    // (Wubansia's bass multisample), a lead on 2 (its lead multisample: FUT02's arp, the hook's lead
+    // lanes), the voiced chords on 3 (the chord voicing, which Wubansia ignores: on 4 it would trigger
+    // the kit's chord sample at every note), the drums on 10. FUT04's rumble, the one bass-kind lane
+    // that isn't the bass, sits on 9, reserved, where Wubansia plays nothing, until it becomes drum
+    // note 35.
     const auto midiV2 = [] (std::string_view kit, const LaneSpec& lane) -> int {
         if (kit == "FUT04" && lane.id == "rumble")
             return 9;
@@ -205,6 +213,7 @@ TEST_CASE ("generator kits follow the MIDI v2 channels", "[gen][content]")
             case LaneKind::bass: return 1;
             case LaneKind::chords: return 3;
             case LaneKind::arp: return 2;
+            case LaneKind::lead: return 2;
         }
         return 0; // a new kind: give it its channel from the table first
     };
@@ -223,6 +232,63 @@ TEST_CASE ("generator kits follow the MIDI v2 channels", "[gen][content]")
                 CHECK (pitched.insert (kl->channel + 1).second); // one instrument per channel
         }
     }
+}
+
+TEST_CASE ("the loader refuses a lead lane the hook can't play on, and says where", "[gen][content][hook]")
+{
+    // The hook fixture loads; broken copies of it don't (docs/plans/S1b2b-plan.md, "The loader's
+    // refusals"): the hook names one carrier, a lead lane of the style, and every lead lane is one
+    // (until a reply part); the carrier's kit range spans an octave or more from the style's
+    // mud.minorSecond (64) up and holds the register; its grids hold only its scales.
+    const Texts t = hookTexts();
+    REQUIRE (bundleError (t).empty());
+    const auto withStyle = [&t] (std::string_view from, std::string_view to) {
+        Texts u = t;
+        u.style = replaced (u.style, from, to);
+        return bundleError (u);
+    };
+    const auto withKit = [&t] (std::string_view from, std::string_view to) {
+        Texts u = t;
+        u.kit = replaced (u.kit, from, to);
+        return bundleError (u);
+    };
+    const auto withFeel = [&t] (std::string_view from, std::string_view to) {
+        Texts u = t;
+        u.feel = replaced (u.feel, from, to);
+        return bundleError (u);
+    };
+    // the carrier: there, and a lead lane
+    CHECK_THAT (withStyle ("\"lane\": \"lead\",\n    \"register\"", "\"register\""), ContainsSubstring ("hook.lane"));
+    CHECK_THAT (withStyle ("\"lane\": \"lead\",\n    \"register\"", "\"lane\": \"chords\",\n    \"register\""), ContainsSubstring ("hook.lane"));
+    CHECK_THAT (withStyle ("\"lane\": \"lead\",\n    \"register\"", "\"lane\": \"vox\",\n    \"register\""), ContainsSubstring ("hook.lane"));
+    // a lead lane without a hook block
+    Texts noHook = t;
+    const auto hookAt = noHook.style.find ("],\n  \"hook\": {");
+    const auto end = noHook.style.rfind ("\n}");
+    REQUIRE (hookAt != std::string::npos);
+    REQUIRE (end != std::string::npos);
+    noHook.style = noHook.style.substr (0, hookAt + 1) + noHook.style.substr (end);
+    CHECK_THAT (bundleError (noHook), ContainsSubstring ("lead"));
+    // two carriers: a second lead lane
+    Texts two = t;
+    two.style = replaced (two.style, "\"main\": { \"vel\": 1000, \"len\": 1000 } } }\n  ],",
+        "\"main\": { \"vel\": 1000, \"len\": 1000 } } },\n    { \"id\": \"lead2\", \"kind\": \"lead\", \"use\": { \"drop\": \"main\" }, \"grids\": { \"main\": { \"vel\": 1000, \"len\": 1000 } } }\n  ],");
+    two.kit = replaced (two.kit, "\"lead\": { \"track\": \"Lead Pluck\", \"channel\": 1, \"range\": [68, 86] }",
+        "\"lead\": { \"track\": \"Lead Pluck\", \"channel\": 1, \"range\": [68, 86] },\n    \"lead2\": { \"track\": \"Lead Echo\", \"channel\": 4, \"range\": [68, 86] }");
+    two.feel = replaced (two.feel, "\"lead\": { \"swing\": [5, 20], \"sd\": [8, 12], \"clamp\": 6, \"anchor\": 0, \"vsd\": [14, 20], \"artic\": 50 }",
+        "\"lead\": { \"swing\": [5, 20], \"sd\": [8, 12], \"clamp\": 6, \"anchor\": 0, \"vsd\": [14, 20], \"artic\": 50 },\n    \"lead2\": { \"swing\": [5, 20], \"sd\": [8, 12], \"clamp\": 6 }");
+    CHECK_THAT (bundleError (two), ContainsSubstring ("lead2"));
+    // the carrier's kit range: from 64 up, an octave or more, and holding the register
+    CHECK_THAT (withKit ("\"range\": [68, 86]", "\"range\": [60, 86]"), ContainsSubstring ("lanes.lead"));
+    CHECK_THAT (withKit ("\"range\": [68, 86]", "\"range\": [68, 79]"), ContainsSubstring ("lanes.lead"));
+    CHECK_THAT (withStyle ("\"register\": { \"center\": 74, \"span\": 15 }", "\"register\": { \"center\": 90, \"span\": 15 }"), ContainsSubstring ("register"));
+    CHECK_THAT (withStyle ("\"register\": { \"center\": 74, \"span\": 15 }", "\"register\": { \"center\": 74, \"span\": 19 }"), ContainsSubstring ("register"));
+    // a lead lane's grids hold only their velocity and length scales, and it needs one for every kind the form plays it in
+    CHECK_THAT (withStyle ("\"plant\": { \"vel\": 920, \"len\": 850 }", "\"plant\": { \"vel\": 920, \"len\": 850, \"p\": 50 }"), ContainsSubstring ("unknown key \"p\""));
+    CHECK_THAT (withStyle ("\"build\": \"plant\", \"drop\": \"main\"", "\"drop\": \"main\""), ContainsSubstring ("no grid for build"));
+    // and its feel: swing, sd and clamp at its base
+    CHECK_THAT (withFeel ("\"lead\": { \"swing\": [5, 20], \"sd\": [8, 12], \"clamp\": 6,", "\"lead\": { \"swing\": [5, 20], \"sd\": [8, 12],"),
+        ContainsSubstring ("needs swing, sd and clamp"));
 }
 
 TEST_CASE ("the kit loader refuses broken kits and says where", "[gen][content]")

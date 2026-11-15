@@ -1,6 +1,7 @@
 // Tests for the FUT02 "Orbit Relay" (sci-fi club) and FUT04 "Furnace Code" (techno) content, and for
-// the loader rules of the engine features those styles use: the arp lane, CC lanes, the bass's duck,
-// per-step slides and mutations, the feel's tight rule, and one-chord (pedal) harmony.
+// the loader rules of the engine features those styles use: the arp lane (on FUT02 as it was before
+// the hook, core/tests/fixtures/nohook), CC lanes, the bass's duck, per-step slides and mutations,
+// the feel's tight rule, one-chord (pedal) harmony, and the hook block (S1b2b, on the hook fixture).
 
 #include "gen/content.h"
 #include "gen/song.h"
@@ -48,12 +49,14 @@ namespace
         std::string kit, style, feel;
     };
 
-    Texts texts (std::string_view kit, std::string_view style)
+    Texts texts (std::string_view kit, std::string_view style, const std::filesystem::path& dir = contentDir)
     {
-        return { readText (contentDir / "kits" / (std::string (kit) + ".json")),
-            readText (contentDir / "styles" / (std::string (style) + ".json")),
-            readText (contentDir / "feels" / (std::string (style) + ".json")) };
+        return { readText (dir / "kits" / (std::string (kit) + ".json")),
+            readText (dir / "styles" / (std::string (style) + ".json")),
+            readText (dir / "feels" / (std::string (style) + ".json")) };
     }
+
+    const std::filesystem::path fixtureDir = std::filesystem::path (WUBANSIA_SOURCE_DIR) / "core" / "tests" / "fixtures";
 
     // The error makeBundle gives for these texts, or "" if they load.
     std::string bundleError (const Texts& t)
@@ -146,7 +149,7 @@ TEST_CASE ("styles: the new kits keep drums on GM notes inside 35-59 and have th
 {
     const std::map<std::string, std::set<std::string>> expected = {
         { "FUT02", { "kick", "snare", "hats", "perc", "bass", "chords", "arp" } },
-        { "FUT04", { "kick", "rumble", "snare", "hats", "perc", "bass", "chords" } },
+        { "FUT04", { "kick", "rumble", "snare", "hats", "perc", "bass", "chords", "lead" } }, // the lead: the hook's carrier (S1b2b)
     };
     for (const auto& [id, lanes] : expected)
     {
@@ -186,7 +189,7 @@ TEST_CASE ("styles: the new kits keep drums on GM notes inside 35-59 and have th
         CHECK (b.style.lanes[*b.style.laneIndex ("chords")].kind == LaneKind::chords);
     }
     const Bundle a = bundleOf ("FUT02");
-    CHECK (a.style.lanes[*a.style.laneIndex ("arp")].kind == LaneKind::arp);
+    CHECK (a.style.lanes[*a.style.laneIndex ("arp")].kind == LaneKind::lead); // the arp carries the hook (S1b2b) as the written ChromeArp
     const Bundle t = bundleOf ("FUT04");
     CHECK (noteOf (t.kit, "hats", "ride") == 51); // the offbeat ride
     const LaneSpec& rumble = t.style.lanes[*t.style.laneIndex ("rumble")];
@@ -208,6 +211,8 @@ TEST_CASE ("styles: track names give each lane its role in the metrics", "[gen][
     CHECK (roleOf (t.kit.lane ("bass")->track) == "bass");
     CHECK (roleOf (t.kit.lane ("chords")->track) == "chords");
     CHECK (roleOf (t.kit.lane ("rumble")->track) == "other");
+    REQUIRE (t.kit.lane ("lead") != nullptr);
+    CHECK (roleOf (t.kit.lane ("lead")->track) == "lead"); // 'Lead Blips', the hook's carrier (S1b2b)
     // no artist names and no style tags in the names: plain words for what the lane plays
     for (const Bundle* b : { &a, &t })
         for (const auto& lane : b->kit.lanes)
@@ -271,7 +276,12 @@ TEST_CASE ("styles: the loader reads the new engine fields", "[gen][styles][cont
     CHECK_FALSE (t.style.harmony.pushAlike); // the pedal pushes nothing
 
     const Bundle a = bundleOf ("FUT02");
-    const LaneSpec& arp = a.style.lanes[*a.style.laneIndex ("arp")];
+    // the arp lane (arp.h), on FUT02 as it was before the hook: the shipped arp carries the hook (S1b2b)
+    const auto before = loadBundle (fixtureDir / "nohook", "FUT02");
+    INFO (before.error);
+    REQUIRE (before.ok());
+    const LaneSpec& arp = before.value.style.lanes[*before.value.style.laneIndex ("arp")];
+    REQUIRE (arp.kind == LaneKind::arp);
     CHECK (arp.arp.center == 68);
     REQUIRE_FALSE (arp.arp.grids.empty());
     for (const auto& g : arp.arp.grids)
@@ -298,7 +308,7 @@ TEST_CASE ("styles: the loader reads the new engine fields", "[gen][styles][cont
 TEST_CASE ("styles: the loader refuses broken new fields and says where", "[gen][styles][content]")
 {
     const Texts techno = texts ("fut04", "techno");
-    const Texts sciclub = texts ("fut02", "sciclub");
+    const Texts sciclub = texts ("fut02", "sciclub", fixtureDir / "nohook"); // the arp lane: FUT02 before the hook
     REQUIRE (bundleError (techno).empty());
     REQUIRE (bundleError (sciclub).empty());
     const auto withStyle = [] (const Texts& t, std::string_view from, std::string_view to) {
@@ -395,4 +405,142 @@ TEST_CASE ("styles: the garage and house styles use only the engine fields their
             CHECK (r.size() >= 2);
         CHECK_FALSE (b.style.harmony.pushAlike);
     }
+}
+
+TEST_CASE ("styles: the loader refuses broken hook blocks and says where", "[gen][styles][content][hook]")
+{
+    // The hook fixture (core/tests/fixtures/hook: FUT01 with the plan's hook block) loads, and so does
+    // a pedal style made from it (FUT02's: all-accent cells and cells from 16th 0 allowed); each broken
+    // copy is refused at the hook block's path (docs/plans/S1b2b-plan.md, "The loader's refusals").
+    const Texts hook = texts ("fut01", "garage2step", fixtureDir / "hook");
+    REQUIRE (bundleError (hook).empty());
+    const auto refused = [] (const Texts& t, std::string_view from, std::string_view to) {
+        Texts u = t;
+        u.style = replaced (u.style, from, to);
+        return bundleError (u);
+    };
+    const auto hookRefused = [&] (std::string_view from, std::string_view to) { return refused (hook, from, to); };
+
+    // contours: a known shape, a weight that can be drawn, windows inside the 2-bar phrase
+    CHECK_THAT (hookRefused ("{ \"shape\": \"early\", \"w\": 1 }", "{ \"shape\": \"middle\", \"w\": 1 }"), ContainsSubstring ("hook.contours[1].shape"));
+    CHECK_THAT (hookRefused ("[ { \"shape\": \"late\", \"w\": 3 }, { \"shape\": \"early\", \"w\": 1 } ]", "[ { \"shape\": \"late\", \"w\": 0 }, { \"shape\": \"early\", \"w\": 0 } ]"),
+        ContainsSubstring ("hook.contours"));
+    CHECK_THAT (hookRefused ("\"peak\": [18, 28]", "\"peak\": [18, 32]"), ContainsSubstring ("hook.pitch.peak"));
+    CHECK_THAT (hookRefused ("\"early\": [4, 12]", "\"early\": [-1, 12]"), ContainsSubstring ("hook.pitch.early"));
+
+    // cells: 16ths 0-15 ascending; a length per onset, 1-16; accents among the onsets; an onset in each
+    // half; a non-accent onset (in a style without a pedal); a weight that can be drawn
+    const std::string cell0 = "{ \"on\": [0, 3, 6, 8, 11, 14], \"len\": [2, 2, 3, 2, 2, 2], \"acc\": [0, 6, 8], \"w\": 30 }";
+    CHECK_THAT (hookRefused (cell0, "{ \"on\": [0, 3, 6, 8, 11, 16], \"len\": [2, 2, 3, 2, 2, 2], \"acc\": [0, 6, 8], \"w\": 30 }"), ContainsSubstring ("hook.cells[0].on"));
+    CHECK_THAT (hookRefused (cell0, "{ \"on\": [0, 3, 6, 8, 14, 11], \"len\": [2, 2, 3, 2, 2, 2], \"acc\": [0, 6, 8], \"w\": 30 }"), ContainsSubstring ("hook.cells[0].on"));
+    CHECK_THAT (hookRefused (cell0, "{ \"on\": [0, 3, 6, 8, 11, 14], \"len\": [2, 2, 3, 2, 2], \"acc\": [0, 6, 8], \"w\": 30 }"), ContainsSubstring ("hook.cells[0].len"));
+    CHECK_THAT (hookRefused (cell0, "{ \"on\": [0, 3, 6, 8, 11, 14], \"len\": [2, 2, 3, 2, 2, 17], \"acc\": [0, 6, 8], \"w\": 30 }"), ContainsSubstring ("hook.cells[0].len"));
+    CHECK_THAT (hookRefused (cell0, "{ \"on\": [0, 3, 6, 8, 11, 14], \"len\": [2, 2, 3, 2, 2, 2], \"acc\": [0, 6, 9], \"w\": 30 }"), ContainsSubstring ("hook.cells[0].acc"));
+    const std::string cell3 = "{ \"on\": [2, 6, 10, 13], \"len\": [2, 2, 2, 2], \"acc\": [6, 10], \"w\": 14 }";
+    CHECK_THAT (hookRefused (cell3, "{ \"on\": [2, 4, 5, 6], \"len\": [2, 1, 1, 2], \"acc\": [6], \"w\": 14 }"), ContainsSubstring ("hook.cells[3]")); // nothing in 8-15
+    CHECK_THAT (hookRefused (cell3, "{ \"on\": [2, 6, 10, 13], \"len\": [2, 2, 2, 2], \"acc\": [2, 6, 10, 13], \"w\": 14 }"), ContainsSubstring ("hook.cells[3]")); // all accents
+    const std::string cells = "\"cells\": [\n"
+                              "      { \"on\": [0, 3, 6, 8, 11, 14], \"len\": [2, 2, 3, 2, 2, 2], \"acc\": [0, 6, 8], \"w\": 30 },\n"
+                              "      { \"on\": [0, 3, 6, 10, 12], \"len\": [2, 2, 3, 2, 2], \"acc\": [0, 6, 10], \"w\": 16 },\n"
+                              "      { \"on\": [6, 9, 10, 15], \"len\": [2, 1, 3, 1], \"acc\": [6, 10], \"w\": 14 },\n"
+                              "      { \"on\": [2, 6, 10, 13], \"len\": [2, 2, 2, 2], \"acc\": [6, 10], \"w\": 14 },\n"
+                              "      { \"on\": [0, 3, 7, 8, 11, 14], \"len\": [2, 2, 1, 2, 2, 2], \"acc\": [0, 8, 14], \"w\": 12 },\n"
+                              "      { \"on\": [0, 3, 6, 9, 12], \"len\": [2, 2, 2, 2, 3], \"acc\": [0, 6, 12], \"w\": 14 }\n"
+                              "    ],";
+    std::string zeroCells = cells;
+    for (const std::string w : { "\"w\": 30 }", "\"w\": 16 }", "\"w\": 14 }", "\"w\": 14 }", "\"w\": 12 }", "\"w\": 14 }" })
+        zeroCells = replaced (zeroCells, w, "\"w\": 0 }");
+    CHECK_THAT (hookRefused (cells, zeroCells), ContainsSubstring ("hook.cells"));
+
+    // mutate: percentages, extra onsets on 16ths 0-15; answer: a weight that can be drawn
+    CHECK_THAT (hookRefused ("\"drop\": 25, \"add\": 25", "\"drop\": 125, \"add\": 25"), ContainsSubstring ("hook.mutate.drop"));
+    CHECK_THAT (hookRefused ("\"extra\": [2, 7, 10, 13, 15]", "\"extra\": [2, 7, 10, 13, 16]"), ContainsSubstring ("hook.mutate.extra"));
+    CHECK_THAT (hookRefused ("\"same\": 4, \"move\": 3, \"add\": 2, \"drop\": 1", "\"same\": 0, \"move\": 0, \"add\": 0, \"drop\": 0"), ContainsSubstring ("hook.answer"));
+
+    // pitch: pool degrees 0-6, once each, holding every degree start and end can draw; 7 weights
+    // each for start and end, 8 for moves; a leap of 1-12 semitones; strong onsets "accents" or
+    // "beats"; tones and clash scale steps 0-8
+    CHECK_THAT (hookRefused ("\"pool\": [0, 1, 2, 3, 4, 6]", "\"pool\": [0, 1, 2, 3, 4, 7]"), ContainsSubstring ("hook.pitch.pool"));
+    CHECK_THAT (hookRefused ("\"pool\": [0, 1, 2, 3, 4, 6]", "\"pool\": [0, 1, 2, 3, 4, 4]"), ContainsSubstring ("hook.pitch.pool"));
+    CHECK_THAT (hookRefused ("\"pool\": [0, 1, 2, 3, 4, 6]", "\"pool\": [0, 1, 2, 3, 4]"), ContainsSubstring ("hook.pitch")); // start and end can draw the b7
+    CHECK_THAT (hookRefused ("\"start\": [40, 0, 20, 0, 30, 0, 10]", "\"start\": [40, 0, 20, 0, 30, 0]"), ContainsSubstring ("hook.pitch.start"));
+    CHECK_THAT (hookRefused ("\"start\": [40, 0, 20, 0, 30, 0, 10]", "\"start\": [0, 0, 0, 0, 0, 0, 0]"), ContainsSubstring ("hook.pitch.start"));
+    CHECK_THAT (hookRefused ("\"end\": [4, 25, 20, 0, 35, 0, 20]", "\"end\": [0, 0, 0, 0, 0, 0, 0]"), ContainsSubstring ("hook.pitch.end"));
+    CHECK_THAT (hookRefused ("\"moves\": [10, 45, 27, 9, 9, 0, 0, 0]", "\"moves\": [10, 45, 27, 9, 9, 0, 0]"), ContainsSubstring ("hook.pitch.moves"));
+    CHECK_THAT (hookRefused ("\"leap\": 9,", "\"leap\": 13,"), ContainsSubstring ("hook.pitch.leap"));
+    CHECK_THAT (hookRefused ("\"leap\": 9,", "\"leap\": 0,"), ContainsSubstring ("hook.pitch.leap"));
+    CHECK_THAT (hookRefused ("\"strong\": \"accents\"", "\"strong\": \"loud\""), ContainsSubstring ("hook.pitch.strong"));
+    CHECK_THAT (hookRefused ("\"tones\": [0, 2, 4, 6, 8]", "\"tones\": [0, 2, 4, 6, 9]"), ContainsSubstring ("hook.pitch.tones"));
+    CHECK_THAT (hookRefused ("\"clash\": [0, 2, 4, 6]", "\"clash\": [0, 2, 4, 9]"), ContainsSubstring ("hook.pitch.clash"));
+
+    // vel: 1-127, a peak raise of 20 at most, a shape of 12 at most; guard.second 0-127
+    CHECK_THAT (hookRefused ("\"down\": 124,", "\"down\": 128,"), ContainsSubstring ("hook.vel.down"));
+    CHECK_THAT (hookRefused ("\"other\": 88,", "\"other\": 0,"), ContainsSubstring ("hook.vel.other"));
+    CHECK_THAT (hookRefused ("\"peak\": 6,", "\"peak\": 21,"), ContainsSubstring ("hook.vel.peak"));
+    CHECK_THAT (hookRefused ("\"shape\": 4 }", "\"shape\": 13 }"), ContainsSubstring ("hook.vel.shape"));
+    CHECK_THAT (hookRefused ("\"second\": 68", "\"second\": 128"), ContainsSubstring ("hook.guard.second"));
+
+    // period: organ, glass or stab; halves in 8-15, ascending; an octave of -1 to 1; no cadence on the
+    // tonic; a glass register inside the kit range (68-86 here); a stab idiom with its cells
+    CHECK_THAT (hookRefused ("\"idiom\": \"organ\"", "\"idiom\": \"piano\""), ContainsSubstring ("hook.period.idiom"));
+    CHECK_THAT (hookRefused ("{ \"on\": [8, 10, 13], \"w\": 2 }", "{ \"on\": [7, 10, 13], \"w\": 2 }"), ContainsSubstring ("hook.period.halves[0].on"));
+    CHECK_THAT (hookRefused ("{ \"on\": [8, 10, 13], \"w\": 2 }", "{ \"on\": [8, 13, 10], \"w\": 2 }"), ContainsSubstring ("hook.period.halves[0].on"));
+    CHECK_THAT (hookRefused ("\"octave\": 0,", "\"octave\": 2,"), ContainsSubstring ("hook.period.octave"));
+    CHECK_THAT (hookRefused ("\"cadence\": [0, 2, 1, 0, 2, 0, 0]", "\"cadence\": [1, 2, 1, 0, 2, 0, 0]"), ContainsSubstring ("hook.period.cadence"));
+    const std::string period = "\"period\": {\n"
+                               "      \"idiom\": \"organ\",\n"
+                               "      \"halves\": [ { \"on\": [8, 10, 13], \"w\": 2 }, { \"on\": [8, 10], \"w\": 1 }, { \"on\": [8, 11, 13], \"w\": 1 } ],\n"
+                               "      \"octave\": 0,\n"
+                               "      \"cadence\": [0, 2, 1, 0, 2, 0, 0]\n"
+                               "    },";
+    CHECK_THAT (hookRefused (period, "\"period\": { \"idiom\": \"glass\", \"register\": [76, 89], \"halves\": [ { \"on\": [10, 14], \"w\": 1 } ] },"), ContainsSubstring ("register"));
+    CHECK_THAT (hookRefused (period, "\"period\": { \"idiom\": \"stab\" },"), ContainsSubstring ("hook.period"));
+
+    // a pedal (FUT02's ChromeArp): its cells start on 16th 0 and may be all accents; no extra onset on
+    // 16th 15; degrees -7 to 7, velocities 1-127, under full, answer, fragment and new only, 1 or 2
+    // pedal notes after a top note
+    const std::string pedalCells = "\"cells\": [\n"
+                                   "      { \"on\": [0, 3, 6, 8, 11, 14], \"len\": [2, 2, 2, 2, 2, 2], \"acc\": [0, 3, 6, 8, 11, 14], \"w\": 30 },\n"
+                                   "      { \"on\": [0, 3, 6, 10, 14], \"len\": [2, 2, 3, 2, 2], \"acc\": [0, 6, 10], \"w\": 25 }\n"
+                                   "    ],";
+    Texts pedal = hook;
+    pedal.style = replaced (pedal.style, cells, pedalCells);
+    pedal.style = replaced (pedal.style, "\"extra\": [2, 7, 10, 13, 15]", "\"extra\": [2, 7, 10, 13]");
+    pedal.style = replaced (pedal.style, "\"guard\": { \"second\": 68 },",
+        "\"guard\": { \"second\": 68 },\n    \"pedal\": { \"degrees\": [0, -3], \"vel\": [80, 66], \"in\": [\"full\", \"answer\", \"fragment\", \"new\"], \"max\": 2 },");
+    INFO (bundleError (pedal));
+    CHECK (bundleError (pedal).empty());
+    CHECK_THAT (refused (pedal, "\"degrees\": [0, -3]", "\"degrees\": [0, -8]"), ContainsSubstring ("hook.pedal.degrees"));
+    CHECK_THAT (refused (pedal, "\"vel\": [80, 66]", "\"vel\": [80, 0]"), ContainsSubstring ("hook.pedal.vel"));
+    CHECK_THAT (refused (pedal, "\"fragment\", \"new\"]", "\"fragment\", \"skeleton\"]"), ContainsSubstring ("hook.pedal.in"));
+    CHECK_THAT (refused (pedal, "\"max\": 2 }", "\"max\": 3 }"), ContainsSubstring ("hook.pedal.max"));
+    CHECK_THAT (refused (pedal, "\"extra\": [2, 7, 10, 13]", "\"extra\": [2, 7, 10, 13, 15]"), ContainsSubstring ("hook.mutate.extra"));
+    CHECK_THAT (refused (pedal, "{ \"on\": [0, 3, 6, 10, 14], \"len\": [2, 2, 3, 2, 2], \"acc\": [0, 6, 10], \"w\": 25 }",
+                    "{ \"on\": [2, 3, 6, 10, 14], \"len\": [2, 2, 3, 2, 2], \"acc\": [6, 10], \"w\": 25 }"),
+        ContainsSubstring ("hook.cells[1]"));
+
+    // plan: known ops; a menu for each kind the carrier's plans play it in and for no other; no VARY,
+    // CADENCE or BREATH in a first menu; no FULL or NEW in a withheld kind before the first drop;
+    // "continue" only in an after build; a drop's and drop 2's cover, 500 or more and reachable at
+    // every length they take (900 of drop 1's 3 lines: 2,700 > 2,000); drop 2's first menu the new
+    // phrase; a kind before the first drop that always plants the hook (here the groove)
+    const std::string grooveFirst = "\"first\": [ { \"op\": \"fragment\", \"w\": 3 }, { \"op\": \"skeleton\", \"w\": 1 } ],";
+    CHECK_THAT (hookRefused (grooveFirst, "\"first\": [ { \"op\": \"fragment\", \"w\": 3 }, { \"op\": \"skeletal\", \"w\": 1 } ],"), ContainsSubstring ("hook.plan.groove.first[1].op"));
+    CHECK_THAT (hookRefused ("\"plan\": {\n      \"groove\": {", "\"plan\": {\n      \"intro\": { \"first\": [ { \"op\": \"out\", \"w\": 1 } ] },\n      \"groove\": {"),
+        ContainsSubstring ("intro"));
+    CHECK_THAT (hookRefused ("      \"build\": { \"first\": [ { \"op\": \"out\", \"w\": 1 } ] },\n", ""), ContainsSubstring ("build"));
+    const std::string dropFirst = "\"first\": [ { \"op\": \"skeleton\", \"w\": 2 }, { \"op\": \"full\", \"w\": 1 } ],";
+    CHECK_THAT (hookRefused (dropFirst, "\"first\": [ { \"op\": \"skeleton\", \"w\": 2 }, { \"op\": \"vary\", \"w\": 1 } ],"), ContainsSubstring ("hook.plan.drop.first"));
+    CHECK_THAT (hookRefused (dropFirst, "\"first\": [ { \"op\": \"breath\", \"w\": 1 } ],"), ContainsSubstring ("hook.plan.drop.first"));
+    CHECK_THAT (hookRefused ("{ \"op\": \"answer\", \"w\": 1 }, { \"op\": \"skeleton\", \"w\": 1 } ] },", "{ \"op\": \"full\", \"w\": 1 }, { \"op\": \"skeleton\", \"w\": 1 } ] },"),
+        ContainsSubstring ("hook.plan.groove.next"));
+    CHECK_THAT (hookRefused ("\"next\": [ { \"op\": \"fragment\", \"w\": 1 } ],", "\"next\": [ { \"op\": \"new\", \"w\": 1 } ],"), ContainsSubstring ("hook.plan.break.next"));
+    CHECK_THAT (hookRefused ("\"build\": { \"first\": [ { \"op\": \"out\", \"w\": 1 } ] },", "\"build\": { \"continue\": 1 },"), ContainsSubstring ("continue"));
+    CHECK_THAT (hookRefused ("\"holdFull\": 1,\n        \"cover\": 600 },", "\"holdFull\": 1 },"), ContainsSubstring ("hook.plan.drop"));
+    CHECK_THAT (hookRefused ("\"cover\": 600 },", "\"cover\": 400 },"), ContainsSubstring ("hook.plan.drop.cover"));
+    CHECK_THAT (hookRefused ("\"cover\": 600 },", "\"cover\": 900 },"), ContainsSubstring ("hook.plan.drop.cover"));
+    CHECK_THAT (hookRefused ("\"first\": [ { \"op\": \"new\", \"w\": 1 } ],", "\"first\": [ { \"op\": \"full\", \"w\": 1 } ],"), ContainsSubstring ("hook.plan.drop2.first"));
+    CHECK_THAT (hookRefused (grooveFirst, "\"first\": [ { \"op\": \"out\", \"w\": 1 }, { \"op\": \"fragment\", \"w\": 3 } ],"), ContainsSubstring ("hook.plan"));
+    // and a misspelt key anywhere in the block is an unknown key, never a silent default
+    CHECK_THAT (hookRefused ("\"headDiffers\": 1", "\"headDifers\": 1"), ContainsSubstring ("unknown key \"headDifers\""));
 }

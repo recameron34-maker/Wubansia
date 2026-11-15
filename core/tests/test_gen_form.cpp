@@ -110,7 +110,9 @@ namespace
     bool isDrop (const std::string& kind) { return kind == "drop" || kind == "drop2"; }
     bool startsOnLine (const std::string& kind) { return isDrop (kind) || kind == "break"; }
 
-    // ---- the loader's tests: a valid grammar for garage2step's lanes, each plan on its own line
+    // ---- the loader's tests: a valid grammar for garage2step's lanes, each plan on its own line. They
+    // put their forms into FUT01 as it was before the hook (core/tests/fixtures/nohook): these forms
+    // name no lead lane, and a style with a hook block refuses a form that doesn't play its carrier.
 
     std::string readText (const std::filesystem::path& p)
     {
@@ -188,10 +190,10 @@ namespace
         std::string kit, style, feel;
     };
 
-    // The garage2step bundle with this form, or the loader's error.
+    // The garage2step bundle (before the hook) with this form, or the loader's error.
     util::Result<Bundle> formBundle (const std::string& form)
     {
-        const auto content = std::filesystem::path (WUBANSIA_SOURCE_DIR) / "content";
+        const auto content = std::filesystem::path (WUBANSIA_SOURCE_DIR) / "core" / "tests" / "fixtures" / "nohook";
         auto kit = parseKit (readText (content / "kits" / "fut01.json"), "kit.json");
         REQUIRE (kit.ok());
         auto style = parseStyle (withForm (readText (content / "styles" / "garage2step.json"), form), "style.json");
@@ -945,9 +947,15 @@ TEST_CASE ("form: every drop plays its plan's lanes from its first block, and a 
                     layer |= std::uint64_t (1) << laneIndexOf (s, lw.lane);
                 if (sec.kind == "drop")
                     lanes &= ~layer;
+                // The hook's carrier and a reply lane (kind lead) play the lines the hook's line plan
+                // gives them, their OUT lines cleared from the blocks (hook.h): test_gen_hook.cpp pins
+                // those lines, so they are exempt from landing with the drop and resting once.
+                std::uint64_t lead = 0;
+                for (std::size_t l = 0; l < s.lanes.size(); ++l)
+                    lead |= s.lanes[l].kind == LaneKind::lead ? std::uint64_t (1) << l : 0;
                 const std::size_t kick = laneIndexOf (s, "kick");
                 // the drop lands with every lane that plays all through it, the kick above all
-                CHECK ((sec.blocks.front() & (lanes & ~late)) == (lanes & ~late));
+                CHECK ((sec.blocks.front() & (lanes & ~late & ~lead)) == (lanes & ~late & ~lead));
                 CHECK ((sec.blocks.front() >> kick & 1u) == 1u);
                 CHECK ((sec.lanesAnywhere() & ~lanes) == 0); // nothing but the plan's lanes
                 // a lane of its own (no entry) sits out one run of blocks at most: its rest, never the first
@@ -956,7 +964,7 @@ TEST_CASE ("form: every drop plays its plan's lanes from its first block, and a 
                 for (std::size_t l = 0; l < s.lanes.size(); ++l)
                 {
                     const std::uint64_t bit = std::uint64_t (1) << l;
-                    if ((lanes & ~entered & bit) == 0)
+                    if ((lanes & ~entered & ~lead & bit) == 0)
                         continue;
                     std::vector<std::size_t> out;
                     for (std::size_t k = 0; k < sec.blocks.size(); ++k)

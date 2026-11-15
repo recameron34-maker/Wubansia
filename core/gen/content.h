@@ -87,7 +87,8 @@ namespace wubansia::gen
         drums, // voices on GM notes from probability grids, Euclidean or polymeter cells
         bass, // a line on chord degrees that may follow a drum lane and locks to it
         chords, // stabs or pads voiced from the harmony
-        arp // a cell of chord-tone indices played on a 16th grid, following the chords (arp.h)
+        arp, // a cell of chord-tone indices played on a 16th grid, following the chords (arp.h)
+        lead // the hook's carrier: the style's hook block plays on it (hook.h, lead.h)
     };
 
     struct SectionSpec
@@ -401,6 +402,20 @@ namespace wubansia::gen
         std::vector<ArpGrid> grids;
     };
 
+    // A lead lane's grid (lead.h): only the scales scoreLead puts on the hook's notes in a section kind.
+    //   "grids": { "plant": { "vel": 920, "len": 850 }, "main": { "vel": 1000, "len": 1000 } }
+    struct LeadGrid
+    {
+        std::string name;
+        std::int32_t vel = 1000; // permille: the hook's score velocities scaled by this
+        std::int32_t len = 1000; // permille: its lengths scaled by this
+    };
+
+    struct LeadLane
+    {
+        std::vector<LeadGrid> grids;
+    };
+
     // A controller lane (cc.h): per section kind, a ramp over the section with optional arches on it.
     struct CcRow
     {
@@ -429,6 +444,7 @@ namespace wubansia::gen
         BassLane bass;
         ChordLane chords;
         ArpLane arp;
+        LeadLane lead;
         std::vector<CcSpec> cc; // controller lanes written with the lane's notes (cc.h)
 
         // The grid name for a section kind, or "" if the lane has none there.
@@ -502,6 +518,169 @@ namespace wubansia::gen
         const std::vector<std::string>* paletteFor (std::string_view kind) const noexcept;
     };
 
+    // ---- the hook (hook.h, docs/plans/S1b2b-plan.md): the style's "hook" block. planHook draws one
+    // hook per seed from it (rhythm first, pitched key-relative), places it per 8-bar line over the
+    // drawn form and realizes it on its carrier, a lead lane. Integers only, like the rest; the
+    // loader refuses everything the plan's "The loader's refusals" lists, with the JSON path.
+
+    enum class HookContour : std::uint8_t {
+        late, // one peak, the highest note alone, on a bar-2 onset in the "peak" window
+        early, // the peak in bar 1, in the "early" window
+        twin // the top struck on two onsets in a row
+    };
+
+    // Drop 2's new phrase, in the kit's written idiom.
+    enum class HookIdiom : std::uint8_t {
+        organ, // a b a' c, a 4-bar period: c keeps a's first half and falls by scale steps to 5, 2 or b3
+        glass, // a b a' c on one rhythm in all four bars, c striking the top again
+        stab // a second 2-bar riff from the period's own cells, on the tonic, its last note the 5th
+    };
+
+    // A line's operator in the line plan's menus ("op"): out rests (the hand-off); repeat plays the line
+    // before note for note; full, fragment (the half-bar call), skeleton (the accents), answer (the
+    // call, then the response) and augment (half speed) are textures of the hook; vary, cadence and
+    // breath end the line before's texture (its last note on varyDegree, a fall to the 5th held to the
+    // bar line, its last bar resting); newPhrase ("new") plays drop 2's new phrase; sequence plays the
+    // line before an octave up.
+    enum class HookOp : std::uint8_t {
+        out,
+        repeat,
+        full,
+        fragment,
+        skeleton,
+        answer,
+        augment,
+        vary,
+        cadence,
+        breath,
+        newPhrase,
+        sequence
+    };
+
+    // A bar-1 rhythm: "cells" (the hook's) and "period.cells" (the stab idiom's).
+    struct HookCell
+    {
+        std::vector<std::int32_t> on; // onsets, 16ths 0-15, ascending
+        std::vector<std::int32_t> len; // their lengths in 16ths, 1-16, one per onset
+        std::vector<std::int32_t> acc; // the accented onsets, each one of `on`
+        std::int32_t weight = 0;
+    };
+
+    struct HookOpWeight
+    {
+        HookOp op = HookOp::out;
+        std::int32_t weight = 0;
+    };
+
+    // One section kind's line plan: "plan": { kind: ... } and, for the grooves, breaks and builds after
+    // the first drop, "plan": { "after": { kind: ... } }.
+    struct HookMenu
+    {
+        std::string kind;
+        bool after = false; // a "plan.after" menu: the sections of the kind from the first drop on
+        std::vector<Weighted> enter; // grooves: leading OUT lines (value: lines) by weight
+        std::vector<HookOpWeight> first; // the carrier's first active line at or after `enter`
+        std::vector<HookOpWeight> next; // the other lines ([]: repeat)
+        std::vector<HookOpWeight> last; // the section's last line ([]: next)
+        bool holdFull = false; // drops ("holdFull": 1): the drop holds a FULL line
+        std::int32_t cover = 0; // drops: permille of the lines that play the hook, at least (0: none)
+        bool carry = false; // "continue": 1 (an after build): every line keeps the section before's last state
+    };
+
+    // "register": where the riff sits in its kit lane's range.
+    struct HookRegister
+    {
+        std::int32_t center = 74; // the tonic's octave puts the 3rd above the start nearest this key
+        std::int32_t span = 15; // the riff spans at most this many semitones
+        std::int32_t floor = -1; // the top voice's lowest key (FUT02: C5); -1: the kit range's low end
+    };
+
+    // "mutate": per seed, at most one non-accent onset of the cell drops out and one extra comes in.
+    struct HookMutate
+    {
+        std::int32_t drop = 0; // percent
+        std::int32_t add = 0; // percent
+        std::vector<std::int32_t> extra; // the 16ths an extra onset may take
+    };
+
+    // "answer": bar 2 keeps bar 1's 16ths 0-7 and makes at most one edit among 8-15, by weight.
+    struct HookAnswer
+    {
+        std::int32_t same = 0;
+        std::int32_t move = 0; // an onset moved by a 16th
+        std::int32_t add = 0;
+        std::int32_t drop = 0;
+        bool headDiffers = true; // bar 2's first half differs from bar 1's in a pitch
+    };
+
+    // "pitch": the degree walk.
+    struct HookPitch
+    {
+        std::vector<std::int32_t> pool; // scale degrees from the tonic, 0-6
+        std::array<std::int32_t, 7> start {}; // weights of the start degree
+        std::array<std::int32_t, 7> end {}; // weights of the end degree
+        std::array<std::int32_t, 8> moves {}; // weights of moves of 0-7 scale steps
+        std::int32_t leap = 9; // the largest move in semitones, the riff's wrap and the period's joins included
+        bool beats = false; // "strong": "beats" (a strong onset is a beat only), else "accents" (a beat or an accent)
+        Range peak { 18, 28 }; // the late contour's window, 16ths of the 2-bar phrase
+        Range early { 4, 12 }; // the early contour's window
+        std::vector<std::int32_t> tones; // scale steps above a chord's root a strong onset takes (1 3 5 7 9: 0 2 4 6 8)
+        std::vector<std::int32_t> clash; // scale steps above a chord's root a strong note can't sit a semitone over (1 3 5 7)
+    };
+
+    // "vel": the fixed accent shape, drawn once per seed.
+    struct HookVelocity
+    {
+        std::int32_t down = -1; // the downbeat's accent; -1: beat's
+        std::int32_t beat = -1; // beat 3's accent; -1: accent's
+        std::int32_t accent = 0; // the other accents
+        std::int32_t other = 0; // the rest
+        std::int32_t peak = 0; // added to the peak
+        std::int32_t shape = 0; // one offset per onset in +-shape
+    };
+
+    // "period": drop 2's new phrase.
+    struct HookPeriod
+    {
+        HookIdiom idiom = HookIdiom::organ;
+        std::vector<std::pair<std::vector<std::int32_t>, std::int32_t>> halves; // organ: bar a's second-half onsets (8-15) by weight
+        std::int32_t octave = 0; // its octave against the riff's, -1 to 1
+        std::array<std::int32_t, 7> cadence {}; // organ: weights of the fall's end degree (the tonic's is 0)
+        std::optional<Range> range; // glass: its own register ("register")
+        std::vector<HookCell> cells; // stab: its cells
+    };
+
+    // "pedal" (FUT02's ChromeArp): a key-fixed pedal under the top voice, after each top note on the
+    // free 16ths before the next one, never on 16th 15 nor before the bar's first top note.
+    struct HookPedal
+    {
+        std::vector<std::int32_t> degrees; // scale degrees from the tonic, -7 to 7, in the order they play (FUT02: 0, -3)
+        std::vector<std::int32_t> vel; // one per degree, 1-127
+        std::vector<HookOp> in; // the textures it plays under: full, answer, fragment, newPhrase
+        std::int32_t max = 2; // pedal notes after one top note, 1-2
+    };
+
+    struct HookSpec
+    {
+        std::string lane; // the carrier, a lead lane
+        HookRegister reg;
+        std::vector<std::pair<HookContour, std::int32_t>> contours; // by weight
+        std::vector<HookCell> cells; // bar 1's rhythm, one by weight
+        HookMutate mutate;
+        HookAnswer answer;
+        HookPitch pitch;
+        HookVelocity vel;
+        std::int32_t guard = 0; // "guard.second": a semitone against a chord-lane note only with the lower note at this key or above (a minor 9th never)
+        HookPeriod period;
+        std::optional<HookPedal> pedal;
+        std::vector<std::string> withhold; // kinds with no FULL or NEW before the first drop
+        std::vector<HookMenu> menus;
+
+        // The menu a section of the kind plays: a drop's and drop 2's own; a groove's, break's or
+        // build's own until the first drop and its after-menu from then on. nullptr where there is none.
+        const HookMenu* menu (std::string_view kind, bool afterFirstDrop) const noexcept;
+    };
+
     struct Style
     {
         std::string id;
@@ -512,6 +691,7 @@ namespace wubansia::gen
         std::int32_t attempts = 16; // per pattern draw, then the best so far
         HarmonySpec harmony;
         std::vector<LaneSpec> lanes; // in track order
+        std::optional<HookSpec> hook; // the "hook" block: none, and the style generates as it did before it
 
         const SectionSpec* section (std::string_view kind) const noexcept;
         std::optional<std::size_t> laneIndex (std::string_view laneId) const noexcept;

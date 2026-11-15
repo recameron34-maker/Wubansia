@@ -102,7 +102,9 @@ namespace
     bool isDrop (const std::string& kind) { return kind == "drop" || kind == "drop2"; }
 
     // Perturbs one lane's own parameters: every non-anchor probability p becomes 100 - p, the
-    // velocities rise by 3 and the feel's 1/f spread doubles. Nothing else in the style changes.
+    // velocities rise by 3 and the feel's 1/f spread doubles; a lead lane's grids scale its velocities
+    // and lengths 50 permille lower, and, as the hook's carrier, its hook block's cell weights w
+    // become 100 - w. Nothing else in the style changes.
     void perturbLane (Bundle& b, const std::string& id)
     {
         const auto flip = [] (Grid& g) {
@@ -146,7 +148,15 @@ namespace
                 louder (g.vel);
                 g.padVel = std::min (127, g.padVel + 9);
             }
+            for (auto& g : lane.lead.grids)
+            {
+                g.vel -= 50;
+                g.len -= 50;
+            }
         }
+        if (b.style.hook && b.style.hook->lane == id)
+            for (auto& c : b.style.hook->cells)
+                c.weight = 100 - c.weight;
         for (auto& [laneId, fl] : b.feel.lanes)
             if (laneId == id && fl.sd)
                 fl.sd = Range { fl.sd->lo * 2, fl.sd->hi * 2 };
@@ -184,9 +194,10 @@ TEST_CASE ("the same seed gives the same bytes and other seeds other songs", "[g
 TEST_CASE ("changing one lane's parameters leaves the other lanes' bytes alone", "[gen][song]")
 {
     // The bass follows and locks to the kick, so it may change with the kick, and its third, seventh
-    // and fifth agree with what the chords voice, so it may change with them; nothing else depends
-    // on another lane.
-    const std::map<std::string, std::set<std::string>> dependents = { { "kick", { "bass" } }, { "chords", { "bass" } } };
+    // and fifth agree with what the chords voice, so it may change with them; the hook's lead lane
+    // (S1b2b) reads the chord lanes for its voicing guard, so it may change with them too; nothing
+    // else depends on another lane.
+    const std::map<std::string, std::set<std::string>> dependents = { { "kick", { "bass" } }, { "chords", { "bass", "lead" } } };
     for (const char* id : { "FUT01", "FUT03" })
         for (const auto& lane : bundleFor (id).style.lanes)
         {
@@ -702,7 +713,8 @@ TEST_CASE ("a section ends the same whatever the next one starts with", "[gen][s
             REQUIRE (at != std::string::npos);
             style.replace (at, from.size(), to);
         };
-        replace ("\"break\": {\n        \"lanes\": [\"hats\", \"perc\", \"chords\"],", "\"break\": {\n        \"lanes\": [\"hats\", \"perc\", \"bass\", \"chords\"],");
+        // (the list's end left out: with the hook, S1b2b, the plan lists "lead" after the chords)
+        replace ("\"break\": {\n        \"lanes\": [\"hats\", \"perc\", \"chords\"", "\"break\": {\n        \"lanes\": [\"hats\", \"perc\", \"bass\", \"chords\"");
         if (!onTheOne)
             replace ("\"break\": {\n          \"p\":   [100, 0, 0, 0,", "\"break\": {\n          \"p\":   [0, 0, 0, 0,");
         auto kit = parseKit (read (content / "kits" / "fut01.json"), "fut01.json");

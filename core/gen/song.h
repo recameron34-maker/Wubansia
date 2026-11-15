@@ -27,6 +27,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -50,6 +51,8 @@ namespace wubansia::gen
         inline constexpr std::uint16_t top = 1 << 7; // a chord's top voice
         inline constexpr std::uint16_t poly = 1 << 8; // a polymeter cell
         inline constexpr std::uint16_t euclid = 1 << 9; // a Euclidean cell
+        inline constexpr std::uint16_t hook = 1 << 10; // a note of the hook's material (hook.h)
+        inline constexpr std::uint16_t pedal = 1 << 11; // the hook's pedal under its top voice (FUT02's ChromeArp)
     }
 
     namespace noteTag
@@ -156,6 +159,81 @@ namespace wubansia::gen
         std::vector<ControlPoint> cc; // sorted by (tick, number); one value per controller and tick
     };
 
+    // ---- the hook (hook.h): one per seed, drawn by planHook from the style's hook block (content.h)
+
+    // A note of the hook's material.
+    struct HookNote
+    {
+        std::int32_t step = 0; // 16ths from the phrase's start
+        std::int32_t degree = 0; // scale steps from the tonic at SongHook::base, in SongHook::mode (7: an octave up)
+        std::uint8_t len16 = 1; // its length in 16ths
+        std::uint8_t velocity = 0; // the fixed accent shape's
+        bool accent = false;
+        bool peak = false; // the contour's peak (a twin top: both of its notes)
+
+        friend bool operator== (const HookNote&, const HookNote&) = default;
+    };
+
+    struct HookPhrase
+    {
+        std::int32_t bars = 0; // 2: a riff; 4: a period
+        std::vector<HookNote> notes; // in step order
+
+        friend bool operator== (const HookPhrase&, const HookPhrase&) = default;
+    };
+
+    // What a line plays of the hook (the plan's operators, once applied): out rests; full plays the
+    // phrase; fragment, the half-bar call, each bar's first half plus its last onset when its second
+    // half holds two or more; skeleton, the accented onsets (FUT02: the top voice alone); answer, the
+    // call and then the response in each bar's second half; augment, the hook at half speed.
+    enum class HookForm : std::uint8_t {
+        out,
+        full,
+        fragment,
+        skeleton,
+        answer,
+        augment
+    };
+
+    // How a line's last bar ends: as the texture plays it; vary, its last note on varyDegree;
+    // cadence, its last note falling to the 5th, held to the bar line; breath, the bar resting.
+    enum class HookEnding : std::uint8_t {
+        none,
+        vary,
+        cadence,
+        breath
+    };
+
+    // One 8-bar line of a section the carrier's plans play it in.
+    struct HookLine
+    {
+        std::size_t section = 0;
+        std::int32_t bar = 0; // the line's first bar in the section, a multiple of 8
+        HookForm form = HookForm::out;
+        std::uint8_t motif = 0; // 0: A, the hook; 1: B, drop 2's new phrase (NEW plays it full)
+        std::int32_t shift = 0; // SEQUENCE: scale steps added to every degree
+        HookEnding ending = HookEnding::none;
+        std::uint16_t mask = 0; // bit 2 * bar + half (bit 0: bar 0's first half): a half-bar the lane's final notes keep busy
+
+        friend bool operator== (const HookLine&, const HookLine&) = default;
+    };
+
+    struct SongHook
+    {
+        std::size_t lane = 0; // the carrier's index in Song::lanes
+        Mode mode = Mode::aeolian; // the material's mode
+        std::int32_t base = 0; // the tonic's key the degrees hang from (the register's octave)
+        HookContour contour = HookContour::late;
+        HookPhrase a; // the hook, a 2-bar riff
+        HookPhrase b; // drop 2's new phrase, in the style's idiom
+        HookPhrase response; // ANSWER's response: A's second-half onsets, walked afresh
+        std::int32_t varyDegree = 0; // VARY's end degree
+        std::vector<HookLine> lines; // every 8-bar line of the sections the carrier's plans play it in, in song order
+        std::vector<Note> notes; // the realized lines in time order, before scoreLead keeps those inside the lane's active ranges (lead.h)
+
+        friend bool operator== (const SongHook&, const SongHook&) = default;
+    };
+
     struct Song
     {
         std::string kitId;
@@ -175,6 +253,7 @@ namespace wubansia::gen
         std::vector<SectionHarmony> harmony; // one per section
         std::vector<ChordSpan> chords; // every chord of the song, in order
         std::vector<LaneOut> lanes; // the style's lanes, in track order
+        std::optional<SongHook> hook; // a style with a hook block's (hook.h); none otherwise
 
         std::int64_t endTick() const noexcept { return totalBars * ticksPerBar; }
     };

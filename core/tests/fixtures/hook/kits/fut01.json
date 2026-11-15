@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "id": "FUT01",
+  "name": "Alloy Signal",
+  "direction": "future garage / 2-step, sci-fi colour",
+  "bpm": 134,
+  "key": { "tonic": 6, "mode": "minor", "name": "F# minor", "camelot": "11A" },
+  "swing": 570,
+  "style": "garage2step",
+  "feel": "garage2step",
+  "lanes": {
+    "kick": { "track": "Kick", "channel": 9, "notes": { "kick": 36 } },
+    "snare": { "track": "Snare + Clap", "channel": 9, "notes": { "snare": 38, "clap": 39, "ghost": 38 } },
+    "hats": { "track": "Hats", "channel": 9, "notes": { "closed": 42, "open": 46 } },
+    "shaker": { "track": "Data Ticks", "channel": 9, "notes": { "shaker": 54 } },
+    "perc": { "track": "Alloy Perc", "channel": 9, "notes": { "alloy": 56, "rim": 37, "blip": 47 } },
+    "bass": { "track": "Sub + Reese", "channel": 0, "range": [28, 52], "root": 30 },
+    "chords": { "track": "Stabs + Pad", "channel": 2, "range": [42, 86] },
+    "lead": { "track": "Lead Pluck", "channel": 1, "range": [68, 86] }
+  }
+}

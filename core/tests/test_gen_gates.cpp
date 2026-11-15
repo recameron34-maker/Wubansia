@@ -8,6 +8,7 @@
 #include "gen/content.h"
 #include "gen/export.h"
 #include "gen/song.h"
+#include "metrics/metrics.h"
 #include "metrics/model.h"
 #include "metrics/suite.h"
 #include "metrics/value.h"
@@ -31,10 +32,10 @@ namespace
         std::set<std::string_view> failing; // every other gate must pass
     };
 
-    // The verdicts on seeds 0-63 (part 1's, then S1b2a's form grammar: G10 passes on every style),
-    // and why each failing gate fails:
-    // - G4, G5: no lead lane yet (the hook, S1b2); FUT02's arp counts as lead. FUT04's G5 also has no
-    //   ghost windows: its sparse snare plays no ghosts.
+    // The verdicts on seeds 0-63 (part 1's, then S1b2a's form grammar: G10 passes on every style,
+    // then S1b2b's hook: G4 and G5 pass on its lead lanes), and why each failing gate fails:
+    // - G5 on FUT04: no ghost windows (its sparse snare plays no ghosts), the open S1b2d item; its
+    //   lead group, the blips, passes.
     // - G7 on FUT01 and FUT03: the metric's hats group merges the hats track with the shaker (GM 54),
     //   two independent 1/f series: a decision for the S1b2 gating ADR, not a feature.
     // - G8 passes on all four: FUT01's failing seed (the sub locked to the 2-step kick landing within 2
@@ -49,10 +50,10 @@ namespace
     //   must count.
     // - G10 passes: every seed draws its own form (S1b2a), some 60 distinct forms in 64 seeds per style.
     const Expected expected[] = {
-        { "FUT01", { "G4", "G5", "G7", "G9" } },
+        { "FUT01", { "G7", "G9" } },
         { "FUT02", { "G9" } },
-        { "FUT03", { "G4", "G5", "G7", "G9" } },
-        { "FUT04", { "G1", "G2", "G4", "G5", "G9" } },
+        { "FUT03", { "G7", "G9" } },
+        { "FUT04", { "G1", "G2", "G5", "G9" } },
     };
 }
 
@@ -106,14 +107,28 @@ TEST_CASE ("gates: the metric suite on 64 seeds per style, invariants and gates"
             INFO (g.id << ": " << metrics::gateSummary (g.id, r["gating"][g.id]["result"]));
             CHECK (r["gating"][g.id].num ("pass") == (e.failing.contains (g.id) ? 0 : 1));
         }
-        // G4 where it fails only for want of a lead lane: the bass and chords still make at least half
-        // their macro changes on phrase lines, with the lane moves inside the drops
+        // G4: the bass and chords make at least half their macro changes on phrase lines, with the lane
+        // moves inside the drops; the lead (the hook's lines, S1b2b) at least 950 permille of its own
+        // (the plan's figure: all of them, by the line rule)
         const metrics::Value& g4 = r["gating"]["G4"]["result"];
-        for (const char* role : { "bass", "chords" })
+        for (const char* role : { "bass", "chords", "lead" })
         {
             INFO ("G4 " << role << ": " << g4[role].num ("on_phrase") << " of " << g4[role].num ("changes") << " on phrase lines");
             CHECK (g4[role].num ("changes") > 0);
-            CHECK (2 * g4[role].num ("on_phrase") >= g4[role].num ("changes"));
+            if (std::string_view (role) == "lead")
+                CHECK (g4[role].num ("on_phrase") * 1000 >= g4[role].num ("changes") * 950);
+            else
+                CHECK (2 * g4[role].num ("on_phrase") >= g4[role].num ("changes"));
         }
+        // G5's lead group passes on every kit (FUT04 fails G5 on its ghosts alone)
+        const metrics::Value& lead = r["gating"]["G5"]["result"]["lead"];
+        INFO ("G5 lead: " << lead.num ("windows") << " windows, median " << lead.num ("median_distinct") << " values, SD " << lead.num ("median_sd_milli") << " milli");
+        CHECK (metrics::bands::g5Melodic (lead.num ("windows"), lead.num ("median_distinct"), lead.num ("median_sd_milli")));
+        // R10: the hook is a different one in every seed: at most 30 permille of the lead's 2-bar
+        // windows recur in another seed's file (FUT02's arp: 71 permille before the hook)
+        const metrics::Value& r10 = r["reported"]["R10_cross_seed_duplicate_motifs"]["lead"];
+        INFO ("R10 lead: " << r10.num ("duplicated") << " of " << r10.num ("windows") << " windows");
+        CHECK (r10.num ("windows") > 0);
+        CHECK (r10.num ("duplicated_pm") <= 30);
     }
 }

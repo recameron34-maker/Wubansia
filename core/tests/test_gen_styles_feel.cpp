@@ -173,8 +173,29 @@ TEST_CASE ("styles: the low-end lock puts bass and rumble onsets on kick steps e
     }
 }
 
-TEST_CASE ("styles: chord stacks spread over at most 4 ticks and the arp plays one note at a time", "[gen][styles][feel]")
+TEST_CASE ("styles: chord stacks spread over at most 4 ticks and every lead lane plays one note at a time", "[gen][styles][feel]")
 {
+    // A lead lane (the hook's carrier, S1b2b: FUT02's arp, FUT01's, FUT03's and FUT04's lead) and an arp
+    // lane are single lines: no two notes start on one tick, in all four kits (FUT02's pedal plays on
+    // the free 16ths between the top voice's notes).
+    std::size_t leads = 0;
+    for (const char* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
+        for (std::uint64_t seed = 1; seed <= 8; ++seed)
+        {
+            const Song s = songFor (id, seed);
+            for (const LaneOut& lane : s.lanes)
+            {
+                if (lane.kind != LaneKind::lead && lane.kind != LaneKind::arp)
+                    continue;
+                ++leads;
+                for (std::size_t i = 1; i < lane.score.size(); ++i)
+                {
+                    INFO (id << " seed " << seed << " " << lane.id << " tick " << lane.score[i].tick);
+                    CHECK (lane.score[i].tick > lane.score[i - 1].tick); // a monophonic line
+                }
+            }
+        }
+    CHECK (leads > 0);
     for (const char* id : kits)
         for (std::uint64_t seed = 1; seed <= 8; ++seed)
         {
@@ -196,11 +217,6 @@ TEST_CASE ("styles: chord stacks spread over at most 4 ticks and the arp plays o
                 INFO (id << " seed " << seed << " tick " << tick);
                 CHECK (mm.second - mm.first <= 4);
             }
-            if (std::string (id) != "FUT02")
-                continue;
-            const LaneOut& arp = laneOf (s, "arp");
-            for (std::size_t i = 1; i < arp.score.size(); ++i)
-                CHECK (arp.score[i].tick > arp.score[i - 1].tick); // a monophonic line
         }
 }
 
@@ -275,7 +291,7 @@ namespace
             return "bass";
         if (word == "pad")
             return "chords";
-        if (word == "arp")
+        if (word == "arp" || word == "lead")
             return "lead";
         return "other";
     }

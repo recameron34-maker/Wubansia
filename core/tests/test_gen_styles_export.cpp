@@ -170,6 +170,8 @@ namespace
 
 TEST_CASE ("styles: the full file is SMF type 1 with a conductor and one named track per lane", "[gen][styles][export]")
 {
+    // FUT02's 7 lanes, its arp the hook's carrier; FUT04's 8, the eighth its lead, 'Lead Blips' (S1b2b)
+    const std::map<std::string, std::pair<std::size_t, std::string>> carriers = { { "FUT02", { 7, "Arp Chrome" } }, { "FUT04", { 8, "Lead Blips" } } };
     for (const char* id : kits)
         for (const Version v : { Version::feel, Version::quantized })
         {
@@ -179,6 +181,10 @@ TEST_CASE ("styles: the full file is SMF type 1 with a conductor and one named t
             const midi::File f = read (midi::writeSmf (fullSpec (s, v)).value);
             CHECK (f.format == 1);
             CHECK (f.ppq == 480);
+            CHECK (b.style.lanes.size() == carriers.at (id).first);
+            REQUIRE (b.style.hook.has_value());
+            REQUIRE (b.kit.lane (b.style.hook->lane) != nullptr);
+            CHECK (b.kit.lane (b.style.hook->lane)->track == carriers.at (id).second);
             REQUIRE (f.tracks.size() == 1 + b.style.lanes.size());
             for (const auto& t : f.tracks)
                 CHECK (t.endTick == s.totalBars * 1920);
@@ -420,6 +426,13 @@ TEST_CASE ("styles: a cut's files are the whole song's regions, the last one sho
                     for (auto& m : regions.back().members)
                         if (m.key == "dropouts")
                             m.value.items.clear();
+                    // and of its hook lines (a style with a hook block: S1b2b), those that start before the cut
+                    for (auto& m : regions.back().members)
+                        if (m.key == "hook")
+                            std::erase_if (m.value.items, [bars] (const json::Value& line) {
+                                const json::Value* at = line.find ("startBar");
+                                return at == nullptr || at->integer >= bars;
+                            });
                     auto& lanes = memberOf (regions.back(), "lanes").items; // the lanes of the block it keeps
                     lanes.clear();
                     for (std::size_t l = 0; l < whole.lanes.size(); ++l)
