@@ -14,7 +14,7 @@
     "hats": { "track": "Hats", "channel": 9, "notes": { "closed": 42, "open": 46 } },
     "shaker": { "track": "Data Ticks", "channel": 9, "notes": { "shaker": 54 } },
     "perc": { "track": "Alloy Perc", "channel": 9, "notes": { "alloy": 56, "rim": 37, "blip": 47 } },
-    "bass": { "track": "Sub + Reese", "channel": 1, "range": [28, 52], "root": 30 },
+    "bass": { "track": "Sub + Reese", "channel": 0, "range": [28, 52], "root": 30 },
     "chords": { "track": "Stabs + Pad", "channel": 2, "range": [42, 86] }
   }
 }
