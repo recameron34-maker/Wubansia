@@ -22,6 +22,17 @@ the merge.
      ANSWER, FRAGMENT, AUGMENT, CADENCE), call and response through a half-bar occupancy mask.
    - FUT02: a per-seed arp motif (R10 lead <= 3% cross-seed duplicate 2-bar motifs). FUT01: the reese drop layer
      (long notes on 1, b2, 5, b7 with slides and talk moves).
+   - Notes, 2026-11-16. Planned in docs/plans/S1b2b-plan.md (approved 2026-11-15 with its recommended choices) as
+     four PRs; ADR 0026 records them. Done: PR 1, the generator's MIDI channels (bass 1, lead 2, chords 3, FUT04's
+     rumble 9); PR 2, one hook per seed on a lead lane in every kit, FUT02's arp carrying it. On 64 seeds G4 and G5
+     pass for the leads on all four kits (FUT04 still fails G5 on its ghosts) and R10 lead reads 0, 8, 0 and 0
+     permille (FUT02's was 71). Changed from the text above: degrees are key-relative, with an avoid-note fit and a
+     voicing guard against the chords, not chord-relative; no SENTENCE (no written top line is one); the PERIOD is
+     drop 2's new phrase, in each kit's written idiom; the operators add SKELETON, BREATH and NEW, and SEQUENCE ships
+     at weight 0, untested; the half-bar mask is exported in regions.json and nothing reads it yet. Next: PR 3, drop
+     2's own bass lines and FUT01's bass talk, in place of the reese layer (FUT01's written bass has no b2). After
+     ADR 0016: PR 4, the vox reply through the mask, whose design the mask's fill (ADR 0026, Consequences) sends back
+     for a look first. For S1b2d: G4's unit for leads (2 bars), R1's lead band and R7's RIFF bands.
 3. **S1b2c Fills, transitions and the rhythm stage** (G9).
    - Earned fills: importance tiers (4, 8, 16 bars, section end), fatigue, no repeat of the last two, dropouts count,
      set-up and pay-off. CC lanes for transitions.
