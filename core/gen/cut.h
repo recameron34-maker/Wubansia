@@ -11,6 +11,8 @@
 //   plays a few ticks early, inside the first N bars by time, isn't in the cut. Flags stay the
 //   whole song's.
 // - the controllers before the cut stay.
+// - the hook (hook.h) keeps the whole song's material, its lines that start before the cut (their
+//   masks as they are) and its notes that start before it, ended by it.
 // - the sections that start before the cut stay, the last one shortened to the cut, its blocks
 //   and its one-bar dropouts too, so the export writes the whole song's regions with the last one
 //   shortened (its file name, its marker and its regions.json entry give the new length); one

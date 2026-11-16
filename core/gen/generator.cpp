@@ -11,6 +11,7 @@
 #include "gen/hold.h"
 #include "gen/hook.h"
 #include "gen/lanes.h"
+#include "gen/lead.h"
 #include "gen/song.h"
 
 #include <string>
@@ -62,7 +63,7 @@ namespace wubansia::gen
         layOutHarmony (song, style, plan, root);
 
         // 3-4. the score: drum lanes first (a bass follows one), then the chords (the bass's third,
-        // seventh and fifth agree with what they voice), then the bass and the arp
+        // seventh and fifth agree with what they voice), the hook, then the bass, the arp and the lead
         for (std::size_t i = 0; i < style.lanes.size(); ++i)
             if (style.lanes[i].kind == LaneKind::drums)
                 scoreDrums (song, bundle, i, root);
@@ -72,7 +73,9 @@ namespace wubansia::gen
                 scoreChords (song, bundle, i, root);
                 holdPads (song, bundle, i); // nothing unless a pad grid holds
             }
-        // the hook (hook.h): nothing without the style's hook block; its draws hang below their own tag
+        // the hook (hook.h): nothing without the style's hook block; its draws hang below their own tag.
+        // Its line plan reads the chord lanes (the voicing guard) and clears only the carrier's own bits
+        // in the blocks and dropouts, after planChanges, so no other lane's draw moves
         planHook (song, bundle, root);
         for (std::size_t i = 0; i < style.lanes.size(); ++i)
         {
@@ -83,6 +86,8 @@ namespace wubansia::gen
             }
             else if (style.lanes[i].kind == LaneKind::arp)
                 scoreArp (song, bundle, i, root);
+            else if (style.lanes[i].kind == LaneKind::lead)
+                scoreLead (song, bundle, i); // the hook's notes inside the lane's ranges, and its lines' masks
         }
         // the lanes' controllers: automation, the same in both versions (nothing without "cc")
         for (std::size_t i = 0; i < style.lanes.size(); ++i)

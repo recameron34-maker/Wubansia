@@ -38,9 +38,10 @@ namespace wubansia::gen
     bool onTheLine (const LinePrints& before, const LinePrints& after) noexcept;
 
     // Fills song.hook for a style with a hook block (nothing otherwise): the material, the line plan
-    // over the drawn form, the realized notes and their half-bar masks; then clears the carrier's block
-    // bit on its OUT lines and the carrier from any one-bar dropout inside one (a dropout that then
-    // lists no lane goes). Runs after the chords and holdPads (the guard reads the chord lanes) and
-    // before the bass. Keys: hookKey (root).
+    // over the drawn form and the realized notes (scoreLead, lead.h, keeps those inside the lane's
+    // ranges and sets the lines' half-bar masks from them); then clears the carrier's block bit on its
+    // OUT lines (and in a section with no menu) and the carrier from any one-bar dropout inside one (a
+    // dropout that then lists no lane goes). Runs after planChanges, the chords and holdPads (the guard
+    // reads the chord lanes) and before the bass. Keys: hookKey (root).
     void planHook (Song& song, const Bundle& bundle, rng::Key root);
 }

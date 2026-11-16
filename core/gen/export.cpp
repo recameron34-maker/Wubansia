@@ -9,6 +9,7 @@
 #include <set>
 #include <string>
 #include <system_error>
+#include <vector>
 
 namespace wubansia::gen
 {
@@ -79,6 +80,51 @@ namespace wubansia::gen
         }
 
         std::string minutes (std::int32_t seconds) { return std::to_string (seconds / 60) + ":" + twoDigits (static_cast<std::size_t> (seconds % 60)); }
+
+        std::string_view formName (HookForm form) noexcept
+        {
+            switch (form)
+            {
+                case HookForm::out:
+                    return "out";
+                case HookForm::full:
+                    return "full";
+                case HookForm::fragment:
+                    return "fragment";
+                case HookForm::skeleton:
+                    return "skeleton";
+                case HookForm::answer:
+                    return "answer";
+                case HookForm::augment:
+                    return "augment";
+            }
+            return "out";
+        }
+
+        std::string_view endingName (HookEnding ending) noexcept
+        {
+            switch (ending)
+            {
+                case HookEnding::none:
+                    return "none";
+                case HookEnding::vary:
+                    return "vary";
+                case HookEnding::cadence:
+                    return "cadence";
+                case HookEnding::breath:
+                    return "breath";
+            }
+            return "none";
+        }
+
+        // A hook line's half-bar mask in time order: character i is bar i / 2, its first half when i is even.
+        std::string maskText (std::uint16_t mask)
+        {
+            std::string out;
+            for (std::uint32_t i = 0; i < 16; ++i)
+                out += ((mask >> i) & 1u) != 0 ? '1' : '0';
+            return out;
+        }
     }
 
     std::string_view versionName (Version version) noexcept { return version == Version::feel ? "feel" : "quantized"; }
@@ -156,6 +202,10 @@ namespace wubansia::gen
             j += "    { \"id\": " + jsonString (song.lanes[l].id) + ", \"track\": " + jsonString (song.lanes[l].track)
                  + ", \"channel\": " + std::to_string (song.lanes[l].channel + 1) + " }" + (l + 1 < song.lanes.size() ? "," : "") + "\n";
         j += "  ],\n";
+        // the hook (hook.h): its carrier, for a song with a hook only (a style without a hook block writes
+        // its files as before it)
+        if (song.hook)
+            j += "  \"hook\": { \"lane\": " + jsonString (song.lanes[song.hook->lane].id) + " },\n";
         j += "  \"regions\": [\n";
         for (std::size_t i = 0; i < song.sections.size(); ++i)
         {
@@ -186,7 +236,26 @@ namespace wubansia::gen
                 j += "        { \"startBar\": " + std::to_string (bar) + ", \"dawBar\": " + std::to_string (bar + 1) + ", \"bars\": 1, \"lanes\": "
                      + laneList (s.dropouts[k].lanes) + " }" + (k + 1 < s.dropouts.size() ? "," : "") + "\n";
             }
-            j += std::string (s.dropouts.empty() ? "" : "      ") + "]\n";
+            j += std::string (s.dropouts.empty() ? "" : "      ") + "]" + (song.hook ? "," : "") + "\n";
+            // the hook's 8-bar lines in it (hook.h), each with its texture of the hook and its half-bar
+            // mask (where the lead leaves room); [] for none
+            if (song.hook)
+            {
+                std::vector<const HookLine*> lines;
+                for (const HookLine& l : song.hook->lines)
+                    if (l.section == i)
+                        lines.push_back (&l);
+                j += std::string ("      \"hook\": [") + (lines.empty() ? "" : "\n");
+                for (std::size_t k = 0; k < lines.size(); ++k)
+                {
+                    const HookLine& l = *lines[k];
+                    const std::int32_t bar = s.startBar + l.bar;
+                    j += "        { \"startBar\": " + std::to_string (bar) + ", \"dawBar\": " + std::to_string (bar + 1) + ", \"bars\": " + std::to_string (barsPerBlock)
+                         + ", \"form\": " + jsonString (formName (l.form)) + ", \"motif\": " + jsonString (l.motif == 1 ? "b" : "a") + ", \"shift\": " + std::to_string (l.shift)
+                         + ", \"ending\": " + jsonString (endingName (l.ending)) + ", \"mask\": " + jsonString (maskText (l.mask)) + " }" + (k + 1 < lines.size() ? "," : "") + "\n";
+                }
+                j += std::string (lines.empty() ? "" : "      ") + "]\n";
+            }
             j += std::string ("    }") + (i + 1 < song.sections.size() ? "," : "") + "\n";
         }
         j += "  ]\n";

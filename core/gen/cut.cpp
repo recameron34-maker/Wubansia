@@ -17,6 +17,16 @@ namespace wubansia::gen
             return R::success (std::move (song));
         const std::int64_t end = static_cast<std::int64_t> (bars) * ticksPerBar;
 
+        // the hook (hook.h): the whole song's material, its lines that start before the cut (masks as they
+        // are: a line ends on an 8-bar line, as the cut does) and its notes that start before it, ended by it
+        if (song.hook)
+        {
+            std::erase_if (song.hook->lines, [&] (const HookLine& l) { return l.section >= song.sections.size() || song.sections[l.section].startBar + l.bar >= bars; });
+            std::erase_if (song.hook->notes, [&] (const Note& n) { return n.tick >= end; });
+            for (Note& n : song.hook->notes)
+                n.length = std::min (n.length, end - n.tick);
+        }
+
         // the arrangement: the sections that start before the cut, the last one (its blocks and dropouts) shortened
         std::erase_if (song.sections, [&] (const Section& s) { return s.startBar >= bars; });
         Section& last = song.sections.back();

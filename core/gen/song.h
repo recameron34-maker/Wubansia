@@ -11,15 +11,16 @@
 //      bars (arrange.h)
 //   2. harmony: mode, one progression per slot, chord spans with pushed changes (harmony.h)
 //   3. rhythm: each drum lane's patterns from its grids, in dependency order (lanes.h, rhythm.h)
-//   4. pitches: the chords voiced; the bass on chord degrees, following its kick and agreeing with
-//      the voicings (lanes.h, harmony.h)
+//   4. pitches: the chords voiced; the hook (a style with a hook block's: hook.h) planned over the
+//      form and realized clear of the voicings; the bass on chord degrees, following its kick and
+//      agreeing with the voicings; the lead lane carrying the hook (lanes.h, harmony.h, lead.h)
 //   5. feel: swing, offset and velocity maps, 1/f fluctuation, anchors, the low-end lock (feel.h)
 //   6. with Options::bars, the finished song cut there (cut.h): a --bars cut is exactly the whole
 //      song's head, since every stage runs on the whole form
 // Every random choice is a pure function of a key path from the seed (rng.h): no draw depends on
 // another lane's draws, so changing one lane's parameters changes only that lane and the lanes
 // that depend on it (the bass on its kick, and on the chords' voicings for its third, seventh and
-// fifth).
+// fifth; the hook's lead on the chords, which its voicing guard reads).
 
 #include "gen/content.h"
 #include "gen/theory.h"

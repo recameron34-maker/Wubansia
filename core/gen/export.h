@@ -7,7 +7,11 @@
 //    (03_drop_32bars.mid), so a producer can drag regions onto a DAW timeline;
 // 3. regions.json: each region's file, start bar, length, kind and active lanes, its lanes per
 //    8-bar block and its one-bar dropouts (each with its start bar, 1 bar and the lanes that sit it
-//    out; [] for none).
+//    out; [] for none). A song with a hook (hook.h) also names its carrier at the top ("hook":
+//    { "lane" }) and lists each region's hook lines ("hook": [ { "startBar", "dawBar", "bars": 8,
+//    "form", "motif" ("a", "b"), "shift", "ending", "mask" } ], [] for none; the mask is 16
+//    characters of 0 and 1, a half-bar each in time order, 1 where the lead plays or sounds). A style
+//    without a hook block writes neither key, byte for byte as before it; "format" stays 1.
 // No note crosses a section boundary, so the regions tile the song exactly: the region files'
 // events, each moved to its section's start, are the full file's events.
 //
