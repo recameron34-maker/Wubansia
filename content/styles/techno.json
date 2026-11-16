@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "techno",
-  "about": "Dark industrial techno: a machine-hard four on the floor (a pickup kick on the a of 4 in some turnaround bars), a rumble that follows every kick and ducks out before the next, a rolling 16th acid line that rests on the kick (squelch ticks aside), answers it on the e, leaps an octave with an accent on the offbeat 8th and ghosts the a, sliding on its cells, 16th hats with open hats on the offbeats (rides in drop 2), a sparse metal snare on beat 4 of every second bar with a clap now and then and pickups in some turnarounds (the full backbeat only in the second drop), builds that roll from quarter notes to 16ths under a crescendo, 3-against-4 anvil polymeter and Euclidean clanks, and a drone on the tonic. One chord all track long: the loops evolve by small mutations of the acid line and by CC74 filter arcs, not by chord changes. Arranged as a DJ-friendly extended mix with a long mix-in and mix-out.",
+  "about": "Dark industrial techno: a machine-hard four on the floor (a pickup kick on the a of 4 in some turnaround bars), a rumble that follows every kick and ducks out before the next, a rolling 16th acid line that rests on the kick (squelch ticks aside), answers it on the e, leaps an octave with an accent on the offbeat 8th and ghosts the a, sliding on its cells, 16th hats with open hats on the offbeats (rides in drop 2), a sparse metal snare on beat 4 of every second bar with a clap now and then and pickups in some turnarounds (the full backbeat only in the second drop), builds that roll from quarter notes to 16ths under a crescendo, 3-against-4 anvil polymeter and Euclidean clanks, a drone on the tonic, and modular lead blips with one 2-bar hook per seed, drawn rhythm first from the blip cells over all seven degrees: called and stated through the groove, mostly stripped to their accents in the drops, and answered in drop 2 by an off-beat acid-stab riff of their own. One chord all track long: the loops evolve by small mutations of the acid line and by CC74 filter arcs, not by chord changes. Arranged as a DJ-friendly extended mix with a long mix-in and mix-out.",
   "sections": {
     "intro": { "energy": 1, "vel": 930 },
     "groove": { "energy": 2, "vel": 960 },
@@ -31,29 +31,29 @@
         { "w": 1, "blocks": [ ["kick", "hats"], ["kick", "hats"], ["kick", "rumble", "hats"], ["kick", "rumble", "snare", "hats"] ] }
       ] },
       "groove": {
-        "lanes": ["kick", "rumble", "snare", "hats", "perc", "bass", "chords"],
+        "lanes": ["kick", "rumble", "snare", "hats", "perc", "bass", "chords", "lead"],
         "entries": [
           { "lanes": ["perc"], "after": [ { "bars": 0, "w": 1 }, { "bars": 8, "w": 2 } ] },
           { "lanes": ["bass"], "after": [ { "bars": 8, "w": 1 }, { "bars": 16, "w": 2 }, { "bars": 32, "w": 1 } ] },
           { "lanes": ["chords"], "after": [ { "bars": 16, "w": 2 }, { "bars": 32, "w": 1 } ] } ] },
       "build": {
-        "lanes": ["kick", "rumble", "snare", "hats", "perc", "bass", "chords"],
+        "lanes": ["kick", "rumble", "snare", "hats", "perc", "bass", "chords", "lead"],
         "entries": [
           { "lanes": ["kick", "rumble"], "before": [ { "bars": 8, "w": 1 } ] } ] },
       "drop": {
-        "lanes": ["kick", "rumble", "snare", "hats", "perc", "bass", "chords"],
+        "lanes": ["kick", "rumble", "snare", "hats", "perc", "bass", "chords", "lead"],
         "rest": { "p": 60, "bars": 16, "lanes": [ { "lane": "chords", "w": 3 } ] },
         "dropout": { "p": 60, "every": 16, "lanes": [ { "lanes": ["kick", "rumble"], "w": 3 }, { "lanes": ["kick", "rumble", "bass"], "w": 1 } ] },
         "change": true },
       "break": {
-        "lanes": ["snare", "hats", "perc", "bass", "chords"],
+        "lanes": ["snare", "hats", "perc", "bass", "chords", "lead"],
         "entries": [
           { "lanes": ["hats"], "after": [ { "bars": 0, "w": 1 }, { "bars": 8, "w": 1 } ] },
           { "lanes": ["perc"], "after": [ { "bars": 8, "w": 1 }, { "bars": 16, "w": 1 } ] },
           { "lanes": ["bass"], "last": [ { "bars": 8, "w": 1 }, { "bars": 16, "w": 1 } ] },
           { "lanes": ["snare"], "last": [ { "bars": 8, "w": 1 } ] } ] },
       "drop2": {
-        "lanes": ["kick", "rumble", "snare", "hats", "perc", "bass", "chords"],
+        "lanes": ["kick", "rumble", "snare", "hats", "perc", "bass", "chords", "lead"],
         "rest": { "p": 50, "bars": 16, "lanes": [ { "lane": "chords", "w": 2 }, { "lane": "hats", "w": 1 } ] },
         "dropout": { "p": 60, "every": 16, "lanes": [ { "lanes": ["kick", "rumble"], "w": 3 } ] },
         "change": true },
@@ -487,6 +487,68 @@
           "anticipate": 0
         }
       }
+    },
+    { "id": "lead", "kind": "lead",
+      "use": { "groove": "plant", "break": "plant", "build": "plant", "drop": "main", "drop2": "main" },
+      "grids": { "plant": { "vel": 920, "len": 850 }, "main": { "vel": 1000, "len": 1000 } } }
+  ],
+  "hook": {
+    "lane": "lead",
+    "register": { "center": 78, "span": 15 },
+    "contours": [ { "shape": "late", "w": 2 }, { "shape": "twin", "w": 2 } ],
+    "cells": [
+      { "on": [0, 3, 4, 6, 7, 10, 11, 12, 14], "len": [1, 1, 2, 1, 1, 1, 1, 2, 2], "acc": [0, 4, 12], "w": 30 },
+      { "on": [2, 5, 8, 11, 14], "len": [2, 2, 2, 2, 2], "acc": [2, 8, 14], "w": 15 },
+      { "on": [0, 3, 6, 9, 12, 15], "len": [2, 2, 2, 2, 2, 1], "acc": [0, 6, 12], "w": 15 },
+      { "on": [3, 7, 11, 14], "len": [2, 2, 2, 2], "acc": [3, 11], "w": 15 },
+      { "on": [0, 3, 6, 8, 11, 14], "len": [2, 2, 2, 2, 2, 2], "acc": [0, 8], "w": 10 },
+      { "on": [0, 4, 8, 12, 14], "len": [2, 2, 2, 1, 2], "acc": [0, 8], "w": 15 }
+    ],
+    "mutate": { "drop": 25, "add": 25, "extra": [1, 5, 9, 13, 15] },
+    "answer": { "same": 4, "move": 3, "add": 2, "drop": 1, "headDiffers": 1 },
+    "pitch": {
+      "pool": [0, 1, 2, 3, 4, 5, 6],
+      "start": [50, 0, 20, 0, 20, 0, 10],
+      "end": [10, 30, 15, 0, 25, 5, 15],
+      "moves": [6, 44, 11, 11, 11, 6, 6, 5],
+      "leap": 10,
+      "strong": "accents",
+      "peak": [18, 28],
+      "early": [4, 12],
+      "tones": [0, 2, 4, 6, 8],
+      "clash": [0, 2, 4, 6]
+    },
+    "vel": { "down": 124, "accent": 114, "other": 88, "peak": 10, "shape": 6 },
+    "guard": { "second": 78 },
+    "period": {
+      "idiom": "stab",
+      "cells": [
+        { "on": [2, 5, 7, 10, 13, 14], "len": [1, 1, 1, 1, 1, 2], "acc": [2, 7, 10, 14], "w": 3 },
+        { "on": [2, 5, 8, 11, 14], "len": [1, 1, 1, 1, 2], "acc": [2, 8, 14], "w": 1 }
+      ]
+    },
+    "withhold": ["build"],
+    "plan": {
+      "groove": {
+        "enter": [ { "lines": 2, "w": 2 }, { "lines": 3, "w": 1 }, { "lines": 4, "w": 1 } ],
+        "first": [ { "op": "fragment", "w": 2 }, { "op": "skeleton", "w": 1 } ],
+        "next": [ { "op": "full", "w": 2 }, { "op": "fragment", "w": 1 }, { "op": "skeleton", "w": 2 }, { "op": "repeat", "w": 1 } ] },
+      "break": { "first": [ { "op": "out", "w": 1 } ] },
+      "build": { "first": [ { "op": "out", "w": 1 } ] },
+      "drop": {
+        "first": [ { "op": "skeleton", "w": 3 }, { "op": "full", "w": 1 } ],
+        "next": [ { "op": "skeleton", "w": 2 }, { "op": "fragment", "w": 1 }, { "op": "full", "w": 1 } ],
+        "last": [ { "op": "skeleton", "w": 2 }, { "op": "full", "w": 1 } ],
+        "holdFull": 0,
+        "cover": 500 },
+      "drop2": {
+        "first": [ { "op": "new", "w": 1 } ],
+        "next": [ { "op": "skeleton", "w": 2 }, { "op": "fragment", "w": 1 } ],
+        "last": [ { "op": "fragment", "w": 2 }, { "op": "skeleton", "w": 1 } ],
+        "cover": 500 },
+      "after": {
+        "break": { "first": [ { "op": "out", "w": 1 } ] },
+        "build": { "first": [ { "op": "out", "w": 1 } ] } }
     }
-  ]
+  }
 }

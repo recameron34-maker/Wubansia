@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "techno",
-  "about": "Techno feel: a machine-straight kick, the rumble on the kick's own tick, the acid line tight on the grid (its accents and normal notes play as written) with only its ghosts swung (2-7 ticks) and drifting, the snare's ghosts on the kit's swing (10) and its clap layer 2-5 ticks behind it, hats swung a little more (12-14, 13-16 in the second drop), the anvil perc a deep shuffle (21-24), the drone nearly straight. The acid, hats and perc sit in tiers at least 5 ticks apart, so the drift never merges their swings. Swing ranges are permille relative to the kit's swing; sd values are tenths of a tick (1/f), vsd tenths of a velocity step.",
+  "about": "Techno feel: a machine-straight kick, the rumble on the kick's own tick, the acid line tight on the grid (its accents and normal notes play as written) with only its ghosts swung (2-7 ticks) and drifting, the snare's ghosts on the kit's swing (10) and its clap layer 2-5 ticks behind it, hats swung a little more (12-14, 13-16 in the second drop), the anvil perc a deep shuffle (21-24), the drone nearly straight, the lead blips on the kit's swing or a touch past it (10-12). The acid, hats and perc sit in tiers at least 5 ticks apart, so the drift never merges their swings. Swing ranges are permille relative to the kit's swing; sd values are tenths of a tick (1/f), vsd tenths of a velocity step.",
   "amount": 1000,
   "anchorClamp": 2,
   "lanes": {
@@ -19,7 +19,8 @@
     },
     "perc": { "swing": [46, 62], "sd": [18, 26], "clamp": 10, "anchor": 0, "vsd": [20, 28] },
     "bass": { "swing": [-30, -10], "sd": [10, 14], "clamp": 6, "anchor": 0, "lock": "kick", "tight": 64, "vsd": [14, 20] },
-    "chords": { "swing": [-40, -20], "sd": [8, 12], "clamp": 6, "anchor": 0, "spread": [0, 3], "vsd": [10, 16], "artic": 0 }
+    "chords": { "swing": [-40, -20], "sd": [8, 12], "clamp": 6, "anchor": 0, "spread": [0, 3], "vsd": [10, 16], "artic": 0 },
+    "lead": { "swing": [0, 8], "sd": [6, 10], "clamp": 4, "anchor": 0, "vsd": [12, 18], "artic": 30 }
   },
   "rows": {
     "intro": {},

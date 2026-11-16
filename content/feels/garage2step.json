@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "garage2step",
-  "about": "2-step feel: hats swung harder than the kit's base swing, data ticks harder still, ghosts and the kick's odd 16ths on the base swing, the bass a little straighter and locked to the kick, the clap 4-8 ticks behind the snare. Swing ranges are permille relative to the kit's swing; sd values are tenths of a tick (1/f), vsd tenths of a velocity step.",
+  "about": "2-step feel: hats swung harder than the kit's base swing, data ticks harder still, ghosts and the kick's odd 16ths on the base swing, the bass a little straighter and locked to the kick, the lead pluck a touch harder than the base swing, where the written pluck sits, the clap 4-8 ticks behind the snare. Swing ranges are permille relative to the kit's swing; sd values are tenths of a tick (1/f), vsd tenths of a velocity step.",
   "amount": 1000,
   "anchorClamp": 2,
   "lanes": {
@@ -25,7 +25,8 @@
     },
     "perc": { "swing": [10, 40], "sd": [24, 36], "clamp": 12, "anchor": 0, "vsd": [24, 34] },
     "bass": { "swing": [-30, -30], "sd": [10, 14], "clamp": 6, "anchor": 0, "lock": "kick", "vsd": [16, 24], "artic": 60 },
-    "chords": { "swing": [-15, 0], "sd": [10, 16], "clamp": 8, "anchor": 0, "spread": [0, 4], "vsd": [14, 22], "artic": 40 }
+    "chords": { "swing": [-15, 0], "sd": [10, 16], "clamp": 8, "anchor": 0, "spread": [0, 4], "vsd": [14, 22], "artic": 40 },
+    "lead": { "swing": [5, 20], "sd": [8, 12], "clamp": 6, "anchor": 0, "vsd": [14, 20], "artic": 50 }
   },
   "rows": {
     "intro": {},

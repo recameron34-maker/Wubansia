@@ -15,6 +15,7 @@
     "hats": { "track": "Hats + Ride", "channel": 9, "notes": { "closed": 42, "open": 46, "ride": 51 } },
     "perc": { "track": "Anvil Perc", "channel": 9, "notes": { "anvil": 47, "anvil2": 50 } },
     "bass": { "track": "Acid Bass", "channel": 0, "range": [28, 52], "root": 28 },
-    "chords": { "track": "Pad Drone", "channel": 2, "range": [43, 84] }
+    "chords": { "track": "Pad Drone", "channel": 2, "range": [43, 84] },
+    "lead": { "track": "Lead Blips", "channel": 1, "range": [71, 88] }
   }
 }

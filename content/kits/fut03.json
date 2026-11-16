@@ -15,6 +15,7 @@
     "shaker": { "track": "Shaker", "channel": 9, "notes": { "shaker": 54 } },
     "perc": { "track": "Metal Pling", "channel": 9, "notes": { "pling": 47, "pling2": 48 } },
     "bass": { "track": "Bass Bounce", "channel": 0, "range": [29, 55], "root": 31 },
-    "chords": { "track": "Stabs + Pad", "channel": 2, "range": [43, 86] }
+    "chords": { "track": "Stabs + Pad", "channel": 2, "range": [43, 86] },
+    "lead": { "track": "Lead Keys", "channel": 1, "range": [69, 86] }
   }
 }
