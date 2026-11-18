@@ -158,9 +158,10 @@ engineer replaces these with the kit's own form.
 - **Your own synths.** The drag strip's For my synths switch, lit until you turn it off (ADR 0027), hands every drag
   over for a synth rather than for Wubansia's samples: the bass lane an octave up (38-55, around C1-C2), every pitched
   note a 16th at least but ending 10 ticks before the next note on its track, so a written slide is two plain notes,
-  and velocities 72 and up. Drums, accents, FX, vox chops and the conductor stay as this map has them; switched off, a
-  drag is the file as it is here. Channel 4's Chords and the kits' chord extras still carry each chord's root only: on
-  a synth, play Chord voicing (channel 3), or put a chord device before it.
+  and velocities 72 and up. The drums, the one-key Accents, FX and Vox chops tracks and the conductor stay as this map
+  has them (the pitched extras on the accents lane change like the rest); switched off, a drag is the file as it is
+  here. Channel 4's Chords and the kits' chord extras still carry each chord's root only: on a synth, play Chord
+  voicing (channel 3), or put a chord device before it.
 - **Empty tracks.** A loop file carries only the tracks that play in it. Every region of an extended mix carries the
   same tracks in the same order, empty or not: if a DAW leaves an empty track out, move the clips under it onto the
   tracks of the same name.

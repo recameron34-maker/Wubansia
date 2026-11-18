@@ -210,10 +210,12 @@ rack, and every other instrument keeps its own track. The file's name says so:
 `FUT01 Alloy Signal 134 F#m 11A - Song (1 drum track).mid`. Wubansia remembers the switch for your user, in
 `settings.xml`, in every project. A lane's MIDI chip still gives that lane's own tracks.
 
-**For my synths**, the switch before Loop, is lit until you turn it off: every drag is then made for your own synths.
-The bass comes up an octave, to around C1-C2; no note is shorter than a 16th unless the next starts sooner; notes never
-overlap, so a slide is two notes; and soft notes play at velocity 72. The drums, accents and FX stay as they are, and the
-name says so: `FUT01 Alloy Signal 134 F#m 11A - Loop (synths).mid`. Wubansia remembers it like 1 drum track.
+**For my synths**, the switch before Loop, is lit until you turn it off: every drag is then made for your own synths,
+and its name says so: `FUT01 Alloy Signal 134 F#m 11A - Loop (synths).mid`. The bass comes up an octave, to around
+C1-C2; no note is shorter than a 16th unless the next starts sooner; notes never overlap, so a slide is two notes; and
+soft notes play at velocity 72. The drums and the one-key Accents and FX tracks stay as they are. In a Song, the
+Accents lane also plays pitched parts (FUT02's Glass Ping, FUT04's Acid Stab and Rave Stab): those are made for synths
+like the rest, so that lane's Song drag says (synths) too. Wubansia remembers the switch like 1 drum track.
 
 A chord sample plays a whole chord from one key, so its track carries only each chord's root: Chords in every kit,
 FUT01's Air Pad, FUT02's Laser Chord Stab, FUT03's Pad Warm and FUT04's Metal Chord and Rave Stab, and the phrase chips
