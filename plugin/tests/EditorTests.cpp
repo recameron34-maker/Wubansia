@@ -3339,8 +3339,8 @@ TEST_CASE ("the drawer's words", "[editor][phrases]")
 }
 
 // Renders the editor at 2x into PNGs for the lead: each kit in Loop mode while playing, FUT02 in
-// Song mode, FUT01 with its content missing, and the Samples drawer (at 1x too) on FUT01's Accents and on
-// FUT02 browsed while its samples are missing. Run with:
+// Song mode, FUT01 with its content missing, the Samples drawer (at 1x too) on FUT01's Accents and on
+// FUT02 browsed while its samples are missing, and the Phrases drawer on FUT01's own phrases. Run with:
 //   WUBANSIA_SCREENSHOTS=<folder> WubansiaPluginTests "[.screenshot]"
 TEST_CASE ("editor screenshots", "[.screenshot]")
 {
@@ -3545,5 +3545,17 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
             REQUIRE (drawer.bannerText().isNotEmpty());
             save (editor, "FUT02-samples-missing.png");
             save (editor, "FUT02-samples-missing-1x.png", 1);
+        });
+
+    // The Phrases drawer on FUT01's own phrases and its lead line, the first one selected.
+    c.phraseList = FakeController::ownPhrases ("FUT01");
+    ++c.phraseGeneration;
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            editor.setZoom (1.0f);
+            play (editor, 134, 3840.0 + 960.0 * 2.0, editor.model().kit.phraseLanes, 1.6f);
+            auto& drawer = openPhrases (editor);
+            REQUIRE (drawer.numTiles() == 6);
+            save (editor, "phrases-drawer.png");
         });
 }
