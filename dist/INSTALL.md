@@ -177,6 +177,18 @@ content folder…**. **Content…** opens the panel that says where the kits' sa
   the drawer says: "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed.
   Select this track, or press Play."
 
+## Phrases into your DAW
+
+The **Phrases** button, left of **Samples** at the top of Wubansia's window, opens the Phrases drawer where the Samples
+drawer opens; one closes the other. Under **From the kit** are the playing kit's own written phrases and its lead line,
+2 or 4 bars each: six for FUT01, five for each other kit. Drag one onto a MIDI track in your DAW, or click it to show
+the file. With the keyboard, Tab to the phrases, move with the arrows, and press Return to show the file.
+
+A phrase comes as its own MIDI file, named like `FUT01 Alloy Signal 134 F#m 11A - Phrase Organ Riff 4 bars.mid`. Like
+every drag, it's made for your own synths while **For my synths** on the drag strip is lit, and its name then ends in
+`(synths)`; the drawer's footer says whether the switch is on. Choose another kit and the drawer shows its phrases;
+**Close**, Esc or the Phrases button closes it.
+
 ## Where everything goes
 
 - `~/Library/Audio/Plug-Ins/VST3/Wubansia.vst3`
@@ -187,8 +199,8 @@ content folder…**. **Content…** opens the panel that says where the kits' sa
   with the kit's `SHA256SUMS`. A later content version goes in its own `v<N>` folder next to it.
 - `~/Library/Application Support/Wubansia Audio/Wubansia/settings.xml`: the content folder and the samples folder
   you chose, if any, whether the 1 drum track switch is lit, and whether For my synths is off.
-- `~/Library/Caches/Wubansia Audio/Wubansia/drag/`: the MIDI files the Drag MIDI strip wrote for your drags, the
-  newest 32 (Wubansia deletes the older ones).
+- `~/Library/Caches/Wubansia Audio/Wubansia/drag/`: the MIDI files the Drag MIDI strip and the Phrases drawer wrote
+  for your drags, the newest 32 (Wubansia deletes the older ones).
 - `~/Music/Wubansia/Samples/<KIT> <Title>/`: the WAVs the Samples drawer saved for your drags (or the folder you
   chose with Change…). Wubansia never deletes them, and uninstalling leaves them: your projects use them.
 
@@ -200,9 +212,10 @@ On Windows the content folder is `%APPDATA%\Wubansia Audio\Wubansia\Content`, an
 ## Drag MIDI into Live or Logic
 
 The **Drag MIDI** strip along the bottom of Wubansia's window hands your DAW the kit's MIDI: **Loop** (the 4-bar
-loop), **Song** (the 224-bar extended mix, with a marker at each section), each phrase chip, and each lane's **MIDI**
-chip. Drag a chip onto your DAW, or click it to show the file. Every instrument is its own track, so a dropped Loop or
-Song gives one DAW track per instrument; the vox switch picks the file, and muted lanes are left out.
+loop), **Song** (the 224-bar extended mix, with a marker at each section), the kit's phrases (in the Phrases drawer),
+and each lane's **MIDI** chip. Drag a chip onto your DAW, or click it to show the file. Every instrument is its own
+track, so a dropped Loop or Song gives one DAW track per instrument; the vox switch picks the file, and muted lanes are
+left out.
 
 **1 drum track**, the switch next to Song, puts the drums on one track instead. Lit, a Loop or Song drag brings the
 kick, snare or clap, hats and percussion as one track, Drums, on channel 10 with the same notes, ready for one drum

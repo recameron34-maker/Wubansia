@@ -240,8 +240,8 @@ and the integration's own (the later commits change only docs). ctest ran withou
 - [ ] Whether either DAW reads anything from the files besides the audio (a root note, a tempo)
 
 Drums on one track (the switch next to Song on the drag strip):
-- [ ] The switch reads "1 drum track" in full in your Mac's font, and FUT01's phrase chips show their titles whole, or
-      without their bar count ("E Piano Stab Rhythm")
+- [ ] The switch reads "1 drum track" in full in your Mac's font (the phrase chips beside it moved to the Phrases
+      drawer, ADR 0031)
 - [ ] With the switch lit, in a new Live 12 set: drop FUT01's Song on a track holding a Drum Rack. The drums land there
       as one clip, Drums, and the other instruments on the tracks after it (a drop onto your own set writes over the
       tracks after it)

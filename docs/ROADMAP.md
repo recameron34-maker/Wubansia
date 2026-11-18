@@ -164,7 +164,7 @@ Goal: test all four goals small, on one kit: FUT01 "Alloy Signal", sci-fi club Ã
   - [x] For my synths (ADR 0027): the bass up an octave, no note under a 16th, no overlaps, soft notes at 72 (in the macOS CI zip of `9d4c1b1`).
   - [x] Chords as chords (ADR 0027, amended): a chord sample's track becomes the whole chord its sample plays,
     voiced as the kit voices it and lifted above the For my synths bass.
-  - [ ] The Phrases drawer (ADR 0031): the header's Phrases button, the kit's own phrases and lead line there, off
+  - [x] The Phrases drawer (ADR 0031): the header's Phrases button, the kit's own phrases and lead line there, off
     the drag strip.
   - [ ] Part drags (ADR 0029): All, Drums, Bass, Chords, Lead, Vox or Accents for Loop and Song, the whole 224 bars
     with tempo, key and markers; Drums with 1 drum track is one track for your drum rack.

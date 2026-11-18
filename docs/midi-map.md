@@ -1,9 +1,9 @@
 # The MIDI map (MIDI v2)
 
 Every MIDI file in `content/midi/` follows this map, and so does Wubansia: its player plays those files, its drag strip
-hands them out, and its MIDI input reads the same channels. The table lives in code as `tools/sound/channels.py`, which
-`tools/sound/midi.py` and the manifest exporters import, and as its C++ copy in the engine; change a number only there,
-through ADR 0019 (status: Accepted), and re-export.
+and Phrases drawer hand them out, and its MIDI input reads the same channels. The table lives in code as
+`tools/sound/channels.py`, which `tools/sound/midi.py` and the manifest exporters import, and as its C++ copy in the
+engine; change a number only there, through ADR 0019 (status: Accepted), and re-export.
 
 The generator's files (`groovecore gen`, ADR 0013) follow the channel table, not every convention below: they are
 480 PPQ, a slide overlaps its next note by its style's overlap (30 ticks in FUT01 and FUT04, 24 in FUT03, 20 in
@@ -121,7 +121,8 @@ Snare/Clap, Hats and Perc. It isn't a TRACKS name: it spans four lanes, and no f
 - Parts: `<KIT>_Drums_4bars.mid`; `<KIT>_Bassline_<Name>_2bars.mid` (`_InTheLoop` for the loop's); `<KIT>_Lead_..._2bars.mid`;
   `<KIT>_Chords_<Sample>_4bars.mid` (channel 4) and `<KIT>_Chords_<Sample>_Voicing_4bars.mid` (channel 3);
   `<KIT>_Accents_Vox_4bars.mid`, `<KIT>_Accents_NoVox_4bars.mid`, `<KIT>_FX_4bars.mid`; and the synth phrases,
-  `<KIT>_Phrase_<Name>_<n>bars.mid`, each on its instrument's channel.
+  `<KIT>_Phrase_<Name>_<n>bars.mid`, each on its instrument's channel. The Phrases drawer's From the kit lists the
+  phrases, then the `_Lead_` line (ADR 0031).
 - `extended/vox/` and `extended/novox/`: the 224-bar extended mix (`<KIT>_ExtendedMix_Vox_224bars.mid`, or `_NoVox_`),
   one region file per section, and `regions.json` (integers and strings only: the tempo, the swing in permille, the
   length in ms, 1-based start bars, each line's lanes and moves, the cues, the tracks and the rides' ranges; a line's
