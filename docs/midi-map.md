@@ -143,14 +143,14 @@ engineer replaces these with the kit's own form.
 ## In a DAW
 - **Ableton Live.** A dragged file's tracks come in as clips on consecutive MIDI tracks; Live keeps the notes but not
   their channels. For Wubansia, turn For my synths off first (lit, the bass comes an octave up, its slides become
-  separate notes, short notes hold longer and soft notes play at velocity 72), then drag one lane at a time from its
-  drag strip, or set Wubansia's MIDI input to one lane (Lane mode). To play a whole multi-track file into Wubansia,
-  give each clip its own MIDI track, set that track's "MIDI To" to Wubansia's track and its channel to the clip's
-  channel from the table above, and arm or monitor them. To play the kit's samples in your own sampler instead, put one
-  on each track, root every sample at its MIDI number and turn For my synths off, as for Wubansia. With 1 drum track
-  lit, the drums come as one clip: drop the Song on a track holding a Drum Rack with the kit's drums on the notes
-  above. The other instruments then land on the tracks after it, over the clips there: `dist/INSTALL.md` gives the
-  drops that write over nothing.
+  separate notes, short notes hold longer, soft notes play at velocity 72 and each chord sample's note comes as a whole
+  chord), then drag one lane at a time from its drag strip, or set Wubansia's MIDI input to one lane (Lane mode). To
+  play a whole multi-track file into Wubansia, give each clip its own MIDI track, set that track's "MIDI To" to
+  Wubansia's track and its channel to the clip's channel from the table above, and arm or monitor them. To play the
+  kit's samples in your own sampler instead, put one on each track, root every sample at its MIDI number and turn For my
+  synths off, as for Wubansia. With 1 drum track lit, the drums come as one clip: drop the Song on a track holding a
+  Drum Rack with the kit's drums on the notes above. The other instruments then land on the tracks after it, over the
+  clips there: `dist/INSTALL.md` gives the drops that write over nothing.
 - **Logic Pro.** File > Open on a whole-mix file brings its tempo, key and section markers with it (an import doesn't).
   Imported tracks keep their channels: to play them into Wubansia, turn For my synths off first, as for Live, then on
   Wubansia's track set the MIDI input to Multi (channels as above), or to one lane. For your own instruments, one
