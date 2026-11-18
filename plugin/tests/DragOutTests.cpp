@@ -897,7 +897,7 @@ TEST_CASE ("1 drum track leaves lane and phrase drags as they are", "[dragout]")
                 std::vector<DragRequest> requests;
                 for (const auto lane : allLanes)
                     requests.push_back (laneRequest (lane));
-                for (const auto& phrase : dragout::phraseFiles (k.info.id, k.files))
+                for (const auto& phrase : dragout::kitPhraseFiles (k.info.id, k.files))
                     requests.push_back (phraseRequest (phrase.toStdString()));
                 for (const auto& request : requests)
                 {
@@ -990,7 +990,8 @@ TEST_CASE ("1 drum track: drums that can't go on one track fail the drag, saying
 TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched tracks made for synths, and says so", "[dragout]")
 {
     // Loop and Song: nothing muted, each lane alone, every lane but one, and only the drums, accents and FX left, each
-    // with 1 drum track off and on. Then every lane in both modes, and every phrase file, each in both variants.
+    // with 1 drum track off and on. Then every lane in both modes, and every phrase file and lead line, each in both
+    // variants.
     std::vector<std::uint32_t> mutes { 0u, 0b0011110000u };
     for (const auto lane : allLanes)
     {
@@ -1015,7 +1016,7 @@ TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched 
             for (const auto mode : { PlayMode::loop, PlayMode::song })
                 for (const auto lane : allLanes)
                     drags.emplace_back (state (mode, v), laneRequest (lane));
-            for (const auto& phrase : dragout::phraseFiles (k.info.id, k.files))
+            for (const auto& phrase : dragout::kitPhraseFiles (k.info.id, k.files))
                 drags.emplace_back (state (PlayMode::loop, v), phraseRequest (phrase.toStdString()));
         }
 
@@ -1053,7 +1054,7 @@ TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched 
                 ++changed; // a pitched track whose notes already play well on a synth comes out the same
         }
     }
-    CHECK (marked > 500); // 576: 564 changed, 12 already played well
+    CHECK (marked > 500); // 584: 572 changed, 12 already played well
     CHECK (changed > 500);
     CHECK (plain > 250); // 294
 }
@@ -1473,22 +1474,19 @@ TEST_CASE ("a lane with no tracks in the mode's files can't be dragged", "[drago
 
 TEST_CASE ("a phrase drag is the phrase file, byte for byte", "[dragout]")
 {
+    // Every file the Phrases drawer lists (kitPhraseFiles' own case checks the list): the phrases and the lead line.
     for (const auto& k : kits())
     {
         INFO (k.info.id);
-        const auto phrases = dragout::phraseFiles (k.info.id, k.files);
-        juce::StringArray expected;
-        for (const auto& name : k.names)
-            if (name.rfind (k.info.id + "_Phrase_", 0) == 0)
-                expected.add (juce::String (name));
-        CHECK (phrases == expected);
-        CHECK (phrases.size() >= 4);
-
+        const auto phrases = dragout::kitPhraseFiles (k.info.id, k.files);
+        CHECK (phrases.size() >= 5);
         for (const auto& name : phrases)
         {
+            INFO (name);
             const auto file = drag (k, state (PlayMode::song, Variant::novox, everyLane), phraseRequest (name.toStdString()));
             CHECK (file.bytes == k.bytesOf (name.toStdString()));
-            CHECK_THAT (file.name, StartsWith (k.prefix() + "Phrase ") && EndsWith (" bars.mid"));
+            const auto lead = name.startsWith (juce::String (k.info.id) + "_Lead_");
+            CHECK_THAT (file.name, StartsWith (k.prefix() + (lead ? "Lead " : "Phrase ")) && EndsWith (" bars.mid"));
         }
     }
 
@@ -1588,7 +1586,7 @@ TEST_CASE ("embedded file names may carry folders", "[dragout]")
     const auto loop = dragout::makeDragFile (k.info, files, state (PlayMode::loop, Variant::vox), loopRequest());
     REQUIRE (loop.ok());
     CHECK (loop.value.bytes == k.bytesOf ("FUT04_Loop_Vox_4bars.mid"));
-    CHECK (dragout::phraseFiles (k.info.id, files) == dragout::phraseFiles (k.info.id, k.files));
+    CHECK (dragout::kitPhraseFiles (k.info.id, files) == dragout::kitPhraseFiles (k.info.id, k.files));
     const auto phrase = dragout::makeDragFile (k.info, files, state (PlayMode::loop, Variant::vox), phraseRequest ("FUT04_Phrase_RaveStabRiff_2bars.mid"));
     REQUIRE (phrase.ok());
     CHECK (phrase.value.bytes == k.bytesOf ("FUT04_Phrase_RaveStabRiff_2bars.mid"));
@@ -1608,7 +1606,7 @@ TEST_CASE ("a drag only ever takes the kit's own files", "[dragout]")
     for (const auto& k : kits())
     {
         INFO (k.info.id);
-        CHECK (dragout::phraseFiles (k.info.id, all) == dragout::phraseFiles (k.info.id, k.files));
+        CHECK (dragout::kitPhraseFiles (k.info.id, all) == dragout::kitPhraseFiles (k.info.id, k.files));
         CHECK (drag ({ k.info, {}, {}, all }, state (PlayMode::song, Variant::novox), songRequest()).bytes == drag (k, state (PlayMode::song, Variant::novox), songRequest()).bytes);
         CHECK (drag ({ k.info, {}, {}, all }, state (PlayMode::loop, Variant::vox), laneRequest (Lane::bass)).bytes == drag (k, state (PlayMode::loop, Variant::vox), laneRequest (Lane::bass)).bytes);
     }
@@ -1675,7 +1673,7 @@ TEST_CASE ("drag file names hold kit, title, BPM, key and Camelot, in safe chara
                 for (const auto lane : allLanes)
                     add (k, state (mode, v), laneRequest (lane));
         }
-        for (const auto& name : dragout::phraseFiles (k.info.id, k.files))
+        for (const auto& name : dragout::kitPhraseFiles (k.info.id, k.files))
             add (k, state (PlayMode::loop, Variant::vox), phraseRequest (name.toStdString()));
     }
     REQUIRE (named.size() > 1600);

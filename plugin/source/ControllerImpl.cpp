@@ -267,14 +267,6 @@ namespace wubansia
         processor.changeSettings ([mode] (StateOnly& s) { s.phrases = mode; });
     }
 
-    juce::StringArray ControllerImpl::phraseFiles() const
-    {
-        const auto* entry = entryOf (processor, processor.settings().kit);
-        if (entry == nullptr)
-            return {};
-        return dragout::phraseFiles (entry->id, entry->midiFiles);
-    }
-
     bool ControllerImpl::dragDrumsOnOneTrack() const
     {
         return settingsFile().dragDrumsOnOneTrack();

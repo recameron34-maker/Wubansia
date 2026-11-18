@@ -6,7 +6,7 @@
 // ControllerImpl::writeDragFile (P9) calls writeDragFile () below with the current kit's info, its
 // embedded MIDI files (EmbeddedContent::midiFiles), the play mode, the vox switch, the lane mutes and
 // the person's drum option (UserSettings), and returns the file it gives (juce::File () on failure);
-// ControllerImpl::phraseFiles () returns phraseFiles (). Message thread only: it reads and writes files.
+// ControllerImpl::phrases () lists kitPhraseFiles (). Message thread only: it reads and writes files.
 //
 //     const dragout::DragState state { mode, voxSynth ? engine::Variant::vox : engine::Variant::novox, mutedLanes, drumsOnOneTrack, forSynths };
 //     const auto file = dragout::writeDragFile (kitInfo, midiFiles, state, request);
@@ -24,7 +24,7 @@
 //   lane differs between the two (the accents, the vox); where it doesn't, the vox file gives it, so a
 //   name stands for one file; and where the switch's file has none of the lane's tracks (the vox synth
 //   with the switch off), the other file does. A lane with tracks in neither can't be dragged.
-// - phrase: the named file (one of phraseFiles (); any of the kit's own <KIT>_ files), byte for byte,
+// - phrase: the named file (one of kitPhraseFiles (); any of the kit's own <KIT>_ files), byte for byte,
 //   whatever the mutes.
 // Lane and phrase drags never merge drums. Every kept track is kept whole, but drums merged on one
 // track, with the conductor (tempo, 4/4, key, and in a Song the section markers and cues), so the
@@ -115,9 +115,6 @@ namespace wubansia::dragout
     // A kit's Loop and Song files (docs/midi-map.md).
     std::string loopFileName (std::string_view kitId, engine::Variant variant); // "FUT01_Loop_Vox_4bars.mid"
     std::string songFileName (std::string_view kitId, engine::Variant variant); // "FUT01_ExtendedMix_NoVox_224bars.mid"
-
-    // The kit's phrase files among files, "<KIT>_Phrase_*.mid", by file name in byte order.
-    juce::StringArray phraseFiles (std::string_view kitId, std::span<const MidiFile> files);
 
     // The Phrases drawer's From the kit (ADR 0031): the kit's phrase files, "<KIT>_Phrase_*.mid", then its lead line,
     // "<KIT>_Lead_*.mid", each by file name in byte order. Each drags as DragWhat::phrase.

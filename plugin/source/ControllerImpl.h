@@ -41,7 +41,6 @@ namespace wubansia
         engine::PhraseMode phraseMode() const override;
         void setPhraseMode (engine::PhraseMode mode) override;
 
-        juce::StringArray phraseFiles() const override;
         bool dragDrumsOnOneTrack() const override;
         void setDragDrumsOnOneTrack (bool on) override;
         bool dragForSynths() const override;

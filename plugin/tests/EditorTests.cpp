@@ -817,13 +817,6 @@ TEST_CASE ("drag chips write their MIDI file and hand it to the OS", "[editor]")
             CHECK (rig.controller.dragRequests[1].what == wubansia::DragWhat::loop);
             CHECK (rig.controller.dragRequests[2].what == wubansia::DragWhat::song);
 
-            auto& phrase = get<editor::DragChip> (editor, "drag_phrase_1");
-            hook (phrase);
-            CHECK (phrase.label() == "Vox Synth" + editor::middleDot() + "2 bars");
-            CHECK (phrase.beginDrag());
-            CHECK (rig.controller.dragRequests[3].what == wubansia::DragWhat::phrase);
-            CHECK (rig.controller.dragRequests[3].phraseFile == "FUT01_Phrase_VoxSynth_2bars.mid");
-
             // A click without a drag shows the file instead.
             click (loop);
             REQUIRE (revealed.size() == 1);
@@ -833,7 +826,7 @@ TEST_CASE ("drag chips write their MIDI file and hand it to the OS", "[editor]")
             rig.controller.dragFails = true;
             CHECK_FALSE (song.beginDrag());
             CHECK (song.hasFailed());
-            CHECK (dragged.size() == 4);
+            CHECK (dragged.size() == 3);
 
             for (const auto& file : dragged)
                 file.deleteFile();
@@ -842,13 +835,6 @@ TEST_CASE ("drag chips write their MIDI file and hand it to the OS", "[editor]")
 
 namespace
 {
-    // FUT01's five phrase files, the most any kit has, in the order phraseFiles () gives them.
-    juce::StringArray fut01PhraseFiles()
-    {
-        return { "FUT01_Phrase_EPianoStabRhythm_2bars.mid", "FUT01_Phrase_OrganRiff_4bars.mid", "FUT01_Phrase_PluckRiff_4bars.mid",
-            "FUT01_Phrase_VoxSynthRiff_2bars.mid", "FUT01_Phrase_WarpRiff_2bars.mid" };
-    }
-
     // The drag strip's 1 drum track switch, or nullptr after a failed check: a failed REQUIRE inside withEditor would
     // leave the editor ticking after its test.
     editor::LedButton* drumSwitch (PluginEditor& editor)
@@ -874,7 +860,6 @@ namespace
 TEST_CASE ("the drag strip's For my synths switch is lit by default, asks the Controller and follows it", "[editor]")
 {
     Rig rig;
-    rig.controller.phraseFileNames = fut01PhraseFiles();
 
     withEditor (rig, [&] (PluginEditor& editor)
         {
@@ -914,8 +899,7 @@ TEST_CASE ("the drag strip's For my synths switch is lit by default, asks the Co
             juce::Array<juce::File> dragged;
             auto& loop = get<editor::DragChip> (editor, "drag_loop");
             auto& bass = get<editor::DragChip> (editor, "drag_bass");
-            auto& phrase = get<editor::DragChip> (editor, "drag_phrase_0");
-            for (auto* chip : { &loop, &bass, &phrase })
+            for (auto* chip : { &loop, &bass })
                 chip->startDrag = [&] (const juce::File& file, juce::Component&)
                 {
                     dragged.add (file);
@@ -923,11 +907,9 @@ TEST_CASE ("the drag strip's For my synths switch is lit by default, asks the Co
                 };
             CHECK (loop.beginDrag());
             CHECK (bass.beginDrag());
-            CHECK (phrase.beginDrag());
-            REQUIRE (rig.controller.dragRequests.size() == 3);
+            REQUIRE (rig.controller.dragRequests.size() == 2);
             CHECK (rig.controller.dragRequests[0] == wubansia::DragRequest { wubansia::DragWhat::loop, engine::Lane::kick, {} });
             CHECK (rig.controller.dragRequests[1] == wubansia::DragRequest { wubansia::DragWhat::lane, engine::Lane::bass, {} });
-            CHECK (rig.controller.dragRequests[2] == wubansia::DragRequest { wubansia::DragWhat::phrase, engine::Lane::kick, fut01PhraseFiles()[0] });
             for (const auto& file : dragged)
                 file.deleteFile();
         });
@@ -936,7 +918,6 @@ TEST_CASE ("the drag strip's For my synths switch is lit by default, asks the Co
 TEST_CASE ("the drag strip's 1 drum track switch asks the Controller and follows it", "[editor]")
 {
     Rig rig;
-    rig.controller.phraseFileNames = fut01PhraseFiles();
 
     withEditor (rig, [&] (PluginEditor& editor)
         {
@@ -3358,12 +3339,6 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
         { "Kick", "Snare", "Hats", "Perc", "Acid", "Blip", "Drone", "Vox", "Accents", "FX" },
         engine::laneBit (engine::Lane::bass) | engine::laneBit (engine::Lane::lead), { "", "Acid Clean", "" }, { "", "Acid Warm", "" });
 
-    const std::map<juce::String, juce::StringArray> phraseFiles {
-        { "FUT01", { "FUT01_Phrase_EPianoStabRhythm_2bars.mid", "FUT01_Phrase_OrganRiff_4bars.mid", "FUT01_Phrase_PluckRiff_4bars.mid", "FUT01_Phrase_VoxSynthRiff_2bars.mid", "FUT01_Phrase_WarpRiff_2bars.mid" } },
-        { "FUT02", { "FUT02_Phrase_GlassMelody_4bars.mid", "FUT02_Phrase_LaserStabRiff_2bars.mid", "FUT02_Phrase_VoxChoirChords_4bars.mid", "FUT02_Phrase_VoxSynthRiff_2bars.mid" } },
-        { "FUT03", { "FUT03_Phrase_DubChords_4bars.mid", "FUT03_Phrase_KeysArp_4bars.mid", "FUT03_Phrase_RubberRiff_2bars.mid", "FUT03_Phrase_VoxSynthRiff_2bars.mid" } },
-        { "FUT04", { "FUT04_Phrase_AcidStabRiff_2bars.mid", "FUT04_Phrase_MetalChords_4bars.mid", "FUT04_Phrase_RaveStabRiff_2bars.mid", "FUT04_Phrase_VoxSynthRiff_2bars.mid" } },
-    };
     using Song = std::vector<wubansia::SectionInfo>;
     const Song houseForm { { "Intro", 1, 32 }, { "Groove", 33, 32 }, { "Break", 65, 16 }, { "Build", 81, 16 }, { "Drop", 97, 32 },
         { "Switch Up", 129, 16 }, { "Break 2", 145, 16 }, { "Drop 2", 161, 32 }, { "Outro", 193, 32 } };
@@ -3433,7 +3408,6 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
         c.selectKit (kit);
         c.contentStatus.state = wubansia::ContentState::ready;
         c.contentStatus.folder = contentRoot.getChildFile (kit.toLowerCase()).getChildFile ("v1");
-        c.phraseFileNames = phraseFiles.at (kit);
         c.sectionList = songs.at (kit);
         c.transportState = {};
         for (const auto& card : c.kitCards)
@@ -3470,7 +3444,6 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
         standaloneController.kitCards = c.kitCards;
         standaloneController.selectKit ("FUT04");
         standaloneController.contentStatus.folder = contentRoot.getChildFile ("fut04/v1");
-        standaloneController.phraseFileNames = phraseFiles.at ("FUT04");
         standaloneController.sectionList = songs.at ("FUT04");
         standaloneController.transportState = { true, true, 136.0, 0.0 };
         juce::AudioProcessor::setTypeOfNextNewPlugin (juce::AudioProcessor::wrapperType_Standalone);
@@ -3503,7 +3476,6 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
         juce::File::getSpecialLocation (juce::File::userHomeDirectory).getChildFile ("Music/Wubansia Content").getFullPathName() };
     c.kitCards[0].content = c.contentStatus;
     c.nextSnapshot = {};
-    c.phraseFileNames = phraseFiles.at ("FUT01");
     c.sectionList = songs.at ("FUT01");
     c.transportState = {};
     c.transportState.bpm = 134.0;

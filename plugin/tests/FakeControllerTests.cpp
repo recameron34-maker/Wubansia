@@ -106,7 +106,6 @@ TEST_CASE ("the fake controller shows what a test sets and records what the edit
 
         fake.dragFails = true;
         CHECK (controller.writeDragFile ({}) == juce::File());
-        CHECK (controller.phraseFiles().size() == 2);
     }
 
     SECTION ("the Phrases drawer's list: what a test sets, each request counted")

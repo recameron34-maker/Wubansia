@@ -270,7 +270,9 @@ TEST_CASE ("drag-out: the kit's own MIDI, cut to the request, into the drag fold
     controller.setDragFolderForTesting (drag.folder);
     controller.setDragForSynths (false); // the kit's files as they are (For my synths has a test of its own)
 
-    CHECK (controller.phraseFiles() == juce::StringArray { "DRG01_Phrase_Lead_2bars.mid" });
+    const auto phrases = controller.phrases(); // the synthetic kit's own one, for the Phrases drawer
+    REQUIRE (phrases.size() == 1);
+    CHECK (phrases[0] == PhraseInfo { "DRG01_Phrase_Lead_2bars.mid", "Lead", "kit", PhraseOrigin::kit, 2 });
 
     DragRequest loop;
     const auto file = controller.writeDragFile (loop);

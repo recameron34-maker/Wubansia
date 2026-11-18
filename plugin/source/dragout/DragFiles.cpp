@@ -417,13 +417,6 @@ namespace wubansia::dragout
         }
     }
 
-    juce::StringArray phraseFiles (std::string_view kitId, std::span<const MidiFile> files)
-    {
-        juce::StringArray out;
-        addNamed (out, kitId, "_Phrase_", files);
-        return out;
-    }
-
     juce::StringArray kitPhraseFiles (std::string_view kitId, std::span<const MidiFile> files)
     {
         juce::StringArray out;

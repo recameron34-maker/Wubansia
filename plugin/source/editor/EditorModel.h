@@ -44,7 +44,6 @@ namespace wubansia::editor
         engine::PhraseMode phraseMode = engine::PhraseMode::automatic;
         bool dragDrumsOnOneTrack = false; // the drag strip's 1 drum track switch (ADR 0025)
         bool dragForSynths = true; // the drag strip's For my synths switch (ADR 0027)
-        juce::StringArray phraseFiles;
         AuditionState audition; // the Samples drawer's last audition (ADR 0024)
         std::uint64_t phrasesGeneration = 0; // the Phrases drawer's list (ADR 0031): asked again only when this moves on
 

@@ -59,7 +59,6 @@ namespace wubansia::test
             contentStatus = fut01.content;
             sectionList = { { "Intro", 1, 16 }, { "Groove", 17, 48 }, { "Break", 65, 16 } };
             transportState.bpm = 134.0;
-            phraseFileNames = { "FUT01_Phrase_ChromePluck_2bars.mid", "FUT01_Phrase_VoxSynth_2bars.mid" };
             dragFolder = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("WubansiaFakeDrag");
 
             // A slice of FUT01's and FUT02's catalogs (file indices, names and lengths as their kit.json has them):
@@ -137,7 +136,6 @@ namespace wubansia::test
         engine::PhraseMode phraseLaneMode = engine::PhraseMode::automatic; // what phraseMode () gives
         bool drumsOneTrack = false; // what dragDrumsOnOneTrack () gives; another instance may change it
         bool synthsOn = true; // what dragForSynths () gives; another instance may change it
-        juce::StringArray phraseFileNames;
         juce::File dragFolder; // where writeDragFile writes
         bool dragFails = false;
         std::map<juce::String, std::vector<SoundInfo>> soundLists; // what sounds () gives, by kit
@@ -252,8 +250,6 @@ namespace wubansia::test
             synthOptionRequests.push_back (on);
             synthsOn = on;
         }
-
-        juce::StringArray phraseFiles() const override { return phraseFileNames; }
 
         // Writes a minimal, valid SMF (one empty track) named for the request.
         juce::File writeDragFile (const DragRequest& request) override

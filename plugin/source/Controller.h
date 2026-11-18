@@ -105,7 +105,7 @@ namespace wubansia
     {
         DragWhat what = DragWhat::loop;
         engine::Lane lane = engine::Lane::kick; // DragWhat::lane
-        juce::String phraseFile; // DragWhat::phrase: one of phraseFiles ()
+        juce::String phraseFile; // DragWhat::phrase: one of the kit's own files, a PhraseInfo id from phrases ()
 
         friend bool operator== (const DragRequest&, const DragRequest&) = default;
     };
@@ -219,7 +219,6 @@ namespace wubansia
         virtual void setPhraseMode (engine::PhraseMode mode) = 0;
 
         // MIDI drag-out: one file per drag.
-        virtual juce::StringArray phraseFiles() const = 0; // the current kit's phrase files, for their chips
         // Whether Loop and Song drags give their drum tracks as one track, Drums (ADR 0025). Kept per user in
         // settings.xml, never in project state: setting it doesn't mark the project changed.
         virtual bool dragDrumsOnOneTrack() const = 0;
