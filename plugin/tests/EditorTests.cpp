@@ -581,21 +581,25 @@ TEST_CASE ("the header fits Phrases and Samples beside the zoom with every label
             REQUIRE (face != nullptr);
             CHECK (phrases.getParentComponent() == face);
 
-            // The right block, 278 px: Phrases 90, 8, Samples 90, 8, the zoom 82, ending 20 px in; the kit cards take the
-            // rest, 2 px in from each side.
-            CHECK (phrases.getWidth() == 90);
-            CHECK (samples.getWidth() == 90);
+            // The right block, 278 px: Phrases 91, 7, Samples 91, 7, the zoom 82, ending 20 px in ("SAMPLES" needs 90.1 px of
+            // its button in DejaVu Sans Bold); the kit cards take the rest, 2 px in from each side.
+            CHECK (phrases.getWidth() == 91);
+            CHECK (samples.getWidth() == 91);
             CHECK (zoom.getWidth() == 82);
-            CHECK (phrases.getRight() + 8 == samples.getX());
-            CHECK (samples.getRight() + 8 == zoom.getX());
+            CHECK (phrases.getRight() + 7 == samples.getX());
+            CHECK (samples.getRight() + 7 == zoom.getX());
             CHECK (zoom.getRight() == PluginEditor::baseWidth - 20);
             CHECK (kits.getRight() + 2 == phrases.getX());
             REQUIRE (kits.numCards() == 4);
             for (int i = 0; i < kits.numCards(); ++i)
             {
-                INFO (kits.card (i)->getComponentID());
-                CHECK (kits.card (i)->getWidth() == 146);
-                CHECK_THAT (kits.card (i)->directionArea().getWidth(), WithinAbs (114.0, 1.0e-3));
+                const auto& card = *kits.card (i);
+                INFO (card.getComponentID());
+                CHECK (card.getWidth() == 146);
+                CHECK_THAT (card.directionArea().getWidth(), WithinAbs (114.0, 1.0e-3));
+                // Its title reads in full beside its ID, at 10 points or more (FUT03's and FUT04's shrink to fit).
+                CHECK (juce::GlyphArrangement::getStringWidth (card.titleFont(), card.card().title) <= card.titleArea().getWidth());
+                CHECK (card.titleFont().getHeight() >= 10.0f);
             }
 
             // Each button's label in full, in the font and area its paint code uses.
@@ -3176,6 +3180,23 @@ TEST_CASE ("a 4-pixel drag on a tile hands the kit's file to the OS; a click sho
             REQUIRE (os.dragged.size() == 2);
             CHECK (os.dragged[1].getFileName() == "FUT01_Lead_ChromePluck_2bars.mid");
             CHECK (os.revealed.size() == 1);
+
+            // A tick while startDrag hands the drag over rebuilds no tile, so the one the drag starts from stays; the next
+            // tick takes the new list. (JUCE 9.0.4 ticks nothing inside the call: its OS drags return as they begin.)
+            auto tilesDuringDrag = -1;
+            drawer.startDrag = [&] (const juce::File& file, juce::Component&)
+            {
+                os.dragged.add (file);
+                c.phraseList = FakeController::ownPhrases ("FUT02");
+                ++c.phraseGeneration;
+                editor.tick();
+                tilesDuringDrag = drawer.numTiles();
+                return true;
+            };
+            drag (phraseTile (editor, 2), 6.0f);
+            CHECK (tilesDuringDrag == 6);
+            editor.tick();
+            CHECK (drawer.numTiles() == 5);
         });
 }
 

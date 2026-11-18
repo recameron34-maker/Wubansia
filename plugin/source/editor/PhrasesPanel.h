@@ -40,6 +40,7 @@ namespace wubansia::editor
         int count() const noexcept { return phrases; }
         bool isShown() const noexcept { return shown; }
         juce::String label() const; // "From the kit 6"
+        int fitWidth() const; // its label in full, with its padding
 
         void paintButton (juce::Graphics&, bool isMouseOver, bool isButtonDown) override;
 
@@ -60,7 +61,7 @@ namespace wubansia::editor
 
         PhraseTile (PhrasesPanel& owner, int index);
 
-        void show (const PhraseInfo& phrase, bool isSelected, bool isFailed);
+        void show (const PhraseInfo& info, bool isSelected, bool isFailed);
         const PhraseInfo& phrase() const noexcept { return shownPhrase; }
         int index() const noexcept { return tile; }
         bool isSelected() const noexcept { return selected; }
@@ -121,7 +122,7 @@ namespace wubansia::editor
         bool keyPressed (const juce::KeyPress&) override; // Escape closes the drawer (onClose)
 
         // What it shows, for tests.
-        int numTiles() const noexcept;
+        int numTiles() const noexcept { return tiles.size(); }
         int selectedTile() const noexcept { return selected; }
         juce::String kitLine() const; // "FUT01 Alloy Signal · 134 BPM · F#m 11A"
         juce::String statusText() const; // the footer's status line
@@ -140,8 +141,39 @@ namespace wubansia::editor
         friend class PhraseTile;
         friend class PhraseGrid;
 
+        // What the person does.
+        void select (int tile);
+        bool gridKey (const juce::KeyPress&);
+        bool dragOut (int tile, juce::Component& source);
+        void reveal (int tile);
+        juce::File write (int tile); // the tile's file in the drag folder, or juce::File () and the status line says why
+
+        // What it shows.
+        void take (const EditorModel&);
+        void rebuildTiles();
+        void refresh();
+        void layOutGrid();
+
         Controller& controller;
+        std::vector<PhraseInfo> list; // phrases () as last asked
+        std::uint64_t listedGeneration = 0;
+        bool listed = false; // phrases () asked at least once
+        KitCard kit;
+        bool forSynths = true;
         int selected = -1;
+        int failedTile = -1; // the tile whose last write failed, while the status line says so
+        juce::String failure; // the status line after a failed write; empty, the idle line
+        bool handingOver = false; // startDrag is handing a drag to the OS: the tiles stay as they are
+        juce::String painted; // what paint () last drew of the text, to repaint only on a change
+
+        PhraseFilter fromKit { "From the kit" };
+        IconButton closeButton { "Close", IconButton::Icon::close };
+        PhraseGrid grid { *this };
+        juce::Viewport viewport;
+        juce::OwnedArray<PhraseTile> tiles;
+
+        // Laid out by resized ().
+        juce::Rectangle<int> headerArea, filterArea, gridArea, footerArea, titleArea, statusArea, synthsArea;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PhrasesPanel)
     };
