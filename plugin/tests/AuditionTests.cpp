@@ -536,6 +536,95 @@ TEST_CASE ("a block that comes while the sound thread gives up a stale clip keep
     CHECK ((*q).auditionPlayer().sounding() == fresh);
 }
 
+TEST_CASE ("one late wake past both 300 ms limits gives up the stale clip first, so a block that comes then keeps the newer clip", "[audio][audition]")
+{
+    // The sound thread's wakes can come late (a loaded machine, coalesced timers: macOS CI did), so one wake can find
+    // both the clip in the player's hands with no block for 300 ms and a newer clip's offer untaken for 300 ms. The
+    // give-up must still find that offer waiting, as it does when the two limits fall in separate wakes: a block that
+    // comes during the give-up takes the newer clip, which plays on, and nothing says the host is silent.
+    struct Hold
+    {
+        std::atomic<bool> armed { false }, held { false }, released { false };
+        void operator()()
+        {
+            if (! armed.exchange (false))
+                return;
+            held = true;
+            const auto until = std::chrono::steady_clock::now() + 5s;
+            while (! released && std::chrono::steady_clock::now() < until)
+                std::this_thread::sleep_for (1ms);
+        }
+    };
+    const auto wake = std::make_shared<Hold>();
+    const auto giveUp = std::make_shared<Hold>();
+    giveUp->armed = true;
+    Quiet q (withKit ("AUD10"));
+    (*q).setAuditionWakeProbeForTesting ([wake] { (*wake)(); });
+    (*q).setAuditionGiveUpProbeForTesting ([giveUp] { (*giveUp)(); });
+    struct Release // before q goes: a held sound thread must not keep the processor's destructor waiting
+    {
+        std::shared_ptr<Hold> wake, giveUp;
+        ~Release()
+        {
+            wake->released = true;
+            giveUp->released = true;
+        }
+    } release { wake, giveUp };
+
+    auto& controller = q.controller();
+    const auto& sounds = (*q).soundService();
+    const auto stale = controller.audition (q.ref (phrase));
+    REQUIRE (stale > 0u);
+    REQUIRE (waitForOffer (*q));
+    test::process (*q, kBlock);
+    test::process (*q, kBlock); // the phrase's frames 0-1023; then no block
+
+    // A sound is clicked and offered; the sound thread's next wake comes late, after both limits have passed.
+    const auto fresh = controller.audition (q.ref (riser));
+    REQUIRE (fresh > stale);
+    REQUIRE (waitForOffer (*q));
+    wake->armed = true;
+    REQUIRE (test::waitFor ([&] { return wake->held.load(); }, 3000ms));
+    std::this_thread::sleep_for (400ms);
+    REQUIRE (sounds.clipsGivenUp() == 0);
+    REQUIRE ((*q).auditionPlayer().offered());
+    wake->released = true;
+
+    // That wake gives up the phrase while the riser's offer still waits, and the host's block comes right then.
+    REQUIRE (test::waitFor ([&] { return giveUp->held.load(); }, 3000ms));
+    REQUIRE ((*q).auditionPlayer().offered());
+    const auto first = test::process (*q, kBlock);
+    giveUp->released = true;
+    REQUIRE (test::waitFor ([&] { return sounds.clipsGivenUp() == 1; }, 3000ms));
+
+    const auto riserClip = clipFor (riser, 48000.0);
+    const auto phraseClip = clipFor (phrase, 48000.0);
+    REQUIRE (riserClip != nullptr);
+    REQUIRE (phraseClip != nullptr);
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        // The phrase, replaced, fades out from frame 1024 over 5 ms; the riser starts at its first frame.
+        const float* r = channel (*riserClip, ch);
+        const float* p = channel (*phraseClip, ch);
+        CHECK (mismatches (first, ch, 0, kFade, [r, p] (int i) { return 0.5f * (p[1024 + i] * fadeGain (i)) + 0.5f * r[i]; }) == 0);
+        CHECK (mismatches (first, ch, kFade, kBlock - kFade, [r] (int i) { return 0.5f * r[kFade + i]; }) == 0);
+    }
+
+    // The riser plays on, and the drawer doesn't say the host is silent.
+    REQUIRE (test::waitFor ([&] { return ! (*q).auditionPlayer().offered(); }, 3000ms));
+    const auto state = controller.auditionState();
+    CHECK (state.latest == fresh);
+    CHECK (state.sounding == fresh);
+    CHECK_FALSE (state.hostSilent);
+    const auto second = test::process (*q, kBlock);
+    for (int ch = 0; ch < 2; ++ch)
+    {
+        const float* r = channel (*riserClip, ch);
+        CHECK (mismatches (second, ch, 0, kBlock, [r] (int i) { return 0.5f * r[kBlock + i]; }) == 0);
+    }
+    CHECK ((*q).auditionPlayer().sounding() == fresh);
+}
+
 TEST_CASE ("an audition plays over the groove without changing it", "[audio][audition]")
 {
     // The kit's Loop from bar 1, twice: once alone, once with an audition. The difference is exactly the clip x 0.5.

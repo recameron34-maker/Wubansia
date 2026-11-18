@@ -150,6 +150,8 @@ namespace wubansia
             checkWanted = false;
             lock.unlock();
 
+            if (wakeProbe != nullptr)
+                wakeProbe();
             drain();
             checkOffer();
             checkHeld();

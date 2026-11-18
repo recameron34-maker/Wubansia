@@ -102,6 +102,15 @@ namespace wubansia
             giveUpProbe = std::move (probe);
         }
 
+        // For tests: probe runs on the sound thread at the start of each wake, before it drains, gives up or withdraws
+        // anything: where a wake that comes late (a loaded machine, coalesced timers) can be made to come late. Before
+        // the first audition () only.
+        void setWakeProbeForTesting (std::function<void()> probe)
+        {
+            jassert (! started());
+            wakeProbe = std::move (probe);
+        }
+
     private:
         using Clock = std::chrono::steady_clock;
 
@@ -160,5 +169,6 @@ namespace wubansia
         Clock::time_point blocksSeenAt {};
         std::uint64_t givenUpAt = ~std::uint64_t { 0 };
         std::function<void()> giveUpProbe; // set before the thread starts; the thread only reads it
+        std::function<void()> wakeProbe; // the same
     };
 }

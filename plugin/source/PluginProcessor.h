@@ -109,6 +109,9 @@ namespace wubansia
         // For tests: SoundService::setGiveUpProbeForTesting, after setContentForTesting and before any audition.
         void setAuditionGiveUpProbeForTesting (std::function<void()> probe) { sounds->setGiveUpProbeForTesting (std::move (probe)); }
 
+        // For tests: SoundService::setWakeProbeForTesting, likewise.
+        void setAuditionWakeProbeForTesting (std::function<void()> probe) { sounds->setWakeProbeForTesting (std::move (probe)); }
+
         // For the Controller and the tests.
         const KitService& kitService() const noexcept { return *service; }
         const engine::Telemetry& telemetry() const noexcept { return player.telemetry(); }
