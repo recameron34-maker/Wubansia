@@ -261,7 +261,7 @@ namespace wubansia::editor
         viewport.setScrollBarsShown (true, false);
         viewport.setScrollBarThickness (8);
         viewport.setWantsKeyboardFocus (false);
-        grid.setExplicitFocusOrder (gridOrder);
+        viewport.setExplicitFocusOrder (gridOrder); // the grid's place, on the drawer's own child: JUCE orders siblings only
         addAndMakeVisible (viewport);
     }
 
