@@ -396,28 +396,40 @@ namespace wubansia::dragout
         return std::string (kitId) + (variant == engine::Variant::novox ? "_ExtendedMix_NoVox_224bars.mid" : "_ExtendedMix_Vox_224bars.mid");
     }
 
+    namespace
+    {
+        // The file names among files that start "<kitId><part>" and end ".mid", whatever folder they're in, each once,
+        // in byte order.
+        void addNamed (juce::StringArray& out, std::string_view kitId, std::string_view part, std::span<const MidiFile> files)
+        {
+            const auto prefix = std::string (kitId) + std::string (part);
+            std::vector<std::string> names;
+            for (const auto& f : files)
+            {
+                const auto base = baseName (f.name);
+                if (base.size() > prefix.size() && startsWith (base, prefix) && endsWith (base, ".mid"))
+                    names.emplace_back (base);
+            }
+            std::sort (names.begin(), names.end());
+            names.erase (std::unique (names.begin(), names.end()), names.end());
+            for (const auto& name : names)
+                out.add (juce::String::fromUTF8 (name.data(), static_cast<int> (name.size())));
+        }
+    }
+
     juce::StringArray phraseFiles (std::string_view kitId, std::span<const MidiFile> files)
     {
-        const auto prefix = std::string (kitId) + "_Phrase_";
-        std::vector<std::string> names;
-        for (const auto& f : files)
-        {
-            const auto base = baseName (f.name);
-            if (base.size() > prefix.size() && startsWith (base, prefix) && endsWith (base, ".mid"))
-                names.emplace_back (base);
-        }
-        std::sort (names.begin(), names.end());
-        names.erase (std::unique (names.begin(), names.end()), names.end());
-
         juce::StringArray out;
-        for (const auto& name : names)
-            out.add (juce::String::fromUTF8 (name.data(), static_cast<int> (name.size())));
+        addNamed (out, kitId, "_Phrase_", files);
         return out;
     }
 
-    juce::StringArray kitPhraseFiles (std::string_view, std::span<const MidiFile>)
+    juce::StringArray kitPhraseFiles (std::string_view kitId, std::span<const MidiFile> files)
     {
-        return {};
+        juce::StringArray out;
+        addNamed (out, kitId, "_Phrase_", files);
+        addNamed (out, kitId, "_Lead_", files);
+        return out;
     }
 
     util::Result<DragFile> makeDragFile (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state,
