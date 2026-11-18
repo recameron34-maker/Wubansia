@@ -55,8 +55,8 @@ iround = PC.iround          # round half up: floor(x x scale + 0.5)
 # ------------------------------------------------------------------ each kit's own: tools/sound/recipes/<kit>/plugin.py
 # Shared code never imports a kit (ADR 0008): every kit-specific fact is in the kit's plugin module, read through its
 # RECIPES (phrase_tables.plugin_module): LANE_LABELS, KICK_AB, MIX_CHANNELS, MIX, EXTRAS, INTERP, GLIDE, BASS_ENV,
-# LEAD_RELEASE, CHORD_LAW, VOX, CHOKE, LAYERS, chop_preroll(), accent_gain_mdb(), play(), phrases(), DERIVED and
-# render_derived().
+# LEAD_RELEASE, CHORD_LAW, VOX, CHOKE, LAYERS, VOICINGS, chop_preroll(), accent_gain_mdb(), play(), phrases(), DERIVED
+# and render_derived().
 NO_GLIDE = ('none', 0, 0)
 PAD_ENV = (2000, 20000)              # sampler.sampler_voice: play, loop while held, a 20 ms raised-cosine release
 
@@ -237,6 +237,16 @@ def zone_notes(kit, iid):
     return [z[3] for z in next(i['zones'] for i in plan(kit)[0] if i['id'] == iid)]
 
 
+def voicing(kit, iid, root, keys):
+    """A chord sample's zone's voicing (ADR 0027, chords as chords): the keys its chord sounds, from the kit's VOICINGS,
+    as semitones over the zone's root, ascending from 0, as docs/plugin/manifest.md allows them (1-8, each 0-48)."""
+    out = [k - root for k in sorted(keys)]
+    if not out or out[0] != 0 or len(set(out)) != len(out) or len(out) > 8 or out[-1] > 48:
+        raise ValueError(f'{kit}: {iid}\'s chord on {root} is {sorted(keys)}: a voicing starts on the zone\'s root and '
+                         f'rises, 1-8 keys within 4 octaves')
+    return out
+
+
 # ------------------------------------------------------------------ the files and their facts
 def sample_roots():
     env = os.environ.get('WUBANSIA_CONTENT_DIR')
@@ -355,10 +365,18 @@ def export(kit):
         return index[path]
 
     out = []
+    voiced = set()
     for ins in instruments:
         it = items[ins['item']]
         r = dict(ins['rules'])
         pre = r.pop('preroll')
+        # The chords a chord sample's zones play, on its pitched instrument only (a one-key accent on the same Item
+        # plays one sound, as it is).
+        chords = {} if ins['keys'] else km.VOICINGS.get(ins['item'], {})
+        if set(chords) - {z[0] for z in ins['zones']}:
+            raise ValueError(f'{kit}: {ins["id"]} has no zone on {sorted(set(chords) - {z[0] for z in ins["zones"]})}, '
+                             f'which VOICINGS voices')
+        voiced |= {ins['item']} if chords else set()
         if r['gain_mdb'] is None:      # a level measured off the file (FUT04's accents), else the committed manifest
             wav = find_sample(kit, take_path(it, it.takes(kit)[0]))
             if wav is not None:
@@ -376,9 +394,14 @@ def export(kit):
                 rr = [file_of(take_path(it, t), r['mode'] == 'sustain_loop', pre)
                       for t in it.takes(kit) if (t.note, t.layer) == (note, li)]
                 layers.append(PC.ordered('layer', vel=iround(v * 127), rr=rr))
-            zones.append(PC.ordered('zone', root=root, lo=lo, hi=hi, layers=layers))
+            zone = dict(root=root, lo=lo, hi=hi, layers=layers)
+            if root in chords:
+                zone['voicing'] = voicing(kit, ins['id'], root, chords[root])
+            zones.append(PC.ordered('zone', zone))
         out.append(PC.ordered('instrument', r, id=ins['id'], name=ins['name'], lane=ins['lane'],
                               mix_channel=ins['mix_channel'], zones=zones))
+    if set(km.VOICINGS) - voiced:
+        raise ValueError(f'{kit}: VOICINGS names {sorted(set(km.VOICINGS) - voiced)}, which no pitched instrument plays')
     frames = {}
     for s in PT.specs(kit):
         for p in s.stems:

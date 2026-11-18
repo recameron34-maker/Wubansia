@@ -5,7 +5,8 @@ labels and the mix channels its sounds play on (P3's, in FUT02_mix.json)."""
 from tools.sound import dsp48 as D
 from tools.sound.kits import fut02 as K
 from tools.sound.phrase_tables import SR, Spec, iround, loops_path
-from tools.sound.recipes.fut02 import bass as B, context as C, context5 as C5, lead as Ld, voxsynth as Vs
+from tools.sound.recipes.fut02 import accents as Ac, bass as B, context as C, context5 as C5, lead as Ld, pad as Pd
+from tools.sound.recipes.fut02 import voxsynth as Vs
 
 LANE_LABELS = ('Kick', 'Clap', 'Hats', 'Zap', 'Roll Bass', 'Chrome Arp', 'Starfield Pad', 'Vox Synth', 'Accents', 'FX')
 KICK_AB = None
@@ -30,6 +31,9 @@ VOX = (iround(Vs.RELEASE, 1e6), 'layer_only', iround(Vs.PRE, SR))   # voxsynth.R
 #                                                                      PRE: 20 ms before the vowel
 CHOKE = (iround(C.drums.CHOKE['fade_s'], 1e6), 'cos2')   # drums.CHOKE: the closed hat cuts the open, 4 ms cos2
 LAYERS = {}
+# Chords as chords (ADR 0027, amended): each chord sample's chord, {Item: {zone root: its keys}} (plugin_kit writes
+# zones[].voicing). pad.CHORD: the Starfield Pad's Dm9; accents.STAB_CHORDS: B-flat maj9 on A#3, Dm9 on D4.
+VOICINGS = {'StarfieldPadDm9': {Pd.CHORD[0]: Pd.CHORD}, 'LaserChordStab': dict(Ac.STAB_CHORDS)}
 STEM_GAIN_DB = -3                          # the vox lane peaks at +1.75 dBTP: its stems are stored 3 dB down
 TWICE = (0, 32)                            # the extended mix's call, riff and answer vox lines start the riff here
 DERIVED = ('Stems/Context Vox Riff.wav', 'Stems/Context Vox Riff Twice.wav')

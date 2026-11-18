@@ -8,7 +8,7 @@ from tools.sound import dsp48 as D
 from tools.sound import phrase as Ph
 from tools.sound.kits import fut03 as K
 from tools.sound.phrase_tables import SR, Spec, iround, loops_path
-from tools.sound.recipes.fut03 import context5 as C5, groove, rubber as R, voxsynth as VS
+from tools.sound.recipes.fut03 import chords as Ch, context5 as C5, groove, rubber as R, voxsynth as VS
 
 LANE_LABELS = ('Kick', 'Clap', 'Hats', 'Perc', 'Rubber Bass', 'Keys EP', 'Dub Stab', 'Vox Synth', 'Accents', 'FX')
 KICK_AB = None
@@ -31,6 +31,9 @@ CHOKE = (iround(groove.CHOKE['fade_s'], 1e6), 'cos2')   # groove.CHOKE: the clos
 # No layer: under the Rubber Basses, Sub Deep put 2 dB too much under 120 Hz and 3 dB too little over it against the
 # Rubber and Deep lines (groovecore render, phrases off against phrases auto); the Rubber Basses alone are the lines'.
 LAYERS = {}
+# Chords as chords (ADR 0027, amended): each chord sample's chord, {Item: {zone root: its keys}} (plugin_kit writes
+# zones[].voicing). chords.CHORD: the Gm9 the Dub Stab and the Pad Warm both play.
+VOICINGS = {'DubStabGm9': {Ch.ROOT_NOTE: Ch.CHORD}, 'PadWarm': {Ch.ROOT_NOTE: Ch.CHORD}}
 STEM_GAIN_DB = 0                           # the vox lane: -1.65 dBTP
 TWICE_GAIN_DB = -1                         # the riff twice: its echoes under the second riff reach -0.92 dBTP
 TWICE = (0, 32)                            # the extended mix's call, riff and answer vox lines start the riff here
