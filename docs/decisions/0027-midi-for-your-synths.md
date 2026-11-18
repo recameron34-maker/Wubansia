@@ -45,6 +45,9 @@ chips carry the same lines):
 
 ## Consequences
 - New drag names. The content, the embedded MIDI and the generator snapshots don't change.
+- To play a drag back into Wubansia, turn For my synths off first: lit, the bass comes an octave up, its slides become
+  separate notes (212 in a FUT01 or FUT04 Song's Bass), short notes hold longer and soft notes play at velocity 72.
+  `docs/midi-map.md` and `dist/INSTALL.md` say so.
 - The switch's room comes out of the phrase chips: a chip whose title needs more than an equal share gets it, and the
   others share the rest (FUT01 in DejaVu Sans: 131 px for "E Piano Stab Rhythm", 101 for the other four).
 - No new parameter, state or dependency.

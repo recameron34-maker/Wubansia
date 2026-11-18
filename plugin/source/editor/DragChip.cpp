@@ -205,8 +205,8 @@ namespace wubansia::editor
         synths.setTooltip ("For my synths. Lit (the default), every MIDI drag plays well on your own synths: the bass comes up an "
                            "octave, to around C1-C2 in Live and Logic; no note is shorter than a 16th unless the next comes sooner; "
                            "notes never overlap, so a slide is two notes; and soft notes play at velocity 72. Drums, accents and FX "
-                           "stay as they are. Off: the files as Wubansia's own samples play them. Kept for your user, not saved in "
-                           "the project.");
+                           "stay as they are. Off: the files as Wubansia's own samples play them, for playing a drag back into "
+                           "Wubansia. Kept for your user, not saved in the project.");
         synths.onClick = [this] { controller.setDragForSynths (synths.getToggleState()); };
         addAndMakeVisible (synths);
         addAndMakeVisible (loop);
