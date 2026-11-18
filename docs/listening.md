@@ -251,6 +251,11 @@ Drums on one track (the switch next to Song on the drag strip):
 - [ ] The switch stays lit in another project and after the DAW restarts; switched off, the drags are the files as
       before
 
+For my synths (the switch before Loop, lit until you turn it off; ADR 0027):
+- [ ] Drag a bassline (the bass lane's MIDI chip, or `FUT01 ... - Warp Bass (synths).mid`) onto a synth of yours, in
+      Live 12 and in Logic: it plays around C1-C2, every note sounds, no note doubles where the line slides, and the
+      soft notes still speak. Switched off, the drags are the files as before
+
 Drags on Windows and Linux are not on this list: your setup is Live and Logic on a Mac.
 
 ### C. What you said

@@ -186,7 +186,7 @@ content folder…**. **Content…** opens the panel that says where the kits' sa
 - `~/Library/Application Support/Wubansia Audio/Wubansia/Content/<kit>/v<N>/`: the samples, about 35-70 MB a kit,
   with the kit's `SHA256SUMS`. A later content version goes in its own `v<N>` folder next to it.
 - `~/Library/Application Support/Wubansia Audio/Wubansia/settings.xml`: the content folder and the samples folder
-  you chose, if any, and whether the 1 drum track switch is lit.
+  you chose, if any, whether the 1 drum track switch is lit, and whether For my synths is off.
 - `~/Library/Caches/Wubansia Audio/Wubansia/drag/`: the MIDI files the Drag MIDI strip wrote for your drags, the
   newest 32 (Wubansia deletes the older ones).
 - `~/Music/Wubansia/Samples/<KIT> <Title>/`: the WAVs the Samples drawer saved for your drags (or the folder you
@@ -209,6 +209,12 @@ kick, snare or clap, hats and percussion as one track, Drums, on channel 10 with
 rack, and every other instrument keeps its own track. The file's name says so:
 `FUT01 Alloy Signal 134 F#m 11A - Song (1 drum track).mid`. Wubansia remembers the switch for your user, in
 `settings.xml`, in every project. A lane's MIDI chip still gives that lane's own tracks.
+
+**For my synths**, the switch before Loop, is lit until you turn it off: every drag then plays well on your own synths.
+The bass comes up an octave, to around C1-C2; no note is shorter than a 16th unless the next starts sooner; notes never
+overlap, so a slide is two notes; and soft notes play at velocity 72. The drums, accents and FX stay as they are, and the
+name says so: `FUT01 Alloy Signal 134 F#m 11A - Loop (synths).mid`. Off, the files are as Wubansia's own samples play
+them. Wubansia remembers it like 1 drum track.
 
 ### The drum pads
 
