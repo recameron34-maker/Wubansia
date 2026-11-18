@@ -298,6 +298,43 @@ class TestItems(unittest.TestCase):
                         for a, b in zip(ins['zones'], ins['zones'][1:]):
                             self.assertEqual(a['hi'] + 1, b['lo'])
 
+    def test_chord_instruments_carry_their_recipe_voicing(self):
+        """Chords as chords (ADR 0027, amended): each chord sample's zone carries the chord its recipe voices, as
+        semitones over the zone's root (the root first, 0), so For my synths can write a note as its chord. Exactly these
+        ten instruments, thirteen zones; no other zone has a voicing."""
+        from tools.sound.recipes.fut01 import keys as K1, music as M1
+        from tools.sound.recipes.fut02 import accents as A2, pad as P2
+        from tools.sound.recipes.fut03 import chords as C3
+        from tools.sound.recipes.fut04 import accents as A4, pad as P4
+        recipes = {   # (kit, instrument): {zone root: the chord's keys}, the constants each recipe renders
+            ('FUT01', 'organ_stab'): {z: K1.chord(z) for z in K1.ZONES},          # keys.SHAPE over F#3 and B3
+            ('FUT01', 'e_piano_stab'): {z: K1.chord(z) for z in K1.ZONES},
+            ('FUT01', 'air_pad_fsm9'): {M1.PAD_CHORD[0]: M1.PAD_CHORD},
+            ('FUT02', 'starfield_pad_dm9'): {P2.CHORD[0]: P2.CHORD},
+            ('FUT02', 'laser_chord_stab'): dict(A2.STAB_CHORDS),                  # B-flat maj9 on A#3, Dm9 on D4
+            ('FUT03', 'dub_stab_gm9'): {C3.CHORD[0]: C3.CHORD},
+            ('FUT03', 'pad_warm'): {C3.CHORD[0]: C3.CHORD},
+            ('FUT04', 'drone_em_add_9'): {P4.CHORD[0]: P4.CHORD},
+            ('FUT04', 'accent_metal_chord_em'): {A4.EM[0]: A4.EM},
+            ('FUT04', 'accent_rave_stab_em'): {A4.EM[0]: A4.EM},
+        }
+        want = {key: {root: [k - root for k in sorted(chord)] for root, chord in zones.items()}
+                for key, zones in recipes.items()}
+        found = {}
+        for kit in KITS:
+            for ins in manifest(kit)['instruments']:
+                for z in ins['zones']:
+                    if 'voicing' in z:
+                        found.setdefault((kit, ins['id']), {})[z['root']] = z['voicing']
+        self.assertEqual(want, found)
+        self.assertEqual(10, len(found))
+        self.assertEqual(13, sum(len(zones) for zones in found.values()))
+        for zones in want.values():
+            for voicing in zones.values():
+                self.assertEqual(0, voicing[0])                              # the zone's root plays the chord's root
+                self.assertEqual(sorted(set(voicing)), voicing)
+                self.assertTrue(len(voicing) <= 8 and voicing[-1] <= 48)     # what the engine's parser takes
+
     def test_files_are_the_items_takes(self):
         """Each zone's layers and round robins name the WAVs of the Item's takes (listen.plain), by note, layer and
         round robin; one-key zones name their zone's (the drum zone or the key's)."""

@@ -102,7 +102,18 @@ namespace wubansia::midi
         return notes;
     }
 
+    std::vector<std::uint8_t> chordFor (const ChordSample&, std::uint8_t)
+    {
+        return {};
+    }
+
     util::Result<std::vector<std::uint8_t>> forSynths (std::span<const std::uint8_t> smf, std::span<const SynthPart> parts)
+    {
+        return forSynths (smf, parts, {});
+    }
+
+    util::Result<std::vector<std::uint8_t>> forSynths (std::span<const std::uint8_t> smf, std::span<const SynthPart> parts,
+        std::span<const ChordSample>)
     {
         using R = util::Result<std::vector<std::uint8_t>>;
         auto file = readSmf (smf);

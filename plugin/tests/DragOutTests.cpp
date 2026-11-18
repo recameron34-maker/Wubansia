@@ -3,16 +3,20 @@
 //
 // The kit files are loaded the way the plugin embeds them (EmbeddedContent, P9): every kit-prefixed
 // .mid under content/midi/<kit>/, by file name. The kits' info mirrors their kit.json (P2) and
-// tools/sound/channels.py's EXTRAS. Whatever a drag keeps is checked against the source chunks,
+// tools/sound/channels.py's EXTRAS; their chord tracks are the catalog's, read off the embedded
+// kit.json (ADR 0027, chords as chords). Whatever a drag keeps is checked against the source chunks,
 // which a small walker here finds on its own.
 
+#include "content/EmbeddedContent.h"
 #include "dragout/DragFiles.h"
 #include "editor/DragChip.h"
 #include "editor/ExternalDrag.h"
 #include "editor/SamplesPanel.h"
 #include "helpers/fake_controller.h"
+#include "services/KitCatalog.h"
 
 #include "kit/channel_map.h"
+#include "kit/manifest.h"
 #include "midi/for_synths.h"
 #include "midi/reader.h"
 #include "midi/track_select.h"
@@ -113,6 +117,11 @@ namespace
         info.laneLabels = std::move (labels);
         info.extras = std::move (extras);
         info.contentVersion = 1;
+        // The tracks whose sample plays a whole chord, as the catalog reads them off the embedded kit.json.
+        const auto manifest = engine::parseKitManifest (wubansia::EmbeddedContent::kitManifest (info.id));
+        INFO (info.id << ": " << manifest.error);
+        REQUIRE (manifest.ok());
+        info.chordTracks = wubansia::kitInfoOf (manifest.value, 0).chordTracks;
         return info;
     }
 
@@ -329,26 +338,58 @@ namespace
         return drums.count (name) != 0;
     }
 
+    // The kit's chord track of that name with zones (ADR 0027, chords as chords), or none.
+    const engine::KitChordTrack* chordTrackOf (const KitContent& k, const std::string& name)
+    {
+        for (const auto& t : k.info.chordTracks)
+            if (t.name == name && ! t.zones.empty())
+                return &t;
+        return nullptr;
+    }
+
+    midi::ChordSample sampleOf (const engine::KitChordTrack& track)
+    {
+        midi::ChordSample sample;
+        for (const auto& z : track.zones)
+            sample.push_back ({ z.lo, z.hi, z.intervals });
+        return sample;
+    }
+
     // For my synths (ADR 0027), restated: drums and one-key sounds (accents, FX, vox chops) stay as they are, and so does a
     // track no lane claims (the merged Drums); the bass lane's tracks (Bass, FUT01's Organ Bass, FUT02's Drop Glide) go up
-    // an octave; every other track (lead, chords, chord voicing, vox, the other extras) is made for synths.
-    midi::SynthPart synthPartOf (const KitContent& k, const std::string& name)
+    // an octave; a chord sample's track (the kit's chord tracks) is written as its chords; every other track (lead, chord
+    // voicing, vox, the other extras) is made for synths. plain: chord tracks as pitched tracks, the two-argument rule.
+    midi::SynthPart synthPartOf (const KitContent& k, const std::string& name, bool plain = false)
     {
         static const std::set<std::string> asIs { "Kick", "Rumble", "Snare", "Clap", "Snare/Clap", "Hats", "Perc", "Accents", "FX", "Vox chops" };
         const auto lane = laneOf (k, name);
         if (asIs.count (name) != 0 || lane < 0)
             return midi::SynthPart::asIs;
+        if (! plain && chordTrackOf (k, name) != nullptr)
+            return midi::SynthPart::chords;
         return lane == static_cast<int> (Lane::bass) ? midi::SynthPart::bass : midi::SynthPart::pitched;
     }
 
     // Each of a file's tracks as For my synths takes it, the conductor as it is.
-    std::vector<midi::SynthPart> synthPartsOf (const KitContent& k, const Bytes& smf)
+    std::vector<midi::SynthPart> synthPartsOf (const KitContent& k, const Bytes& smf, bool plain = false)
     {
         const auto names = trackNames (smf);
         std::vector<midi::SynthPart> parts;
         for (std::size_t i = 0; i < names.size(); ++i)
-            parts.push_back (i == 0 ? midi::SynthPart::asIs : synthPartOf (k, names[i]));
+            parts.push_back (i == 0 ? midi::SynthPart::asIs : synthPartOf (k, names[i], plain));
         return parts;
+    }
+
+    // Each of a file's tracks' chord sample: a chord track's, else none.
+    std::vector<midi::ChordSample> chordSamplesOf (const KitContent& k, const Bytes& smf)
+    {
+        std::vector<midi::ChordSample> samples;
+        for (const auto& name : trackNames (smf))
+        {
+            const auto* track = chordTrackOf (k, name);
+            samples.push_back (track != nullptr ? sampleOf (*track) : midi::ChordSample {});
+        }
+        return samples;
     }
 
     bool anyForSynths (const std::vector<midi::SynthPart>& parts)
@@ -1003,7 +1044,7 @@ TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched 
             }
             ++marked;
             CHECK (on.value.name == withSynthsMark (off.value.name));
-            const auto expected = midi::forSynths (off.value.bytes, parts);
+            const auto expected = midi::forSynths (off.value.bytes, parts, chordSamplesOf (k, off.value.bytes));
             INFO (expected.error);
             REQUIRE (expected.ok());
             CHECK (on.value.bytes == expected.value);
@@ -1045,6 +1086,8 @@ TEST_CASE ("For my synths moves the bass lane up an octave, plays every pitched 
                         CHECK (onChunks.tracks[i] == offChunks.tracks[i]);
                         continue;
                     }
+                    if (chordTrackOf (k, names[i]) != nullptr)
+                        continue; // a chord sample's track: each note its chord (the chords as chords cases)
                     const auto before = midi::notesOf (offFile.tracks[i]);
                     const auto after = midi::notesOf (onFile.tracks[i]);
                     REQUIRE (after.size() == before.size());
@@ -1117,6 +1160,197 @@ TEST_CASE ("For my synths leaves a pitched track it can't carry as it is, and st
     CHECK (out.tracks[5] == in.tracks[5]); // the Bass as it is, bend and all
     CHECK (out.tracks[6] != in.tracks[6]); // the Lead made for synths
     CHECK (trackNames (on.bytes)[6] == "Lead");
+}
+
+namespace
+{
+    // The drags chords as chords changes (ADR 0027, amended): each kit's Loop and Song, vox and no-vox, nothing muted,
+    // and the five phrase files that hold a chord sample's track.
+    struct ChordDrag
+    {
+        const KitContent* kit = nullptr;
+        dragout::DragState state;
+        DragRequest request;
+        std::string what;
+    };
+
+    const std::map<std::string, std::vector<std::string>> chordPhrases {
+        { "FUT01", { "FUT01_Phrase_EPianoStabRhythm_2bars.mid" } },
+        { "FUT02", { "FUT02_Phrase_LaserStabRiff_2bars.mid" } },
+        { "FUT03", { "FUT03_Phrase_DubChords_4bars.mid" } },
+        { "FUT04", { "FUT04_Phrase_MetalChords_4bars.mid", "FUT04_Phrase_RaveStabRiff_2bars.mid" } },
+    };
+
+    std::vector<ChordDrag> chordDrags()
+    {
+        std::vector<ChordDrag> drags;
+        for (const auto& k : kits())
+        {
+            for (const auto what : { DragWhat::loop, DragWhat::song })
+                for (const auto v : { Variant::vox, Variant::novox })
+                {
+                    DragRequest r;
+                    r.what = what;
+                    drags.push_back ({ &k, state (PlayMode::loop, v), r, sourceName (k, what, v) });
+                }
+            for (const auto& phrase : chordPhrases.at (k.info.id))
+                drags.push_back ({ &k, state (PlayMode::loop, Variant::vox), phraseRequest (phrase), phrase });
+        }
+        return drags;
+    }
+
+    std::vector<int> keysOf (const std::vector<std::uint8_t>& chord) { return std::vector<int> (chord.begin(), chord.end()); }
+
+    // A drag with For my synths lit, and its plain file made by the two-argument rule (chord tracks as pitched tracks).
+    struct ChordDragFiles
+    {
+        dragout::DragFile off, on;
+        Bytes plain;
+    };
+
+    ChordDragFiles filesOf (const ChordDrag& d)
+    {
+        ChordDragFiles f;
+        f.off = drag (*d.kit, d.state, d.request);
+        f.on = drag (*d.kit, forSynths (d.state), d.request);
+        auto plain = midi::forSynths (f.off.bytes, synthPartsOf (*d.kit, f.off.bytes, true));
+        INFO (plain.error);
+        REQUIRE (plain.ok());
+        f.plain = std::move (plain.value);
+        return f;
+    }
+}
+
+TEST_CASE ("For my synths: every chord-sample note comes as its chord, at its tick, length and velocity", "[dragout]")
+{
+    std::size_t notes = 0, tones = 0;
+    for (const auto& d : chordDrags())
+    {
+        const auto& k = *d.kit;
+        INFO (k.info.id << " " << d.what);
+        const auto files = filesOf (d);
+        const auto source = read (files.off.bytes);
+        const auto made = read (files.on.bytes);
+        const auto plain = read (files.plain);
+        REQUIRE (made.tracks.size() == source.tracks.size());
+        std::size_t chordTracks = 0;
+        for (std::size_t i = 1; i < source.tracks.size(); ++i)
+        {
+            const auto name = midi::trackName (source.tracks[i]);
+            const auto* track = chordTrackOf (k, name);
+            if (track == nullptr)
+                continue;
+            INFO (name);
+            ++chordTracks;
+            const auto sample = sampleOf (*track);
+            const auto roots = midi::notesOf (source.tracks[i]);
+            const auto alone = midi::notesOf (plain.tracks[i]); // each root as the pitched rule makes it
+            REQUIRE (alone.size() == roots.size()); // one note per chord: no two on a tick and key
+            std::map<std::int64_t, std::vector<midi::Note>> byTickOut;
+            for (const auto& n : midi::notesOf (made.tracks[i]))
+                byTickOut[n.tick].push_back (n);
+            std::size_t expectedTones = 0;
+            for (std::size_t j = 0; j < roots.size(); ++j)
+            {
+                const auto& root = roots[j];
+                INFO ("the note at " << root.tick << ", key " << int { root.key });
+                REQUIRE (alone[j].tick == root.tick);
+                REQUIRE (alone[j].key == root.key);
+                const auto chord = keysOf (midi::chordFor (sample, root.key));
+                REQUIRE (chord.size() >= 4);
+                std::vector<int> got;
+                for (const auto& tone : byTickOut[root.tick])
+                {
+                    got.push_back (tone.key);
+                    CHECK (tone.channel == root.channel);
+                    CHECK (tone.length == alone[j].length);
+                    CHECK (tone.velocity == alone[j].velocity);
+                }
+                CHECK (got == chord);
+                expectedTones += chord.size();
+                ++notes;
+            }
+            CHECK (midi::notesOf (made.tracks[i]).size() == expectedTones); // nothing else on the track
+            tones += expectedTones;
+        }
+        CHECK (chordTracks > 0);
+    }
+    CHECK (notes == 3268); // the 3,301 measured, less the 4-bar Chords files, which aren't dragged
+    CHECK (tones > 4 * notes);
+}
+
+TEST_CASE ("For my synths: every chord sits above the bass", "[dragout]")
+{
+    std::size_t tones = 0, bass = 0;
+    int lowest = 127, highest = 0;
+    for (const auto& d : chordDrags())
+    {
+        const auto& k = *d.kit;
+        INFO (k.info.id << " " << d.what);
+        const auto file = read (filesOf (d).on.bytes);
+        for (std::size_t i = 1; i < file.tracks.size(); ++i)
+        {
+            const auto name = midi::trackName (file.tracks[i]);
+            INFO (name);
+            const bool chords = chordTrackOf (k, name) != nullptr;
+            const bool bassLane = laneOf (k, name) == static_cast<int> (Lane::bass);
+            for (const auto& n : midi::notesOf (file.tracks[i]))
+            {
+                if (chords)
+                {
+                    CHECK (int { n.key } >= midi::kChordFloor);
+                    lowest = std::min (lowest, int { n.key });
+                    highest = std::max (highest, int { n.key });
+                    ++tones;
+                }
+                else if (bassLane)
+                {
+                    CHECK (int { n.key } <= 55);
+                    ++bass;
+                }
+            }
+        }
+    }
+    INFO ("chord tones " << lowest << "-" << highest);
+    CHECK (tones > 4 * 3268);
+    CHECK (bass > 1000);
+    CHECK (lowest >= 56);
+    CHECK (highest <= 127);
+}
+
+TEST_CASE ("For my synths: the Chord voicing track and every other track come out as before", "[dragout]")
+{
+    std::size_t chordTracks = 0, voicings = 0, others = 0;
+    for (const auto& d : chordDrags())
+    {
+        const auto& k = *d.kit;
+        INFO (k.info.id << " " << d.what);
+        const auto files = filesOf (d);
+        CHECK (files.on.name == withSynthsMark (files.off.name));
+        const auto names = trackNames (files.off.bytes);
+        const auto made = chunksOf (files.on.bytes);
+        const auto plain = chunksOf (files.plain);
+        CHECK (made.header == plain.header);
+        REQUIRE (made.tracks.size() == names.size());
+        REQUIRE (plain.tracks.size() == names.size());
+        for (std::size_t i = 0; i < names.size(); ++i)
+        {
+            INFO (names[i]);
+            if (i > 0 && chordTrackOf (k, names[i]) != nullptr)
+            {
+                CHECK (made.tracks[i] != plain.tracks[i]); // its chords
+                ++chordTracks;
+                continue;
+            }
+            CHECK (made.tracks[i] == plain.tracks[i]);
+            ++others;
+            if (names[i] == "Chord voicing")
+                ++voicings; // at the samples' own register, made for synths as before
+        }
+    }
+    CHECK (chordTracks == 33); // Chords in every file, and the kits' chord extras where they play
+    CHECK (voicings == 16); // every Loop and Song carries it
+    CHECK (others > 100);
 }
 
 TEST_CASE ("a lane drag holds the conductor and that lane's tracks from the current mode's file", "[dragout]")

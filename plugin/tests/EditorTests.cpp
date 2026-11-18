@@ -823,11 +823,13 @@ TEST_CASE ("the drag strip's For my synths switch is lit by default, asks the Co
             const auto tooltip = synths.getTooltip().toStdString();
             CHECK_THAT (tooltip, ContainsSubstring ("octave") && ContainsSubstring ("16th") && ContainsSubstring ("overlap")
                                      && ContainsSubstring ("velocity 72") && ContainsSubstring ("Kept for your user"));
-            // What it leaves, what a synth gets of a chord sample's track (its root), and the way back into Wubansia: no
-            // promise that every drag plays well, nor that the Accents lane stays whole (ADR 0027).
-            CHECK_THAT (tooltip, ContainsSubstring ("one-key Accents and FX tracks stay as they are") && ContainsSubstring ("root")
-                                     && ContainsSubstring ("Chord voicing") && ContainsSubstring ("back into Wubansia"));
-            CHECK_THAT (tooltip, !ContainsSubstring ("plays well") && !ContainsSubstring ("Drums, accents and FX"));
+            // What it leaves, that a chord sample's track comes as whole chords, the way back into Wubansia and where to
+            // read more: no promise that every drag plays well, nor that the Accents lane stays whole (ADR 0027).
+            CHECK_THAT (tooltip, ContainsSubstring ("one-key Accents and FX tracks stay as they are") && ContainsSubstring ("whole chords")
+                                     && ContainsSubstring ("back into Wubansia") && ContainsSubstring ("INSTALL.md"));
+            CHECK_THAT (tooltip, !ContainsSubstring ("root") && !ContainsSubstring ("Chord voicing") && !ContainsSubstring ("plays well")
+                                     && !ContainsSubstring ("Drums, accents and FX"));
+            CHECK (synths.getTooltip().length() <= 480);
 
             click (synths);
             CHECK (rig.controller.synthOptionRequests == std::vector<bool> { false });

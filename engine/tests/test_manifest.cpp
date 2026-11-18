@@ -7,6 +7,7 @@
 #include "manifest_samples.h"
 
 #include "kit/manifest.h"
+#include "testing/manifest_json.h"
 
 #include "gen/json.h"
 #include "util/file_io.h"
@@ -354,7 +355,7 @@ TEST_CASE ("parseKitManifest reads every field", "[manifest]")
     CHECK (kickB.gainMdb == -500);
     CHECK (kickB.duckKey);
     REQUIRE (kickB.zones.size() == 1);
-    CHECK (kickB.zones[0] == ZoneEntry { 36, 36, 36, { { 80, { 1, 2 } }, { 127, { 3, 4 } } } });
+    CHECK (kickB.zones[0] == ZoneEntry { 36, 36, 36, { { 80, { 1, 2 } }, { 127, { 3, 4 } } }, {} });
     const auto& hat = m.instruments[3];
     CHECK (hat.choke == ChokeEntry { "hats", ChokeRole::chokes, 4000, ChokeCurve::cos2 });
     CHECK (hat.panCyclePm == std::vector<std::int32_t> { -300, 0, 300 });
@@ -369,7 +370,7 @@ TEST_CASE ("parseKitManifest reads every field", "[manifest]")
     CHECK (bassA.attackUs == 1000);
     CHECK (bassA.releaseUs == 20000);
     REQUIRE (bassA.zones.size() == 2);
-    CHECK (bassA.zones[1] == ZoneEntry { 37, 37, 127, { { 100, { 9 } } } });
+    CHECK (bassA.zones[1] == ZoneEntry { 37, 37, 127, { { 100, { 9 } } }, {} });
     CHECK (m.instruments[6].glide == Glide { GlideCurve::exponential, 18000, 0 });
     CHECK (m.instruments[6].layeredWith == 7);
     CHECK (m.instruments[7].layeredWith == -1);
@@ -824,6 +825,64 @@ TEST_CASE ("parseKitManifest's syntax errors carry the JSON path", "[manifest]")
     at = tricky.find ("\"bpm\": 130");
     tricky.replace (at, 10, "\"bpm\": 1e2");
     CHECK (error (tricky).starts_with ("kit.json: kit.bpm: line "));
+}
+
+TEST_CASE ("a zone's voicing is read as intervals over its root", "[manifest]")
+{
+    // Chords as chords (ADR 0027, amended): a chord sample's zone may say which chord it plays.
+    Doc doc (test::kKitJson);
+    doc.add ("instruments[0].zones[0]", "voicing", ints ({ 0, 7, 10, 14, 15 }));
+    const auto parsed = parseKitManifest (doc.text());
+    REQUIRE (parsed.error.empty());
+    const auto& m = parsed.value;
+    CHECK (m.instruments[0].zones[0].voicing == std::vector<std::int32_t> { 0, 7, 10, 14, 15 });
+
+    // A zone without it has none: no chord.
+    std::size_t zones = 0;
+    for (std::size_t i = 0; i < m.instruments.size(); ++i)
+        for (std::size_t j = 0; j < m.instruments[i].zones.size(); ++j)
+            if (i != 0 || j != 0)
+            {
+                CHECK (m.instruments[i].zones[j].voicing.empty());
+                ++zones;
+            }
+    CHECK (zones > 10);
+    CHECK (parseKitManifest (test::kKitJson).value.instruments[0].zones[0].voicing.empty());
+
+    // The test side's writer puts it back where plugin_common puts it, after hi, and the round trip holds.
+    const auto written = testing::kitManifestJson (m);
+    CHECK (written.find ("\"hi\": 36,\n          \"voicing\": [0, 7, 10, 14, 15],\n          \"layers\": [") != std::string::npos);
+    const auto again = parseKitManifest (written);
+    REQUIRE (again.error.empty());
+    CHECK (again.value == m);
+    CHECK (testing::kitManifestJson (parseKitManifest (test::kKitJson).value).find ("voicing") == std::string::npos);
+}
+
+TEST_CASE ("a zone's voicing is refused unless it rises from 0, in at most 8 steps up to 48, naming its path", "[manifest]")
+{
+    const auto voicing = [] (Value v) { return [v] (Doc& d) { d.add ("instruments[0].zones[0]", "voicing", v); }; };
+    const std::vector<Bad> cases {
+        { "no intervals", voicing (ints ({})), "kit.json: instruments[0].zones[0].voicing: ", "it holds 0 intervals: it may hold 1 to 8" },
+        { "nine intervals", voicing (ints ({ 0, 2, 3, 5, 7, 9, 10, 12, 14 })), "kit.json: instruments[0].zones[0].voicing: ", "it holds 9 intervals" },
+        { "not from 0", voicing (ints ({ 1, 5 })), "kit.json: instruments[0].zones[0].voicing[0]: ", "starts at 0" },
+        { "descending", voicing (ints ({ 7, 0 })), "kit.json: instruments[0].zones[0].voicing[0]: ", "starts at 0" },
+        { "a repeat", voicing (ints ({ 0, 7, 7 })), "kit.json: instruments[0].zones[0].voicing[2]: ", "7 after 7" },
+        { "down after up", voicing (ints ({ 0, 10, 7 })), "kit.json: instruments[0].zones[0].voicing[2]: ", "7 after 10" },
+        { "past 48", voicing (ints ({ 0, 49 })), "kit.json: instruments[0].zones[0].voicing[1]: ", "49 is out of range (0 to 48)" },
+        { "below 0", voicing (ints ({ 0, -5 })), "kit.json: instruments[0].zones[0].voicing[1]: ", "-5 is out of range (0 to 48)" },
+        { "a float", [] (Doc& d) {
+             d.add ("instruments[0].zones[0]", "voicing", ints ({ 0 }));
+             d.setRaw ("instruments[0].zones[0].voicing[0]", "0.5");
+         }, "kit.json: instruments[0].zones[0].voicing[0]: line ", "0.5 is not an integer" },
+        { "a string", voicing (strs ({ "0" })), "kit.json: instruments[0].zones[0].voicing[0]: ", "an integer was expected, not a string" },
+        { "not an array", voicing (integer (0)), "kit.json: instruments[0].zones[0].voicing: ", "an array was expected, not an integer" },
+    };
+    checkRefusals (test::kKitJson, cases, kitError);
+
+    // Every error names the path: instruments[i].zones[j].voicing.
+    Doc doc (test::kKitJson);
+    doc.add ("instruments[5].zones[1]", "voicing", ints ({ 0, 7, 7 }));
+    CHECK (kitError (doc.text()).starts_with ("kit.json: instruments[5].zones[1].voicing[2]: "));
 }
 
 TEST_CASE ("parseMixManifest reads every field", "[manifest]")
