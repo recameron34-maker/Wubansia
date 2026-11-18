@@ -265,10 +265,14 @@ namespace wubansia
 
     bool ControllerImpl::dragForSynths() const
     {
-        return true; // not yet: the tests come first
+        return settingsFile().dragForSynths();
     }
 
-    void ControllerImpl::setDragForSynths (bool) {}
+    void ControllerImpl::setDragForSynths (bool on)
+    {
+        // The person's, not the project's, as the drum option is.
+        settingsFile().setDragForSynths (on);
+    }
 
     juce::File ControllerImpl::writeDragFile (const DragRequest& request)
     {
@@ -285,6 +289,7 @@ namespace wubansia
             if (on (processor.apvts, ParameterIds::laneMute[lane]))
                 state.mutedLanes |= 1u << lane;
         state.drumsOnOneTrack = settingsFile().dragDrumsOnOneTrack();
+        state.forSynths = settingsFile().dragForSynths();
 
         const auto folder = dragFolder != juce::File() ? dragFolder : dragout::cacheFolder();
         const auto file = dragout::writeDragFile (entry->info, entry->midiFiles, state, request, folder);

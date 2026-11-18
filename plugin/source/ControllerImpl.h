@@ -5,7 +5,8 @@
 // engine's telemetry atomics. The state-only settings set here (the kit, the Standalone tempo, the
 // MIDI-in mode and the phrase mode) tell the host the project changed
 // (updateHostDisplay withNonParameterStateChanged); the content and samples folders and the drag
-// strip's drum option (drag_drums_one_track) are the person's, kept in settings.xml, and don't.
+// strip's drum option (drag_drums_one_track) and For my synths (drag_for_synths) are the person's,
+// kept in settings.xml, and don't.
 
 #include "Controller.h"
 

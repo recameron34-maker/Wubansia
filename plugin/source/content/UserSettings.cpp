@@ -8,6 +8,7 @@ namespace wubansia
     {
         constexpr const char* rootTag = "WubansiaSettings";
         constexpr const char* dragDrumsAttribute = "drag_drums_one_track"; // "1" lights the drag strip's 1 drum track (ADR 0025)
+        constexpr const char* dragSynthsAttribute = "drag_for_synths"; // "0" turns the drag strip's For my synths off (ADR 0027)
         constexpr const char* contentFolderAttribute = "content_folder";
         constexpr const char* samplesFolderAttribute = "samples_folder"; // ADR 0024
 
@@ -48,6 +49,7 @@ namespace wubansia
             samples = folderIn (*xml, samplesFolderAttribute);
         }
         dragDrums = ours && xml->getStringAttribute (dragDrumsAttribute) == "1";
+        dragSynths = ! (ours && xml->getStringAttribute (dragSynthsAttribute) == "0");
     }
 
     bool UserSettings::saveLocked (const char* attribute, const juce::String& value) const
@@ -91,12 +93,18 @@ namespace wubansia
 
     bool UserSettings::dragForSynths() const
     {
-        return true; // not yet: the tests come first
+        const std::lock_guard lock (mutex);
+        loadLocked();
+        return dragSynths;
     }
 
-    bool UserSettings::setDragForSynths (bool)
+    bool UserSettings::setDragForSynths (bool on)
     {
-        return false;
+        // generation () stays: the content folders don't change. On is the default, so the file says only "0".
+        const std::lock_guard lock (mutex);
+        loadLocked();
+        dragSynths = on;
+        return saveLocked (dragSynthsAttribute, on ? juce::String() : juce::String ("0"));
     }
 
     bool UserSettings::setContentFolder (const juce::File& chosen)

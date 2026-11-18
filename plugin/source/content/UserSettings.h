@@ -2,16 +2,16 @@
 
 // The person's own settings (P9): the content folder chosen with "Choose content folder…", the
 // samples folder chosen with the Samples drawer's "Change…" (ADR 0024) and the drag strip's 1 drum
-// track switch (ADR 0025). They live in one file per user,
+// track (ADR 0025) and For my synths (ADR 0027) switches. They live in one file per user,
 // <app data>/Wubansia Audio/Wubansia/settings.xml next to the default content folder
-// (ContentLocator::appDataFolder), as the root's attributes content_folder, samples_folder and
-// drag_drums_one_track ("1" while the switch is lit), never in a project's state, and every plugin
-// instance in the process shares them: instance () is one object, and generation () tells the others
-// that the content folder changed.
+// (ContentLocator::appDataFolder), as the root's attributes content_folder, samples_folder,
+// drag_drums_one_track ("1" while that switch is lit) and drag_for_synths ("0" while that one is off),
+// never in a project's state, and every plugin instance in the process shares them: instance () is one
+// object, and generation () tells the others that the content folder changed.
 //
-// Nothing reads the file before the first contentFolder (), samplesFolder () or dragDrumsOnOneTrack ():
-// the processor's constructor never touches it. The setters write the file at once, keeping whatever
-// else it holds; call them on the message thread.
+// Nothing reads the file before the first contentFolder (), samplesFolder (), dragDrumsOnOneTrack () or
+// dragForSynths (): the processor's constructor never touches it. The setters write the file at once,
+// keeping whatever else it holds; call them on the message thread.
 
 #include <juce_core/juce_core.h>
 
@@ -79,7 +79,7 @@ namespace wubansia
         void loadLocked() const;
 
         // Writes the file with attribute set to value, keeping whatever else it holds. An empty value removes the
-        // attribute: a forgotten folder (juce::File ()'s path) or the drum option off.
+        // attribute: a forgotten folder (juce::File ()'s path), the drum option off or For my synths on.
         bool saveLocked (const char* attribute, const juce::String& value) const;
 
         const juce::File settingsFile;
@@ -90,5 +90,6 @@ namespace wubansia
         std::atomic<std::uint64_t> changes { 0 };
         mutable std::atomic<std::uint64_t> reads { 0 };
         mutable bool dragDrums = false;
+        mutable bool dragSynths = true;
     };
 }
