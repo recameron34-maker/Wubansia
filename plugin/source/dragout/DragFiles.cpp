@@ -1,6 +1,7 @@
 #include "dragout/DragFiles.h"
 
 #include "kit/channel_map.h"
+#include "midi/for_synths.h"
 #include "midi/reader.h"
 #include "midi/track_select.h"
 
@@ -164,6 +165,52 @@ namespace wubansia::dragout
 
         constexpr std::string_view kDrumTrackName = "Drums";
 
+        // What For my synths (ADR 0027) does with a kit's track, by its name: the bass lane's pitched tracks (Bass, and a
+        // kit's extras on the bass lane) go up an octave; the other pitched tracks (lead, chord voicing, chords, vox, and
+        // the kit's other extras, multisampled instruments on channels 11-16) are made for synths; drums, one-key sounds
+        // (accents, FX, vox chops), the merged Drums and a track no lane claims stay as they are.
+        midi::SynthPart synthPart (const engine::KitInfo& kit, std::string_view name)
+        {
+            for (const auto& t : engine::kTracks)
+                if (t.name == name)
+                {
+                    if (t.role == engine::ChannelRole::bass)
+                        return midi::SynthPart::bass;
+                    return engine::isOneKeyRole (t.role) || t.role == engine::ChannelRole::reserved ? midi::SynthPart::asIs : midi::SynthPart::pitched;
+                }
+            for (const auto& e : kit.extras)
+                if (e.name == name)
+                    return e.lane == engine::Lane::bass ? midi::SynthPart::bass : midi::SynthPart::pitched;
+            return midi::SynthPart::asIs;
+        }
+
+        // Whether For my synths changes any of these tracks of the source.
+        bool changesForSynths (const engine::KitInfo& kit, const Source& source, const std::vector<int>& tracks)
+        {
+            return std::any_of (tracks.begin(), tracks.end(), [&] (int i) {
+                return synthPart (kit, source.tracks[static_cast<std::size_t> (i)].name) != midi::SynthPart::asIs;
+            });
+        }
+
+        // A drag's file with its tracks made for synths (midi::forSynths), each by synthPart (), the conductor as it is.
+        DragResult madeForSynths (const engine::KitInfo& kit, DragResult made)
+        {
+            if (!made.ok())
+                return made;
+            auto& file = made.value;
+            const auto tracks = midi::trackChunks (file.bytes);
+            if (!tracks.ok())
+                return DragResult::failure (file.name + ": " + tracks.error);
+            std::vector<midi::SynthPart> parts;
+            for (std::size_t i = 0; i < tracks.value.size(); ++i)
+                parts.push_back (i == 0 ? midi::SynthPart::asIs : synthPart (kit, tracks.value[i].name));
+            auto bytes = midi::forSynths (file.bytes, parts);
+            if (!bytes.ok())
+                return DragResult::failure (file.name + ": can't make it for synths: " + bytes.error);
+            file.bytes = std::move (bytes.value);
+            return made;
+        }
+
         // Loop or Song: the vox switch's file less the muted lanes' tracks.
         DragResult wholeDrag (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state, bool song)
         {
@@ -193,10 +240,15 @@ namespace wubansia::dragout
                         drums.push_back (i);
             const bool merge = drums.size() >= 2;
 
+            // For my synths: when a kept track is one it changes.
+            const bool synths = state.forSynths && changesForSynths (kit, source.value, kept);
+
             std::string what = song ? "Song" : "Loop";
             if (state.variant == engine::Variant::novox)
                 what += " NoVox";
-            std::string marks = merge ? "1 drum track" : "";
+            std::string marks = synths ? "synths" : "";
+            if (merge)
+                marks += marks.empty() ? "1 drum track" : ", 1 drum track";
             if (left != 0)
             {
                 std::string labels;
@@ -207,13 +259,17 @@ namespace wubansia::dragout
             }
             if (!marks.empty())
                 what += " (" + marks + ")";
-            if (!merge)
-                return cut (source.value, kept, fileName (kit, what));
-
-            auto bytes = midi::mergeTracks (source.value.file->bytes, kept, drums, kDrumTrackName);
-            if (!bytes.ok())
-                return DragResult::failure (source.value.name + ": can't put the drums on one track: " + bytes.error);
-            return DragResult::success ({ fileName (kit, what), std::move (bytes.value) });
+            auto made = [&] {
+                if (!merge)
+                    return cut (source.value, kept, fileName (kit, what));
+                auto bytes = midi::mergeTracks (source.value.file->bytes, kept, drums, kDrumTrackName);
+                if (!bytes.ok())
+                    return DragResult::failure (source.value.name + ": can't put the drums on one track: " + bytes.error);
+                return DragResult::success ({ fileName (kit, what), std::move (bytes.value) });
+            }();
+            if (synths)
+                return madeForSynths (kit, std::move (made));
+            return made;
         }
 
         // One lane's tracks from the mode's files: see the header.
@@ -241,12 +297,17 @@ namespace wubansia::dragout
             const bool fromNovox = inVox.empty()
                                    || (state.variant == engine::Variant::novox && !inNovox.empty()
                                        && chunkBytes (novox.value, inNovox) != chunkBytes (vox.value, inVox));
-            return cut (fromNovox ? novox.value : vox.value, fromNovox ? inNovox : inVox,
-                fileName (kit, label + (song ? " Song" : "") + (fromNovox ? " NoVox" : "")));
+            const auto& source = fromNovox ? novox.value : vox.value;
+            const auto& tracks = fromNovox ? inNovox : inVox;
+            const bool synths = state.forSynths && changesForSynths (kit, source, tracks);
+            auto made = cut (source, tracks, fileName (kit, label + (song ? " Song" : "") + (fromNovox ? " NoVox" : "") + (synths ? " (synths)" : "")));
+            if (synths)
+                return madeForSynths (kit, std::move (made));
+            return made;
         }
 
-        // One of the kit's own files (named <KIT>_...) as it is.
-        DragResult phraseDrag (const engine::KitInfo& kit, std::span<const MidiFile> files, const juce::String& phraseFile)
+        // One of the kit's own files (named <KIT>_...) as it is, or made for synths.
+        DragResult phraseDrag (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state, const juce::String& phraseFile)
         {
             const auto wanted = phraseFile.toStdString();
             const auto base = baseName (wanted);
@@ -262,7 +323,13 @@ namespace wubansia::dragout
                 stem.remove_suffix (4);
             if (startsWith (stem, kit.id + "_"))
                 stem.remove_prefix (kit.id.size() + 1);
-            return DragResult::success ({ fileName (kit, words (stem)), std::vector<std::uint8_t> (file->bytes.begin(), file->bytes.end()) });
+            bool synths = false; // For my synths: when a track after the conductor is one it changes
+            for (std::size_t i = 1; state.forSynths && i < parsed.value.tracks.size(); ++i)
+                synths = synths || synthPart (kit, midi::trackName (parsed.value.tracks[i])) != midi::SynthPart::asIs;
+            auto made = DragResult::success ({ fileName (kit, words (stem) + (synths ? " (synths)" : "")), std::vector<std::uint8_t> (file->bytes.begin(), file->bytes.end()) });
+            if (synths)
+                return madeForSynths (kit, std::move (made));
+            return made;
         }
     }
 
@@ -330,7 +397,7 @@ namespace wubansia::dragout
             case DragWhat::loop: return wholeDrag (kit, files, state, false);
             case DragWhat::song: return wholeDrag (kit, files, state, true);
             case DragWhat::lane: return laneDrag (kit, files, state, request.lane);
-            case DragWhat::phrase: return phraseDrag (kit, files, request.phraseFile);
+            case DragWhat::phrase: return phraseDrag (kit, files, state, request.phraseFile);
         }
         return DragResult::failure ("an unknown kind of drag");
     }

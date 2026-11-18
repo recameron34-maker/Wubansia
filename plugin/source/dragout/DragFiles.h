@@ -8,7 +8,7 @@
 // the person's drum option (UserSettings), and returns the file it gives (juce::File () on failure);
 // ControllerImpl::phraseFiles () returns phraseFiles (). Message thread only: it reads and writes files.
 //
-//     const dragout::DragState state { mode, voxSynth ? engine::Variant::vox : engine::Variant::novox, mutedLanes, drumsOnOneTrack };
+//     const dragout::DragState state { mode, voxSynth ? engine::Variant::vox : engine::Variant::novox, mutedLanes, drumsOnOneTrack, forSynths };
 //     const auto file = dragout::writeDragFile (kitInfo, midiFiles, state, request);
 //     return file.ok() ? file.value : juce::File(); // file.error says why, for a log
 //
@@ -32,16 +32,25 @@
 // (engine/kit/channel_map.h's trackLane: channels.py's TRACKS and the kit's extras); a track no lane
 // claims stays in Loop and Song drags and is never in a lane drag.
 //
+// With forSynths (For my synths, ADR 0027), every drag's pitched tracks are made for the person's own
+// synths (core/midi/for_synths.h): the bass lane's (Bass and a kit's extras on the bass lane) an octave
+// up, and on each of them and every other pitched track (lead, chord voicing, chords, vox, the other
+// extras) every note a 16th at least, ending 10 ticks before the next note on its track, at velocity 72
+// at least. The conductor, drums, one-key sounds (accents, FX, vox chops), the merged Drums and a track
+// no lane claims stay byte for byte; a drag with no pitched track (a drum lane) is the plain one.
+//
 // Names are "<KIT> <Title> <BPM> <Key> <Camelot> - <what>.mid", for example
 //     FUT01 Alloy Signal 134 F#m 11A - Loop.mid
 //     FUT01 Alloy Signal 134 F#m 11A - Song NoVox (no Kick, Warp Bass).mid
 //     FUT01 Alloy Signal 134 F#m 11A - Song NoVox (1 drum track, no Clap, Warp Bass).mid
+//     FUT01 Alloy Signal 134 F#m 11A - Song NoVox (synths, 1 drum track, no Clap, Warp Bass).mid
 //     FUT01 Alloy Signal 134 F#m 11A - Warp Bass Song.mid
+//     FUT01 Alloy Signal 134 F#m 11A - Warp Bass Song (synths).mid
 //     FUT01 Alloy Signal 134 F#m 11A - Phrase Organ Riff 4 bars.mid
 // The key is short ("F# minor" is F#m, "Bb major" Bbmaj); a lane is named by the kit's label for it;
-// "NoVox" marks the no-vox file. In brackets, "1 drum track" marks drums merged on one track, and
-// "no ..." lists the muted lanes whose tracks a Loop or Song drag left out; with at most one drum
-// track left nothing merges, so the name has no "1 drum track". Only letters, digits, spaces and
+// "NoVox" marks the no-vox file. In brackets, "synths" marks a file made for synths, "1 drum track"
+// drums merged on one track, and "no ..." lists the muted lanes whose tracks a Loop or Song drag left
+// out; with at most one drum track left nothing merges, so the name has no "1 drum track". Only letters, digits, spaces and
 // # ( ) , - . _ survive from the kit's strings, so a name is safe on macOS, Windows and Linux. The same
 // drag always gives the same name and bytes, and drags that give different files get different names
 // (DragOutTests checks it for the four kits; a lane label reading like "Loop" or "Phrase ..." would
@@ -78,7 +87,7 @@ namespace wubansia::dragout
         engine::Variant variant = engine::Variant::vox; // the vox switch
         std::uint32_t mutedLanes = 0; // a bit per engine::Lane (engine::laneBit): left out of Loop and Song
         bool drumsOnOneTrack = false; // Loop and Song: the drum tracks as one track, Drums (ADR 0025)
-        bool forSynths = false; // every drag: pitched tracks made for the person's own synths (ADR 0027)
+        bool forSynths = false; // every drag: pitched tracks made for the person's own synths (ADR 0027); off here, so a bare state gives the files as they are
     };
 
     // A drag's file before it is written.

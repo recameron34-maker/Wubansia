@@ -956,7 +956,7 @@ TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched 
         mutes.push_back (everyLane & ~engine::laneBit (lane));
     }
 
-    int changed = 0, plain = 0;
+    int marked = 0, changed = 0, plain = 0;
     for (const auto& k : kits())
     {
         std::vector<std::pair<dragout::DragState, DragRequest>> drags;
@@ -1001,17 +1001,19 @@ TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched 
                 CHECK (on.value.bytes == off.value.bytes);
                 continue;
             }
-            ++changed;
+            ++marked;
             CHECK (on.value.name == withSynthsMark (off.value.name));
             const auto expected = midi::forSynths (off.value.bytes, parts);
             INFO (expected.error);
             REQUIRE (expected.ok());
             CHECK (on.value.bytes == expected.value);
-            CHECK (on.value.bytes != off.value.bytes);
+            if (on.value.bytes != off.value.bytes)
+                ++changed; // a pitched track whose notes already play well on a synth comes out the same
         }
     }
-    CHECK (changed > 400);
-    CHECK (plain > 100);
+    CHECK (marked > 500); // 576: 540 changed, 36 already played well
+    CHECK (changed > 500);
+    CHECK (plain > 250); // 294
 }
 
 TEST_CASE ("For my synths moves the bass lane up an octave, plays every pitched track's notes apart, and leaves the drums", "[dragout]")
