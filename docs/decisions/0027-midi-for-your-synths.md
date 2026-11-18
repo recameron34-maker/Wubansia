@@ -89,9 +89,10 @@ So the voicing track is exact but covers only Chords. kit.json now carries each 
 **The register.** The For my synths bass is 38-55 (decision 4; its top key is 54 in FUT01 and 55 in FUT02-FUT04). A
 chord is lifted whole octaves until its lowest note is 56 (G#2) or more, less where its top would pass 127. Of the 18
 distinct chords (command 2), 6 are lifted an octave: FUT01's F#m9 on the stabs and the Air Pad, FUT02's Starfield Dm9,
-FUT03's Gm9 on Dub Stab and Pad Warm, and FUT04's drone; 1,453 of the 3,301 notes. Every chord then lies within keys
-58-92. In the drags (the 4-bar Chords files aren't dragged): 3,268 notes come as 15,856 notes on 58-92, the bass lane's
-on 55 or below.
+FUT03's Gm9 on Dub Stab and Pad Warm, and FUT04's drone; 1,453 of the 3,301 notes. Each chord is lifted on its own, so
+on those four FUT01 and FUT03 tracks the lifted chord sits above the other one, the reverse of the samples
+(Alternatives). Every chord then lies within keys 58-92. In the drags (the 4-bar Chords files aren't dragged): 3,268
+notes come as 15,856 notes on 58-92, the bass lane's on 55 or below.
 
 **Lengths and velocities.** Every note of a chord starts on the chord note's tick, on its channel, with its length
 and velocity; then the rules of decision 3 apply. The notes start together, so they never cut each other, and each
@@ -116,7 +117,10 @@ samples stay as they are. The Chord voicing track stays a pitched track at the s
 - **The Chord voicing track alone.** Exact, but only beside Chords: it misses the 1,130 notes of the extras, the 4-bar
   Chords files and the phrases.
 - **The instrument names.** They give no voicing, and 646 notes play another chord than the name says.
-- **One lift per track.** It would keep FUT01's Bm9 above its F#m9, as the samples sound, but put the Bm9 at 71-86.
-  Yours to ask for if you prefer it.
+- **One lift per track.** The samples play F#m9 a fourth below Bm9 (FUT01's stabs and Air Pad) and Gm9 a fourth below
+  Cm9 (FUT03's Dub Stab and Pad Warm, the Dub Chords phrase among them). Lifted per chord, F#m9 and Gm9 come a fifth
+  above instead: on the stabs 66-81 over Bm9's 59-74, on the Air Pad 66-92 over 59-85, on Dub Stab and Pad Warm 67-82
+  over Cm9's 60-75. One lift per track would keep the samples' order but put FUT01's Bm9 at 71-86 (71-97 on the Air Pad,
+  past the 92 every chord now stays within) and FUT03's Cm9 at 72-87. Yours to ask for if you prefer it.
 - **Dropping the Chord voicing track from synth drags.** It is the kit's own written-out voicing, at the samples'
   register; muting it is one click in a DAW.
