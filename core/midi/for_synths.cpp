@@ -38,14 +38,39 @@ namespace wubansia::midi
             return true;
         }
 
-        // The track's MTrk chunk made for synths, or nothing when it can't be carried as it is.
-        std::optional<std::vector<std::uint8_t>> rewritten (const Track& track, std::uint16_t ppq, bool bass)
+        // Each note as the chord its sample plays there (chordFor ()), every tone with the note's tick, channel, length and
+        // velocities; a note no zone holds stays as it is.
+        std::vector<Note> asChords (const std::vector<Note>& notes, const ChordSample& sample)
+        {
+            std::vector<Note> out;
+            out.reserve (notes.size() * 5);
+            for (const auto& n : notes)
+            {
+                const auto chord = chordFor (sample, n.key);
+                if (chord.empty())
+                {
+                    out.push_back (n);
+                    continue;
+                }
+                for (const auto key : chord)
+                {
+                    auto tone = n;
+                    tone.key = key;
+                    out.push_back (tone);
+                }
+            }
+            return out;
+        }
+
+        // The track's MTrk chunk made for synths, its notes first written as chords when chords isn't null, or nothing
+        // when it can't be carried as it is.
+        std::optional<std::vector<std::uint8_t>> rewritten (const Track& track, std::uint16_t ppq, bool bass, const ChordSample* chords)
         {
             if (! carried (track))
                 return std::nullopt;
             TrackSpec spec;
             spec.name = trackName (track);
-            spec.notes = synthNotes (notesOf (track), ppq, track.endTick, bass);
+            spec.notes = synthNotes (chords != nullptr ? asChords (notesOf (track), *chords) : notesOf (track), ppq, track.endTick, bass);
             spec.controllers = controllersOf (track);
             spec.programs = programsOf (track);
             for (auto& text : textsOf (track))
@@ -102,9 +127,28 @@ namespace wubansia::midi
         return notes;
     }
 
-    std::vector<std::uint8_t> chordFor (const ChordSample&, std::uint8_t)
+    std::vector<std::uint8_t> chordFor (const ChordSample& sample, std::uint8_t key)
     {
-        return {};
+        const auto zone = std::find_if (sample.begin(), sample.end(), [key] (const ChordZone& z) { return z.lo <= key && key <= z.hi; });
+        if (zone == sample.end() || zone->intervals.empty())
+            return {};
+        const auto [low, high] = std::minmax_element (zone->intervals.begin(), zone->intervals.end());
+        const int lowest = key + *low, highest = key + *high;
+
+        // Whole octaves up to the floor, then back down while the top passes 127.
+        int lift = 0;
+        while (lowest + lift < kChordFloor)
+            lift += kOctave;
+        while (lift > 0 && highest + lift > 127)
+            lift -= kOctave;
+
+        std::vector<std::uint8_t> chord;
+        for (const auto interval : zone->intervals)
+            if (const int tone = key + interval + lift; tone >= 0 && tone <= 127)
+                chord.push_back (static_cast<std::uint8_t> (tone));
+        std::sort (chord.begin(), chord.end());
+        chord.erase (std::unique (chord.begin(), chord.end()), chord.end());
+        return chord;
     }
 
     util::Result<std::vector<std::uint8_t>> forSynths (std::span<const std::uint8_t> smf, std::span<const SynthPart> parts)
@@ -113,7 +157,7 @@ namespace wubansia::midi
     }
 
     util::Result<std::vector<std::uint8_t>> forSynths (std::span<const std::uint8_t> smf, std::span<const SynthPart> parts,
-        std::span<const ChordSample>)
+        std::span<const ChordSample> chords)
     {
         using R = util::Result<std::vector<std::uint8_t>>;
         auto file = readSmf (smf);
@@ -132,8 +176,9 @@ namespace wubansia::midi
         for (std::size_t i = 0; i < tracks.size(); ++i)
         {
             const auto part = i < parts.size() ? parts[i] : SynthPart::asIs;
+            const auto* sample = part == SynthPart::chords && i < chords.size() && ! chords[i].empty() ? &chords[i] : nullptr;
             if (part != SynthPart::asIs)
-                if (const auto chunk = rewritten (file.value.tracks[i], file.value.ppq, part == SynthPart::bass))
+                if (const auto chunk = rewritten (file.value.tracks[i], file.value.ppq, part == SynthPart::bass, sample))
                 {
                     out.insert (out.end(), chunk->begin(), chunk->end());
                     continue;

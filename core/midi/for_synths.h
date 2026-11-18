@@ -6,7 +6,7 @@
 // The kits' files are written for Wubansia's samples, which carry their own decay and sit where their zones are rooted:
 // the bass an octave below where a synth bass plays (MIDI 26-43), most of its notes shorter than a 16th, its slides
 // written as notes that overlap (two voices at once on a polyphonic synth), and soft notes down to velocity 44. On each
-// track marked pitched or bass, forSynths () makes every note
+// track marked pitched, bass or chords, forSynths () makes every note
 // - last a 16th (ppq / 4) at least, or longer as written,
 // - but end synthGap () ticks (10 at the kits' 960 PPQ) before the next note on its track starts: no two notes overlap,
 //   and a slide is two plain notes. The next note is the next later note-on, so notes that start together (a chord)
