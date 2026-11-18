@@ -161,8 +161,9 @@ engineer replaces these with the kit's own form.
   note a 16th at least but ending 10 ticks before the next note on its track, so a written slide is two plain notes,
   and velocities 72 and up. The drums, the one-key Accents, FX and Vox chops tracks and the conductor stay as this map
   has them (the pitched extras on the accents lane change like the rest); switched off, a drag is the file as it is
-  here. Channel 4's Chords and the kits' chord extras still carry each chord's root only: on a synth, play Chord
-  voicing (channel 3), or put a chord device before it.
+  here. Channel 4's Chords and the kits' chord extras come as whole chords, voiced as their samples play them
+  (kit.json's zones' `voicing`) and lifted whole octaves to start at 56 (G#2) or above, over the bass; Chord voicing
+  (channel 3) stays at the samples' own register.
 - **Empty tracks.** A loop file carries only the tracks that play in it. Every region of an extended mix carries the
   same tracks in the same order, empty or not: if a DAW leaves an empty track out, move the clips under it onto the
   tracks of the same name.

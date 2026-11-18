@@ -48,11 +48,11 @@ chips carry the same lines):
 - To play a drag back into Wubansia, turn For my synths off first: lit, the bass comes an octave up, its slides become
   separate notes (212 in a FUT01 or FUT04 Song's Bass), short notes hold longer and soft notes play at velocity 72.
   `docs/midi-map.md` and `dist/INSTALL.md` say so.
-- A chord sample's track carries only each chord's root, made for synths or not: Chords (every kit), FUT01's Air Pad,
-  FUT02's Laser Chord Stab, FUT03's Pad Warm, FUT04's Metal Chord and Rave Stab, and five phrase chips (FUT01's E Piano
-  Stab Rhythm, FUT02's Laser Stab Riff, FUT03's Dub Chords, FUT04's Metal Chords and Rave Stab Riff). A synth plays the
-  root alone: Chords has the Chord voicing track beside it, the others need a chord device. The tooltip and
-  `dist/INSTALL.md` say so; writing each as the chord its sample holds is left for later.
+- A chord sample's track carries only each chord's root in the kit's files: Chords (every kit), FUT01's Air Pad,
+  FUT02's Laser Chord Stab, FUT03's Pad Warm, FUT04's Metal Chord and Rave Stab, and five phrases (FUT01's E Piano
+  Stab Rhythm, FUT02's Laser Stab Riff, FUT03's Dub Chords, FUT04's Metal Chords and Rave Stab Riff). As first built, a
+  synth played the root alone. Since "Chords as chords" (below), For my synths writes each as the chord its sample
+  holds.
 - The switch's room comes out of the phrase chips: a chip whose title needs more than an equal share gets it, and the
   others share the rest (FUT01 in DejaVu Sans: 131 px for "E Piano Stab Rhythm", 101 for the other four).
 - No new parameter, state or dependency.
@@ -64,3 +64,59 @@ chips carry the same lines):
   synth's glide can come back on top.
 - **New files in `content/midi`.** They would change what Wubansia plays and its tests; the drag-time rewrite changes
   nothing else.
+
+## Chords as chords (2026-11-18)
+
+Added in v0.3 under ADR 0028 (build in, cut later); the status line above stands. With For my synths lit, every note on
+a chord sample's track is written as the chord that sample plays: the tracks above, in every drag that goes through For
+my synths (Loop, Song, a lane's MIDI chip, the five phrases).
+
+**Where the exact chord comes from (measured).** A note on key K plays its zone's sample repitched by K less the zone's
+root, so it sounds K plus the zone's voicing, which the recipes set (`tools/sound/recipes/fut0N`). Over every
+chord-sample note of every kit's Loop and Song (vox and no-vox), its 4-bar Chords file and the five chord phrase files,
+3,301 notes (`docs/plans/v0.3-plan.md` section 9, command 1):
+
+| Source | Exact chord | Wrong | None |
+|---|---|---|---|
+| The Chord voicing track's notes on the note's tick | 2,171: every Chords note of every Loop and Song, with the same length and velocity | 0 | 1,130: every note of the extras, the 4-bar Chords files and the phrase files |
+| The instrument's name read as a chord symbol | 0: a name gives no voicing | 646: the repitched sample plays another chord than its name says (Air Pad F#m9 played as Bm9) | 1,521: names with no chord in them (Organ Stab, Laser Chord Stab, Pad Warm) |
+
+So the voicing track is exact but covers only Chords. kit.json now carries each chord sample's voicing
+(`zones[].voicing`, `docs/plugin/manifest.md`), exported from the recipe constants the voicing track was written from
+(each kit's `plugin.py` `VOICINGS`): 13 zones on 10 instruments. A content test holds it to the voicing track at all
+2,171 notes it witnesses, and `tools/sound`'s tests hold it to the recipes.
+
+**The register.** The For my synths bass is 38-55 (decision 4; its top key is 54 in FUT01 and 55 in FUT02-FUT04). A
+chord is lifted whole octaves until its lowest note is 56 (G#2) or more, less where its top would pass 127. Of the 18
+distinct chords (command 2), 6 are lifted an octave: FUT01's F#m9 on the stabs and the Air Pad, FUT02's Starfield Dm9,
+FUT03's Gm9 on Dub Stab and Pad Warm, and FUT04's drone; 1,453 of the 3,301 notes. Every chord then lies within keys
+58-92. In the drags (the 4-bar Chords files aren't dragged): 3,268 notes come as 15,856 notes on 58-92, the bass lane's
+on 55 or below.
+
+**Lengths and velocities.** Every note of a chord starts on the chord note's tick, on its channel, with its length
+and velocity; then the rules of decision 3 apply. The notes start together, so they never cut each other, and each
+ends where the chord note alone would have ended.
+
+**The tracks.** Chords (channel 4: FUT01's Organ Stab and E Piano Stab on the switch voice alike), FUT01's Air Pad,
+FUT02's Laser Chord Stab, FUT03's Pad Warm, FUT04's Metal Chord and Rave Stab. The one-key Accents that play the same
+samples stay as they are. The Chord voicing track stays a pitched track at the samples' own register.
+
+**The tooltip** says it in 464 characters (699 before) and points to `dist/INSTALL.md`, "Drag MIDI into Live or Logic".
+
+### Consequences
+- kit.json gains an optional key, `zones[].voicing`; the engine doesn't play it. No file, hash or other key changes, so
+  installed content stays valid.
+- The Chord voicing track remains, beside a Chords track that now plays the same chords: on a synth, play one or the
+  other.
+- To play a drag back into Wubansia, turn For my synths off first: lit, each chord sample's note also comes as a whole
+  chord.
+- Not checked in a DAW: how the chords sound on your synths in Live and Logic.
+
+### Alternatives
+- **The Chord voicing track alone.** Exact, but only beside Chords: it misses the 1,130 notes of the extras, the 4-bar
+  Chords files and the phrases.
+- **The instrument names.** They give no voicing, and 646 notes play another chord than the name says.
+- **One lift per track.** It would keep FUT01's Bm9 above its F#m9, as the samples sound, but put the Bm9 at 71-86.
+  Yours to ask for if you prefer it.
+- **Dropping the Chord voicing track from synth drags.** It is the kit's own written-out voicing, at the samples'
+  register; muting it is one click in a DAW.

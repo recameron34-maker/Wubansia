@@ -217,15 +217,18 @@ soft notes play at velocity 72. The drums and the one-key Accents and FX tracks 
 Accents lane also plays pitched parts (FUT02's Glass Ping, FUT04's Acid Stab and Rave Stab): those are made for synths
 like the rest, so that lane's Song drag says (synths) too. Wubansia remembers the switch like 1 drum track.
 
-A chord sample plays a whole chord from one key, so its track carries only each chord's root: Chords in every kit,
-FUT01's Air Pad, FUT02's Laser Chord Stab, FUT03's Pad Warm and FUT04's Metal Chord and Rave Stab, and the phrase chips
-E Piano Stab Rhythm (FUT01), Laser Stab Riff (FUT02), Dub Chords (FUT03), and Metal Chords and Rave Stab Riff (FUT04).
-On a synth they play the root alone: for Chords, play the Chord voicing track (channel 3), which comes with it in every
-Loop and Song drag and in its lane's MIDI chip; for the others, put a chord device before your synth.
+A chord sample plays a whole chord from one key, so in the kit's files its track has one note per chord. Lit, For my
+synths writes each of those notes as the whole chord, voiced as the kit's sample plays it, every note of the chord with
+the note's start, length and velocity, and lifted whole octaves to start on G#2 (MIDI 56, in Live's and Logic's names)
+or above: the chords sit above the bass. That is Chords in every kit, FUT01's Air Pad, FUT02's Laser Chord Stab,
+FUT03's Pad Warm and FUT04's Metal Chord and Rave Stab, and the phrases E Piano Stab Rhythm (FUT01), Laser Stab Riff
+(FUT02), Dub Chords (FUT03), and Metal Chords and Rave Stab Riff (FUT04). The Chord voicing track (channel 3) still
+comes with Chords in every Loop and Song drag and in its lane's MIDI chip, at the samples' own register: it plays the
+same chords, so on a synth play one or the other. Off, each chord is one note, as Wubansia's chord samples play it.
 
 Off, the files are as Wubansia's own samples play them. To play a drag back into Wubansia, turn For my synths off
-first: lit, the bass comes an octave up, its slides become separate notes, short notes hold longer and soft notes
-play at velocity 72.
+first: lit, the bass comes an octave up, its slides become separate notes, short notes hold longer, soft notes play at
+velocity 72 and each chord sample's note comes as a whole chord.
 
 ### The drum pads
 

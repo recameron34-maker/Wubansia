@@ -162,7 +162,7 @@ Goal: test all four goals small, on one kit: FUT01 "Alloy Signal", sci-fi club Ã
   macOS CI zip as it lands, with a screenshot of each look at the end. *You check:* nothing before it ships; when you
   use it, what to keep and what to cut.
   - [x] For my synths (ADR 0027): the bass up an octave, no note under a 16th, no overlaps, soft notes at 72 (in the macOS CI zip of `9d4c1b1`).
-  - [ ] Chords as chords (ADR 0027, amended): a chord sample's track becomes the whole chord its sample plays,
+  - [x] Chords as chords (ADR 0027, amended): a chord sample's track becomes the whole chord its sample plays,
     voiced as the kit voices it and lifted above the For my synths bass.
   - [ ] The Phrases drawer (ADR 0031): the header's Phrases button, the kit's own phrases and lead line there, off
     the drag strip.
