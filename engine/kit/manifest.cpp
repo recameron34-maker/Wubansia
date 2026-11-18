@@ -765,9 +765,11 @@ namespace wubansia::engine
 
             void readZones (const Node& n, InstrumentEntry& e)
             {
+                static constexpr std::array<std::string_view, 4> keys { "root", "lo", "hi", "layers" };
+                static constexpr std::array<std::string_view, 1> optional { "voicing" };
                 for (const auto& item : n.items (1, 32, "zones"))
                 {
-                    const Obj o (item, { "root", "lo", "hi", "layers" });
+                    const Obj o (item, keys, optional);
                     if (! o.ok())
                         return;
                     ZoneEntry z;
@@ -788,6 +790,24 @@ namespace wubansia::engine
                         else if (z.lo <= prev.hi)
                             o.fail ("keys " + std::to_string (z.lo) + " to " + std::to_string (z.hi) + " overlap zones[" + previous + "]'s "
                                     + std::to_string (prev.lo) + " to " + std::to_string (prev.hi) + ": zone ranges are disjoint and ascending");
+                        if (errors.any())
+                            return;
+                    }
+
+                    // A chord sample's chord (ADR 0027, chords as chords): semitones over the root, from 0, strictly up.
+                    if (const auto voicing = o["voicing"]; voicing.present())
+                    {
+                        for (const auto& v : voicing.items (1, 8, "intervals"))
+                        {
+                            const auto interval = v.int32 (0, 48);
+                            if (! errors.any() && z.voicing.empty() && interval != 0)
+                                v.fail (std::to_string (interval) + " first: a voicing starts at 0, the zone's root");
+                            else if (! errors.any() && ! z.voicing.empty() && interval <= z.voicing.back())
+                                v.fail (std::to_string (interval) + " after " + std::to_string (z.voicing.back()) + ": a voicing's intervals go strictly up");
+                            if (errors.any())
+                                return;
+                            z.voicing.push_back (interval);
+                        }
                         if (errors.any())
                             return;
                     }

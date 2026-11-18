@@ -26,8 +26,8 @@ lands in the same commit in this file, the C++ structs, `tools/sound/plugin_comm
 - `true` and `false` appear only where a field is a flag.
 
 **Keys.** Every object has exactly the keys its table lists, in that order. Writers emit that order. Parsers
-refuse a missing key or an unknown one, but don't depend on the order. The one optional key is `when`, on an
-insert.
+refuse a missing key or an unknown one, but don't depend on the order. The optional keys are `when`, on an
+insert, and `voicing`, on a zone: where present they sit in their table's order.
 
 **Strings.** Non-empty unless a table says otherwise.
 - An *id* is `[a-z0-9_]`, 1-32 characters.
@@ -180,6 +180,7 @@ pitch before it (FUT01's pitch dips): the dip and that returning note glide over
 | `root` | integer | 0-127 | the key its files sound at |
 | `lo` | integer | 0-127 | the lowest key the zone plays |
 | `hi` | integer | `lo`-127 | the highest |
+| `voicing` | array of integers (optional) | 1-8 values, each 0-48, the first 0, strictly ascending | a chord sample's chord: the semitones over `root` its files sound (FUT01's stabs, `[0, 7, 10, 14, 15]`: root, 5, m7, 9, m3). A key in the zone plays the key plus each. Absent on every zone that isn't a chord. MIDI drag-out's For my synths writes a note on it as that chord (ADR 0027, chords as chords); the engine doesn't play it. |
 | `layers` | array of objects | 1-8 | `{"vel", "rr"}`, by `vel` ascending |
 
 - Zones are sorted by `root`, and their `lo`..`hi` ranges are disjoint and ascending.

@@ -109,7 +109,7 @@ KEYS = {
                    'duck_key', 'pan_cycle_pm', 'rr_block_16ths', 'layered_with', 'zones'),
     'glide': ('curve', 'us', 'dip_us'),
     'choke': ('group', 'role', 'fade_us', 'curve'),
-    'zone': ('root', 'lo', 'hi', 'layers'),
+    'zone': ('root', 'lo', 'hi', 'voicing', 'layers'),
     'layer': ('vel', 'rr'),
     'keymap': ('ch', 'keys', 'a', 'b', 'ab'),
     'extra': ('ch', 'name', 'lane'),
@@ -142,6 +142,10 @@ KEYS = {
     'when': ('variant', 'ab', 'is'),
 }
 
+# The keys an object may leave out (docs/plugin/manifest.md section 1); where present, they sit in KEYS' order. A zone's
+# voicing: a chord sample's chord, as semitones over its root (ADR 0027, chords as chords).
+OPTIONAL = {'zone': ('voicing',)}
+
 # Each insert type's keys after 'type' (and before the optional 'when'). A duck's depend on its mode.
 INSERT_KEYS = {
     'gain': ('gain_mdb',),
@@ -169,8 +173,8 @@ DUCK_KEYS = {
 }
 
 
-def _keyed(where, keys, mapping):
-    missing = [k for k in keys if k not in mapping]
+def _keyed(where, keys, mapping, optional=()):
+    missing = [k for k in keys if k not in mapping and k not in optional]
     unknown = [k for k in mapping if k not in keys]
     if missing or unknown:
         parts = []
@@ -179,17 +183,17 @@ def _keyed(where, keys, mapping):
         if unknown:
             parts.append('unknown ' + ', '.join(str(k) for k in unknown))
         raise KeyError(f'{where}: {"; ".join(parts)} (docs/plugin/manifest.md)')
-    return {k: mapping[k] for k in keys}
+    return {k: mapping[k] for k in keys if k in mapping}
 
 
 def ordered(kind, mapping=None, **fields):
-    """The object `kind` (a KEYS name) with exactly its documented keys, in their order. Pass a mapping or keyword
-    arguments (or both)."""
+    """The object `kind` (a KEYS name) with exactly its documented keys, in their order, an OPTIONAL one only where
+    given. Pass a mapping or keyword arguments (or both)."""
     if kind not in KEYS:
         raise KeyError(f'no object kind {kind!r}; KEYS has {", ".join(KEYS)}')
     merged = dict(mapping or {})
     merged.update(fields)
-    return _keyed(kind, KEYS[kind], merged)
+    return _keyed(kind, KEYS[kind], merged, OPTIONAL.get(kind, ()))
 
 
 def insert(type_, mapping=None, when=None, **fields):

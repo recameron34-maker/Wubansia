@@ -172,7 +172,8 @@ class TestContract(unittest.TestCase):
                     for a, b in zip(ins['zones'], ins['zones'][1:]):
                         self.assertLess(a['hi'], b['lo'])
                     for z in ins['zones']:
-                        self.assertEqual(['root', 'lo', 'hi', 'layers'], list(z))
+                        voiced = ['voicing'] if 'voicing' in z else []   # optional: a chord sample's chord (ADR 0027)
+                        self.assertEqual(['root', 'lo', 'hi'] + voiced + ['layers'], list(z))
                         self.assertTrue(0 <= z['lo'] <= z['hi'] <= 127)
                         vels = [layer['vel'] for layer in z['layers']]
                         self.assertEqual(sorted(set(vels)), vels)
@@ -614,12 +615,14 @@ class TestExport(unittest.TestCase):
             PC.check_strings(PK.export(kit))
 
     def test_every_object_has_the_contracts_keys_in_order(self):
-        """Every object of every manifest has exactly its kind's keys, in the contract's order (plugin_common.KEYS)."""
+        """Every object of every manifest has exactly its kind's keys, in the contract's order (plugin_common.KEYS), an
+        optional one (plugin_common.OPTIONAL) only where it has one."""
         for kit in KITS:
             m = manifest(kit)
 
             def check(kind, obj):
-                self.assertEqual(list(PC.KEYS[kind]), list(obj), (kit, kind))
+                keys = [k for k in PC.KEYS[kind] if k in obj or k not in PC.OPTIONAL.get(kind, ())]
+                self.assertEqual(keys, list(obj), (kit, kind))
 
             check('kit.json', m)
             check('kit', m['kit'])

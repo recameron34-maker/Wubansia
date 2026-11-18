@@ -404,7 +404,11 @@ namespace wubansia::engine::testing
                 Json layers = Json::array();
                 for (const auto& l : z.layers)
                     layers.push (Json::object().add ("vel", num (l.vel)).add ("rr", Json::ints (l.rr)));
-                zones.push (Json::object().add ("root", num (z.root)).add ("lo", num (z.lo)).add ("hi", num (z.hi)).add ("layers", std::move (layers)));
+                Json zone = Json::object();
+                zone.add ("root", num (z.root)).add ("lo", num (z.lo)).add ("hi", num (z.hi));
+                if (! z.voicing.empty()) // optional: a chord sample's chord (ADR 0027)
+                    zone.add ("voicing", Json::ints (z.voicing));
+                zones.push (std::move (zone.add ("layers", std::move (layers))));
             }
             Json j = Json::object();
             j.add ("id", str (in.id)).add ("name", str (in.name)).add ("lane", str (laneId (in.lane))).add ("mix_channel", str (in.mixChannel));
