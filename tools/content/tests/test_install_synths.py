@@ -9,7 +9,8 @@ leaves, read here from the content where the content can say it:
 - The drums and the one-key Accents and FX tracks stay as they are, while the Accents lane's pitched extras
   (kit.json) are made for synths: INSTALL names each extra.
 - A drag played back into Wubansia wants the switch off: INSTALL, midi-map's Live and Logic bullets and ADR 0027's
-  Consequences say so.
+  Consequences say so. INSTALL and the Live bullet (Logic's says "as for Live") name each change a lit drag brings,
+  the whole chords among them.
 
 From the repo root: python3 -m unittest discover -s tools/content/tests -t .
 Standard library only, like the rest of tools/content/tests.
@@ -124,17 +125,24 @@ class TestForMySynths(unittest.TestCase):
                         self.assertIn(extra['name'], self.text)
 
     def test_it_says_to_turn_it_off_before_playing_a_drag_into_wubansia(self):
-        # Lit, Wubansia would play the bass an octave up, its slides as separate notes, short notes longer and soft
-        # notes louder: INSTALL names each.
-        for needed in (ROUND_TRIP, 'octave up', 'slides become separate notes', 'short notes hold longer', 'velocity 72'):
+        # Lit, Wubansia would play the bass an octave up, its slides as separate notes, short notes longer, soft notes
+        # louder and each chord sample's note as a whole chord: INSTALL's way back names each, and so does midi-map's
+        # Live bullet, which Logic's points to ("as for Live").
+        changes = ('octave up', 'slides become separate notes', 'short notes hold longer', 'velocity 72', 'whole chord')
+        way_back = self.text[self.text.find(ROUND_TRIP):]
+        for needed in (ROUND_TRIP,) + changes:
             with self.subTest(needed=needed):
-                self.assertIn(needed, self.text)
+                self.assertIn(needed, way_back)
         items = bullets(section(MIDI_MAP.read_text(encoding='utf-8'), 'In a DAW') or '')
         for daw in ('**Ableton Live.**', '**Logic Pro.**'):
             with self.subTest(daw=daw):
                 found = [item for item in items if item.startswith(daw)]
                 self.assertEqual(len(found), 1, f'midi-map.md\'s "In a DAW" needs one {daw} bullet')
                 self.assertIn(ROUND_TRIP, found[0])
+                if daw == '**Ableton Live.**':
+                    for needed in changes:
+                        with self.subTest(needed=needed):
+                            self.assertIn(needed, found[0])
         self.assertIn(ROUND_TRIP, flat(section(ADR.read_text(encoding='utf-8'), 'Consequences') or ''))
 
 
