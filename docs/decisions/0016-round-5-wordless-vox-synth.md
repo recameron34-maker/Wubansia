@@ -1,6 +1,6 @@
 # 0016. Round 5: a wordless vox synth in place of the sung vocals
 
-**Status:** Proposed, 2026-11-05. After listening to round 4 the user wrote: "sounds are very good, vocals suck, either ditch or rethink, need those cool accent synths".
+**Status:** Accepted, 2026-11-18, under ADR 0028 (build in, cut later): the vox synth stays, and every Loop and Song also comes without it (`NoVox`). Proposed 2026-11-05: after listening to round 4 the user wrote: "sounds are very good, vocals suck, either ditch or rethink, need those cool accent synths".
 
 ## Context
 Every first-listen kit had sung vocals: lines and chops sung by a text-to-speech voice and re-pitched (ADR 0005's vocal chain, Kokoro and Whisper through sherpa-onnx), plus a robot or vocoder phrase. Round 4's listen kept everything else and rejected those vocals. Rounds 4's synth accents (FUT01, FUT03) were the part the user asked for more of.

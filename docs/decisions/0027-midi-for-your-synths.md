@@ -1,6 +1,6 @@
 # 0027. MIDI for your synths
 
-**Status:** Proposed, 2026-11-18. Built with these choices, which you can change: the switch's words, "For my synths";
+**Status:** Accepted, 2026-11-18, under ADR 0028 (build in, cut later). Built with these choices, which you can change: the switch's words, "For my synths";
 on by default; the "(synths)" mark; the octave for the bass lane only; a 16th as the shortest note, 10 ticks between
 notes and velocity 72 as the floor.
 

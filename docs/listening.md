@@ -2,6 +2,8 @@
 
 Every listening round goes here: sounds, MIDI, effects, the look and feel, and the DAW checks. The ratings are yours. Claude writes the entries and, for blind rounds, unblinds the results.
 
+Since 2026-11-18 (ADR 0028) nothing waits on this log: things go in as options, and you cut what you don't want. The checklists below stay for whenever you want to use them.
+
 The protocol is in `docs/plans/S1-futuristic-slice.md` §5.6: the blind player (`tools/listening/blind.py`, arrives in S1d), the conditions, the pre-registered seeds and the pass rule. Copy the template for each round, newest last, and leave out the sections a round doesn't cover.
 
 ## Template

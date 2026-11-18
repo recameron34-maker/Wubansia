@@ -1,6 +1,6 @@
 # 0025. Drums on one track for MIDI drags (v0.2)
 
-**Status:** Proposed, 2026-11-12. Built with these choices, which you can still change until v0.2 ships and its file names freeze:
+**Status:** Accepted, 2026-11-18, under ADR 0028 (build in, cut later); proposed 2026-11-12. Built with these choices, which you can still change until v0.2 ships and its file names freeze:
 - the switch's wording, "1 drum track" (or "Drum Rack", your words, or "Drums: 1 track");
 - the file-name mark, "(1 drum track)";
 - the merged track's name, `Drums`;
