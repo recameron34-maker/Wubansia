@@ -153,8 +153,11 @@ namespace wubansia
             if (wakeProbe != nullptr)
                 wakeProbe();
             drain();
-            checkOffer();
+            // The give-up before the offer: a late wake can find both 300 ms limits passed, and the give-up must still
+            // see a newer clip's offer waiting, as it does when they fall in separate wakes, so that a block coming
+            // during the give-up takes that clip. Either order leaves the same state when no block comes.
             checkHeld();
+            checkOffer();
             if (job)
                 work (*job);
 
