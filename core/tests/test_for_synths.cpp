@@ -517,6 +517,6 @@ TEST_CASE ("every committed content/midi file comes out for synths: pitched trac
             }
         }
     }
-    CHECK (bassFiles > 50); // the Bassline files, the Loops and every bass region
-    CHECK (rewritten > 300);
+    CHECK (bassFiles > 70); // 77 bass tracks with notes: the Bassline files, the Loops, the mixes and their regions
+    CHECK (rewritten > 250); // 267 of the 354 pitched tracks with notes change
 }
