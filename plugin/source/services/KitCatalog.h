@@ -1,10 +1,10 @@
 #pragma once
 
 // The kits a ContentSourceFactory carries, parsed once (P9): each kit's two manifests (P4's parsers),
-// its KitInfo as buildKit fills it, the card the editor shows, its Song sections, its MIDI files as
-// drag-out takes them, and its sounds as the Samples drawer lists them (ADR 0024). The kit service
-// loads from it on its thread; the controller reads it on the message thread; it never changes after
-// it is made.
+// its KitInfo (kitInfoOf: as buildKit fills it, plus the chord tracks drag-out needs, which buildKit
+// leaves empty), the card the editor shows, its Song sections, its MIDI files as drag-out takes them,
+// and its sounds as the Samples drawer lists them (ADR 0024). The kit service loads from it on its
+// thread; the controller reads it on the message thread; it never changes after it is made.
 
 #include "Controller.h"
 #include "content/ContentSource.h"
@@ -36,7 +36,7 @@ namespace wubansia
             std::string error; // why the manifests don't parse; "" when they do
             engine::KitManifest manifest;
             engine::MixConfig mix;
-            engine::KitInfo info; // as buildKit fills it, index included
+            engine::KitInfo info; // kitInfoOf (): as buildKit fills it, index included, plus chordTracks
             KitCard card; // its content status left as it starts (missing): the service knows it
             std::array<std::vector<SectionInfo>, 2> sections; // the Song's, by engine::Variant
             std::vector<dragout::MidiFile> midiFiles; // the kit's MIDI files, as drag-out takes them
