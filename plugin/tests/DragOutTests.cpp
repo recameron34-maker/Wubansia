@@ -13,6 +13,7 @@
 #include "helpers/fake_controller.h"
 
 #include "kit/channel_map.h"
+#include "midi/for_synths.h"
 #include "midi/reader.h"
 #include "midi/track_select.h"
 #include "util/sha256.h"
@@ -326,6 +327,53 @@ namespace
     {
         static const std::set<std::string> drums { "Kick", "Rumble", "Snare", "Clap", "Snare/Clap", "Hats", "Perc" };
         return drums.count (name) != 0;
+    }
+
+    // For my synths (ADR 0027), restated: drums and one-key sounds (accents, FX, vox chops) stay as they are, and so does a
+    // track no lane claims (the merged Drums); the bass lane's tracks (Bass, FUT01's Organ Bass, FUT02's Drop Glide) go up
+    // an octave; every other track (lead, chords, chord voicing, vox, the other extras) is made for synths.
+    midi::SynthPart synthPartOf (const KitContent& k, const std::string& name)
+    {
+        static const std::set<std::string> asIs { "Kick", "Rumble", "Snare", "Clap", "Snare/Clap", "Hats", "Perc", "Accents", "FX", "Vox chops" };
+        const auto lane = laneOf (k, name);
+        if (asIs.count (name) != 0 || lane < 0)
+            return midi::SynthPart::asIs;
+        return lane == static_cast<int> (Lane::bass) ? midi::SynthPart::bass : midi::SynthPart::pitched;
+    }
+
+    // Each of a file's tracks as For my synths takes it, the conductor as it is.
+    std::vector<midi::SynthPart> synthPartsOf (const KitContent& k, const Bytes& smf)
+    {
+        const auto names = trackNames (smf);
+        std::vector<midi::SynthPart> parts;
+        for (std::size_t i = 0; i < names.size(); ++i)
+            parts.push_back (i == 0 ? midi::SynthPart::asIs : synthPartOf (k, names[i]));
+        return parts;
+    }
+
+    bool anyForSynths (const std::vector<midi::SynthPart>& parts)
+    {
+        return std::any_of (parts.begin(), parts.end(), [] (midi::SynthPart p) { return p != midi::SynthPart::asIs; });
+    }
+
+    // s with For my synths lit.
+    dragout::DragState forSynths (dragout::DragState s)
+    {
+        s.forSynths = true;
+        return s;
+    }
+
+    // A name with "synths" first among its marks: "... - Loop.mid" is "... - Loop (synths).mid", and
+    // "... - Song (1 drum track).mid" is "... - Song (synths, 1 drum track).mid". (No kit's label has a bracket.)
+    std::string withSynthsMark (const std::string& name)
+    {
+        const auto stem = name.substr (0, name.size() - 4);
+        if (! stem.empty() && stem.back() == ')')
+        {
+            const auto open = stem.rfind (" (");
+            return stem.substr (0, open) + " (synths, " + stem.substr (open + 2) + ".mid";
+        }
+        return stem + " (synths).mid";
     }
 
     // Notes by tick, channel and key, as notesOf () gives one track's.
@@ -897,6 +945,178 @@ TEST_CASE ("1 drum track: drums that can't go on one track fail the drag, saying
     CHECK (off.bytes == bytes);
 }
 
+TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched tracks made for synths, and says so", "[dragout]")
+{
+    // Loop and Song: nothing muted, each lane alone, every lane but one, and only the drums, accents and FX left, each
+    // with 1 drum track off and on. Then every lane in both modes, and every phrase file, each in both variants.
+    std::vector<std::uint32_t> mutes { 0u, 0b0011110000u };
+    for (const auto lane : allLanes)
+    {
+        mutes.push_back (engine::laneBit (lane));
+        mutes.push_back (everyLane & ~engine::laneBit (lane));
+    }
+
+    int changed = 0, plain = 0;
+    for (const auto& k : kits())
+    {
+        std::vector<std::pair<dragout::DragState, DragRequest>> drags;
+        for (const auto v : { Variant::vox, Variant::novox })
+        {
+            for (const auto what : { DragWhat::loop, DragWhat::song })
+                for (const auto muted : mutes)
+                    for (const bool drums : { false, true })
+                    {
+                        DragRequest r;
+                        r.what = what;
+                        drags.emplace_back (state (PlayMode::loop, v, muted, drums), r);
+                    }
+            for (const auto mode : { PlayMode::loop, PlayMode::song })
+                for (const auto lane : allLanes)
+                    drags.emplace_back (state (mode, v), laneRequest (lane));
+            for (const auto& phrase : dragout::phraseFiles (k.info.id, k.files))
+                drags.emplace_back (state (PlayMode::loop, v), phraseRequest (phrase.toStdString()));
+        }
+
+        for (const auto& [s, r] : drags)
+        {
+            INFO (k.info.id << " what " << static_cast<int> (r.what) << " lane " << static_cast<int> (r.lane) << " " << r.phraseFile << " mode "
+                            << static_cast<int> (s.mode) << " " << variantName (s.variant) << " muted " << s.mutedLanes << " drums " << s.drumsOnOneTrack);
+            const auto off = dragout::makeDragFile (k.info, k.files, s, r);
+            const auto on = dragout::makeDragFile (k.info, k.files, forSynths (s), r);
+            if (! off.ok())
+            {
+                CHECK_FALSE (on.ok());
+                CHECK (on.error == off.error);
+                continue;
+            }
+            INFO (on.error);
+            REQUIRE (on.ok());
+
+            // Nothing for a synth (drums, accents and FX alone): the plain drag, name and bytes.
+            const auto parts = synthPartsOf (k, off.value.bytes);
+            if (! anyForSynths (parts))
+            {
+                ++plain;
+                CHECK (on.value.name == off.value.name);
+                CHECK (on.value.bytes == off.value.bytes);
+                continue;
+            }
+            ++changed;
+            CHECK (on.value.name == withSynthsMark (off.value.name));
+            const auto expected = midi::forSynths (off.value.bytes, parts);
+            INFO (expected.error);
+            REQUIRE (expected.ok());
+            CHECK (on.value.bytes == expected.value);
+            CHECK (on.value.bytes != off.value.bytes);
+        }
+    }
+    CHECK (changed > 400);
+    CHECK (plain > 100);
+}
+
+TEST_CASE ("For my synths moves the bass lane up an octave, plays every pitched track's notes apart, and leaves the drums", "[dragout]")
+{
+    for (const auto& k : kits())
+        for (const auto what : { DragWhat::loop, DragWhat::song })
+            for (const auto v : { Variant::vox, Variant::novox })
+            {
+                INFO (k.info.id << " " << (what == DragWhat::song ? "song" : "loop") << " " << variantName (v));
+                DragRequest request;
+                request.what = what;
+                const auto off = drag (k, state (PlayMode::loop, v), request);
+                const auto on = drag (k, forSynths (state (PlayMode::loop, v)), request);
+                const auto names = trackNames (off.bytes);
+                REQUIRE (trackNames (on.bytes) == names);
+                const auto offChunks = chunksOf (off.bytes);
+                const auto onChunks = chunksOf (on.bytes);
+                const auto offFile = read (off.bytes);
+                const auto onFile = read (on.bytes);
+                CHECK (onChunks.header == offChunks.header);
+                CHECK (onChunks.tracks[0] == offChunks.tracks[0]); // the conductor: tempo, key, markers
+
+                for (std::size_t i = 1; i < names.size(); ++i)
+                {
+                    INFO (names[i]);
+                    const auto lane = laneOf (k, names[i]);
+                    if (isDrumTrack (names[i]) || names[i] == "Accents" || names[i] == "FX")
+                    {
+                        CHECK (onChunks.tracks[i] == offChunks.tracks[i]);
+                        continue;
+                    }
+                    const auto before = midi::notesOf (offFile.tracks[i]);
+                    const auto after = midi::notesOf (onFile.tracks[i]);
+                    REQUIRE (after.size() == before.size());
+                    CHECK (midi::controllersOf (onFile.tracks[i]) == midi::controllersOf (offFile.tracks[i]));
+                    std::set<std::int64_t> onsets;
+                    for (const auto& n : after)
+                        onsets.insert (n.tick);
+                    for (std::size_t j = 0; j < after.size(); ++j)
+                    {
+                        CHECK (after[j].tick == before[j].tick);
+                        CHECK (int { after[j].key } == before[j].key + (lane == static_cast<int> (Lane::bass) ? 12 : 0));
+                        CHECK (after[j].velocity >= 72);
+                        const auto next = onsets.upper_bound (after[j].tick);
+                        if (next != onsets.end())
+                            CHECK (after[j].tick + after[j].length <= *next - 10);
+                    }
+                    if (lane == static_cast<int> (Lane::bass))
+                        for (const auto& n : after)
+                            CHECK ((n.key >= 36 && n.key <= 55)); // C1 to G2 in Live's and Logic's names
+                }
+            }
+}
+
+TEST_CASE ("For my synths' file names, spelled out", "[dragout]")
+{
+    const auto name = [] (std::string_view id, const dragout::DragState& s, const DragRequest& r) { return drag (kit (id), forSynths (s), r).name; };
+    CHECK (name ("FUT01", state (PlayMode::loop, Variant::vox), loopRequest()) == "FUT01 Alloy Signal 134 F#m 11A - Loop (synths).mid");
+    CHECK (name ("FUT01", state (PlayMode::loop, Variant::novox, engine::laneBit (Lane::snare) | engine::laneBit (Lane::bass), true), songRequest())
+           == "FUT01 Alloy Signal 134 F#m 11A - Song NoVox (synths, 1 drum track, no Clap, Warp Bass).mid");
+    CHECK (name ("FUT01", state (PlayMode::song, Variant::vox), laneRequest (Lane::bass)) == "FUT01 Alloy Signal 134 F#m 11A - Warp Bass Song (synths).mid");
+    CHECK (name ("FUT01", state (PlayMode::loop, Variant::vox), phraseRequest ("FUT01_Phrase_OrganRiff_4bars.mid"))
+           == "FUT01 Alloy Signal 134 F#m 11A - Phrase Organ Riff 4 bars (synths).mid");
+
+    // Drums, accents and FX alone hold nothing for a synth: the plain names.
+    CHECK (name ("FUT01", state (PlayMode::loop, Variant::vox), laneRequest (Lane::kick)) == "FUT01 Alloy Signal 134 F#m 11A - Kick.mid");
+    CHECK (name ("FUT04", state (PlayMode::loop, Variant::vox), laneRequest (Lane::accents)) == "FUT04 Furnace Code 136 Em 9A - Accents.mid");
+    CHECK (name ("FUT02", state (PlayMode::loop, Variant::vox, 0b0011110000u, true), loopRequest())
+           == "FUT02 Orbit Relay 130 Dm 7A - Loop (1 drum track, no Roll Bass, Chrome Arp, Starfield Pad, Vox Synth).mid");
+    // In the Song, FUT04's accents lane also plays its Acid Stab and Rave Stab, which are pitched.
+    CHECK (name ("FUT04", state (PlayMode::song, Variant::vox), laneRequest (Lane::accents)) == "FUT04 Furnace Code 136 Em 9A - Accents Song (synths).mid");
+}
+
+TEST_CASE ("For my synths leaves a pitched track it can't carry as it is, and still gives the drag", "[dragout]")
+{
+    // FUT01's vox Loop with a pitch bend at the head of its Bass track (track 5), which the writer can't lay out.
+    auto patched = kit ("FUT01");
+    const auto loopName = dragout::loopFileName ("FUT01", Variant::vox);
+    const auto at = std::find (patched.names.begin(), patched.names.end(), loopName);
+    REQUIRE (at != patched.names.end());
+    auto& bytes = patched.data[static_cast<std::size_t> (at - patched.names.begin())];
+    const auto chunks = midi::trackChunks (bytes);
+    REQUIRE (chunks.ok());
+    REQUIRE (chunks.value.size() > 6);
+    REQUIRE (chunks.value[5].name == "Bass");
+    const auto chunk = chunks.value[5].offset;
+    const Bytes bend { 0x00, 0xE0, 0x00, 0x40 }; // at tick 0, channel 1
+    bytes.insert (bytes.begin() + static_cast<std::ptrdiff_t> (chunk + 8), bend.begin(), bend.end());
+    const auto length = be32 (bytes, chunk + 4) + static_cast<std::uint32_t> (bend.size());
+    for (std::size_t i = 0; i < 4; ++i)
+        bytes[chunk + 4 + i] = static_cast<std::uint8_t> (length >> (24 - 8 * i));
+    patched.files.clear();
+    for (std::size_t i = 0; i < patched.names.size(); ++i)
+        patched.files.push_back ({ patched.names[i], patched.data[i] });
+
+    const auto on = drag (patched, forSynths (state (PlayMode::loop, Variant::vox)), loopRequest());
+    CHECK (on.name == patched.prefix() + "Loop (synths).mid");
+    const auto out = chunksOf (on.bytes);
+    const auto in = chunksOf (bytes);
+    REQUIRE (out.tracks.size() == in.tracks.size());
+    CHECK (out.tracks[5] == in.tracks[5]); // the Bass as it is, bend and all
+    CHECK (out.tracks[6] != in.tracks[6]); // the Lead made for synths
+    CHECK (trackNames (on.bytes)[6] == "Lead");
+}
+
 TEST_CASE ("a lane drag holds the conductor and that lane's tracks from the current mode's file", "[dragout]")
 {
     SECTION ("FUT01's bass in Song mode is the extended mix's Bass and Organ Bass (a kit extra)")
@@ -1107,17 +1327,21 @@ TEST_CASE ("drag file names hold kit, title, BPM, key and Camelot, in safe chara
     }
 
     // Every name the four kits give: Loop and Song in both variants under several mutes, with 1 drum
-    // track off and on, every lane in both modes and variants, every phrase file.
+    // track off and on, every lane in both modes and variants, every phrase file; each with For my synths
+    // off and on.
     std::vector<std::pair<std::string, const KitContent*>> named;
     std::map<std::string, Bytes> byName;
     const auto add = [&] (const KitContent& k, const dragout::DragState& s, const DragRequest& r) {
-        const auto made = dragout::makeDragFile (k.info, k.files, s, r);
-        if (!made.ok())
-            return;
-        named.emplace_back (made.value.name, &k);
-        const auto it = byName.emplace (made.value.name, made.value.bytes).first;
-        INFO (made.value.name);
-        CHECK (it->second == made.value.bytes); // one name is one file
+        for (const auto& t : { s, forSynths (s) })
+        {
+            const auto made = dragout::makeDragFile (k.info, k.files, t, r);
+            if (!made.ok())
+                continue;
+            named.emplace_back (made.value.name, &k);
+            const auto it = byName.emplace (made.value.name, made.value.bytes).first;
+            INFO (made.value.name);
+            CHECK (it->second == made.value.bytes); // one name is one file
+        }
     };
     for (const auto& k : kits())
     {
@@ -1143,8 +1367,9 @@ TEST_CASE ("drag file names hold kit, title, BPM, key and Camelot, in safe chara
         for (const auto& name : dragout::phraseFiles (k.info.id, k.files))
             add (k, state (PlayMode::loop, Variant::vox), phraseRequest (name.toStdString()));
     }
-    REQUIRE (named.size() > 800);
-    CHECK (std::count_if (named.begin(), named.end(), [] (const auto& n) { return n.first.find ("(1 drum track") != std::string::npos; }) > 150);
+    REQUIRE (named.size() > 1600);
+    CHECK (std::count_if (named.begin(), named.end(), [] (const auto& n) { return n.first.find ("1 drum track") != std::string::npos; }) > 300);
+    CHECK (std::count_if (named.begin(), named.end(), [] (const auto& n) { return n.first.find ("(synths") != std::string::npos; }) > 500);
 
     const auto artists = loadDenylist ("artists");
     const auto slurs = loadDenylist ("slurs");
@@ -1295,6 +1520,13 @@ TEST_CASE ("a drag gives the same name and bytes every time", "[dragout]")
         CHECK_THAT (c.name, ContainsSubstring ("(1 drum track, no "));
         CHECK (c.name == e.name);
         CHECK (c.bytes == e.bytes);
+
+        // With For my synths: its rewrite too.
+        const auto f = drag (k, forSynths (d), songRequest());
+        const auto g = drag (k, forSynths (d), songRequest());
+        CHECK_THAT (f.name, ContainsSubstring ("(synths, 1 drum track, no "));
+        CHECK (f.name == g.name);
+        CHECK (f.bytes == g.bytes);
     }
 }
 

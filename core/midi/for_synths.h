@@ -1,0 +1,51 @@
+#pragma once
+
+// MIDI for the person's own synths (ADR 0027): MIDI drag-out's "For my synths" option (plugin/source/dragout/DragFiles.h)
+// rewrites a file's pitched tracks so they play well on a synth.
+//
+// The kits' files are written for Wubansia's samples, which carry their own decay and sit where their zones are rooted:
+// the bass an octave below where a synth bass plays (MIDI 26-43), most of its notes shorter than a 16th, its slides
+// written as notes that overlap (two voices at once on a polyphonic synth), and soft notes down to velocity 44. On each
+// track marked pitched or bass, forSynths () makes every note
+// - last a 16th (ppq / 4) at least, or longer as written,
+// - but end synthGap () ticks (10 at the kits' 960 PPQ) before the next note on its track starts: no two notes overlap,
+//   and a slide is two plain notes. The next note is the next later note-on, so notes that start together (a chord)
+//   never shorten each other. No note ends after its track does, and every note lasts a tick at least;
+// - play at kSynthVelocityFloor (72) at least: louder notes keep their velocity;
+// - and on a bass track, an octave up (MIDI 26-43 becomes 38-55: D1 to G2 in Live's and Logic's names), unless a key
+//   would pass 127, when no key moves.
+// Everything else on the track stays: its name, controllers, program changes and text events, at their ticks, laid out
+// by toFile () (writer.h) in its fixed order. A track holding what that can't carry as it is (pitch bend, key or channel
+// pressure, sysex, a meta event other than a text event, a second track name or one after tick 0), or that toFile ()
+// refuses, stays as it is. So do the conductor and every track marked asIs, byte for byte, and the header.
+
+#include "midi/smf.h"
+#include "util/result.h"
+
+#include <cstdint>
+#include <span>
+#include <vector>
+
+namespace wubansia::midi
+{
+    // What forSynths () does with a track.
+    enum class SynthPart : std::uint8_t {
+        asIs, // byte for byte: the conductor, drums, one-key sounds
+        pitched, // its notes made for a synth: lengths, no overlaps, velocities
+        bass // pitched, and an octave up
+    };
+
+    inline constexpr std::uint8_t kSynthVelocityFloor = 72;
+
+    // How many ticks before the next note on its track a note ends: a 96th of a quarter, at least 1 (10 at 960 PPQ).
+    constexpr std::int64_t synthGap (std::uint16_t ppq) noexcept { return ppq >= 192 ? ppq / 96 : 1; }
+
+    // One track's notes as forSynths () plays them (above), the track ending on endTick in a file of ppq ticks a quarter.
+    // Sorted by (tick, channel, key); notes on one tick, channel and key become one (trimOverlaps (), writer.h).
+    std::vector<Note> synthNotes (std::vector<Note> notes, std::uint16_t ppq, std::int64_t endTick, bool bass);
+
+    // smf with each track i made for synths as parts[i] says; tracks past the end of parts stay as they are. Chunks that
+    // aren't tracks, and bytes after the last track, are dropped, as keepTracks () drops them (track_select.h). Fails,
+    // saying why, when smf isn't a file readSmf reads, or parts names more tracks than it has.
+    [[nodiscard]] util::Result<std::vector<std::uint8_t>> forSynths (std::span<const std::uint8_t> smf, std::span<const SynthPart> parts);
+}

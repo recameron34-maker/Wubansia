@@ -71,6 +71,7 @@ namespace wubansia::editor
 
         DragChip loop, song;
         LedButton drums { "1 drum track" };
+        LedButton synths { "For my synths" };
         int numPhraseChips() const noexcept { return phraseChips.size(); }
         DragChip* phraseChip (int index) const noexcept { return phraseChips[index]; }
 

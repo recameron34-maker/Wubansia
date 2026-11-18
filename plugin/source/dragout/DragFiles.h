@@ -78,6 +78,7 @@ namespace wubansia::dragout
         engine::Variant variant = engine::Variant::vox; // the vox switch
         std::uint32_t mutedLanes = 0; // a bit per engine::Lane (engine::laneBit): left out of Loop and Song
         bool drumsOnOneTrack = false; // Loop and Song: the drum tracks as one track, Drums (ADR 0025)
+        bool forSynths = false; // every drag: pitched tracks made for the person's own synths (ADR 0027)
     };
 
     // A drag's file before it is written.

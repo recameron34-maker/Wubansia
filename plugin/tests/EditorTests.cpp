@@ -793,6 +793,70 @@ namespace
         CHECK (drums != nullptr);
         return drums;
     }
+
+    // The drag strip's For my synths switch, or nullptr after a failed check, as drumSwitch ().
+    editor::LedButton* synthSwitch (PluginEditor& editor)
+    {
+        const auto found = findAll (editor, "drag_synths");
+        CHECK (found.size() == 1);
+        auto* synths = found.size() == 1 ? dynamic_cast<editor::LedButton*> (found.front()) : nullptr;
+        CHECK (synths != nullptr);
+        return synths;
+    }
+}
+
+TEST_CASE ("the drag strip's For my synths switch is lit by default, asks the Controller and follows it", "[editor]")
+{
+    Rig rig;
+    rig.controller.phraseFileNames = fut01PhraseFiles();
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto* found = synthSwitch (editor);
+            if (found == nullptr)
+                return;
+            auto& synths = *found;
+            CHECK (synths.getButtonText() == "For my synths");
+            CHECK (synths.isEnabled());
+            CHECK (synths.getToggleState());
+            CHECK (editor.model().dragForSynths);
+            CHECK_THAT (synths.getTooltip().toStdString(), ContainsSubstring ("octave") && ContainsSubstring ("16th") && ContainsSubstring ("overlap")
+                                                               && ContainsSubstring ("velocity 72") && ContainsSubstring ("Kept for your user"));
+
+            click (synths);
+            CHECK (rig.controller.synthOptionRequests == std::vector<bool> { false });
+            editor.tick();
+            CHECK_FALSE (synths.getToggleState());
+            CHECK_FALSE (editor.model().dragForSynths);
+
+            // Another instance lit it again: lit at the next tick, with nothing asked.
+            rig.controller.synthsOn = true;
+            editor.tick();
+            CHECK (synths.getToggleState());
+            CHECK (editor.model().dragForSynths);
+            CHECK (rig.controller.synthOptionRequests.size() == 1);
+
+            // Every chip asks for the same file as ever: the option is the Controller's to apply.
+            juce::Array<juce::File> dragged;
+            auto& loop = get<editor::DragChip> (editor, "drag_loop");
+            auto& bass = get<editor::DragChip> (editor, "drag_bass");
+            auto& phrase = get<editor::DragChip> (editor, "drag_phrase_0");
+            for (auto* chip : { &loop, &bass, &phrase })
+                chip->startDrag = [&] (const juce::File& file, juce::Component&)
+                {
+                    dragged.add (file);
+                    return true;
+                };
+            CHECK (loop.beginDrag());
+            CHECK (bass.beginDrag());
+            CHECK (phrase.beginDrag());
+            REQUIRE (rig.controller.dragRequests.size() == 3);
+            CHECK (rig.controller.dragRequests[0] == wubansia::DragRequest { wubansia::DragWhat::loop, engine::Lane::kick, {} });
+            CHECK (rig.controller.dragRequests[1] == wubansia::DragRequest { wubansia::DragWhat::lane, engine::Lane::bass, {} });
+            CHECK (rig.controller.dragRequests[2] == wubansia::DragRequest { wubansia::DragWhat::phrase, engine::Lane::kick, fut01PhraseFiles()[0] });
+            for (const auto& file : dragged)
+                file.deleteFile();
+        });
 }
 
 TEST_CASE ("the drag strip's 1 drum track switch asks the Controller and follows it", "[editor]")
@@ -849,7 +913,7 @@ TEST_CASE ("the drag strip's 1 drum track switch asks the Controller and follows
         });
 }
 
-TEST_CASE ("the drag strip fits the switch between Song and the phrase chips, every label in full at 100 %", "[editor]")
+TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every label in full at 100 %", "[editor]")
 {
     Rig rig;
     rig.controller.phraseFileNames = fut01PhraseFiles();
@@ -861,14 +925,17 @@ TEST_CASE ("the drag strip fits the switch between Song and the phrase chips, ev
             auto& strip = get<editor::DragStrip> (editor, "drag");
             auto& loop = get<editor::DragChip> (editor, "drag_loop");
             auto& song = get<editor::DragChip> (editor, "drag_song");
-            auto* found = drumSwitch (editor);
-            if (found == nullptr)
+            auto* foundDrums = drumSwitch (editor);
+            auto* foundSynths = synthSwitch (editor);
+            if (foundDrums == nullptr || foundSynths == nullptr)
                 return;
-            auto& drums = *found;
+            auto& drums = *foundDrums;
+            auto& synths = *foundSynths;
             REQUIRE (strip.numPhraseChips() == 5);
 
-            // Loop, Song, the switch, then the phrase chips: none overlapping, all inside the strip.
-            std::vector<juce::Component*> parts { &loop, &song, &drums };
+            // For my synths, Loop, Song, 1 drum track, then the phrase chips, in that order: none overlapping, all inside
+            // the strip.
+            std::vector<juce::Component*> parts { &synths, &loop, &song, &drums };
             for (int i = 0; i < strip.numPhraseChips(); ++i)
                 parts.push_back (strip.phraseChip (i));
             for (std::size_t i = 0; i < parts.size(); ++i)
@@ -876,25 +943,21 @@ TEST_CASE ("the drag strip fits the switch between Song and the phrase chips, ev
                 INFO (parts[i]->getComponentID());
                 CHECK (parts[i]->getParentComponent() == &strip);
                 CHECK (strip.getLocalBounds().contains (parts[i]->getBounds()));
+                if (i > 0)
+                    CHECK (parts[i]->getX() >= parts[i - 1]->getRight());
                 for (std::size_t j = i + 1; j < parts.size(); ++j)
                     CHECK_FALSE (parts[i]->getBounds().intersects (parts[j]->getBounds()));
-            }
-            CHECK (drums.getX() >= song.getRight());
-            for (int i = 0; i < strip.numPhraseChips(); ++i)
-            {
-                CHECK (strip.phraseChip (i)->getX() >= drums.getRight());
-                // 131 px before the label slot and the divider's gap gave their slack back. DejaVu Sans, the widest
-                // default font JUCE picks, needs 95 px of the title area for "E Piano Stab Rhythm" squeezed to 0.8.
-                CHECK (strip.phraseChip (i)->getWidth() >= 133);
             }
 
             // Every label reads in full, in the font and area its paint code uses.
             const auto width = [] (const juce::Font& font, const juce::String& text) { return juce::GlyphArrangement::getStringWidth (font, text); };
             const auto engraved = editor::uiFont (9.5f, true, 0.12f); // draw::engraved's font, at the strip's 9.5 px
             CHECK (width (engraved, "DRAG MIDI") <= strip.labelArea().getWidth());
-            CHECK (strip.labelArea().getRight() <= (float) loop.getX());
+            CHECK (strip.labelArea().getRight() <= (float) synths.getX());
             CHECK (width (drums.labelFont(), "1 DRUM TRACK") <= drums.labelArea().getWidth());
             CHECK (drums.labelFont().getHeight() >= 10.0f);
+            CHECK (width (synths.labelFont(), "FOR MY SYNTHS") <= synths.labelArea().getWidth());
+            CHECK (synths.labelFont().getHeight() >= 10.0f);
             for (auto* chip : { &loop, &song })
             {
                 INFO (chip->label());
@@ -904,7 +967,9 @@ TEST_CASE ("the drag strip fits the switch between Song and the phrase chips, ev
             // Every phrase chip shows a title it can hold, squeezed to 0.8 at most, in whatever font this machine gives
             // (Verdana on Windows and DejaVu Sans on some Linux machines are 8 and 12 % wider than Liberation Sans): the
             // whole title where it fits, else the title without its bar count, which the tooltip's file name still has.
-            // "E Piano Stab Rhythm · 2 bars" fits in no default font.
+            // "E Piano Stab Rhythm · 2 bars" fits in no default font. The two switches leave no room for five equal chips
+            // that wide, so a chip whose title needs more than an equal share gets what it needs, and the others share
+            // the rest.
             for (int i = 0; i < strip.numPhraseChips(); ++i)
             {
                 auto* chip = strip.phraseChip (i);

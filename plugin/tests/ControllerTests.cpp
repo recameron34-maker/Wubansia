@@ -11,6 +11,7 @@
 #include "helpers/test_helpers.h"
 #include "sounds/SampleExport.h"
 
+#include "midi/for_synths.h"
 #include "midi/reader.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -265,6 +266,7 @@ TEST_CASE ("drag-out: the kit's own MIDI, cut to the request, into the drag fold
     DragFolder drag;
     auto& controller = static_cast<ControllerImpl&> (plugin->controller());
     controller.setDragFolderForTesting (drag.folder);
+    controller.setDragForSynths (false); // the kit's files as they are (For my synths has a test of its own)
 
     CHECK (controller.phraseFiles() == juce::StringArray { "DRG01_Phrase_Lead_2bars.mid" });
 
@@ -309,6 +311,7 @@ TEST_CASE ("drag-out: 1 drum track gives the Loop's and Song's drums as one trac
     DragFolder drag;
     auto& controller = static_cast<ControllerImpl&> (plugin->controller());
     controller.setDragFolderForTesting (drag.folder);
+    controller.setDragForSynths (false); // every other track byte for byte (For my synths has a test of its own)
     const auto& syn = engine::testing::syntheticContent();
 
     using Bytes = std::vector<std::uint8_t>;
@@ -417,6 +420,74 @@ TEST_CASE ("drag-out: 1 drum track gives the Loop's and Song's drums as one trac
     CHECK_FALSE (otherController.dragDrumsOnOneTrack());
     CHECK_FALSE (plugin.settings->file().loadFileAsString().contains ("drag_drums_one_track"));
     CHECK (bytesOf (controller.writeDragFile (loop)) == syn.smfs[0]);
+}
+
+TEST_CASE ("drag-out: For my synths is on by default and kept in the person's settings; off, the drags are as before", "[controller][dragout]")
+{
+    SyntheticPlugin plugin (twoKits ("SNT01", "SNT02"));
+    DragFolder drag;
+    auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+    controller.setDragFolderForTesting (drag.folder);
+    const auto& syn = engine::testing::syntheticContent();
+    const auto attribute = [&plugin] (const char* name)
+    {
+        const auto xml = juce::XmlDocument::parse (plugin.settings->file());
+        return xml != nullptr && xml->hasAttribute (name) ? xml->getStringAttribute (name) : juce::String ("(none)");
+    };
+
+    DragRequest loop;
+    DragRequest kickLane;
+    kickLane.what = DragWhat::lane;
+    DragRequest bassLane;
+    bassLane.what = DragWhat::lane;
+    bassLane.lane = engine::Lane::bass;
+
+    // On by default, with nothing in the settings file.
+    CHECK (controller.dragForSynths());
+    CHECK (attribute ("drag_for_synths") == "(none)");
+
+    // The Loop: the conductor, drums and FX as they are, the bass an octave up, the other pitched tracks (Lead, Chord
+    // voicing, Chords, the Pad extra and Vox) made for synths. The name says so.
+    using midi::SynthPart;
+    const std::vector<SynthPart> parts { SynthPart::asIs, SynthPart::asIs, SynthPart::asIs, SynthPart::asIs, SynthPart::bass, SynthPart::pitched,
+        SynthPart::pitched, SynthPart::pitched, SynthPart::pitched, SynthPart::pitched, SynthPart::asIs };
+    const auto expected = midi::forSynths (syn.smfs[0], parts);
+    REQUIRE (expected.ok());
+    const auto file = controller.writeDragFile (loop);
+    CHECK (file.getFileName().endsWith (" - Loop (synths).mid"));
+    CHECK (bytesOf (file) == expected.value);
+    CHECK (expected.value != syn.smfs[0]);
+    const auto bass = controller.writeDragFile (bassLane);
+    CHECK (bass.getFileName().contains (" - Bass"));
+    CHECK (bass.getFileName().endsWith (" (synths).mid"));
+    const auto kickFile = controller.writeDragFile (kickLane);
+    CHECK_FALSE (kickFile.getFileName().contains ("synths")); // drums alone: nothing for a synth
+    controller.setDragDrumsOnOneTrack (true);
+    CHECK (controller.writeDragFile (loop).getFileName().endsWith (" - Loop (synths, 1 drum track).mid"));
+    controller.setDragDrumsOnOneTrack (false);
+
+    // Off: kept in the person's settings file, never in the project, and the drags are the files as they are.
+    controller.setDragForSynths (false);
+    CHECK_FALSE (controller.dragForSynths());
+    CHECK (attribute ("drag_for_synths") == "0");
+    const auto plain = controller.writeDragFile (loop);
+    CHECK (plain.getFileName().endsWith (" - Loop.mid"));
+    CHECK (bytesOf (plain) == syn.smfs[0]);
+    CHECK (bytesOf (controller.writeDragFile (kickLane)) == bytesOf (kickFile));
+
+    // Every instance shares it.
+    SyntheticPlugin other (twoKits ("SNT01", "SNT02"));
+    auto& otherController = static_cast<ControllerImpl&> (other->controller());
+    otherController.setUserSettingsForTesting (*plugin.settings);
+    otherController.setDragFolderForTesting (drag.folder);
+    CHECK_FALSE (otherController.dragForSynths());
+    CHECK (bytesOf (otherController.writeDragFile (loop)) == syn.smfs[0]);
+
+    // On again: the attribute is gone.
+    controller.setDragForSynths (true);
+    CHECK (otherController.dragForSynths());
+    CHECK (attribute ("drag_for_synths") == "(none)");
+    CHECK (bytesOf (controller.writeDragFile (loop)) == expected.value);
 }
 
 TEST_CASE ("the chosen content folder goes to the person's settings and reloads the kit", "[controller][content]")
@@ -767,6 +838,10 @@ TEST_CASE ("the drum option and the samples folder share one settings file, a te
     controller.setDragDrumsOnOneTrack (true);
     CHECK (attribute ("drag_drums_one_track") == "1");
     CHECK (attribute ("samples_folder") == mine.getFullPathName());
+    controller.setDragForSynths (false);
+    CHECK (attribute ("drag_for_synths") == "0");
+    CHECK (attribute ("drag_drums_one_track") == "1");
+    CHECK (attribute ("samples_folder") == mine.getFullPathName());
 
     const auto other = temp.folder.getChildFile ("Other Samples");
     CHECK (controller.setSamplesFolder (other));
@@ -779,8 +854,11 @@ TEST_CASE ("the drum option and the samples folder share one settings file, a te
     secondController.setUserSettingsForTesting (*plugin.settings);
     CHECK (secondController.samplesFolder() == other);
     CHECK (secondController.dragDrumsOnOneTrack());
+    CHECK_FALSE (secondController.dragForSynths());
     CHECK (UserSettings (file).samplesFolder() == other);
     CHECK (UserSettings (file).dragDrumsOnOneTrack());
+    CHECK_FALSE (UserSettings (file).dragForSynths());
+    CHECK (attribute ("drag_for_synths") == "0");
 
     // Each, cleared, removes its own attribute and nothing else.
     controller.setDragDrumsOnOneTrack (false);

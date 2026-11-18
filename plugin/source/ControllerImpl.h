@@ -43,6 +43,8 @@ namespace wubansia
         juce::StringArray phraseFiles() const override;
         bool dragDrumsOnOneTrack() const override;
         void setDragDrumsOnOneTrack (bool on) override;
+        bool dragForSynths() const override;
+        void setDragForSynths (bool on) override;
         juce::File writeDragFile (const DragRequest& request) override;
 
         std::vector<SoundInfo> sounds (const juce::String& kit) const override;

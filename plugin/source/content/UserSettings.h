@@ -66,6 +66,15 @@ namespace wubansia
         // until the process ends.
         bool setDragDrumsOnOneTrack (bool on);
 
+        // Whether the drag strip's For my synths switch is lit (ADR 0027): every MIDI drag gives its pitched tracks made
+        // for the person's own synths. On unless the file says drag_for_synths="0". Reads the file once.
+        bool dragForSynths() const;
+
+        // Lights the switch or turns it off, and saves the file at once, keeping whatever else it holds: off writes
+        // drag_for_synths="0", on removes it. generation () stays. False when the file couldn't be written: the choice
+        // still holds until the process ends.
+        bool setDragForSynths (bool on);
+
     private:
         void loadLocked() const;
 

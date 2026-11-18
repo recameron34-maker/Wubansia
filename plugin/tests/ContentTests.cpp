@@ -312,6 +312,57 @@ TEST_CASE ("the drag strip's drum option is kept in the person's settings file, 
     CHECK (UserSettings (file).dragDrumsOnOneTrack());
 }
 
+TEST_CASE ("the drag strip's For my synths is kept in the person's settings file: on unless it says drag_for_synths=\"0\"", "[content][dragout]")
+{
+    TempFolder temp;
+    const auto file = (temp / "Wubansia Audio").getChildFile ("settings.xml");
+    const auto chosen = temp / "My Samples";
+    const auto attribute = [&file]
+    {
+        const auto xml = juce::XmlDocument::parse (file);
+        REQUIRE (xml != nullptr);
+        return xml->hasAttribute ("drag_for_synths") ? xml->getStringAttribute ("drag_for_synths") : juce::String ("(none)");
+    };
+
+    {
+        UserSettings settings (file);
+        CHECK (settings.dragForSynths()); // on by default, with no file at all
+        REQUIRE (settings.setContentFolder (chosen));
+        REQUIRE (settings.setDragDrumsOnOneTrack (true));
+        const auto generation = settings.generation();
+
+        CHECK (settings.setDragForSynths (false));
+        CHECK_FALSE (settings.dragForSynths());
+        CHECK (attribute() == "0");
+        CHECK (settings.generation() == generation); // the content folders didn't change
+        CHECK (settings.fileReads() == 1);
+    }
+    {
+        UserSettings again (file);
+        CHECK_FALSE (again.dragForSynths());
+        CHECK (again.contentFolder() == chosen);
+        CHECK (again.dragDrumsOnOneTrack());
+        CHECK (again.setDragForSynths (true));
+        CHECK (again.dragForSynths());
+    }
+    CHECK (attribute() == "(none)"); // on again: gone, the rest kept
+    CHECK (UserSettings (file).dragForSynths());
+    CHECK (UserSettings (file).contentFolder() == chosen);
+    CHECK (UserSettings (file).dragDrumsOnOneTrack());
+
+    // Only "0" turns it off; any other value, or another root tag, reads as on.
+    for (const auto* value : { "1", "false", "no", "" })
+    {
+        INFO ("drag_for_synths=\"" << value << "\"");
+        REQUIRE (file.replaceWithText ("<WubansiaSettings drag_for_synths=\"" + juce::String (value) + "\"/>"));
+        CHECK (UserSettings (file).dragForSynths());
+    }
+    REQUIRE (file.replaceWithText ("<OtherSettings drag_for_synths=\"0\"/>"));
+    CHECK (UserSettings (file).dragForSynths());
+    REQUIRE (file.replaceWithText ("<WubansiaSettings drag_for_synths=\"0\"/>"));
+    CHECK_FALSE (UserSettings (file).dragForSynths());
+}
+
 TEST_CASE ("each setter of the settings file keeps whatever else the file holds", "[content][dragout][sounds]")
 {
     TempFolder temp;
@@ -334,6 +385,9 @@ TEST_CASE ("each setter of the settings file keeps whatever else the file holds"
             [&drags] (const UserSettings& s) { return s.samplesFolder() == drags; } },
         { "drag_drums_one_track", "1", [] (UserSettings& s, bool on) { return s.setDragDrumsOnOneTrack (on); },
             [] (const UserSettings& s) { return s.dragDrumsOnOneTrack(); } },
+        // Set is For my synths turned off: on is its default, the attribute absent.
+        { "drag_for_synths", "0", [] (UserSettings& s, bool on) { return s.setDragForSynths (! on); },
+            [] (const UserSettings& s) { return ! s.dragForSynths(); } },
     };
 
     // A file every setting is set in, with an attribute and a child element this build doesn't know (a later build's).
@@ -408,6 +462,11 @@ TEST_CASE ("a settings file that can't be written: the setters say so, and the c
     CHECK_FALSE (settings.setDragDrumsOnOneTrack (false));
     CHECK_FALSE (settings.dragDrumsOnOneTrack());
     CHECK (settings.samplesFolder() == drags);
+    CHECK_FALSE (settings.setDragForSynths (false));
+    CHECK_FALSE (settings.dragForSynths());
+    CHECK (settings.samplesFolder() == drags);
+    CHECK_FALSE (settings.setDragForSynths (true));
+    CHECK (settings.dragForSynths());
     CHECK_FALSE (settings.setContentFolder ({}));
     CHECK (settings.contentFolder() == juce::File());
     CHECK_FALSE (settings.setSamplesFolder ({}));

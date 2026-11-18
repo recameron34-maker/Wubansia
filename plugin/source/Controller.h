@@ -210,6 +210,10 @@ namespace wubansia
         // settings.xml, never in project state: setting it doesn't mark the project changed.
         virtual bool dragDrumsOnOneTrack() const = 0;
         virtual void setDragDrumsOnOneTrack (bool on) = 0;
+        // Whether every drag gives its pitched tracks made for the person's own synths (ADR 0027): on unless they turn
+        // it off. Kept per user in settings.xml like the drum option, never in project state.
+        virtual bool dragForSynths() const = 0;
+        virtual void setDragForSynths (bool on) = 0;
         // Writes the file to drag into the drag cache folder and returns it; juce::File() on failure.
         virtual juce::File writeDragFile (const DragRequest& request) = 0;
 

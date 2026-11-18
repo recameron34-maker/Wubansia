@@ -107,7 +107,7 @@ if(WUBANSIA_BUILD_TESTS)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND EXISTS "${_wubansia_dejavu}/DejaVuSans-Bold.ttf")
         set(_wubansia_dejavu_test "the drag strip fits every label at 100 % in DejaVu Sans, the widest default font")
         add_test(NAME "${_wubansia_dejavu_test}"
-                 COMMAND WubansiaPluginTests "the drag strip fits the switch between Song and the phrase chips*")
+                 COMMAND WubansiaPluginTests "the drag strip fits both switches beside Loop and Song*")
         set_tests_properties("${_wubansia_dejavu_test}" PROPERTIES ENVIRONMENT "JUCE_FONT_PATH=${_wubansia_dejavu}")
     endif()
 endif()

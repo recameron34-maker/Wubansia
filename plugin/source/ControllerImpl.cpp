@@ -263,6 +263,13 @@ namespace wubansia
         settingsFile().setDragDrumsOnOneTrack (on);
     }
 
+    bool ControllerImpl::dragForSynths() const
+    {
+        return true; // not yet: the tests come first
+    }
+
+    void ControllerImpl::setDragForSynths (bool) {}
+
     juce::File ControllerImpl::writeDragFile (const DragRequest& request)
     {
         const auto* entry = entryOf (processor, processor.settings().kit);

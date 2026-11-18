@@ -77,6 +77,20 @@ TEST_CASE ("the fake controller shows what a test sets and records what the edit
         CHECK (fake.drumOptionRequests.size() == 2);
     }
 
+    SECTION ("the drag strip's For my synths: on by default, requests recorded, the value shown")
+    {
+        CHECK (controller.dragForSynths());
+        controller.setDragForSynths (false);
+        CHECK_FALSE (controller.dragForSynths());
+        controller.setDragForSynths (true);
+        CHECK (controller.dragForSynths());
+        CHECK (fake.synthOptionRequests == std::vector<bool> { false, true });
+
+        fake.synthsOn = false; // as another instance would turn it off
+        CHECK_FALSE (controller.dragForSynths());
+        CHECK (fake.synthOptionRequests.size() == 2);
+    }
+
     SECTION ("drag-out writes one file per drag")
     {
         wubansia::DragRequest request;

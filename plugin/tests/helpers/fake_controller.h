@@ -111,6 +111,7 @@ namespace wubansia::test
         engine::Lane midiLane = engine::Lane::kick;
         engine::PhraseMode phrases = engine::PhraseMode::automatic;
         bool drumsOneTrack = false; // what dragDrumsOnOneTrack () gives; another instance may change it
+        bool synthsOn = true; // what dragForSynths () gives; another instance may change it
         juce::StringArray phraseFileNames;
         juce::File dragFolder; // where writeDragFile writes
         bool dragFails = false;
@@ -132,6 +133,7 @@ namespace wubansia::test
         std::vector<std::pair<bool, double>> transportRequests; // (playing, bpm)
         std::vector<bool> previewRequests;
         std::vector<bool> drumOptionRequests; // setDragDrumsOnOneTrack () calls, in order
+        std::vector<bool> synthOptionRequests; // setDragForSynths () calls, in order
         std::vector<DragRequest> dragRequests;
         int snapshotsTaken = 0;
         mutable int soundsCalls = 0; // sounds (): the editor should ask once per kit it shows, not every tick
@@ -211,6 +213,14 @@ namespace wubansia::test
         {
             drumOptionRequests.push_back (on);
             drumsOneTrack = on;
+        }
+
+        bool dragForSynths() const override { return synthsOn; }
+
+        void setDragForSynths (bool on) override
+        {
+            synthOptionRequests.push_back (on);
+            synthsOn = on;
         }
 
         juce::StringArray phraseFiles() const override { return phraseFileNames; }

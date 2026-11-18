@@ -89,6 +89,16 @@ namespace wubansia
         return saveLocked (dragDrumsAttribute, on ? juce::String ("1") : juce::String());
     }
 
+    bool UserSettings::dragForSynths() const
+    {
+        return true; // not yet: the tests come first
+    }
+
+    bool UserSettings::setDragForSynths (bool)
+    {
+        return false;
+    }
+
     bool UserSettings::setContentFolder (const juce::File& chosen)
     {
         bool saved = false;
