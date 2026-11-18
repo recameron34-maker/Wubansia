@@ -1052,7 +1052,7 @@ TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched 
                 ++changed; // a pitched track whose notes already play well on a synth comes out the same
         }
     }
-    CHECK (marked > 500); // 576: 540 changed, 36 already played well
+    CHECK (marked > 500); // 576: 564 changed, 12 already played well
     CHECK (changed > 500);
     CHECK (plain > 250); // 294
 }
@@ -1276,7 +1276,7 @@ TEST_CASE ("For my synths: every chord-sample note comes as its chord, at its ti
         CHECK (chordTracks > 0);
     }
     CHECK (notes == 3268); // the 3,301 measured, less the 4-bar Chords files, which aren't dragged
-    CHECK (tones > 4 * notes);
+    CHECK (tones > 4 * notes); // 15,856
 }
 
 TEST_CASE ("For my synths: every chord sits above the bass", "[dragout]")
@@ -1312,10 +1312,10 @@ TEST_CASE ("For my synths: every chord sits above the bass", "[dragout]")
         }
     }
     INFO ("chord tones " << lowest << "-" << highest);
-    CHECK (tones > 4 * 3268);
-    CHECK (bass > 1000);
-    CHECK (lowest >= 56);
-    CHECK (highest <= 127);
+    CHECK (tones > 4 * 3268); // 15,856
+    CHECK (bass > 1000); // 9,834
+    CHECK (lowest == 58); // FUT02's B-flat maj9 on A#3, unlifted
+    CHECK (highest == 92); // FUT01's Air Pad F#m9, an octave up
 }
 
 TEST_CASE ("For my synths: the Chord voicing track and every other track come out as before", "[dragout]")

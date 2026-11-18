@@ -2,11 +2,14 @@
 
 #include "sounds/SoundCatalog.h"
 
+#include "kit/channel_map.h"
 #include "midi/reader.h"
 #include "sched/timeline_builder.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace wubansia
@@ -63,6 +66,34 @@ namespace wubansia
         for (const auto& e : m.extras)
             if (e.ch >= 1 && e.ch <= 16)
                 info.extras.push_back ({ static_cast<std::uint8_t> (e.ch - 1), e.name, e.lane });
+
+        // The tracks whose sample plays a whole chord (ADR 0027, chords as chords): Chords, from the instrument the
+        // keymap puts on its channel (the A side of a switch), then each extra whose instrument's zones are voiced, in
+        // channel order. A track is named with the zones that carry a voicing, and only when one does.
+        const auto chordTrack = [&] (std::string_view name, int channel) {
+            const auto entry = std::find_if (m.keymap.begin(), m.keymap.end(), [channel] (const engine::KeymapEntry& k) { return k.ch == channel; });
+            if (entry == m.keymap.end() || entry->a < 0 || static_cast<std::size_t> (entry->a) >= m.instruments.size())
+                return;
+            engine::KitChordTrack track;
+            track.name = std::string (name);
+            for (const auto& z : m.instruments[static_cast<std::size_t> (entry->a)].zones)
+                if (! z.voicing.empty())
+                {
+                    engine::KitChordZone zone;
+                    zone.lo = static_cast<std::uint8_t> (z.lo);
+                    zone.hi = static_cast<std::uint8_t> (z.hi);
+                    for (const auto interval : z.voicing)
+                        zone.intervals.push_back (static_cast<std::int8_t> (interval));
+                    track.zones.push_back (std::move (zone));
+                }
+            if (! track.zones.empty())
+                info.chordTracks.push_back (std::move (track));
+        };
+        for (const auto& t : engine::kTracks)
+            if (t.role == engine::ChannelRole::chords)
+                chordTrack (t.name, engine::channelOf (engine::ChannelRole::chords));
+        for (const auto& e : m.extras)
+            chordTrack (e.name, e.ch);
         return info;
     }
 

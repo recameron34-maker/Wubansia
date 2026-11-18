@@ -56,7 +56,8 @@ namespace wubansia
         std::vector<Entry> list;
     };
 
-    // KitInfo from kit.json, as buildKit lays it out, with the kit's place in the list.
+    // KitInfo from kit.json, as buildKit lays it out, with the kit's place in the list and its chord tracks (the tracks
+    // whose sample plays a whole chord, for MIDI drag-out's For my synths: ADR 0027).
     engine::KitInfo kitInfoOf (const engine::KitManifest& manifest, int index);
 
     // A Song's sections from its SMF's markers (FF 06): name, 1-based start bar and length in bars, the
