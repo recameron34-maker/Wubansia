@@ -202,11 +202,13 @@ namespace wubansia::editor
                           "own track. Off: one track per drum part. Kept for your user, not saved in the project.");
         drums.onClick = [this] { controller.setDragDrumsOnOneTrack (drums.getToggleState()); };
         synths.setComponentID ("drag_synths");
-        synths.setTooltip ("For my synths. Lit (the default), every MIDI drag plays well on your own synths: the bass comes up an "
+        synths.setTooltip ("For my synths. Lit (the default), every MIDI drag is made for your own synths: the bass comes up an "
                            "octave, to around C1-C2 in Live and Logic; no note is shorter than a 16th unless the next comes sooner; "
                            "notes never overlap, so a slide is two notes; and soft notes play at velocity 72. Drums, accents and FX "
-                           "stay as they are. Off: the files as Wubansia's own samples play them, for playing a drag back into "
-                           "Wubansia. Kept for your user, not saved in the project.");
+                           "stay as they are. Chords, pads and chord stabs carry only each chord's root, the key Wubansia's chord "
+                           "samples play: on a synth, play the Chord voicing track, or use a chord device. Off: the files as "
+                           "Wubansia's own samples play them, for playing a drag back into Wubansia. Kept for your user, not saved "
+                           "in the project.");
         synths.onClick = [this] { controller.setDragForSynths (synths.getToggleState()); };
         addAndMakeVisible (synths);
         addAndMakeVisible (loop);

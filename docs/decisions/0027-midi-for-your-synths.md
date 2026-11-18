@@ -48,6 +48,11 @@ chips carry the same lines):
 - To play a drag back into Wubansia, turn For my synths off first: lit, the bass comes an octave up, its slides become
   separate notes (212 in a FUT01 or FUT04 Song's Bass), short notes hold longer and soft notes play at velocity 72.
   `docs/midi-map.md` and `dist/INSTALL.md` say so.
+- A chord sample's track carries only each chord's root, made for synths or not: Chords (every kit), FUT01's Air Pad,
+  FUT02's Laser Chord Stab, FUT03's Pad Warm, FUT04's Metal Chord and Rave Stab, and five phrase chips (FUT01's E Piano
+  Stab Rhythm, FUT02's Laser Stab Riff, FUT03's Dub Chords, FUT04's Metal Chords and Rave Stab Riff). A synth plays the
+  root alone: Chords has the Chord voicing track beside it, the others need a chord device. The tooltip and
+  `dist/INSTALL.md` say so; writing each as the chord its sample holds is left for later.
 - The switch's room comes out of the phrase chips: a chip whose title needs more than an equal share gets it, and the
   others share the rest (FUT01 in DejaVu Sans: 131 px for "E Piano Stab Rhythm", 101 for the other four).
 - No new parameter, state or dependency.

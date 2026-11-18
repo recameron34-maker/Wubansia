@@ -210,10 +210,16 @@ rack, and every other instrument keeps its own track. The file's name says so:
 `FUT01 Alloy Signal 134 F#m 11A - Song (1 drum track).mid`. Wubansia remembers the switch for your user, in
 `settings.xml`, in every project. A lane's MIDI chip still gives that lane's own tracks.
 
-**For my synths**, the switch before Loop, is lit until you turn it off: every drag then plays well on your own synths.
+**For my synths**, the switch before Loop, is lit until you turn it off: every drag is then made for your own synths.
 The bass comes up an octave, to around C1-C2; no note is shorter than a 16th unless the next starts sooner; notes never
 overlap, so a slide is two notes; and soft notes play at velocity 72. The drums, accents and FX stay as they are, and the
 name says so: `FUT01 Alloy Signal 134 F#m 11A - Loop (synths).mid`. Wubansia remembers it like 1 drum track.
+
+A chord sample plays a whole chord from one key, so its track carries only each chord's root: Chords in every kit,
+FUT01's Air Pad, FUT02's Laser Chord Stab, FUT03's Pad Warm and FUT04's Metal Chord and Rave Stab, and the phrase chips
+E Piano Stab Rhythm (FUT01), Laser Stab Riff (FUT02), Dub Chords (FUT03), and Metal Chords and Rave Stab Riff (FUT04).
+On a synth they play the root alone: for Chords, play the Chord voicing track (channel 3), which comes with it in every
+Loop and Song drag and in its lane's MIDI chip; for the others, put a chord device before your synth.
 
 Off, the files are as Wubansia's own samples play them. To play a drag back into Wubansia, turn For my synths off
 first: lit, the bass comes an octave up, its slides become separate notes, short notes hold longer and soft notes
