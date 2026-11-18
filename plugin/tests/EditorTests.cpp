@@ -3060,6 +3060,13 @@ TEST_CASE ("the Phrases drawer covers and hides the lanes, A/B and FX at (20, 24
             CHECK_FALSE (tabStops.contains (ids::laneMute[0]));
             CHECK_FALSE (tabStops.contains (ids::clubMaster));
 
+            // Inside the drawer, Tab goes from the filter to the grid, then to Close.
+            const auto filterStop = tabStops.indexOf ("phrases_filter_kit");
+            const auto gridStop = tabStops.indexOf ("phrase_grid");
+            CHECK (filterStop >= 0);
+            CHECK (filterStop < gridStop);
+            CHECK (gridStop < tabStops.indexOf ("phrases_close"));
+
             // At 200 % it covers the same, scaled with the whole face.
             editor.setZoom (2.0f);
             CHECK (editor.getLocalPoint (&drawer, juce::Point<int> (0, 0)) == juce::Point<int> (40, 492));
