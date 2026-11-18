@@ -365,8 +365,13 @@ namespace wubansia::test
             return true;
         }
 
-        std::vector<PhraseInfo> phrases() const override { return {}; }
-        std::uint64_t phrasesGeneration() const override { return 0; }
+        std::vector<PhraseInfo> phrases() const override
+        {
+            ++phrasesCalls;
+            return phraseList;
+        }
+
+        std::uint64_t phrasesGeneration() const override { return phraseGeneration; }
 
     private:
         static SoundInfo fakeSound (const char* id, const char* name, SoundCategory category, std::vector<SoundFile> files, int defaultFile = 0)

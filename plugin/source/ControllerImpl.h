@@ -80,5 +80,9 @@ namespace wubansia
         juce::File dragFolder;
         juce::File samplesFolderOverride;
         UserSettings* userSettings = nullptr;
+
+        // The kit phrasesGeneration () last saw, and its count of kit changes (message thread, as every call).
+        mutable juce::String phrasesKit;
+        mutable std::uint64_t phrasesListed = 0;
     };
 }
