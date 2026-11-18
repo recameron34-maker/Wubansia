@@ -415,6 +415,11 @@ namespace wubansia::dragout
         return out;
     }
 
+    juce::StringArray kitPhraseFiles (std::string_view, std::span<const MidiFile>)
+    {
+        return {};
+    }
+
     util::Result<DragFile> makeDragFile (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state,
         const DragRequest& request)
     {

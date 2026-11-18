@@ -91,6 +91,31 @@ namespace wubansia::test
             soundLists["FUT02"] = { fakeSound ("FUT02/glass_ping", "Glass Ping", C::accents, layered (109, "Glass Ping", 2, 2, 2.5, 2), 2),
                 fakeSound ("FUT02/kick_split", "Kick Split", C::drums, layered (0, "Kick Split", 5, 2, 0.408, 1), 8), orbitLine };
             samplesFolderChosen = fakeSamplesFolder();
+            phraseList = ownPhrases ("FUT01");
+        }
+
+        // Each kit's own phrases as the Controller lists them (ADR 0031): its phrase files by name, then its lead line.
+        // ControllerTests holds them to the real catalog's.
+        static std::vector<PhraseInfo> ownPhrases (const juce::String& kit)
+        {
+            const auto own = [] (const char* file, const char* name, int bars) { return PhraseInfo { file, name, "kit", PhraseOrigin::kit, bars }; };
+            if (kit == "FUT01")
+                return { own ("FUT01_Phrase_EPianoStabRhythm_2bars.mid", "E Piano Stab Rhythm", 2), own ("FUT01_Phrase_OrganRiff_4bars.mid", "Organ Riff", 4),
+                    own ("FUT01_Phrase_PluckRiff_4bars.mid", "Pluck Riff", 4), own ("FUT01_Phrase_VoxSynthRiff_2bars.mid", "Vox Synth Riff", 2),
+                    own ("FUT01_Phrase_WarpRiff_2bars.mid", "Warp Riff", 2), own ("FUT01_Lead_ChromePluck_2bars.mid", "Lead Chrome Pluck", 2) };
+            if (kit == "FUT02")
+                return { own ("FUT02_Phrase_GlassMelody_4bars.mid", "Glass Melody", 4), own ("FUT02_Phrase_LaserStabRiff_2bars.mid", "Laser Stab Riff", 2),
+                    own ("FUT02_Phrase_VoxChoirChords_4bars.mid", "Vox Choir Chords", 4), own ("FUT02_Phrase_VoxSynthRiff_2bars.mid", "Vox Synth Riff", 2),
+                    own ("FUT02_Lead_ChromeArp_2bars.mid", "Lead Chrome Arp", 2) };
+            if (kit == "FUT03")
+                return { own ("FUT03_Phrase_DubChords_4bars.mid", "Dub Chords", 4), own ("FUT03_Phrase_KeysArp_4bars.mid", "Keys Arp", 4),
+                    own ("FUT03_Phrase_RubberRiff_2bars.mid", "Rubber Riff", 2), own ("FUT03_Phrase_VoxSynthRiff_2bars.mid", "Vox Synth Riff", 2),
+                    own ("FUT03_Lead_KeysEP_2bars.mid", "Lead Keys EP", 2) };
+            if (kit == "FUT04")
+                return { own ("FUT04_Phrase_AcidStabRiff_2bars.mid", "Acid Stab Riff", 2), own ("FUT04_Phrase_MetalChords_4bars.mid", "Metal Chords", 4),
+                    own ("FUT04_Phrase_RaveStabRiff_2bars.mid", "Rave Stab Riff", 2), own ("FUT04_Phrase_VoxSynthRiff_2bars.mid", "Vox Synth Riff", 2),
+                    own ("FUT04_Lead_ModBlip_2bars.mid", "Lead Mod Blip", 2) };
+            return {};
         }
 
         // Where samplesFolder () points until a test or the editor chooses another.
@@ -109,7 +134,7 @@ namespace wubansia::test
         bool previewOn = false;
         engine::MidiInMode midiMode = engine::MidiInMode::multi;
         engine::Lane midiLane = engine::Lane::kick;
-        engine::PhraseMode phrases = engine::PhraseMode::automatic;
+        engine::PhraseMode phraseLaneMode = engine::PhraseMode::automatic; // what phraseMode () gives
         bool drumsOneTrack = false; // what dragDrumsOnOneTrack () gives; another instance may change it
         bool synthsOn = true; // what dragForSynths () gives; another instance may change it
         juce::StringArray phraseFileNames;
@@ -126,6 +151,10 @@ namespace wubansia::test
         // sounding. Tests may set it directly (waiting, hostSilent...).
         AuditionState auditionStatus;
         bool auditionFails = false;
+        // What phrases () and phrasesGeneration () give (ADR 0031): FUT01's own six until a test sets others. A test that
+        // changes the list bumps the generation, as a kit change does in the real one; selectKit () changes neither.
+        std::vector<PhraseInfo> phraseList;
+        std::uint64_t phraseGeneration = 1;
 
         // What the editor asked for. Tests read these.
         juce::StringArray selectedKits;
@@ -141,6 +170,7 @@ namespace wubansia::test
         juce::Array<juce::File> samplesFolderRequests;
         std::vector<SoundRef> auditions; // audition () requests, in order
         int stops = 0; // stopAudition () calls
+        mutable int phrasesCalls = 0; // phrases (): the Phrases drawer should ask once per generation, not every tick
 
         std::vector<KitCard> kits() const override { return kitCards; }
         juce::String currentKit() const override { return current; }
@@ -204,8 +234,8 @@ namespace wubansia::test
             midiLane = lane;
         }
 
-        engine::PhraseMode phraseMode() const override { return phrases; }
-        void setPhraseMode (engine::PhraseMode mode) override { phrases = mode; }
+        engine::PhraseMode phraseMode() const override { return phraseLaneMode; }
+        void setPhraseMode (engine::PhraseMode mode) override { phraseLaneMode = mode; }
 
         bool dragDrumsOnOneTrack() const override { return drumsOneTrack; }
 
@@ -334,6 +364,9 @@ namespace wubansia::test
             samplesFolderChosen = folder != juce::File() ? folder : fakeSamplesFolder();
             return true;
         }
+
+        std::vector<PhraseInfo> phrases() const override { return {}; }
+        std::uint64_t phrasesGeneration() const override { return 0; }
 
     private:
         static SoundInfo fakeSound (const char* id, const char* name, SoundCategory category, std::vector<SoundFile> files, int defaultFile = 0)

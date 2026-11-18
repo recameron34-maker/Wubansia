@@ -29,7 +29,8 @@ namespace wubansia
           abPanel(),
           dragStrip (controller),
           contentPanel (controller),
-          samplesPanel (controller)
+          samplesPanel (controller),
+          phrasesPanel (controller)
     {
         setLookAndFeel (&lookAndFeel);
         setOpaque (true);

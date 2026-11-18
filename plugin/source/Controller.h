@@ -110,6 +110,20 @@ namespace wubansia
         friend bool operator== (const DragRequest&, const DragRequest&) = default;
     };
 
+    // The Phrases drawer (ADR 0031): where a phrase comes from. Part 1 lists only the kit's own.
+    enum class PhraseOrigin : std::uint8_t { library, more, kit };
+
+    struct PhraseInfo
+    {
+        juce::String id; // the kit's own: its file name ("FUT01_Phrase_EPianoStabRhythm_2bars.mid"), which DragWhat::phrase drags
+        juce::String name; // "E Piano Stab Rhythm" (phraseTitle () without the bar count); the lead line "Lead Chrome Pluck"
+        juce::String kind; // a kind id; the kit's own: "kit"
+        PhraseOrigin origin = PhraseOrigin::kit;
+        int bars = 0; // 2 or 4 for the kit's own
+
+        friend bool operator== (const PhraseInfo&, const PhraseInfo&) = default;
+    };
+
     // The Samples drawer (ADR 0024): every kit's sounds, from its embedded kit.json.
     enum class SoundCategory : std::uint8_t { accents, fx, vox, synths, bass, drums, loops };
     inline constexpr int kSoundCategories = 7;
@@ -234,5 +248,9 @@ namespace wubansia
         // "Wubansia Audio", which the Uninstall removes, and the caches' around the drag cache), or one that
         // can't be made.
         virtual bool setSamplesFolder (const juce::File& folder) = 0;
+
+        // The Phrases drawer (ADR 0031). Part 1: the kit's own phrases; step `phrases` adds the library, More and Keep.
+        virtual std::vector<PhraseInfo> phrases() const = 0; // the current kit's: its phrase files, then its lead line
+        virtual std::uint64_t phrasesGeneration() const = 0; // bumps whenever phrases () would change (a kit change)
     };
 }

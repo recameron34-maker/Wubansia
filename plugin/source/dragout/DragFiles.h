@@ -119,6 +119,10 @@ namespace wubansia::dragout
     // The kit's phrase files among files, "<KIT>_Phrase_*.mid", by file name in byte order.
     juce::StringArray phraseFiles (std::string_view kitId, std::span<const MidiFile> files);
 
+    // The Phrases drawer's From the kit (ADR 0031): the kit's phrase files, "<KIT>_Phrase_*.mid", then its lead line,
+    // "<KIT>_Lead_*.mid", each by file name in byte order. Each drags as DragWhat::phrase.
+    juce::StringArray kitPhraseFiles (std::string_view kitId, std::span<const MidiFile> files);
+
     // The file a request drags, or why there is none. Pure: no file I/O.
     [[nodiscard]] util::Result<DragFile> makeDragFile (const engine::KitInfo& kit, std::span<const MidiFile> files,
         const DragState& state, const DragRequest& request);

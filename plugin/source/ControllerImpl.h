@@ -56,6 +56,9 @@ namespace wubansia
         juce::File samplesFolder() const override;
         bool setSamplesFolder (const juce::File& folder) override;
 
+        std::vector<PhraseInfo> phrases() const override;
+        std::uint64_t phrasesGeneration() const override;
+
         // Where writeDragFile () writes: dragout::cacheFolder () unless a test sets another.
         void setDragFolderForTesting (const juce::File& folder) { dragFolder = folder; }
 

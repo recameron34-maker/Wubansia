@@ -46,6 +46,7 @@ namespace wubansia::editor
         bool dragForSynths = true; // the drag strip's For my synths switch (ADR 0027)
         juce::StringArray phraseFiles;
         AuditionState audition; // the Samples drawer's last audition (ADR 0024)
+        std::uint64_t phrasesGeneration = 0; // the Phrases drawer's list (ADR 0031): asked again only when this moves on
 
         // From the parameters.
         engine::PlayMode playMode = engine::PlayMode::loop;

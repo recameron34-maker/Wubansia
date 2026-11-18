@@ -381,6 +381,16 @@ namespace wubansia
         return true;
     }
 
+    std::vector<PhraseInfo> ControllerImpl::phrases() const
+    {
+        return {};
+    }
+
+    std::uint64_t ControllerImpl::phrasesGeneration() const
+    {
+        return 0;
+    }
+
     std::vector<juce::File> ControllerImpl::contentFolders() const
     {
         std::vector<juce::File> folders;
