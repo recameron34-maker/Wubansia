@@ -264,6 +264,7 @@ namespace wubansia
         m.midiInLane = controller.midiInLane();
         m.phraseMode = controller.phraseMode();
         m.dragDrumsOnOneTrack = controller.dragDrumsOnOneTrack();
+        m.dragForSynths = controller.dragForSynths();
         m.phraseFiles = controller.phraseFiles();
         m.audition = controller.auditionState();
 

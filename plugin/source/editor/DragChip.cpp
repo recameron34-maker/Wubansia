@@ -4,6 +4,10 @@
 
 #include "dragout/DragFiles.h"
 
+#include <cmath>
+#include <numeric>
+#include <vector>
+
 namespace wubansia::editor
 {
     namespace
@@ -21,6 +25,15 @@ namespace wubansia::editor
             const auto unit = tail.fromFirstOccurrenceOf (" ", false, false);
             const auto isCount = count.isNotEmpty() && count.containsOnly ("0123456789") && (unit == "bar" || unit == "bars");
             return isCount ? title.substring (0, at) : title;
+        }
+
+        // Where a chip with these bounds writes its label: right of the MIDI glyph, as paint () lays the chip out.
+        juce::Rectangle<float> labelAreaIn (juce::Rectangle<float> bounds, bool compact)
+        {
+            auto content = bounds.reduced (1.5f).reduced (compact ? 5.0f : 7.0f, 2.0f);
+            content.removeFromLeft (juce::jmin (compact ? 12.0f : 14.0f, content.getHeight()));
+            content.removeFromLeft (compact ? 4.0f : 5.0f);
+            return content;
         }
     }
 
@@ -160,11 +173,15 @@ namespace wubansia::editor
 
     juce::Rectangle<float> DragChip::labelArea() const
     {
-        // Right of the MIDI glyph, as paint () lays the chip out.
-        auto content = getLocalBounds().toFloat().reduced (1.5f).reduced (compact ? 5.0f : 7.0f, 2.0f);
-        content.removeFromLeft (juce::jmin (compact ? 12.0f : 14.0f, content.getHeight()));
-        content.removeFromLeft (compact ? 4.0f : 5.0f);
-        return content;
+        return labelAreaIn (getLocalBounds().toFloat(), compact);
+    }
+
+    int DragChip::fitWidth (int height) const
+    {
+        const juce::Rectangle<float> wide (1000.0f, (float) height);
+        const auto around = wide.getWidth() - labelAreaIn (wide, compact).getWidth(); // the border, padding and glyph
+        const auto title = juce::GlyphArrangement::getStringWidth (labelFont(), withoutBarCount (text)) * 0.8f;
+        return (int) std::floor (title + around) + 1;
     }
 
     DragStrip::DragStrip (Controller& c)
@@ -184,6 +201,14 @@ namespace wubansia::editor
                           "notes), for one Drum Rack in Live or one Drum Machine Designer in Logic; every other instrument keeps its "
                           "own track. Off: one track per drum part. Kept for your user, not saved in the project.");
         drums.onClick = [this] { controller.setDragDrumsOnOneTrack (drums.getToggleState()); };
+        synths.setComponentID ("drag_synths");
+        synths.setTooltip ("For my synths. Lit (the default), every MIDI drag plays well on your own synths: the bass comes up an "
+                           "octave, to around C1-C2 in Live and Logic; no note is shorter than a 16th unless the next comes sooner; "
+                           "notes never overlap, so a slide is two notes; and soft notes play at velocity 72. Drums, accents and FX "
+                           "stay as they are. Off: the files as Wubansia's own samples play them. Kept for your user, not saved in "
+                           "the project.");
+        synths.onClick = [this] { controller.setDragForSynths (synths.getToggleState()); };
+        addAndMakeVisible (synths);
         addAndMakeVisible (loop);
         addAndMakeVisible (song);
         addAndMakeVisible (drums);
@@ -191,8 +216,9 @@ namespace wubansia::editor
 
     void DragStrip::update (const EditorModel& model)
     {
-        // The person's setting, which another instance may change too: shown as it is every tick.
+        // The person's settings, which another instance may change too: shown as they are every tick.
         drums.setToggleState (model.dragDrumsOnOneTrack, juce::dontSendNotification);
+        synths.setToggleState (model.dragForSynths, juce::dontSendNotification);
 
         if (model.phraseFiles == files && model.kit.id == kitId)
             return;
@@ -217,6 +243,8 @@ namespace wubansia::editor
     {
         auto area = getLocalBounds().reduced (8, 5);
         area.removeFromLeft (68); // the engraved label (labelArea ())
+        synths.setBounds (area.removeFromLeft (126)); // "FOR MY SYNTHS" needs 90.5 of its 92.4 px in DejaVu Sans, the widest
+        area.removeFromLeft (6);
         loop.setBounds (area.removeFromLeft (80));
         area.removeFromLeft (6);
         song.setBounds (area.removeFromLeft (80));
@@ -226,11 +254,41 @@ namespace wubansia::editor
 
         if (phraseChips.isEmpty())
             return;
+
+        // The phrase chips share what's left, as evenly as their titles let them: a chip whose title (without its bar
+        // count, if need be) needs more than an equal share gets what it needs, and the others share the rest. Where the
+        // titles can't all fit, the shares are equal. 60 to 176 px each.
         constexpr auto gap = 6;
-        const auto width = juce::jlimit (60, 176, (area.getWidth() - gap * (phraseChips.size() - 1)) / phraseChips.size());
+        const auto count = phraseChips.size();
+        const auto room = area.getWidth() - gap * (count - 1);
+        std::vector<int> need, width ((std::size_t) count, room / count);
         for (auto* chip : phraseChips)
+            need.push_back (chip->fitWidth (area.getHeight()));
+        if (std::accumulate (need.begin(), need.end(), 0) <= room)
         {
-            chip->setBounds (area.removeFromLeft (width));
+            std::vector<bool> fixed ((std::size_t) count, false);
+            auto left = room;
+            auto open = count;
+            for (auto changed = true; changed && open > 0;)
+            {
+                changed = false;
+                const auto share = left / open;
+                for (std::size_t i = 0; i < need.size(); ++i)
+                    if (! fixed[i] && need[i] > share)
+                    {
+                        fixed[i] = changed = true;
+                        width[i] = need[i];
+                        left -= need[i];
+                        --open;
+                    }
+            }
+            for (std::size_t i = 0; i < need.size(); ++i)
+                if (! fixed[i])
+                    width[i] = left / open;
+        }
+        for (int i = 0; i < count; ++i)
+        {
+            phraseChips[i]->setBounds (area.removeFromLeft (juce::jlimit (60, 176, width[(std::size_t) i])));
             area.removeFromLeft (gap);
         }
     }

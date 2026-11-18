@@ -31,6 +31,10 @@ namespace wubansia::editor
         juce::Font labelFont() const;
         juce::Rectangle<float> labelArea() const;
 
+        // The narrowest width at this height that shows the label whole, or a phrase title without its bar count, squeezed
+        // to 0.8 at most (shownLabel ()'s test): what the drag strip gives a phrase chip at least, where it can.
+        int fitWidth (int height) const;
+
         // What paint () writes: the label, or a phrase title without its bar count where the whole title doesn't fit even
         // squeezed to 0.8 in the platform's font; "Couldn't write" ("!" when compact) after a failed drag; MIDI when compact.
         juce::String shownLabel() const;
@@ -58,8 +62,9 @@ namespace wubansia::editor
         bool hover = false, pressed = false, dragging = false, failed = false, compact = false;
     };
 
-    // The strip of song-wide chips: the loop, the song and each phrase file, and the 1 drum track switch (ADR 0025),
-    // which the Loop and Song drags follow. The switch is the person's setting, kept by the Controller.
+    // The strip of song-wide chips: the loop, the song and each phrase file, and two switches, the person's settings kept
+    // by the Controller: For my synths (ADR 0027), which every drag follows, and 1 drum track (ADR 0025), which the Loop
+    // and Song drags follow.
     class DragStrip : public juce::Component
     {
     public:
