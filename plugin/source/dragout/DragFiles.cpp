@@ -507,27 +507,43 @@ namespace wubansia::dragout
         auto made = makeDragFile (kit, files, state, request);
         if (!made.ok())
             return R::failure (std::move (made.error));
+        return writeMade (made.value, folder);
+    }
 
+    util::Result<juce::File> writeMade (const DragFile& made, const juce::File& folder)
+    {
+        using R = util::Result<juce::File>;
         if (const auto created = folder.createDirectory(); created.failed())
             return R::failure ("can't make the drag folder " + folder.getFullPathName().toStdString() + ": " + created.getErrorMessage().toStdString());
-        const auto file = folder.getChildFile (juce::String::fromUTF8 (made.value.name.data(), static_cast<int> (made.value.name.size())));
-        if (!file.replaceWithData (made.value.bytes.data(), made.value.bytes.size()))
+        const auto file = folder.getChildFile (juce::String::fromUTF8 (made.name.data(), static_cast<int> (made.name.size())));
+        if (!file.replaceWithData (made.bytes.data(), made.bytes.size()))
             return R::failure ("can't write " + file.getFullPathName().toStdString());
 
         trimCache (folder, kKeepFiles, file);
         return R::success (file);
     }
 
-    util::Result<DragFile> makeGeneratedPhraseFile (const engine::KitInfo&, std::string_view, std::string_view, std::span<const std::uint8_t>,
-        const DragState&)
+    util::Result<DragFile> makeGeneratedPhraseFile (const engine::KitInfo& kit, std::string_view name, std::string_view kindWord,
+        std::span<const std::uint8_t> bytes, const DragState& state)
     {
-        return DragResult::failure ("not built yet"); // step `phrases`, part B, commit 1
+        const auto parsed = midi::readSmf (bytes);
+        if (!parsed.ok())
+            return DragResult::failure ("the phrase " + std::string (name) + ": " + parsed.error);
+        bool synths = false; // For my synths: when a track after the conductor is one it changes (Lead; an extra's pitched track)
+        for (std::size_t i = 1; state.forSynths && i < parsed.value.tracks.size(); ++i)
+            synths = synths || synthPart (kit, midi::trackName (parsed.value.tracks[i])) != midi::SynthPart::asIs;
+        const auto what = "Phrase " + std::string (name) + " " + std::string (kindWord) + " 8 bars" + (synths ? " (synths)" : "");
+        auto made = DragResult::success ({ fileName (kit, what), std::vector<std::uint8_t> (bytes.begin(), bytes.end()) });
+        return synths ? madeForSynths (kit, std::move (made)) : made;
     }
 
-    util::Result<juce::File> writeGeneratedPhrase (const engine::KitInfo&, std::string_view, std::string_view, std::span<const std::uint8_t>,
-        const DragState&, const juce::File&)
+    util::Result<juce::File> writeGeneratedPhrase (const engine::KitInfo& kit, std::string_view name, std::string_view kindWord,
+        std::span<const std::uint8_t> bytes, const DragState& state, const juce::File& folder)
     {
-        return util::Result<juce::File>::failure ("not built yet");
+        auto made = makeGeneratedPhraseFile (kit, name, kindWord, bytes, state);
+        if (!made.ok())
+            return util::Result<juce::File>::failure (std::move (made.error));
+        return writeMade (made.value, folder);
     }
 
     void trimCache (const juce::File& folder, int keep, const juce::File& keepFile)

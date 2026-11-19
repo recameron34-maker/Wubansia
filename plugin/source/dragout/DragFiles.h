@@ -58,6 +58,7 @@
 //     FUT01 Alloy Signal 134 F#m 11A - Warp Bass Song.mid
 //     FUT01 Alloy Signal 134 F#m 11A - Warp Bass Song (synths).mid
 //     FUT01 Alloy Signal 134 F#m 11A - Phrase Organ Riff 4 bars.mid
+//     FUT01 Alloy Signal 134 F#m 11A - Phrase Night Bus Hook 8 bars (synths).mid (the library's, ADR 0031)
 // The key is short ("F# minor" is F#m, "Bb major" Bbmaj); a lane is named by the kit's label for it;
 // "NoVox" marks the no-vox file. In brackets, "synths" marks a file made for synths, "1 drum track"
 // drums merged on one track, and "no ..." lists the muted lanes whose tracks a Loop or Song drag left
@@ -153,6 +154,10 @@ namespace wubansia::dragout
     // nothing.
     [[nodiscard]] util::Result<juce::File> writeDragFile (const engine::KitInfo& kit, std::span<const MidiFile> files,
         const DragState& state, const DragRequest& request, const juce::File& folder = cacheFolder());
+
+    // A made file written into folder (made if it is missing), replacing a file of the same name; then the folder is
+    // trimmed (trimCache) to the newest kKeepFiles. Gives the file, or why it wrote nothing.
+    [[nodiscard]] util::Result<juce::File> writeMade (const DragFile& made, const juce::File& folder);
 
     // makeGeneratedPhraseFile (), written into folder and the folder trimmed, as writeDragFile () does.
     [[nodiscard]] util::Result<juce::File> writeGeneratedPhrase (const engine::KitInfo& kit, std::string_view name, std::string_view kindWord,
