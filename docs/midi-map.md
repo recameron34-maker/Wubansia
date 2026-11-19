@@ -131,6 +131,11 @@ file unless the vox switch is off and the part differs in the no-vox file, as a 
   `<KIT>_Accents_Vox_4bars.mid`, `<KIT>_Accents_NoVox_4bars.mid`, `<KIT>_FX_4bars.mid`; and the synth phrases,
   `<KIT>_Phrase_<Name>_<n>bars.mid`, each on its instrument's channel. The Phrases drawer's From the kit lists the
   phrases, then the `_Lead_` line (ADR 0031).
+- Phrases of the library and More (ADR 0031) are not files in `content/midi`: the plugin and `groovecore phrases` write
+  them from `content/phrases/<kit>/`. Each is 8 bars at 960 ticks a quarter, 4/4, the kit's tempo, key signature and
+  written swing (its odd 16ths 43, 10, 29 and 19 ticks late for FUT01-FUT04); one track, `Lead` on channel 2 (FUT02's
+  periods `Glass Ping` on 13), each note a 16th at least unless the next starts sooner, ending 10 ticks before it; no
+  controllers. A drag names it `<KIT> <Title> <BPM> <Key> <Camelot> - Phrase <Name> <Kind> 8 bars.mid`.
 - `extended/vox/` and `extended/novox/`: the 224-bar extended mix (`<KIT>_ExtendedMix_Vox_224bars.mid`, or `_NoVox_`),
   one region file per section, and `regions.json` (integers and strings only: the tempo, the swing in permille, the
   length in ms, 1-based start bars, each line's lanes and moves, the cues, the tracks and the rides' ranges; a line's

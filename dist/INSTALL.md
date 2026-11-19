@@ -180,14 +180,28 @@ content folder…**. **Content…** opens the panel that says where the kits' sa
 ## Phrases into your DAW
 
 The **Phrases** button, left of **Samples** at the top of Wubansia's window, opens the Phrases drawer where the Samples
-drawer opens; one closes the other. Under **From the kit** are the playing kit's own written phrases and its lead line,
-2 or 4 bars each: six for FUT01, five for each other kit. Drag one onto a MIDI track in your DAW, or click it to show
-the file. With the keyboard, Tab to the phrases, move with the arrows, and press Return to show the file.
+drawer opens; one closes the other. It holds 8-bar phrases written over the playing kit's own chords (FUT01's F#m9 and
+Bm9, a bar each; FUT02's Dm9; FUT03's Gm9; FUT04's Em(add9)): 64 per kit in eight kinds, Hooks, Call & answer,
+Periods, Sparse, Arps, Stabs, Counter-lines and Bounce, each a filter with its count. Under **From the kit** are the
+kit's own written phrases and its lead line, 2 or 4 bars each (six for FUT01, five for each other kit), and under
+**Kept** the ones you starred.
 
-A phrase comes as its own MIDI file, named like `FUT01 Alloy Signal 134 F#m 11A - Phrase Organ Riff 4 bars.mid`. Like
-every drag, it's made for your own synths while **For my synths** on the drag strip is lit, and its name then ends in
-`(synths)`; the drawer's footer says whether the switch is on. Choose another kit and the drawer shows its phrases;
-**Close**, Esc or the Phrases button closes it.
+Click one to hear it with the groove, on the kit's lead sound, from the next chord; the kit's own lead sits out
+meanwhile, and the status line says when it starts. If nothing is playing, Wubansia starts playing for it (Preview), and
+**Stop** ends both; a click on the playing phrase stops it too. With the keyboard, Tab to the phrases, move with the
+arrows, and press Return to play or stop one; Space and every shortcut still go to your DAW. If a lane the phrase plays
+on is muted, the status line says so: unmute it to hear the phrase.
+
+Drag a phrase onto a MIDI track in your DAW: you get one MIDI file, named like
+`FUT01 Alloy Signal 134 F#m 11A - Phrase Night Bus Hook 8 bars (synths).mid`, one track on channel 2. Like every drag,
+it's made for your own synths while **For my synths** on the drag strip is lit, and its name then ends in `(synths)`;
+the drawer's footer says whether the switch is on. The kit's own phrases drag as their files, named like
+`FUT01 Alloy Signal 134 F#m 11A - Phrase Organ Riff 4 bars.mid`.
+
+**More** writes 8 new phrases of the kind shown (one of each kind under All) at the end of the list; they stay until you
+close Wubansia. The star on a phrase keeps it under Kept for you, in every project (in Wubansia's settings file, never
+in the project). Choose another kit and the drawer shows its phrases; **Close**, Esc or the Phrases button closes it,
+and stops what it plays.
 
 ## Where everything goes
 
