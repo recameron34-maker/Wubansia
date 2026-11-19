@@ -220,6 +220,22 @@ namespace wubansia
         bool reinstall = false; // the kit's file isn't the one kit.json lists, and the problem says to reinstall the kit
     };
 
+    // Drum kits (ADR 0030): where the current kit's drum kit stands, as the drum kit thread (DrumKitService) reports it.
+    enum class DrumKitStage : std::uint8_t { idle, saving, ready, failed };
+
+    struct DrumKitStatus
+    {
+        std::uint32_t ticket = 0; // the request it's about; 0 for a refusal or before any
+        DrumKitStage stage = DrumKitStage::idle;
+        juce::String kit; // "FUT01"
+        juce::File folder; // ready: the kit's folder
+        juce::File sfz; // ready: the SFZ of the request's kick side
+        bool wrote = false; // ready: false when it was there already
+        int files = 0; // ready: the plan's files (100 for FUT01)
+        juce::String problem, detail; // failed: SoundExport's words
+        bool sourceProblem = false, reinstall = false;
+    };
+
     class Controller
     {
     public:
@@ -282,6 +298,13 @@ namespace wubansia
         // "Wubansia Audio", which the Uninstall removes, and the caches' around the drag cache), or one that
         // can't be made.
         virtual bool setSamplesFolder (const juce::File& folder) = 0;
+
+        // Drum kits (ADR 0030): the current kit's drums saved as a folder in samplesFolder () on the drum kit thread, at the
+        // kick switch's side. Its ticket, 0 when turned down (drumKitStatus () says why). A request equal to the one in
+        // hand or the last one saved keeps its ticket; the last saved one stays ready while its folder and SFZ are there.
+        // Touches neither the project nor a setting.
+        virtual std::uint32_t exportDrumKit() = 0;
+        virtual DrumKitStatus drumKitStatus() const = 0;
 
         // The Phrases drawer (ADR 0031). Part 1: the kit's own phrases; step `phrases` adds the library, More and Keep.
         virtual std::vector<PhraseInfo> phrases() const = 0; // the current kit's: its phrase files, then its lead line

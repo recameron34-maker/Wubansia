@@ -286,6 +286,7 @@ namespace wubansia
             if (muteParameters[lane] != nullptr && muteParameters[lane]->getValue() >= 0.5f)
                 m.mutedLanes |= 1u << lane;
         m.audition = controller.auditionState();
+        m.drumKit = controller.drumKitStatus();
         m.phrasesGeneration = controller.phrasesGeneration();
 
         if (playModeParameter != nullptr)

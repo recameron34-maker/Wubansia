@@ -1,0 +1,8 @@
+# The drum kit SFZ test (ADR 0030), test time only; nothing ships. Licenses: sfzlint, lark-parser, PyYAML, appdirs MIT;
+# pysfizz BSD-2-Clause (bundles sfizz BSD-2-Clause and nanobind BSD-3-Clause). numpy comes from tools/sound/requirements.txt.
+sfzlint==0.1.4
+pysfizz==0.1.3
+# transitive
+lark-parser==0.12.0
+PyYAML==6.0.3
+appdirs==1.4.4

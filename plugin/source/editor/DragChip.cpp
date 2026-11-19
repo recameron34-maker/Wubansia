@@ -227,6 +227,7 @@ namespace wubansia::editor
     DragStrip::DragStrip (Controller& c)
         : loop (c, { DragWhat::loop, engine::Lane::kick, {} }, "Loop"),
           song (c, { DragWhat::song, engine::Lane::kick, {} }, "Song"),
+          drumKit (c),
           controller (c)
     {
         setComponentID ("drag");
@@ -260,6 +261,7 @@ namespace wubansia::editor
         addAndMakeVisible (song);
         addAndMakeVisible (part);
         addAndMakeVisible (drums);
+        addAndMakeVisible (drumKit);
     }
 
     juce::String whyNoDrag (const EditorModel& model, bool song)
@@ -313,11 +315,12 @@ namespace wubansia::editor
             if (chip->getTitle() != title)
                 chip->setTitle (title);
         }
+        drumKit.update (model);
     }
 
     void DragStrip::resized()
     {
-        // The room right of 1 drum track, 164 px of the 1064 in DejaVu Sans, is for the Drum kit (ADR 0030).
+        // Right of 1 drum track, 164 px in DejaVu Sans: a 6 px gap and the Drum kit at its labels' width (ADR 0030).
         auto area = getLocalBounds().reduced (8, 5);
         area.removeFromLeft (68); // the engraved label (labelArea ())
         synths.setBounds (area.removeFromLeft (126)); // "FOR MY SYNTHS" needs 90.5 of its 92.4 px in DejaVu Sans, the widest
@@ -330,6 +333,8 @@ namespace wubansia::editor
         part.setBounds (area.removeFromLeft (part.fitWidth (area.getHeight()))); // 364 px in DejaVu Sans, the widest
         area.removeFromLeft (8);
         drums.setBounds (area.removeFromLeft (120));
+        area.removeFromLeft (6);
+        drumKit.setBounds (area.removeFromLeft (juce::jmin (area.getWidth(), drumKit.fitWidth (area.getHeight()))));
     }
 
     juce::Rectangle<float> DragStrip::labelArea() const

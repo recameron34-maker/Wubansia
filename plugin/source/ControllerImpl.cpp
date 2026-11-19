@@ -35,6 +35,25 @@ namespace wubansia
             return processor.kitService().kitStatus (entry.index);
         }
 
+        // A kit's content, found ready by the service, or why it isn't, for people: the Samples drawer's words and the Drum
+        // kit button's (ADR 0030).
+        struct ReadySource
+        {
+            ContentStatus found;
+            juce::String problem; // "" when found is ready
+        };
+
+        ReadySource readySource (const Controller& controller, const PluginProcessor& processor, const KitCatalog::Entry& entry, const juce::String& kit)
+        {
+            ReadySource ready;
+            ready.found = contentOf (controller, processor, entry);
+            if (ready.found.state != ContentState::ready || ready.found.folder == juce::File())
+                ready.problem = ready.found.state == ContentState::loading ? kit + "'s samples aren't ready yet"
+                                : ready.found.problem.isNotEmpty()         ? problemText (ready.found.problem)
+                                                                           : kit + "'s samples aren't installed";
+            return ready;
+        }
+
         // A sound's kit entry and its ready content folder, for a copy or an audition; or why there's none, for people.
         struct SoundSource
         {
@@ -59,12 +78,11 @@ namespace wubansia
             }
 
             // Only from a folder the service found ready: kit.json's files, checked.
-            source.found = contentOf (controller, processor, *entry);
-            if (source.found.state != ContentState::ready || source.found.folder == juce::File())
+            auto ready = readySource (controller, processor, *entry, sound.kit);
+            source.found = std::move (ready.found);
+            if (ready.problem.isNotEmpty())
             {
-                source.problem = source.found.state == ContentState::loading ? sound.kit + "'s samples aren't ready yet"
-                                 : source.found.problem.isNotEmpty()        ? problemText (source.found.problem)
-                                                                            : sound.kit + "'s samples aren't installed";
+                source.problem = ready.problem;
                 return source;
             }
             source.entry = entry;
@@ -372,6 +390,42 @@ namespace wubansia
 
         const auto& file = source.entry->manifest.files[static_cast<std::size_t> (sound.file)];
         return sounds::soundExportOf (sounds::exportCopy (*processor.content, source.found, source.entry->info, file, samplesFolder()));
+    }
+
+    std::uint32_t ControllerImpl::exportDrumKit()
+    {
+        // The current kit, its ready content, the samples folder and the kick switch as the controls read now. Never
+        // changeSettings: a drum kit isn't the project's.
+        const auto kit = processor.settings().kit;
+        auto& drumKits = processor.drumKitService();
+        const auto* entry = entryOf (processor, kit);
+        if (entry == nullptr || ! entry->ok())
+        {
+            drumKits.refuse (kit, "this build of Wubansia has no kit " + kit);
+            return 0;
+        }
+        auto ready = readySource (*this, processor, *entry, kit);
+        if (ready.problem.isNotEmpty())
+        {
+            drumKits.refuse (kit, ready.problem);
+            return 0;
+        }
+
+        engine::Controls controls;
+        processor.raw.read (controls);
+        DrumKitService::Request request;
+        request.kit = kit;
+        request.manifest = entry->manifest;
+        request.mix = entry->mix;
+        request.found = std::move (ready.found);
+        request.samplesFolder = samplesFolder();
+        request.kickSide = controls.ab[static_cast<std::size_t> (engine::AbSwitch::kick)];
+        return drumKits.request (std::move (request));
+    }
+
+    DrumKitStatus ControllerImpl::drumKitStatus() const
+    {
+        return processor.drumKitService().status();
     }
 
     juce::File ControllerImpl::samplesFolder() const

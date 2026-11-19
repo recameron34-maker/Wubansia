@@ -19,7 +19,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <chrono>
 #include <functional>
+#include <thread>
 #include <utility>
 
 using Catch::Matchers::WithinAbs;
@@ -1092,4 +1094,83 @@ TEST_CASE ("the drawer on the real processor: it lists the kit's sounds, plays o
         CHECK_FALSE (controller.auditionState().waiting);
     });
     CHECK (plugin->getActiveEditor() == nullptr);
+}
+
+namespace
+{
+    // Waits up to 10 s for the drum kit request's status to reach stage.
+    DrumKitStatus waitForDrumKit (Controller& controller, std::uint32_t ticket, DrumKitStage stage)
+    {
+        const auto until = std::chrono::steady_clock::now() + std::chrono::seconds (10);
+        auto s = controller.drumKitStatus();
+        while ((s.ticket != ticket || s.stage != stage) && std::chrono::steady_clock::now() < until)
+        {
+            std::this_thread::sleep_for (std::chrono::milliseconds (2));
+            s = controller.drumKitStatus();
+        }
+        return s;
+    }
+}
+
+TEST_CASE ("exportDrumKit takes the current kit, its content, the samples folder and the kick switch", "[drumkit][controller]")
+{
+    SyntheticPlugin plugin (twoKits ("DRK01", "DRK02"));
+    TempFolder samples;
+    auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+    controller.setSamplesFolderForTesting (samples.folder);
+    test::prepareWithKit (*plugin);
+    REQUIRE (controller.status().state == ContentState::ready);
+    HostListener host;
+    plugin->addListener (&host);
+
+    // Kick B, the default: the B side's SFZ, in DRK01's folder, read from DRK01's content.
+    plugin.content->clearFoldersRead();
+    const auto first = controller.exportDrumKit();
+    REQUIRE (first != 0);
+    const auto b = waitForDrumKit (controller, first, DrumKitStage::ready);
+    INFO (b.problem);
+    REQUIRE (b.stage == DrumKitStage::ready);
+    CHECK (b.kit == "DRK01");
+    CHECK (b.folder == samples.folder.getChildFile ("DRK01 Synthetic 01 Drum Kit"));
+    CHECK (b.sfz.getFileName() == "DRK01 Synthetic 01 Drum Kit - Kick B.sfz");
+    CHECK_FALSE (plugin.content->foldersRead().empty());
+    for (const auto& folder : plugin.content->foldersRead())
+        CHECK (folder == SyntheticContent::folderOf ("DRK01"));
+
+    // Kick A: the A side's SFZ, the folder found as it is.
+    test::setParameter (*plugin, ParameterIds::kickAb, 0.0f);
+    const auto second = controller.exportDrumKit();
+    CHECK (second != first);
+    const auto a = waitForDrumKit (controller, second, DrumKitStage::ready);
+    REQUIRE (a.stage == DrumKitStage::ready);
+    CHECK (a.sfz.getFileName() == "DRK01 Synthetic 01 Drum Kit - Kick A.sfz");
+    CHECK (a.folder == b.folder);
+    CHECK_FALSE (a.wrote);
+
+    plugin->removeListener (&host);
+    CHECK (host.stateChanges == 0); // the project isn't marked changed
+}
+
+TEST_CASE ("exportDrumKit without ready samples refuses in the drawer's words, starting no thread", "[drumkit][controller]")
+{
+    SyntheticContent::Options options;
+    options.ids = { "DRM01" };
+    options.samples = SyntheticContent::Samples::missing;
+    SyntheticPlugin plugin (options);
+    TempFolder samples;
+    auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+    controller.setSamplesFolderForTesting (samples.folder);
+
+    test::prepare (*plugin, 48000.0, 512);
+    REQUIRE (test::waitForStatus (*plugin, ContentState::missing));
+    CHECK (controller.exportDrumKit() == 0);
+    const auto refused = controller.drumKitStatus();
+    CHECK (refused.stage == DrumKitStage::failed);
+    CHECK (refused.ticket == 0);
+    CHECK (refused.kit == "DRM01");
+    CHECK (refused.problem.contains ("no content folder holds DRM01")); // the drawer's words for the same state
+    CHECK (refused.sourceProblem);
+    CHECK_FALSE (plugin->drumKitService().started());
+    CHECK (plugin.content->fileReads.load() == 0);
+    CHECK (samples.folder.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 0);
 }

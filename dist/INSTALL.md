@@ -203,6 +203,8 @@ every drag, it's made for your own synths while **For my synths** on the drag st
   for your drags, the newest 32 (Wubansia deletes the older ones).
 - `~/Music/Wubansia/Samples/<KIT> <Title>/`: the WAVs the Samples drawer saved for your drags (or the folder you
   chose with Change…). Wubansia never deletes them, and uninstalling leaves them: your projects use them.
+- `~/Music/Wubansia/Samples/<KIT> <Title> Drum Kit/`: the drum kits the Drum kit button saved (beside the Samples
+  drawer's folders, in the folder you chose with Change… if you did). Wubansia never deletes them.
 
 On Windows the content folder is `%APPDATA%\Wubansia Audio\Wubansia\Content`, and on Linux
 `~/.local/share/Wubansia Audio/Wubansia/Content`. From a clone of the repo, this installs a content zip there:
@@ -308,6 +310,31 @@ note's pad. Its files are in the kit's content folder, in `Content/<kit>/v1/Drum
 
 Not yet checked in Live or Logic: where the other instruments land, and these pad settings.
 
+## Drum kits into your DAW
+
+**Drum kit**, on the Drag MIDI strip, saves the playing kit's drums into your samples folder, so the drum MIDI you
+drag (Loop, Song, the Drums part, 1 drum track) plays the same sounds in your own drum rack or sampler, and you can
+swap in your own. Click it: Wubansia saves `~/Music/Wubansia/Samples/FUT01 Alloy Signal Drum Kit/` (or the folder
+you chose with Change…) and shows it in Finder. Drag it onto an SFZ player instead to load the whole kit there.
+
+The folder holds:
+- `Pads/`: one WAV per drum note, its loudest hit, named by its note: `36 C1 Kick Garage - FUT01.wav`;
+- `Samples/`: every velocity layer and round robin of every pad: `36 C1 Kick Garage v1 rr1 - FUT01.wav`;
+- an `.sfz` file, the whole kit for an SFZ player (sfizz and sforzando are free; Bitwig Studio's Sampler opens it too):
+  every layer and round robin, each pad's level and pan from Wubansia's mix, and the hat choke. FUT01 has two, one per
+  kick: `... - Kick Garage.sfz` (Wubansia's kick B, the default) and `... - Kick Split.sfz` (A); a drag hands over the
+  one Wubansia's kick switch is on;
+- `README.txt`: the pad map with each pad's level and pan, and the steps below.
+
+Live and Logic don't open `.sfz` files: load an SFZ player plugin on the track, or use `Pads/`. In Live, put a Drum
+Rack on a MIDI track and drag each file in `Pads/` onto its note's pad, one at a time: files dropped together fill
+pads in a row from the one you drop on. In Logic, make a Drum Machine Designer track, drag each file onto a pad and
+set the pad's input note to the file's note. In both, set the pads' levels and pans from the README, put the hats in
+one choke group, and save the rack or patch to use it again.
+
+Wubansia never changes or deletes anything in the folder: change it as you like. The next time you save that kit's
+drum kit, Wubansia saves a fresh copy beside yours, `... Drum Kit (2)`.
+
 ## If something's wrong
 
 - **Your DAW doesn't list Wubansia.** Make it rescan its plug-ins. In Logic, open Logic Pro > Settings > Plug-in
@@ -329,6 +356,8 @@ Not yet checked in Live or Logic: where the other instruments land, and these pa
   Finder. If the drawer says "Couldn't save", it says what helps: another folder with Change… when the copy couldn't
   be written there, or the kit's samples when its own file is missing or not the one it lists. Hold the pointer over
   the message to see the folder it looked in for a missing file, or the folder or file it couldn't write.
+- **Drum kit says Couldn't save.** Hold the pointer over it: it says why, and what helps (another folder with
+  Change… in the Samples drawer, or the kit's samples).
 
 ## Uninstall
 
@@ -340,4 +369,5 @@ killall -9 AudioComponentRegistrar
 ```
 
 This leaves the WAVs you dragged out of the Samples drawer, in `~/Music/Wubansia/Samples` (or the folder you chose
-with Change…): projects that use them still need them. Delete `~/Music/Wubansia` yourself once none does.
+with Change…), and the drum kits the Drum kit button saved there: projects that use them still need them. Delete
+`~/Music/Wubansia` yourself once none does.

@@ -6,13 +6,16 @@
 #include "helpers/test_helpers.h"
 
 #include "kit/kit_cache.h"
+#include "testing/synthetic_kit.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
 #include <algorithm>
 #include <chrono>
+#include <atomic>
 #include <memory>
+#include <thread>
 
 using namespace wubansia;
 using test::SyntheticContent;
@@ -243,4 +246,216 @@ TEST_CASE ("an instance destroyed while another waits for its build leaves the o
 
     first.reset(); // its build is cancelled; the waiter builds instead
     CHECK (test::waitForStatus (*second, ContentState::ready, std::chrono::milliseconds (5000)));
+}
+
+// Drum kits (ADR 0030): the drum kit thread, services/DrumKitService.h.
+
+namespace
+{
+    struct DrumKitRig
+    {
+        explicit DrumKitRig (SyntheticContent::Options options = {}) : content (std::move (options))
+        {
+            samples = juce::File::getSpecialLocation (juce::File::tempDirectory).getNonexistentChildFile ("WubansiaDrumKitService", "", false);
+            found = content.locate (engine::testing::syntheticContent().kit);
+        }
+        ~DrumKitRig()
+        {
+            service.reset();
+            samples.deleteRecursively();
+        }
+
+        DrumKitService::Request request (int side = 1) const
+        {
+            DrumKitService::Request r;
+            r.kit = "SYN01";
+            r.manifest = engine::testing::syntheticContent().kit;
+            r.mix = engine::testing::syntheticContent().mix;
+            r.found = found;
+            r.samplesFolder = samples;
+            r.kickSide = side;
+            return r;
+        }
+
+        // Waits up to 10 s for the ticket's status to reach stage.
+        DrumKitStatus waitFor (std::uint32_t ticket, DrumKitStage stage) const
+        {
+            const auto until = std::chrono::steady_clock::now() + std::chrono::seconds (10);
+            auto s = service->status();
+            while ((s.ticket != ticket || s.stage != stage) && std::chrono::steady_clock::now() < until)
+            {
+                std::this_thread::sleep_for (std::chrono::milliseconds (2));
+                s = service->status();
+            }
+            return s;
+        }
+
+        SyntheticContent content;
+        juce::File samples;
+        ContentStatus found;
+        std::unique_ptr<DrumKitService> service = std::make_unique<DrumKitService> (content);
+    };
+
+    const juce::String synFolder ("SYN01 Synthetic Test Kit Drum Kit");
+}
+
+TEST_CASE ("the drum kit thread starts with the first request", "[drumkit][service]")
+{
+    PluginProcessor plugin;
+    CHECK_FALSE (plugin.drumKitService().started());
+
+    SyntheticPlugin synthetic;
+    test::prepareWithKit (*synthetic);
+    CHECK_FALSE (synthetic->drumKitService().started()); // a prepare and a kit load start nothing
+
+    DrumKitRig rig;
+    CHECK_FALSE (rig.service->started());
+    rig.service->refuse ("SYN01", "SYN01's samples aren't installed");
+    CHECK_FALSE (rig.service->started()); // a refusal starts nothing
+    const auto ticket = rig.service->request (rig.request());
+    CHECK (ticket != 0);
+    CHECK (rig.service->started());
+}
+
+TEST_CASE ("a press and its click are one job; another kit or side replaces the queued job", "[drumkit][service]")
+{
+    SyntheticContent::Options slow;
+    slow.readDelay = std::chrono::milliseconds (15);
+    DrumKitRig rig (slow);
+    const auto first = rig.service->request (rig.request (1));
+    CHECK (rig.service->request (rig.request (1)) == first); // its click: the same job
+    const auto side = rig.service->request (rig.request (0));
+    CHECK (side != first);
+    CHECK (rig.service->request (rig.request (0)) == side);
+    const auto done = rig.waitFor (side, DrumKitStage::ready);
+    REQUIRE (done.stage == DrumKitStage::ready);
+    CHECK (done.sfz.getFileName() == "SYN01 Synthetic Test Kit Drum Kit - Kick A.sfz");
+    CHECK (rig.samples.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 1); // one folder, no staging
+
+    // Another kit (here another content folder's copy): another job.
+    auto other = rig.request (0);
+    other.kit = "SYN02";
+    other.manifest.kit.id = "SYN02";
+    CHECK (rig.service->request (other) != side);
+}
+
+TEST_CASE ("saving, then ready with the folder and the side's SFZ; failures in the drawer's words; refuse () at once", "[drumkit][service]")
+{
+    {
+        DrumKitRig rig;
+        const auto ticket = rig.service->request (rig.request (1));
+        const auto now = rig.service->status();
+        CHECK (now.ticket == ticket);
+        CHECK ((now.stage == DrumKitStage::saving || now.stage == DrumKitStage::ready));
+        CHECK (now.kit == "SYN01");
+        const auto done = rig.waitFor (ticket, DrumKitStage::ready);
+        REQUIRE (done.stage == DrumKitStage::ready);
+        CHECK (done.folder == rig.samples.getChildFile (synFolder));
+        CHECK (done.sfz == done.folder.getChildFile ("SYN01 Synthetic Test Kit Drum Kit - Kick B.sfz"));
+        CHECK (done.sfz.existsAsFile());
+        CHECK (done.wrote);
+        CHECK (done.files == 20);
+        CHECK (done.problem.isEmpty());
+
+        rig.service->refuse ("SYN01", "SYN01's samples aren't installed");
+        const auto refused = rig.service->status();
+        CHECK (refused.ticket == 0);
+        CHECK (refused.stage == DrumKitStage::failed);
+        CHECK (refused.kit == "SYN01");
+        CHECK (refused.problem == "SYN01's samples aren't installed");
+    }
+    {
+        SyntheticContent::Options altered;
+        altered.alteredPath = "Drums/Snare v1 rr2.wav";
+        DrumKitRig rig (altered);
+        const auto ticket = rig.service->request (rig.request());
+        const auto failed = rig.waitFor (ticket, DrumKitStage::failed);
+        REQUIRE (failed.stage == DrumKitStage::failed);
+        CHECK (failed.problem == "Snare v1 rr2.wav isn't the file SYN01's content v1 lists: reinstall SYN01");
+        CHECK (failed.sourceProblem);
+        CHECK (failed.reinstall);
+        CHECK (failed.folder == juce::File());
+        CHECK (rig.samples.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 0);
+    }
+    {
+        // A pad the SFZ can't carry: its words, the pad named.
+        DrumKitRig rig;
+        auto request = rig.request();
+        request.manifest.instruments[engine::testing::syn::snare].align = engine::Align::end;
+        const auto ticket = rig.service->request (std::move (request));
+        const auto failed = rig.waitFor (ticket, DrumKitStage::failed);
+        CHECK (failed.problem == "its pad 38 D1 (Snare) is end-aligned, which a drum kit can't carry");
+        CHECK_FALSE (failed.sourceProblem);
+    }
+}
+
+TEST_CASE ("destroyed mid-save: stops between files, joins, leaves no staging folder", "[drumkit][service]")
+{
+    DrumKitRig rig;
+    std::atomic<bool> reached { false };
+    std::atomic<int> after { 0 };
+    rig.service->setFileProbeForTesting ([&] (int done) {
+        if (done == 2)
+        {
+            reached = true;
+            std::this_thread::sleep_for (std::chrono::milliseconds (100)); // the file in hand
+        }
+        if (done > 2)
+            ++after;
+    });
+    rig.service->request (rig.request());
+    const auto until = std::chrono::steady_clock::now() + std::chrono::seconds (10);
+    while (! reached && std::chrono::steady_clock::now() < until)
+        std::this_thread::sleep_for (std::chrono::milliseconds (1));
+    REQUIRE (reached);
+    const auto start = std::chrono::steady_clock::now();
+    rig.service.reset();
+    CHECK (std::chrono::steady_clock::now() - start < std::chrono::seconds (2));
+    CHECK (after.load() <= 1); // at most the file after the one in hand
+    CHECK (rig.samples.getNumberOfChildFiles (juce::File::findFilesAndDirectories) == 0);
+}
+
+TEST_CASE ("a press equal to the last ready request keeps its ticket and stays ready", "[drumkit][service]")
+{
+    DrumKitRig rig;
+    const auto ticket = rig.service->request (rig.request());
+    const auto done = rig.waitFor (ticket, DrumKitStage::ready);
+    REQUIRE (done.stage == DrumKitStage::ready);
+    const juce::Time past (2001, 0, 1, 12, 0, 0, 0, false);
+    for (const auto& entry : juce::RangedDirectoryIterator (done.folder, true, "*", juce::File::findFiles))
+        entry.getFile().setLastModificationTime (past);
+    int probed = 0;
+    rig.service->setFileProbeForTesting ([&] (int) { ++probed; });
+    const auto reads = rig.content.fileReads.load();
+
+    CHECK (rig.service->request (rig.request()) == ticket);
+    const auto again = rig.service->status(); // at once, in the same mouse event
+    CHECK (again.ticket == ticket);
+    CHECK (again.stage == DrumKitStage::ready);
+    CHECK (again.sfz == done.sfz);
+    std::this_thread::sleep_for (std::chrono::milliseconds (50));
+    CHECK (rig.service->status().stage == DrumKitStage::ready);
+    CHECK (rig.content.fileReads.load() == reads); // no second write, no read
+    CHECK (probed == 0);
+    for (const auto& entry : juce::RangedDirectoryIterator (done.folder, true, "*", juce::File::findFiles))
+        CHECK (entry.getFile().getLastModificationTime() == past);
+}
+
+TEST_CASE ("a press after the saved folder was deleted saves it again", "[drumkit][service]")
+{
+    DrumKitRig rig;
+    const auto ticket = rig.service->request (rig.request());
+    const auto done = rig.waitFor (ticket, DrumKitStage::ready);
+    REQUIRE (done.stage == DrumKitStage::ready);
+    REQUIRE (done.folder.deleteRecursively());
+
+    const auto again = rig.service->request (rig.request());
+    CHECK (again != ticket);
+    const auto now = rig.service->status();
+    CHECK (now.ticket == again);
+    CHECK ((now.stage == DrumKitStage::saving || now.stage == DrumKitStage::ready));
+    const auto saved = rig.waitFor (again, DrumKitStage::ready);
+    REQUIRE (saved.stage == DrumKitStage::ready);
+    CHECK (saved.wrote);
+    CHECK (saved.sfz.existsAsFile());
 }

@@ -11,6 +11,8 @@
 // - the kit service's thread: kit loads (services/KitService.h);
 // - the sound thread: the Samples drawer's audition clips (services/SoundService.h, ADR 0024), started by
 //   the first audition;
+// - the drum kit thread: the Drag MIDI strip's Drum kit folders (services/DrumKitService.h, ADR 0030), started by the
+//   first press of Drum kit;
 // - audio thread: processBlock, which in order (the design's): stops denormals and clears the buffer;
 //   acts on a reset (the engine's voices and the audition; a prepareToPlay since doesn't cancel it); in an
 //   offline render only, waits for a kit load in flight (ADR 0005 D5: 1 ms steps, 30 s per load at most;
@@ -28,6 +30,7 @@
 #include "Parameters.h"
 #include "State.h"
 #include "content/ContentSource.h"
+#include "services/DrumKitService.h"
 #include "services/KitService.h"
 #include "services/SoundService.h"
 #include "transport/InternalTransport.h"
@@ -117,6 +120,8 @@ namespace wubansia
         const engine::Telemetry& telemetry() const noexcept { return player.telemetry(); }
         const engine::AuditionPlayer& auditionPlayer() const noexcept { return auditions; }
         const SoundService& soundService() const noexcept { return *sounds; }
+        DrumKitService& drumKitService() noexcept { return *drumKits; }
+        const DrumKitService& drumKitService() const noexcept { return *drumKits; }
         StateOnly settings() const;
 
         juce::AudioProcessorValueTreeState apvts;
@@ -138,6 +143,7 @@ namespace wubansia
         engine::AuditionPlayer auditions; // ADR 0024: the Samples drawer's clips
         std::unique_ptr<KitService> service; // after the engine and content: it uses both, so it goes first
         std::unique_ptr<SoundService> sounds; // after content and auditions, which it uses: it goes first
+        std::unique_ptr<DrumKitService> drumKits; // after content, which it reads: it goes first of all
         ControllerImpl controllerImpl;
         InternalTransport transport;
 

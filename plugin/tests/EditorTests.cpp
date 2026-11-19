@@ -8,6 +8,8 @@
 
 #include "PluginEditor.h"
 #include "content/EmbeddedContent.h"
+#include "dragout/DragFiles.h"
+#include "editor/ExternalDrag.h"
 #include "helpers/fake_controller.h"
 #include "helpers/test_processor.h"
 #include "services/KitCatalog.h"
@@ -990,12 +992,13 @@ TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every la
                 return;
             auto& drums = *foundDrums;
             auto& synths = *foundSynths;
+            auto& drumKit = get<editor::DrumKitButton> (editor, "drag_drumkit");
 
-            // For my synths, Loop, Song, Part and 1 drum track, in that order and in their places, and nothing else: the
-            // kit's phrases are in the Phrases drawer (ADR 0031). None overlapping, all inside the strip.
-            CHECK (strip.getNumChildComponents() == 5);
+            // For my synths, Loop, Song, Part, 1 drum track and Drum kit (ADR 0030), in that order and in their places, and
+            // nothing else: the kit's phrases are in the Phrases drawer (ADR 0031). None overlapping, all inside the strip.
+            CHECK (strip.getNumChildComponents() == 6);
             CHECK (findAll (editor, "drag_phrase_0").empty());
-            const std::vector<juce::Component*> parts { &synths, &loop, &song, &drums };
+            const std::vector<juce::Component*> parts { &synths, &loop, &song, &drums, &drumKit };
             for (std::size_t i = 0; i < parts.size(); ++i)
             {
                 INFO (parts[i]->getComponentID());
@@ -1013,15 +1016,21 @@ TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every la
             CHECK (drums.getWidth() == 120);
             CHECK (drums.getX() > song.getRight() + 300); // Part between them (ADR 0029)
             CHECK (strip.getWidth() - 8 - drums.getRight() >= 160); // the room the Drum kit takes (ADR 0030)
+            CHECK (drumKit.getX() == drums.getRight() + 6);
+            CHECK (drumKit.getY() == 5);
+            CHECK (drumKit.getHeight() == 28);
+            CHECK (drumKit.getWidth() >= drumKit.fitWidth (28));
+            CHECK (drumKit.fitWidth (28) > 36);
+            CHECK (drumKit.getRight() <= strip.getWidth() - 8);
 
-            // Nothing is drawn right of 1 drum track: no divider, no chip.
+            // Nothing is drawn right of Drum kit: no divider, no chip.
             juce::Image image (juce::Image::ARGB, strip.getWidth(), strip.getHeight(), true, juce::SoftwareImageType());
             {
                 juce::Graphics g (image);
                 strip.paintEntireComponent (g, false);
             }
             int drawn = 0;
-            for (int x = drums.getRight(); x < strip.getWidth(); ++x)
+            for (int x = drumKit.getRight(); x < strip.getWidth(); ++x)
                 for (int y = 0; y < strip.getHeight(); ++y)
                     drawn += image.getPixelAt (x, y).getAlpha() > 0 ? 1 : 0;
             CHECK (drawn == 0);
@@ -1040,6 +1049,14 @@ TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every la
                 INFO (chip->label());
                 CHECK (width (chip->labelFont(), chip->label()) <= chip->labelArea().getWidth());
                 CHECK (chip->shownLabel() == chip->label());
+            }
+            // Each of Drum kit's labels unsqueezed, in the platform's font (and DejaVu Sans through the rerun).
+            CHECK (drumKit.labelFont().getHeight() >= 10.0f);
+            for (const auto* label : { "Drum kit", "Saving\xe2\x80\xa6", "Couldn't save" })
+            {
+                const auto words = juce::String (juce::CharPointer_UTF8 (label));
+                INFO (words);
+                CHECK (width (drumKit.labelFont(), words) <= drumKit.labelArea().getWidth());
             }
         });
 }
@@ -3857,4 +3874,292 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
             REQUIRE (drawer.numTiles() == 6);
             save (editor, "phrases-drawer.png");
         });
+}
+
+// Drum kits (ADR 0030): the Drag MIDI strip's Drum kit button.
+
+using wubansia::ContentState;
+using wubansia::DrumKitStage;
+using wubansia::DrumKitStatus;
+
+namespace
+{
+    // What the button hands the OS and says, recorded instead of done.
+    struct DrumKitHandoffs
+    {
+        juce::Array<juce::File> dragged, revealed;
+        juce::StringArray said;
+
+        void hook (editor::DrumKitButton& button)
+        {
+            button.startDrag = [this] (const juce::File& file, juce::Component&)
+            {
+                dragged.add (file);
+                return true;
+            };
+            button.revealFile = [this] (const juce::File& file) { revealed.add (file); };
+            button.announce = [this] (const juce::String& text) { said.add (text); };
+        }
+    };
+
+    // FUT01's drum kit, saved: what the fake reports once the thread is done.
+    DrumKitStatus savedKit (std::uint32_t ticket, bool wrote = true)
+    {
+        DrumKitStatus s;
+        s.ticket = ticket;
+        s.stage = DrumKitStage::ready;
+        s.kit = "FUT01";
+        s.folder = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("Samples/FUT01 Alloy Signal Drum Kit");
+        s.sfz = s.folder.getChildFile ("FUT01 Alloy Signal Drum Kit - Kick Garage.sfz");
+        s.wrote = wrote;
+        s.files = 100;
+        return s;
+    }
+
+    void readyContent (FakeController& c)
+    {
+        c.contentStatus.state = ContentState::ready;
+        c.contentStatus.folder = juce::File::getSpecialLocation (juce::File::tempDirectory);
+    }
+
+    // Down in the middle and a drag of pixels to the right, without the release.
+    void pressAndDrag (juce::Component& component, float pixels)
+    {
+        const auto start = component.getLocalBounds().toFloat().getCentre();
+        component.mouseDown (mouseAt (component, start, start));
+        component.mouseDrag (mouseAt (component, start.translated (pixels, 0.0f), start, true));
+    }
+
+    const juce::String ellipsis = editor::utf8 ("\xe2\x80\xa6");
+}
+
+TEST_CASE ("a press asks for the kit; a click shows the SFZ once it's ready, once", "[drumkit][editor]")
+{
+    Rig rig;
+    readyContent (rig.controller);
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            editor.tick();
+            auto& button = get<editor::DrumKitButton> (editor, "drag_drumkit");
+            DrumKitHandoffs os;
+            os.hook (button);
+            CHECK (button.isEnabled());
+            CHECK (button.shownLabel() == "Drum kit");
+            CHECK (button.statusText().startsWith ("Drum kit. Saves FUT01's drums into your samples folder"));
+            CHECK (rig.controller.drumKitRequests == 0);
+
+            click (button);
+            CHECK (rig.controller.drumKitRequests == 1); // the press
+            editor.tick();
+            CHECK (button.shownLabel() == "Saving" + ellipsis);
+            CHECK (button.statusText() == "Saving FUT01's drum kit" + ellipsis);
+            CHECK (os.revealed.isEmpty());
+
+            rig.controller.drumKitState = savedKit (1);
+            editor.tick();
+            REQUIRE (os.revealed.size() == 1); // the click, once it's ready
+            CHECK (os.revealed[0] == rig.controller.drumKitState.sfz);
+            CHECK (button.shownLabel() == "Drum kit");
+            CHECK (button.statusText() == "Saved FUT01's drum kit: FUT01 Alloy Signal Drum Kit, 100 files.");
+            CHECK (os.said.contains ("Saved FUT01's drum kit: FUT01 Alloy Signal Drum Kit, 100 files."));
+            editor.tick();
+            CHECK (os.revealed.size() == 1); // once
+
+            // A click on a kit saved already: shown at once, from the same ticket.
+            rig.controller.drumKitOutcome = [] (int) { return savedKit (1, false); };
+            click (button);
+            CHECK (rig.controller.drumKitRequests == 2);
+            CHECK (os.revealed.size() == 2);
+            editor.tick();
+            CHECK (os.revealed.size() == 2);
+            CHECK (button.statusText() == "FUT01's drum kit is saved: FUT01 Alloy Signal Drum Kit.");
+        });
+}
+
+TEST_CASE ("a drag hands the SFZ to the OS when ready; while saving it says so and starts nothing", "[drumkit][editor]")
+{
+    Rig rig;
+    readyContent (rig.controller);
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            editor.tick();
+            auto& button = get<editor::DrumKitButton> (editor, "drag_drumkit");
+            DrumKitHandoffs os;
+            os.hook (button);
+
+            // Still saving: no OS drag, and it says to drag again.
+            drag (button, 6.0f);
+            CHECK (rig.controller.drumKitRequests == 1);
+            CHECK (os.dragged.isEmpty());
+            CHECK (os.revealed.isEmpty());
+            CHECK (button.shownLabel() == "Saving" + ellipsis);
+            CHECK (button.statusText() == "Saving FUT01's drum kit" + ellipsis + " drag again when it's ready.");
+            editor.tick();
+            CHECK (button.statusText() == "Saving FUT01's drum kit" + ellipsis + " drag again when it's ready.");
+
+            // It finishes: nothing more happens.
+            rig.controller.drumKitState = savedKit (1);
+            editor.tick();
+            CHECK (os.dragged.isEmpty());
+            CHECK (os.revealed.isEmpty());
+            CHECK (button.shownLabel() == "Drum kit");
+
+            // Ready: the drag hands the SFZ over, the one file.
+            rig.controller.drumKitOutcome = [] (int) { return savedKit (1, false); };
+            drag (button, 6.0f);
+            REQUIRE (os.dragged.size() == 1);
+            CHECK (os.dragged[0] == savedKit (1).sfz);
+            CHECK (os.revealed.isEmpty()); // a drag is no click
+        });
+}
+
+TEST_CASE ("after ready, a press then a 4 px drag starts the OS drag in that mouse event", "[drumkit][editor]")
+{
+    Rig rig;
+    readyContent (rig.controller);
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            editor.tick();
+            auto& button = get<editor::DrumKitButton> (editor, "drag_drumkit");
+            DrumKitHandoffs os;
+            os.hook (button);
+            click (button);
+            rig.controller.drumKitState = savedKit (1);
+            editor.tick();
+            os.revealed.clear();
+
+            // The service keeps the ready ticket: the press gets it back, ready at once, and the drag goes in the same event.
+            rig.controller.drumKitOutcome = [] (int) { return savedKit (1, false); };
+            pressAndDrag (button, 4.0f);
+            REQUIRE (os.dragged.size() == 1);
+            CHECK (os.dragged[0] == rig.controller.drumKitState.sfz);
+            CHECK_FALSE (button.statusText().contains ("drag again"));
+            const auto end = button.getLocalBounds().toFloat().getCentre().translated (4.0f, 0.0f);
+            button.mouseUp (mouseAt (button, end, button.getLocalBounds().toFloat().getCentre(), true));
+            CHECK (os.revealed.isEmpty());
+        });
+}
+
+TEST_CASE ("Couldn't save on failure until the next press; dimmed while the samples aren't ready", "[drumkit][editor]")
+{
+    Rig rig;
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& button = get<editor::DrumKitButton> (editor, "drag_drumkit");
+            DrumKitHandoffs os;
+            os.hook (button);
+
+            rig.controller.contentStatus.state = ContentState::missing;
+            editor.tick();
+            CHECK_FALSE (button.isEnabled());
+            CHECK (button.shownLabel() == "Drum kit");
+            CHECK (button.statusText() == "FUT01's samples aren't installed: there's no drum kit to save yet.");
+            click (button);
+            CHECK (rig.controller.drumKitRequests == 0); // dimmed: no press
+            rig.controller.contentStatus.state = ContentState::loading;
+            editor.tick();
+            CHECK_FALSE (button.isEnabled());
+            CHECK (button.statusText() == "FUT01's samples are loading" + ellipsis);
+
+            readyContent (rig.controller);
+            editor.tick();
+            CHECK (button.isEnabled());
+
+            struct Failure
+            {
+                const char* problem;
+                bool sourceProblem, reinstall;
+                const char* sentence;
+            };
+            const Failure failures[] {
+                { "the samples folder can't be written to", false, false,
+                    "Couldn't save FUT01's drum kit: the samples folder can't be written to. Choose another folder with Change\xe2\x80\xa6 in the Samples drawer." },
+                { "every name for it is taken in the samples folder", false, false,
+                    "Couldn't save FUT01's drum kit: every name for it is taken in the samples folder. Choose another folder with Change\xe2\x80\xa6 in the Samples drawer." },
+                { "FUT01's Drums/Kick Garage v1 rr1.wav is missing", true, false,
+                    "Couldn't save FUT01's drum kit: FUT01's Drums/Kick Garage v1 rr1.wav is missing. Check that FUT01's samples are still installed." },
+                { "Kick Garage v1 rr1.wav isn't the file FUT01's content v1 lists: reinstall FUT01", true, true,
+                    "Couldn't save FUT01's drum kit: Kick Garage v1 rr1.wav isn't the file FUT01's content v1 lists: reinstall FUT01." },
+                { "its pad 36 C1 (Kick Rev) is end-aligned, which a drum kit can't carry", false, false,
+                    "Couldn't save FUT01's drum kit: its pad 36 C1 (Kick Rev) is end-aligned, which a drum kit can't carry." },
+            };
+            for (const auto& f : failures)
+            {
+                CAPTURE (f.problem);
+                click (button);
+                const auto ticket = rig.controller.drumKitState.ticket;
+                DrumKitStatus failed;
+                failed.ticket = ticket;
+                failed.stage = DrumKitStage::failed;
+                failed.kit = "FUT01";
+                failed.problem = f.problem;
+                failed.detail = "can't write /Music/Wubansia/Samples/x";
+                failed.sourceProblem = f.sourceProblem;
+                failed.reinstall = f.reinstall;
+                rig.controller.drumKitState = failed;
+                os.said.clear();
+                editor.tick();
+                editor.tick();
+                CHECK (button.shownLabel() == "Couldn't save");
+                CHECK (button.statusText() == editor::utf8 (f.sentence));
+                CHECK (button.getTooltip() == editor::utf8 (f.sentence) + " Can't write /Music/Wubansia/Samples/x.");
+                CHECK (os.said.size() == 1); // announced once, detail and all
+                CHECK (os.said[0] == button.getTooltip());
+                CHECK (os.revealed.isEmpty());
+            }
+
+            // It stays until the next press.
+            for (int i = 0; i < 3; ++i)
+                editor.tick();
+            CHECK (button.shownLabel() == "Couldn't save");
+            click (button);
+            editor.tick();
+            CHECK (button.shownLabel() == "Saving" + ellipsis);
+        });
+}
+
+TEST_CASE ("the Drum kit button's defaults are startExternalDrag and revealToUser; Return and the accessibility press click; Space returns false",
+    "[drumkit][editor]")
+{
+    using Drag = bool (*) (const juce::File&, juce::Component&);
+    using Reveal = void (*) (const juce::File&);
+    using Announce = void (*) (const juce::String&);
+    FakeController fake;
+    editor::DrumKitButton button (fake);
+    const auto* drag = button.startDrag.target<Drag>();
+    REQUIRE (drag != nullptr);
+    CHECK (*drag == &editor::startExternalDrag);
+    const auto* reveal = button.revealFile.target<Reveal>();
+    REQUIRE (reveal != nullptr);
+    CHECK (*reveal == &wubansia::dragout::revealToUser);
+    const auto* say = button.announce.target<Announce>();
+    REQUIRE (say != nullptr);
+    CHECK (*say == &editor::announceToScreenReader);
+    CHECK (button.getComponentID() == "drag_drumkit");
+
+    readyContent (fake);
+    editor::EditorModel model;
+    model.kit.id = "FUT01";
+    model.content = fake.contentStatus;
+    button.update (model);
+    REQUIRE (button.isEnabled());
+    DrumKitHandoffs os;
+    os.hook (button);
+    fake.drumKitOutcome = [] (int) { return savedKit (5, false); };
+
+    CHECK_FALSE (button.keyPressed (juce::KeyPress (juce::KeyPress::spaceKey))); // left to the host
+    CHECK (fake.drumKitRequests == 0);
+
+    CHECK (button.keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+    CHECK (fake.drumKitRequests == 1);
+    REQUIRE (os.revealed.size() == 1);
+    CHECK (os.revealed[0] == savedKit (5).sfz);
+
+    const auto handler = button.createAccessibilityHandler();
+    REQUIRE (handler != nullptr);
+    CHECK (handler->getRole() == juce::AccessibilityRole::button);
+    CHECK (handler->getActions().invoke (juce::AccessibilityActionType::press));
+    CHECK (fake.drumKitRequests == 2);
+    CHECK (os.revealed.size() == 2);
+    CHECK (os.dragged.isEmpty());
 }

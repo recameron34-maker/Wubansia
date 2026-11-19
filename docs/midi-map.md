@@ -49,6 +49,8 @@ instrument, and the sound on each key of channels 6, 7 and 8.
   drum tracks as one track, Drums, where the first of them was, every note as it is and note-offs first on a tick; the
   other tracks don't change. A lane drag still gives the lane's own tracks. With Part on Drums (ADR 0029), a Loop or
   Song drag brings the drum tracks alone, as one Drums track when 1 drum track is lit.
+- The drag strip's Drum kit button saves these notes' sounds as a drum kit in your samples folder: a WAV per pad, every
+  layer, and an SFZ file that plays them as Wubansia does (ADR 0030).
 
 ## Conventions
 - **Roots.** Every pitched sample is triggered at its musical root: root each file at its MIDI number. The sample names
