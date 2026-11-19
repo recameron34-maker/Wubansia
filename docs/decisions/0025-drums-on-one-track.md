@@ -25,6 +25,7 @@ What the 16 Loop and Song files hold, checked on the content:
 2. **Lane drags don't change.** A lane is already one track, except FUT04's kick lane (Kick and Rumble): its rumble needs a gated pad of its own anyway, and merging it would rename that kit's lane files.
 3. **Phrase drags don't change**: phrase files hold no drums.
 4. **No Drums-only chip**: the strip has no room (ADR 0024). The switch lit and the six other lanes muted give the conductor and `Drums` from Loop or Song.
+   Superseded by ADR 0029: Drums under Part.
 5. **With fewer than two drum tracks left after the mutes, the drag is the switch-off drag**, the same name and bytes: there is nothing to merge.
 6. **`content/midi`, the region files and the embedded MIDI don't change**: the merge runs at drag time, on the embedded bytes.
 
