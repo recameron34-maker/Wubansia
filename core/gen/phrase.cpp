@@ -1,4 +1,4 @@
-// The phrase library (phrase.h, ADR 0031): the spec and its loader, the generator, its checks, names and files. The library is still a stub.
+// The phrase library (phrase.h, ADR 0031): the spec and its loader, the generator, its checks, names and files. The library: its choice, its file, More.
 
 #include "gen/phrase.h"
 
@@ -7,6 +7,7 @@
 #include "gen/theory.h"
 #include "util/ints.h"
 #include "util/file_io.h"
+#include "util/sha256.h"
 
 #include <algorithm>
 #include <charconv>
@@ -1023,17 +1024,176 @@ namespace wubansia::gen
         return midi::writeSmf (phraseSongSpec (spec, phrase, name));
     }
 
-    std::vector<LibraryRow> selectLibrary (const PhraseSpec&, std::uint64_t) { return {}; }
-    std::string libraryJson (const PhraseSpec&, std::string_view, const std::vector<LibraryRow>&) { return {}; }
-    util::Result<PhraseLibrary> parsePhraseLibrary (std::string_view, std::string_view source)
+    // ------------------------------------------------------------------ the library
+
+    namespace
     {
-        return util::Result<PhraseLibrary>::failure (std::string (source) + ": not there yet");
+        LibraryRow rowOf (const PhraseSpec& spec, const Phrase& p)
+        {
+            LibraryRow r;
+            r.kind = p.kind;
+            r.seed = p.seed;
+            r.id = phraseId (p.kind, p.seed);
+            r.name = phraseName (spec, p.kind, p.seed);
+            r.form = p.form;
+            const PhraseChecks c = checkPhrase (spec, p);
+            r.notes = c.notes;
+            r.low = c.low;
+            r.high = c.high;
+            r.tags = phraseTags (spec, p);
+            const auto bytes = phraseSmf (spec, p, r.name);
+            r.sha256 = bytes.ok() ? util::sha256Hex (bytes.value) : std::string();
+            return r;
+        }
+
+        bool apart (const PhraseSpec& spec, const Phrase& p, const std::vector<Phrase>& kept)
+        {
+            return std::all_of (kept.begin(), kept.end(), [&] (const Phrase& q) { return phraseSimilarity (p, q) < spec.nearDuplicate; });
+        }
+
+        bool isCut (const PhraseKindSpec& ks, std::uint64_t seed) { return std::find (ks.cut.begin(), ks.cut.end(), seed) != ks.cut.end(); }
+
+        std::string jsonQuoted (std::string_view s)
+        {
+            std::string out = "\"";
+            for (const char c : s)
+            {
+                if (c == '"' || c == '\\')
+                    out += '\\';
+                out += c;
+            }
+            return out + "\"";
+        }
     }
 
-    MorePress morePhrases (const PhraseSpec&, PhraseKind, std::uint64_t fromSeed, std::span<const Phrase>, std::int32_t, std::int32_t)
+    std::vector<LibraryRow> selectLibrary (const PhraseSpec& spec, std::uint64_t scanLimit)
+    {
+        // Pass 1: every kind's first passing seeds, cuts ignored, none a near-duplicate of anything kept before it.
+        std::vector<Phrase> kept;
+        std::array<std::uint64_t, phraseKindCount> next {};
+        for (std::size_t k = 0; k < phraseKindCount; ++k)
+        {
+            const auto kind = static_cast<PhraseKind> (k);
+            std::int32_t have = 0;
+            std::uint64_t seed = 0;
+            for (; seed < scanLimit && have < spec.kinds[k].quota; ++seed)
+            {
+                Phrase p = generatePhrase (spec, kind, seed);
+                if (!checkPhrase (spec, p).pass() || !apart (spec, p, kept))
+                    continue;
+                kept.push_back (std::move (p));
+                ++have;
+            }
+            next[k] = seed;
+        }
+        // Pass 2: the cut rows go; each kind left short, in kind order, scans on from where pass 1 stopped.
+        std::erase_if (kept, [&] (const Phrase& p) {
+            const PhraseKindSpec& ks = spec.kinds[static_cast<std::size_t> (p.kind)];
+            return ks.cutAll || isCut (ks, p.seed);
+        });
+        for (std::size_t k = 0; k < phraseKindCount; ++k)
+        {
+            const PhraseKindSpec& ks = spec.kinds[k];
+            if (ks.cutAll)
+                continue;
+            const auto kind = static_cast<PhraseKind> (k);
+            auto have = static_cast<std::int32_t> (std::count_if (kept.begin(), kept.end(), [kind] (const Phrase& p) { return p.kind == kind; }));
+            for (std::uint64_t seed = next[k]; seed < scanLimit && have < ks.quota; ++seed)
+            {
+                if (isCut (ks, seed))
+                    continue;
+                Phrase p = generatePhrase (spec, kind, seed);
+                if (!checkPhrase (spec, p).pass() || !apart (spec, p, kept))
+                    continue;
+                kept.push_back (std::move (p));
+                ++have;
+            }
+        }
+        std::stable_sort (kept.begin(), kept.end(), [] (const Phrase& a, const Phrase& b) { return a.kind < b.kind || (a.kind == b.kind && a.seed < b.seed); });
+        std::vector<LibraryRow> rows;
+        rows.reserve (kept.size());
+        for (const Phrase& p : kept)
+            rows.push_back (rowOf (spec, p));
+        return rows;
+    }
+
+    std::string libraryJson (const PhraseSpec& spec, std::string_view specText, const std::vector<LibraryRow>& rows)
+    {
+        std::string out = "{\n  \"format\": 1,\n  \"kit\": " + jsonQuoted (spec.kitId) + ",\n  \"spec\": \""
+                          + util::sha256Hex (std::span (reinterpret_cast<const std::uint8_t*> (specText.data()), specText.size())) + "\",\n  \"phrases\": [\n";
+        for (std::size_t i = 0; i < rows.size(); ++i)
+        {
+            const LibraryRow& r = rows[i];
+            std::string tags;
+            for (const auto& t : r.tags)
+                tags += (tags.empty() ? "" : ", ") + jsonQuoted (t);
+            out += "    { \"id\": " + jsonQuoted (r.id) + ", \"name\": " + jsonQuoted (r.name) + ", \"kind\": " + jsonQuoted (phraseKindIds[static_cast<std::size_t> (r.kind)])
+                   + ", \"seed\": " + std::to_string (r.seed) + ", \"form\": " + std::to_string (r.form) + ", \"notes\": " + std::to_string (r.notes)
+                   + ", \"low\": " + std::to_string (r.low) + ", \"high\": " + std::to_string (r.high) + ", \"tags\": [" + tags + "], \"sha256\": " + jsonQuoted (r.sha256)
+                   + " }" + (i + 1 < rows.size() ? "," : "") + "\n";
+        }
+        return out + "  ]\n}\n";
+    }
+
+    util::Result<PhraseLibrary> parsePhraseLibrary (std::string_view text, std::string_view source)
+    {
+        using R = util::Result<PhraseLibrary>;
+        const auto parsed = json::parse (text);
+        if (!parsed.ok())
+            return R::failure (std::string (source) + ": " + parsed.error);
+        json::Errors errors { std::string (source) };
+        const json::Node root = json::root (parsed.value, errors);
+        root.only ({ "format", "kit", "spec", "phrases" });
+        PhraseLibrary lib;
+        (void) root["format"].int32 (1, 1);
+        lib.kitId = root["kit"].string (1, 16);
+        lib.specSha256 = root["spec"].string (64, 64);
+        const json::Node phrases = root["phrases"];
+        for (std::size_t i = 0; i < phrases.size(); ++i)
+        {
+            const json::Node p = phrases.at (i);
+            p.only ({ "id", "name", "kind", "seed", "form", "notes", "low", "high", "tags", "sha256" });
+            LibraryRow r;
+            r.id = p["id"].string (1, 64);
+            r.name = p["name"].string (1, 64);
+            const std::string kind = p["kind"].string();
+            const auto k = phraseKindFromId (kind);
+            if (!k)
+                p["kind"].fail ("unknown kind \"" + kind + "\"");
+            else
+                r.kind = *k;
+            r.seed = static_cast<std::uint64_t> (p["seed"].integer (0, static_cast<std::int64_t> (firstMoreSeed) - 1));
+            if (k && r.id != phraseId (r.kind, r.seed))
+                p["id"].fail ("the id of a " + kind + " at seed " + std::to_string (r.seed) + " is \"" + phraseId (r.kind, r.seed) + "\", not \"" + r.id + "\"");
+            r.form = p["form"].int32 (0, 3);
+            r.notes = p["notes"].int32 (0, 4096);
+            r.low = p["low"].int32 (0, 127);
+            r.high = p["high"].int32 (0, 127);
+            r.tags = p["tags"].strings (0, 8);
+            r.sha256 = p["sha256"].string (64, 64);
+            lib.rows.push_back (std::move (r));
+        }
+        if (errors.any())
+            return R::failure (errors.first());
+        return R::success (std::move (lib));
+    }
+
+    MorePress morePhrases (const PhraseSpec& spec, PhraseKind kind, std::uint64_t fromSeed, std::span<const Phrase> against, std::int32_t count,
+        std::int32_t maxCandidates)
     {
         MorePress m;
-        m.nextSeed = fromSeed;
+        std::vector<Phrase> kept (against.begin(), against.end());
+        std::uint64_t seed = std::max (fromSeed, firstMoreSeed);
+        for (; m.candidates < maxCandidates && static_cast<std::int32_t> (m.phrases.size()) < count; ++seed)
+        {
+            ++m.candidates;
+            Phrase p = generatePhrase (spec, kind, seed);
+            if (!checkPhrase (spec, p).pass() || !apart (spec, p, kept))
+                continue;
+            kept.push_back (p);
+            m.phrases.push_back (std::move (p));
+        }
+        m.nextSeed = seed;
         return m;
     }
 }
