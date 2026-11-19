@@ -1131,8 +1131,8 @@ TEST_CASE ("exportDrumKit takes the current kit, its content, the samples folder
     INFO (b.problem);
     REQUIRE (b.stage == DrumKitStage::ready);
     CHECK (b.kit == "DRK01");
-    CHECK (b.folder == samples.folder.getChildFile ("DRK01 Synthetic Test Kit Drum Kit"));
-    CHECK (b.sfz.getFileName() == "DRK01 Synthetic Test Kit Drum Kit - Kick B.sfz");
+    CHECK (b.folder == samples.folder.getChildFile ("DRK01 Synthetic 01 Drum Kit"));
+    CHECK (b.sfz.getFileName() == "DRK01 Synthetic 01 Drum Kit - Kick B.sfz");
     CHECK_FALSE (plugin.content->foldersRead().empty());
     for (const auto& folder : plugin.content->foldersRead())
         CHECK (folder == SyntheticContent::folderOf ("DRK01"));
@@ -1143,7 +1143,7 @@ TEST_CASE ("exportDrumKit takes the current kit, its content, the samples folder
     CHECK (second != first);
     const auto a = waitForDrumKit (controller, second, DrumKitStage::ready);
     REQUIRE (a.stage == DrumKitStage::ready);
-    CHECK (a.sfz.getFileName() == "DRK01 Synthetic Test Kit Drum Kit - Kick A.sfz");
+    CHECK (a.sfz.getFileName() == "DRK01 Synthetic 01 Drum Kit - Kick A.sfz");
     CHECK (a.folder == b.folder);
     CHECK_FALSE (a.wrote);
 
