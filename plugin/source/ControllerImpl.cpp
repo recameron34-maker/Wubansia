@@ -558,7 +558,19 @@ namespace wubansia
         return folders;
     }
 
-    std::shared_ptr<const PatternView> ControllerImpl::pattern (engine::PlayMode, engine::Variant) const { return nullptr; }
+    std::shared_ptr<const PatternView> ControllerImpl::pattern (engine::PlayMode mode, engine::Variant variant) const
+    {
+        // The looks' notes (ADR 0032): parsed from the embedded MIDI once per kit, mode and variant, then the same object.
+        const auto kit = currentKit();
+        const auto wanted = mode == engine::PlayMode::song ? engine::PlayMode::song : engine::PlayMode::loop;
+        if (patternCache != nullptr && patternCache->kit == kit && patternCache->mode == wanted && patternCache->variant == variant)
+            return patternCache;
+        const auto* entry = entryOf (processor, kit);
+        if (entry == nullptr)
+            return nullptr;
+        patternCache = patternOf (*entry, wanted, variant);
+        return patternCache;
+    }
 
     void ControllerImpl::setScopeOn (bool) {}
 

@@ -72,13 +72,20 @@ TEST_CASE ("patternOf reads each kit's Loop by lane in 16ths", "[content][looks]
 
     const auto fut04 = patternOf (entry ("FUT04"), PlayMode::loop, Variant::vox);
     REQUIRE (fut04->steps == 64);
-    const auto kicks = fut04->notesIn (Lane::kick, 0, 16);
-    REQUIRE (kicks.size() == 4);
-    for (std::size_t i = 0; i < kicks.size(); ++i)
-    {
-        CHECK (kicks[i].step == (std::int32_t) i * 4);
-        CHECK (kicks[i].length == 4);
-    }
+    // Four on the floor (key 36, a 16th each) over a held sub (key 35, two bars).
+    std::vector<std::int32_t> hits;
+    for (const auto& n : fut04->notesIn (Lane::kick, 0, 16))
+        if (n.key == 36)
+        {
+            hits.push_back (n.step);
+            CHECK (n.length == 1);
+        }
+        else
+        {
+            CHECK (n.key == 35);
+            CHECK (n.length == 32);
+        }
+    CHECK (hits == std::vector<std::int32_t> { 0, 4, 8, 12 });
 
     const auto fut02 = patternOf (entry ("FUT02"), PlayMode::loop, Variant::vox);
     CHECK (fut02->notesIn (Lane::lead, 0, 16).size() == 15);
@@ -142,13 +149,14 @@ TEST_CASE ("the chord changes are the voicing's onsets, named", "[content][looks
         CHECK ((change.name == "F#m9" || change.name == "Bm9"));
         CHECK (change.end > change.step);
     }
-    // Bar by bar F#m9 and Bm9, held between the stabs.
-    for (int bar = 0; bar < 4; ++bar)
-        for (int step = bar * 16; step < bar * 16 + 16; ++step)
-        {
-            INFO ("step " << step);
-            CHECK (fut01->chordAt (step) == (bar % 2 == 0 ? "F#m9" : "Bm9"));
-        }
+    // Bar by bar F#m9 and Bm9 from the first stab on the third 16th, each pushed a 16th ahead of the beat, and held
+    // between the stabs.
+    CHECK (fut01->chords.front().step == 2);
+    for (int step = 0; step < 64; ++step)
+    {
+        INFO ("step " << step);
+        CHECK (fut01->chordAt (step) == (step < 2 ? "" : ((step - 2) / 16) % 2 == 0 ? "F#m9" : "Bm9"));
+    }
 
     const auto fut02 = patternOf (entry ("FUT02"), PlayMode::loop, Variant::vox);
     const auto fut04 = patternOf (entry ("FUT04"), PlayMode::loop, Variant::vox);
