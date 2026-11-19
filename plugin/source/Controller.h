@@ -66,6 +66,7 @@ namespace wubansia
         // Bit per lane with a track in the kit's Loop and Song files, by engine::timelineIndex: Loop vox, Loop no-vox,
         // Song vox, Song no-vox (ADR 0029). Every lane until the catalog knows better.
         std::array<std::uint32_t, 4> fileLanes { 0x3FFu, 0x3FFu, 0x3FFu, 0x3FFu };
+        juce::StringArray phraseChords; // the chord loop the kit's phrases are written over (ADR 0031): FUT01's "F#m9", "Bm9"
     };
 
     // A Song-mode section of the current kit.
@@ -103,14 +104,15 @@ namespace wubansia
         loop, // the 4-bar loop, the vox switch's file, muted lanes left out
         song, // the extended mix, the same way
         lane, // one lane's tracks from the current mode's file
-        phrase // one phrase file
+        phrase, // one of the kit's own phrase files
+        generatedPhrase // a phrase of the library or More (ADR 0031), by its PhraseInfo id
     };
 
     struct DragRequest
     {
         DragWhat what = DragWhat::loop;
         engine::Lane lane = engine::Lane::kick; // DragWhat::lane
-        juce::String phraseFile; // DragWhat::phrase: one of the kit's own files, a PhraseInfo id from phrases ()
+        juce::String phraseFile; // DragWhat::phrase and generatedPhrase: a PhraseInfo id from phrases () (the kit's own: its file name)
 
         friend bool operator== (const DragRequest&, const DragRequest&) = default;
     };
@@ -141,18 +143,48 @@ namespace wubansia
         return 0u;
     }
 
-    // The Phrases drawer (ADR 0031): where a phrase comes from. Part 1 lists only the kit's own.
+    // The Phrases drawer (ADR 0031): where a phrase comes from.
     enum class PhraseOrigin : std::uint8_t { library, more, kit };
+
+    // One note of a phrase's roll: its 16th from bar 1 (0-127), its key and its length in 16ths (at least 1).
+    struct PhraseNoteView
+    {
+        std::uint8_t step = 0, key = 0, len16 = 1;
+
+        friend bool operator== (const PhraseNoteView&, const PhraseNoteView&) = default;
+    };
 
     struct PhraseInfo
     {
-        juce::String id; // the kit's own: its file name ("FUT01_Phrase_EPianoStabRhythm_2bars.mid"), which DragWhat::phrase drags
-        juce::String name; // "E Piano Stab Rhythm" (phraseTitle () without the bar count); the lead line "Lead Chrome Pluck"
-        juce::String kind; // a kind id; the kit's own: "kit"
+        juce::String id; // "hook-5", "arp-1000003"; the kit's own: its file name ("FUT01_Phrase_EPianoStabRhythm_2bars.mid")
+        juce::String name; // "Night Bus"; the kit's own: phraseTitle () without the bar count ("E Piano Stab Rhythm", "Lead Chrome Pluck")
+        juce::String kind; // a kind id ("hook"... "bounce"); the kit's own: "kit"
         PhraseOrigin origin = PhraseOrigin::kit;
-        int bars = 0; // 2 or 4 for the kit's own
+        int bars = 0; // 8; the kit's own 2 or 4
+        std::uint64_t seed = 0; // the library's and More's; 0 for the kit's own
+        juce::StringArray tags; // "steady", "high", "pedal"...: the library's and More's
+        std::vector<PhraseNoteView> roll;
+        juce::String sound; // what it plays on: the lane's label for a track of the kit's own lanes ("Pluck"), else the track's name ("Glass Ping")
+        std::uint32_t lanes = 0; // bit per engine::Lane it plays on; those lanes of the groove sit out while it sounds
+        bool kept = false; // starred: listed under Kept, in every project (settings.xml)
+        bool fresh = false; // made by More this session, not yet played or dragged: the tile's New badge
 
         friend bool operator== (const PhraseInfo&, const PhraseInfo&) = default;
+    };
+
+    // Where the Phrases drawer's audition stands (auditionPhrase () gives each request a ticket).
+    struct PhraseAuditionState
+    {
+        std::uint32_t sounding = 0; // the ticket whose phrase plays now; 0 when none
+        std::uint32_t latest = 0; // the last ticket auditionPhrase () gave
+        juce::String id; // latest's PhraseInfo id
+        bool waiting = false; // latest is being made, waits for a block, or waits for its chord line
+        int startsAtBar = 0; // 1-based bar of the playing timeline where latest's bar 1 plays; 0 unknown
+        bool startedTransport = false; // the audition started Preview (nothing played), and Stop ends both
+        bool hostSilent = false; // latest got no block for 300 ms, before or after one took it, and was dropped: the host runs no audio
+        juce::String problem; // why latest can't play, for people; empty while it can
+
+        friend bool operator== (const PhraseAuditionState&, const PhraseAuditionState&) = default;
     };
 
     // The Samples drawer (ADR 0024): every kit's sounds, from its embedded kit.json.
@@ -306,8 +338,22 @@ namespace wubansia
         virtual std::uint32_t exportDrumKit() = 0;
         virtual DrumKitStatus drumKitStatus() const = 0;
 
-        // The Phrases drawer (ADR 0031). Part 1: the kit's own phrases; step `phrases` adds the library, More and Keep.
-        virtual std::vector<PhraseInfo> phrases() const = 0; // the current kit's: its phrase files, then its lead line
-        virtual std::uint64_t phrasesGeneration() const = 0; // bumps whenever phrases () would change (a kit change)
+        // The Phrases drawer (ADR 0031): the current kit's library (its 64 phrases), its kept and More phrases and its own
+        // phrase files and lead line. phrases () gives what the phrase thread has made so far for the current kit (the
+        // first call starts it, nothing before: an empty list until it is done); phrasesGeneration () moves on whenever
+        // phrases () would change (a kit change, a list made, More, Keep, a New badge gone).
+        virtual std::vector<PhraseInfo> phrases() const = 0;
+        virtual std::uint64_t phrasesGeneration() const = 0;
+        // 8 new phrases of kind ("" for one of each kind) after the current kit's list, made on the phrase thread; false
+        // while a press is still being made or for an unknown kind.
+        virtual bool morePhrases (const juce::String& kind) = 0;
+        // Plays the phrase over the groove from the next chord line, on the kit's lead sound, in place of the lanes it
+        // plays on; when nothing plays it starts Preview (stopPhraseAudition () ends both). Its ticket, or 0 for an id
+        // phrases () doesn't list.
+        virtual std::uint32_t auditionPhrase (const juce::String& id) = 0;
+        virtual void stopPhraseAudition() = 0;
+        virtual PhraseAuditionState phraseAuditionState() const = 0;
+        // Stars a phrase (or takes the star off): kept per user in settings.xml, never in project state.
+        virtual void setPhraseKept (const juce::String& id, bool kept) = 0;
     };
 }

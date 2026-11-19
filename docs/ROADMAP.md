@@ -170,7 +170,7 @@ Goal: test all four goals small, on one kit: FUT01 "Alloy Signal", sci-fi club Ã
     with tempo, key and markers; Drums with 1 drum track is one track for your drum rack.
   - [x] Drum kits (ADR 0030): the Drum kit button saves the playing kit's drums as a folder: a WAV per pad, every
     layer and round robin, an SFZ file and a README.
-  - [ ] Phrases (ADR 0031): 64 eight-bar phrases per kit over its own chords, in eight kinds; click to hear one with
+  - [x] Phrases (ADR 0031): 64 eight-bar phrases per kit over its own chords, in eight kinds; click to hear one with
     the groove, drag it, More for 8 new ones, a star to keep one.
   - [ ] Four looks (ADR 0032): night bus, mission HUD, deep glass and machine room, each switching with its kit,
     every light real, fonts built in.

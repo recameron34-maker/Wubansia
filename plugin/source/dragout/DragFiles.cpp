@@ -481,6 +481,7 @@ namespace wubansia::dragout
             case DragWhat::song: return state.part == DragPart::all ? wholeDrag (kit, files, state, true) : partDrag (kit, files, state, true);
             case DragWhat::lane: return laneDrag (kit, files, state, request.lane);
             case DragWhat::phrase: return phraseDrag (kit, files, state, request.phraseFile);
+            case DragWhat::generatedPhrase: return DragResult::failure ("a generated phrase's bytes come from the phrase service (makeGeneratedPhraseFile)");
         }
         return DragResult::failure ("an unknown kind of drag");
     }
@@ -506,15 +507,43 @@ namespace wubansia::dragout
         auto made = makeDragFile (kit, files, state, request);
         if (!made.ok())
             return R::failure (std::move (made.error));
+        return writeMade (made.value, folder);
+    }
 
+    util::Result<juce::File> writeMade (const DragFile& made, const juce::File& folder)
+    {
+        using R = util::Result<juce::File>;
         if (const auto created = folder.createDirectory(); created.failed())
             return R::failure ("can't make the drag folder " + folder.getFullPathName().toStdString() + ": " + created.getErrorMessage().toStdString());
-        const auto file = folder.getChildFile (juce::String::fromUTF8 (made.value.name.data(), static_cast<int> (made.value.name.size())));
-        if (!file.replaceWithData (made.value.bytes.data(), made.value.bytes.size()))
+        const auto file = folder.getChildFile (juce::String::fromUTF8 (made.name.data(), static_cast<int> (made.name.size())));
+        if (!file.replaceWithData (made.bytes.data(), made.bytes.size()))
             return R::failure ("can't write " + file.getFullPathName().toStdString());
 
         trimCache (folder, kKeepFiles, file);
         return R::success (file);
+    }
+
+    util::Result<DragFile> makeGeneratedPhraseFile (const engine::KitInfo& kit, std::string_view name, std::string_view kindWord,
+        std::span<const std::uint8_t> bytes, const DragState& state)
+    {
+        const auto parsed = midi::readSmf (bytes);
+        if (!parsed.ok())
+            return DragResult::failure ("the phrase " + std::string (name) + ": " + parsed.error);
+        bool synths = false; // For my synths: when a track after the conductor is one it changes (Lead; an extra's pitched track)
+        for (std::size_t i = 1; state.forSynths && i < parsed.value.tracks.size(); ++i)
+            synths = synths || synthPart (kit, midi::trackName (parsed.value.tracks[i])) != midi::SynthPart::asIs;
+        const auto what = "Phrase " + std::string (name) + " " + std::string (kindWord) + " 8 bars" + (synths ? " (synths)" : "");
+        auto made = DragResult::success ({ fileName (kit, what), std::vector<std::uint8_t> (bytes.begin(), bytes.end()) });
+        return synths ? madeForSynths (kit, std::move (made)) : made;
+    }
+
+    util::Result<juce::File> writeGeneratedPhrase (const engine::KitInfo& kit, std::string_view name, std::string_view kindWord,
+        std::span<const std::uint8_t> bytes, const DragState& state, const juce::File& folder)
+    {
+        auto made = makeGeneratedPhraseFile (kit, name, kindWord, bytes, state);
+        if (!made.ok())
+            return util::Result<juce::File>::failure (std::move (made.error));
+        return writeMade (made.value, folder);
     }
 
     void trimCache (const juce::File& folder, int keep, const juce::File& keepFile)

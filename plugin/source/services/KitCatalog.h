@@ -10,6 +10,8 @@
 #include "content/ContentSource.h"
 #include "dragout/DragFiles.h"
 
+#include "gen/phrase.h"
+
 #include "kit/manifest.h"
 #include "mix/mix_config.h"
 #include "sched/timeline.h"
@@ -17,6 +19,7 @@
 
 #include <array>
 #include <atomic>
+#include <optional>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -41,6 +44,11 @@ namespace wubansia
             std::array<std::vector<SectionInfo>, 2> sections; // the Song's, by engine::Variant
             std::vector<dragout::MidiFile> midiFiles; // the kit's MIDI files, as drag-out takes them
             std::vector<SoundInfo> sounds; // sounds::soundsOf (manifest); empty when the manifests don't parse
+            // The Phrases drawer's (ADR 0031): the kit's phrase spec and library rows, parsed once; none, and phraseError
+            // says why, when the kit carries none or they don't parse (the kit itself still loads).
+            std::optional<gen::PhraseSpec> phraseSpec;
+            std::vector<gen::LibraryRow> phraseRows;
+            std::string phraseError;
 
             bool ok() const noexcept { return error.empty(); }
         };

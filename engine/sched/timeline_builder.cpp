@@ -395,7 +395,8 @@ namespace wubansia::engine
         std::stable_sort (timeline.cues.begin(), timeline.cues.end(), bySectionPosition);
 
         // 8. The phrase lanes (P6), on the finished notes and rides.
-        annotatePhrases (timeline, kit);
+        if (options.phrases)
+            annotatePhrases (timeline, kit);
         std::stable_sort (timeline.notes.begin(), timeline.notes.end(), byPosition);
 
         // 9. The chase list.
@@ -409,7 +410,8 @@ namespace wubansia::engine
         }
 
         // 10. The slice notes' twins' ends.
-        buildSliceThrough (timeline);
+        if (options.phrases)
+            buildSliceThrough (timeline);
 
         return util::Result<Timeline>::success (std::move (timeline));
     }

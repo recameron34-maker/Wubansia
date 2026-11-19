@@ -20,6 +20,7 @@
 // Everything process () calls is noexcept and real-time safe: no allocation, no free, no lock, no
 // I/O, no logging, no waiting. Capacities are fixed in prepare ().
 
+#include "audition/phrase_clip.h"
 #include "kit/kit.h"
 #include "rt/pending_slot.h"
 #include "rt/retire_fifo.h"
@@ -29,6 +30,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 namespace wubansia::engine
 {
@@ -121,6 +123,9 @@ namespace wubansia::engine
         std::atomic<std::int32_t> section { -1 }; // index into the playing timeline's sections; -1 before the first
         std::atomic<std::int32_t> voices { 0 }; // sounding voices
         std::atomic<std::int32_t> kitIndex { -1 }; // the adopted Kit's KitInfo::index; -1 with no Kit
+        std::atomic<std::uint32_t> phraseSounding { 0 }; // the ticket of the phrase clip in hand (waiting or sounding); 0: none
+        std::atomic<std::int64_t> phraseStartTicks { -1 }; // 960-PPQ ticks of the host timeline where its bar 1 plays; -1: none
+        std::atomic<std::int64_t> phraseTicks { 0 }; // 960-PPQ ticks from that bar 1 to the block's end: negative while it waits; 0 with no clip
 
         static_assert (std::atomic<double>::is_always_lock_free && std::atomic<float>::is_always_lock_free);
     };
@@ -165,6 +170,26 @@ namespace wubansia::engine
         void process (float* const* out, int numOutputs, int numSamples, const TransportInfo& transport,
             const Controls& controls, const MidiEvent* midi, int numMidi) noexcept;
 
+        // The Phrases drawer's audition (ADR 0031, audition/phrase_clip.h). The phrase thread offers a clip (nullptr
+        // withdraws an offer; latest wins) and gets back the earlier offer if the audio thread never took it; it keeps
+        // every clip until it comes back from offerPhrase () or collectRetiredPhrases (). The Engine never deletes one.
+        const PhraseClip* offerPhrase (const PhraseClip* clip) noexcept { return phrases_.offer (clip); }
+        template <class F>
+        void collectRetiredPhrases (F&& f) noexcept
+        {
+            phrases_.collectRetired (std::forward<F> (f));
+        }
+        // Any thread: clips with a ticket <= this fade out (10 ms) or never play.
+        void stopPhrasesUpTo (std::uint32_t ticket) noexcept { phrases_.stopUpTo (ticket); }
+        // Any thread: an offer waits for the audio thread to take it.
+        bool phraseOffered() const noexcept { return phrases_.pending.pending(); }
+        // Audio thread, the plugin's processBlockBypassed: the offer goes back unplayed.
+        void dropPhraseOffer() noexcept;
+        // Any thread: blocks process () has run. The phrase thread watches it to tell a host that runs no audio.
+        std::uint64_t blocksRun() const noexcept { return phrases_.blocksRun(); }
+        // The phrase thread: the clip in hand goes at the next block if it is the first since `seen` blocks had run.
+        void dropPhrasesIfIdleSince (std::uint64_t seen) noexcept { phrases_.dropIfIdleSince (seen); }
+
         // Constant after prepare (): what the plugin reports to the host.
         int latencySamples() const noexcept;
         double tailSeconds() const noexcept;
@@ -178,5 +203,6 @@ namespace wubansia::engine
         PendingSlot<Kit> pending;
         RetireFifo<Kit, kRetireSlots> retired;
         Telemetry telemetry_;
+        PhraseHandoff phrases_;
     };
 }

@@ -16,6 +16,7 @@
 #include "helpers/fake_controller.h"
 #include "services/KitCatalog.h"
 
+#include "gen/phrase.h"
 #include "kit/channel_map.h"
 #include "kit/manifest.h"
 #include "midi/for_synths.h"
@@ -57,6 +58,9 @@ namespace
     namespace editor = wubansia::editor;
     namespace engine = wubansia::engine;
     namespace midi = wubansia::midi;
+    namespace gen = wubansia::gen;
+    using wubansia::EmbeddedContent;
+    using wubansia::KitCatalog;
     using wubansia::DragRequest;
     using wubansia::DragWhat;
     using engine::Lane;
@@ -2576,9 +2580,8 @@ TEST_CASE ("the drawer's and the MIDI chips' own reveal opens the folder with xd
     // Each component as the plugin builds it, its default hooks untouched: the call the plugin makes, not the helper alone.
     wubansia::test::FakeController fake;
     const editor::SamplesPanel drawer (fake);
-    const editor::PhrasesPanel phrases (fake);
     const editor::DragChip chip (fake, DragRequest {}, "Loop");
-    for (const auto* revealFile : { &drawer.revealFile, &phrases.revealFile, &chip.revealFile })
+    for (const auto* revealFile : { &drawer.revealFile, &chip.revealFile })
     {
         const StubOpener stub;
         CHECK (stub.reveal (*revealFile) == juce::StringArray { "1", stub.kitFolder.getFullPathName() });
@@ -2604,7 +2607,7 @@ TEST_CASE ("the drawer's and the MIDI chips' default hooks are drag-out's own fu
         REQUIRE (drag != nullptr);
         CHECK (*drag == &editor::startExternalDrag);
     }
-    for (auto* revealFile : { &drawer.revealFile, &phrases.revealFile, &chip.revealFile })
+    for (auto* revealFile : { &drawer.revealFile, &chip.revealFile }) // the Phrases drawer shows no file: a click plays
     {
         const auto* reveal = revealFile->target<Reveal>();
         REQUIRE (reveal != nullptr);
@@ -2639,4 +2642,111 @@ TEST_CASE ("an OS drag from the drawer or a MIDI chip hands over its one file as
     CHECK (from == &source);
     CHECK_FALSE (called);
     CHECK_FALSE (editor::handOverDrag (file, source, nullptr));
+}
+
+// The Phrases drawer's library and More phrases (ADR 0031): their bytes come from the phrase service (gen::phraseSmf),
+// their names and For my synths from makeGeneratedPhraseFile.
+namespace
+{
+    const KitCatalog& embeddedCatalog()
+    {
+        static const KitCatalog catalog (EmbeddedContent::sources());
+        return catalog;
+    }
+
+    std::vector<std::uint8_t> rowBytes (const KitCatalog::Entry& entry, const gen::LibraryRow& row)
+    {
+        const auto phrase = gen::generatePhrase (*entry.phraseSpec, row.kind, row.seed);
+        auto smf = gen::phraseSmf (*entry.phraseSpec, phrase, row.name);
+        REQUIRE (smf.ok());
+        return smf.value;
+    }
+
+    // Every note of a file, by track: (tick, key, length).
+    std::vector<std::array<std::int64_t, 3>> notesOf (std::span<const std::uint8_t> bytes)
+    {
+        const auto file = midi::readSmf (bytes);
+        REQUIRE (file.ok());
+        std::vector<std::array<std::int64_t, 3>> notes;
+        for (const auto& track : file.value.tracks)
+            for (std::size_t i = 0; i < track.events.size(); ++i)
+                if (track.events[i].isNoteOn())
+                    for (std::size_t j = i + 1; j < track.events.size(); ++j)
+                        if (track.events[j].isNoteOff() && track.events[j].data1 == track.events[i].data1)
+                        {
+                            notes.push_back ({ track.events[i].tick, track.events[i].data1, track.events[j].tick - track.events[i].tick });
+                            break;
+                        }
+        return notes;
+    }
+}
+
+TEST_CASE ("a generated phrase drags as '<KIT> ... - Phrase <Name> <Kind> 8 bars.mid'", "[dragout][phrases]")
+{
+    for (const auto& entry : embeddedCatalog().entries())
+    {
+        INFO (entry.id);
+        REQUIRE (entry.phraseSpec.has_value());
+        REQUIRE (entry.phraseRows.size() == 64);
+        const auto& row = entry.phraseRows.front();
+        const auto bytes = rowBytes (entry, row);
+        const auto made = dragout::makeGeneratedPhraseFile (entry.info, row.name, gen::phraseKindFileWord (row.kind), bytes, {});
+        REQUIRE (made.ok());
+        CHECK (made.value.name
+               == dragout::safeName (entry.info.id + " " + entry.info.title + " " + std::to_string (entry.info.bpm) + " " + dragout::shortKey (entry.info.key)
+                                     + " " + entry.info.camelot + " - Phrase " + row.name + " Hook 8 bars")
+                      + ".mid");
+        CHECK (made.value.bytes == bytes); // as the generator wrote it
+    }
+    const auto& fut01 = *embeddedCatalog().find ("FUT01");
+    const auto made = dragout::makeGeneratedPhraseFile (fut01.info, "Night Bus", "Hook", rowBytes (fut01, fut01.phraseRows.front()), {});
+    REQUIRE (made.ok());
+    CHECK (made.value.name == "FUT01 Alloy Signal 134 F#m 11A - Phrase Night Bus Hook 8 bars.mid");
+    CHECK_FALSE (dragout::makeGeneratedPhraseFile (fut01.info, "Night Bus", "Hook", std::vector<std::uint8_t> { 1, 2, 3 }, {}).ok());
+
+    // Written to the drag folder as every drag is.
+    const auto folder = juce::File::getSpecialLocation (juce::File::tempDirectory).getNonexistentChildFile ("WubansiaPhraseDrag", "", false);
+    const auto written = dragout::writeGeneratedPhrase (fut01.info, "Night Bus", "Hook", rowBytes (fut01, fut01.phraseRows.front()), {}, folder);
+    REQUIRE (written.ok());
+    CHECK (written.value.getFileName() == "FUT01 Alloy Signal 134 F#m 11A - Phrase Night Bus Hook 8 bars.mid");
+    CHECK (written.value.getSize() == (juce::int64) rowBytes (fut01, fut01.phraseRows.front()).size());
+    folder.deleteRecursively();
+}
+
+TEST_CASE ("For my synths: ' (synths)' and only velocities change", "[dragout][phrases]")
+{
+    dragout::DragState synths;
+    synths.forSynths = true;
+    for (const auto& entry : embeddedCatalog().entries())
+        for (const auto& row : entry.phraseRows)
+        {
+            INFO (entry.id << " " << row.id);
+            const auto bytes = rowBytes (entry, row);
+            const auto made = dragout::makeGeneratedPhraseFile (entry.info, row.name, gen::phraseKindFileWord (row.kind), bytes, synths);
+            REQUIRE (made.ok());
+            CHECK_THAT (made.value.name, Catch::Matchers::EndsWith (" 8 bars (synths).mid"));
+            CHECK (notesOf (made.value.bytes) == notesOf (bytes)); // no tick, key or length moves
+            const auto file = midi::readSmf (made.value.bytes);
+            REQUIRE (file.ok());
+            for (const auto& track : file.value.tracks)
+                for (const auto& event : track.events)
+                    if (event.isNoteOn())
+                        CHECK (event.data2 >= 72);
+        }
+}
+
+TEST_CASE ("every library phrase's drag name is unique", "[dragout][phrases]")
+{
+    for (const auto& entry : embeddedCatalog().entries())
+    {
+        INFO (entry.id);
+        std::set<std::string> names;
+        for (const auto& row : entry.phraseRows)
+        {
+            const auto made = dragout::makeGeneratedPhraseFile (entry.info, row.name, gen::phraseKindFileWord (row.kind), rowBytes (entry, row), {});
+            REQUIRE (made.ok());
+            CHECK (names.insert (made.value.name).second);
+        }
+        CHECK (names.size() == 64);
+    }
 }

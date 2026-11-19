@@ -1,9 +1,11 @@
 #include "PhrasesPanel.h"
+
 #include "ExternalDrag.h"
-#include "SamplesPanel.h" // announceToScreenReader
+#include "SamplesPanel.h" // announceToScreenReader, noSoundLine
 
-#include "dragout/DragFiles.h"
+#include "gen/phrase.h"
 
+#include <array>
 #include <cmath>
 
 namespace wubansia::editor
@@ -12,22 +14,65 @@ namespace wubansia::editor
     {
         // The drawer's rows inside its 1080 x 396, and the grid's margins: four 256 px tiles 8 apart are 1048 px, with
         // 16 px on the left and room for the scroll bar on the right.
-        constexpr int headerHeight = 44, filterHeight = 32, gridHeight = 280, footerHeight = 40, margin = 16;
+        constexpr int headerHeight = 44, filterHeight = 32, gridHeight = 280, footerHeight = 40, margin = 16, filterGap = 4;
 
-        // Focus order (Tab): the filter, the grid, then Close.
-        constexpr int filterOrder = 1, gridOrder = 2, closeOrder = 3;
+        // Focus order (Tab): the filters, the grid (and in it the selected tile's star), More, Stop, then Close.
+        constexpr int filterOrder = 1, gridOrder = 20, moreOrder = 21, stopOrder = 22, closeOrder = 23;
+
+        // The filter row: its key, its words, and the plural the More line uses.
+        struct FilterWords
+        {
+            const char* key;
+            const char* name;
+            const char* plural;
+        };
+        constexpr std::array<FilterWords, 11> kFilters { { { "all", "All", "phrases" }, { "hook", "Hooks", "hooks" },
+            { "answer", "Call & answer", "call-and-answer phrases" }, { "period", "Periods", "periods" }, { "sparse", "Sparse", "sparse phrases" },
+            { "arp", "Arps", "arps" }, { "stabs", "Stabs", "stab phrases" }, { "counter", "Counter-lines", "counter-lines" },
+            { "bounce", "Bounce", "bounce phrases" }, { "kit", "From the kit", "" }, { "kept", "Kept", "" } } };
+
+        bool isKind (const juce::String& key) { return gen::phraseKindFromId (key.toStdString()).has_value(); }
+
+        juce::String pluralOf (const juce::String& key)
+        {
+            for (const auto& f : kFilters)
+                if (key == f.key && juce::String (f.plural).isNotEmpty())
+                    return f.plural;
+            return "phrases";
+        }
+
+        // "Hook", "Call & answer"...: the kind's word, or "" for the kit's own.
+        juce::String kindWord (const PhraseInfo& p)
+        {
+            const auto kind = gen::phraseKindFromId (p.kind.toStdString());
+            return kind ? juce::String (std::string (gen::phraseKindWord (*kind))) : juce::String();
+        }
+
+        bool inFilter (const PhraseInfo& p, const juce::String& key)
+        {
+            if (key == "all")
+                return true;
+            if (key == "kit")
+                return p.origin == PhraseOrigin::kit;
+            if (key == "kept")
+                return p.kept;
+            return p.kind == key;
+        }
 
         juce::String barsText (int bars) { return juce::String (bars) + (bars == 1 ? " bar" : " bars"); }
-
         juce::Font filterFont() { return uiFont (12.5f, true, 0.02f); }
         juce::Font countFont() { return uiFont (11.5f, true); }
+
+        const juce::String idleLine ("Click a phrase to hear it with the groove; drag it into your DAW as MIDI.");
+        const juce::String ellipsis (juce::CharPointer_UTF8 ("\xe2\x80\xa6"));
+        const juce::String enDash (juce::CharPointer_UTF8 ("\xe2\x80\x93"));
     }
 
     //==============================================================================================================
     PhraseFilter::PhraseFilter (const juce::String& name)
         : juce::Button (name)
     {
-        setClickingTogglesState (false); // the only filter: always shown
+        setClickingTogglesState (false);
         updateTitle();
     }
 
@@ -46,12 +91,18 @@ namespace wubansia::editor
         return getButtonText() + " " + juce::String (phrases);
     }
 
+    void PhraseFilter::setPadding (int pixels)
+    {
+        padding = pixels;
+        repaint();
+    }
+
     int PhraseFilter::fitWidth() const
     {
-        // As paintButton () lays it out: 1 px of rim and 14 of padding each side, the name, 7 px, the count.
+        // As paintButton () lays it out: 1 px of rim and the padding each side, the name, 7 px, the count.
         const auto name = juce::GlyphArrangement::getStringWidth (filterFont(), getButtonText());
         const auto count = juce::GlyphArrangement::getStringWidth (countFont(), juce::String (phrases));
-        return (int) std::ceil (1.0f + 14.0f + name + 7.0f + count + 14.0f + 1.0f) + 1;
+        return (int) std::ceil (1.0f + (float) padding + name + 7.0f + count + (float) padding + 1.0f) + 1;
     }
 
     void PhraseFilter::updateTitle()
@@ -71,13 +122,13 @@ namespace wubansia::editor
             g.setColour (accent.withAlpha (0.75f));
             g.drawRoundedRectangle (area.reduced (0.5f), corner, 1.0f);
         }
-        else if (isMouseOver)
+        else if (isMouseOver || hasKeyboardFocus (false))
         {
-            g.setColour (juce::Colours::white.withAlpha (0.05f));
+            g.setColour (juce::Colours::white.withAlpha (hasKeyboardFocus (false) ? 0.09f : 0.05f));
             g.fillRoundedRectangle (area, corner);
         }
 
-        auto line = area.withTrimmedLeft (14.0f).withTrimmedRight (14.0f).translated (0.0f, isButtonDown ? 0.6f : 0.0f);
+        auto line = area.withTrimmedLeft ((float) padding).withTrimmedRight ((float) padding).translated (0.0f, isButtonDown ? 0.6f : 0.0f);
         g.setFont (filterFont());
         g.setColour (shown ? colours::text : colours::textDim);
         const auto name = getButtonText();
@@ -89,70 +140,176 @@ namespace wubansia::editor
     }
 
     //==============================================================================================================
+    PhraseStar::PhraseStar()
+        : juce::Button ("Keep")
+    {
+        setClickingTogglesState (false); // the Controller keeps it; the next list lights it
+        setTooltip ("Keep this phrase: it stays under Kept for you, in every project");
+        setWantsKeyboardFocus (false);
+    }
+
+    void PhraseStar::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
+    {
+        const auto accent = accentOf (*this);
+        const auto area = getLocalBounds().toFloat().reduced (2.0f);
+        juce::Path star;
+        star.addStar (area.getCentre(), 5, area.getWidth() * 0.22f, area.getWidth() * 0.5f, 0.0f);
+        if (getToggleState())
+        {
+            g.setColour (accent.brighter (isMouseOver ? 0.4f : 0.15f));
+            g.fillPath (star);
+        }
+        g.setColour (getToggleState() ? accent : colours::textFaint.brighter (isMouseOver || hasKeyboardFocus (false) ? 0.6f : 0.0f));
+        g.strokePath (star, juce::PathStrokeType (isButtonDown ? 1.6f : 1.1f));
+    }
+
+    //==============================================================================================================
     PhraseTile::PhraseTile (PhrasesPanel& o, int index)
         : owner (o), tile (index)
     {
         setComponentID ("phrase_tile_" + juce::String (index));
         setMouseCursor (juce::MouseCursor::DraggingHandCursor);
+        star.setComponentID ("phrase_star_" + juce::String (index));
+        star.onClick = [this] { owner.keep (tile); };
+        addAndMakeVisible (star);
     }
 
-    void PhraseTile::show (const PhraseInfo& info, bool isSelected, bool isFailed)
+    void PhraseTile::show (const PhraseInfo& info, bool isSelected, bool isFailed, bool isPlaying, bool isWaiting, int startsAtBar)
     {
-        if (info == shownPhrase && isSelected == selected && isFailed == failed)
+        if (info == shownPhrase && isSelected == selected && isFailed == failed && isPlaying == playing && isWaiting == waiting && startsAtBar == startBar)
             return;
         if (! (info == shownPhrase))
         {
             shownPhrase = info;
-            setTitle (info.name + ", from the kit, " + barsText (info.bars));
-            setTooltip ("Drag it into your DAW as MIDI; click to show the file. The kit's own " + info.id + ".");
+            setTooltip (info.origin == PhraseOrigin::kit
+                            ? "Click to hear it with the groove; drag it into your DAW. The kit's own " + info.id + "."
+                            : "Click to hear it with the groove; drag it into your DAW. Seed " + juce::String (info.seed) + ".");
+            star.setTitle ("Keep " + info.name);
+            star.setToggleState (info.kept, juce::dontSendNotification);
         }
         selected = isSelected;
         failed = isFailed;
+        playing = isPlaying;
+        waiting = isWaiting;
+        startBar = startsAtBar;
+        star.setWantsKeyboardFocus (selected); // Tab reaches the selected tile's star only
+        updateTitle();
         repaint();
+    }
+
+    void PhraseTile::updateTitle()
+    {
+        auto title = shownPhrase.name;
+        if (shownPhrase.origin == PhraseOrigin::kit)
+            title << ", from the kit, " << barsText (shownPhrase.bars);
+        else
+        {
+            title << ", " << kindWord (shownPhrase).toLowerCase() << ", " << barsText (shownPhrase.bars);
+            for (const auto& tag : shownPhrase.tags)
+                title << ", " << tag;
+        }
+        if (playing)
+            title << ", playing";
+        else if (waiting && startBar > 0)
+            title << ", starts at bar " << startBar;
+        if (shownPhrase.kept)
+            title << ", kept";
+        setTitle (title);
     }
 
     juce::String PhraseTile::detailText() const
     {
-        return "From the kit" + middleDot() + barsText (shownPhrase.bars);
+        if (shownPhrase.origin == PhraseOrigin::kit)
+            return "From the kit" + middleDot() + barsText (shownPhrase.bars);
+        auto text = kindWord (shownPhrase) + middleDot() + barsText (shownPhrase.bars);
+        if (! shownPhrase.tags.isEmpty())
+            text << middleDot() << shownPhrase.tags.joinIntoString (", ");
+        return text;
+    }
+
+    juce::String PhraseTile::badgeText() const
+    {
+        return shownPhrase.fresh ? "New" : "";
+    }
+
+    void PhraseTile::resized()
+    {
+        star.setBounds (getWidth() - 30, 8, 20, 20);
     }
 
     void PhraseTile::paint (juce::Graphics& g)
     {
         const auto accent = accentOf (*this);
-        const auto active = pressed || dragging;
+        const auto active = pressed || dragging || playing;
         const auto focused = selected && getParentComponent() != nullptr && getParentComponent()->hasKeyboardFocus (false);
         const auto area = getLocalBounds().toFloat().reduced (1.5f);
         constexpr auto corner = 8.0f;
 
-        // A dark tile, lit in the kit's colour while pressed, raised while selected.
+        // A dark tile, lit in the kit's colour while pressed or playing, raised while selected.
         g.setColour (juce::Colours::black.withAlpha (0.45f));
         g.fillRoundedRectangle (area.translated (0.0f, 1.5f), corner);
-        g.setGradientFill (juce::ColourGradient::vertical (active ? accent.withAlpha (0.30f).overlaidWith (juce::Colour (0xff1d2025))
+        g.setGradientFill (juce::ColourGradient::vertical (active ? accent.withAlpha (playing ? 0.24f : 0.30f).overlaidWith (juce::Colour (0xff1d2025))
                                                                   : juce::Colour (hover || selected ? 0xff262a31 : 0xff1d2025),
             area.getY(), juce::Colour (0xff131518), area.getBottom()));
         g.fillRoundedRectangle (area, corner);
-        const auto rim = failed ? colours::warning : accent.withAlpha (selected || hover || active ? 0.85f : 0.3f);
+        const auto rim = failed ? colours::warning : accent.withAlpha (selected || hover || active || waiting ? 0.85f : 0.3f);
         g.setColour (rim);
-        g.drawRoundedRectangle (area.reduced (0.5f), corner, selected || failed ? 1.4f : 1.0f);
+        g.drawRoundedRectangle (area.reduced (0.5f), corner, selected || failed || playing ? 1.4f : 1.0f);
         if (focused)
         {
             g.setColour (accent.withAlpha (0.35f));
             g.drawRoundedRectangle (area.expanded (0.5f), corner + 1.0f, 2.0f);
         }
 
-        // The MIDI glyph, the name and where it comes from, and a grip that says "drag me".
-        auto content = area.reduced (14.0f, 12.0f);
-        draw::midiGlyph (g, content.removeFromLeft (16.0f).withSizeKeepingCentre (13.0f, 13.0f), failed ? colours::warning : accent);
-        content.removeFromLeft (12.0f);
-        draw::grip (g, content.removeFromRight (12.0f).withSizeKeepingCentre (7.0f, 13.0f), colours::textFaint.withAlpha (hover || selected ? 1.0f : 0.55f));
-        content.removeFromRight (8.0f);
+        // The MIDI glyph, the name (and New), what it is, and its roll.
+        auto content = area.reduced (12.0f, 8.0f);
+        content.removeFromRight (22.0f); // the star
+        auto top = content.removeFromTop (19.0f);
+        draw::midiGlyph (g, top.removeFromLeft (14.0f).withSizeKeepingCentre (12.0f, 12.0f), failed ? colours::warning : accent);
+        top.removeFromLeft (8.0f);
+        const auto badge = badgeText();
+        if (badge.isNotEmpty())
+        {
+            const auto pill = top.removeFromRight (32.0f).withSizeKeepingCentre (32.0f, 15.0f);
+            g.setColour (accent.withAlpha (0.85f));
+            g.fillRoundedRectangle (pill, 7.5f);
+            g.setColour (juce::Colour (0xff101215));
+            g.setFont (uiFont (10.0f, true, 0.04f));
+            g.drawText (badge, pill, juce::Justification::centred, false);
+            top.removeFromRight (4.0f);
+        }
         g.setFont (uiFont (14.5f, true));
         g.setColour (failed ? colours::warning : colours::text);
-        g.drawFittedText (shownPhrase.name, content.removeFromTop (content.getHeight() * 0.55f).toNearestInt(), juce::Justification::bottomLeft, 1, 0.85f);
-        content.removeFromTop (3.0f);
-        g.setFont (uiFont (11.5f));
+        g.drawFittedText (shownPhrase.name, top.toNearestInt(), juce::Justification::centredLeft, 1, 0.85f);
+        g.setFont (uiFont (11.0f));
         g.setColour (colours::textDim);
-        g.drawText (detailText(), content, juce::Justification::topLeft, true);
+        g.drawText (detailText(), content.removeFromTop (15.0f), juce::Justification::centredLeft, true);
+
+        // The roll: each note a bar in the kit's colour, its 16ths across, its keys from low to high.
+        const auto roll = content.withTrimmedTop (3.0f).withTrimmedRight (-22.0f);
+        g.setColour (juce::Colours::black.withAlpha (0.3f));
+        g.fillRoundedRectangle (roll, 3.0f);
+        if (! shownPhrase.roll.empty())
+        {
+            int low = 127, high = 0, last = 1;
+            for (const auto& n : shownPhrase.roll)
+            {
+                low = juce::jmin (low, (int) n.key);
+                high = juce::jmax (high, (int) n.key);
+                last = juce::jmax (last, n.step + n.len16);
+            }
+            const auto steps = (float) juce::jmax (shownPhrase.bars * 16, last);
+            const auto span = (float) juce::jmax (1, high - low);
+            const auto inner = roll.reduced (3.0f, 2.0f);
+            g.setColour (accent.withAlpha (playing || selected || hover ? 0.95f : 0.7f));
+            for (const auto& n : shownPhrase.roll)
+            {
+                const auto x = inner.getX() + inner.getWidth() * (float) n.step / steps;
+                const auto w = juce::jmax (1.5f, inner.getWidth() * (float) n.len16 / steps - 0.5f);
+                const auto y = inner.getBottom() - 2.0f - (inner.getHeight() - 2.0f) * (float) (n.key - low) / span;
+                g.fillRect (juce::Rectangle<float> (x, y, w, 2.0f));
+            }
+        }
     }
 
     void PhraseTile::mouseEnter (const juce::MouseEvent&)
@@ -191,14 +348,14 @@ namespace wubansia::editor
         pressed = dragging = false;
         repaint();
         if (click)
-            owner.reveal (tile);
+            owner.play (tile);
     }
 
     std::unique_ptr<juce::AccessibilityHandler> PhraseTile::createAccessibilityHandler()
     {
-        // A screen reader can't drag: its press shows the file, as a click does.
+        // A screen reader can't drag: its press plays or stops the phrase, as a click does.
         return std::make_unique<juce::AccessibilityHandler> (*this, juce::AccessibilityRole::button,
-            juce::AccessibilityActions().addAction (juce::AccessibilityActionType::press, [this] { owner.reveal (tile); }));
+            juce::AccessibilityActions().addAction (juce::AccessibilityActionType::press, [this] { owner.play (tile); }));
     }
 
     //==============================================================================================================
@@ -239,13 +396,35 @@ namespace wubansia::editor
 
         // The functions themselves, not lambdas around them: a test checks each default is the one (DragOutTests).
         startDrag = startExternalDrag;
-        revealFile = dragout::revealToUser;
         announce = announceToScreenReader;
 
-        fromKit.setComponentID ("phrases_filter_kit");
-        fromKit.setTooltip ("The kit's own written phrases and its lead line, which were the chips on the drag strip");
-        fromKit.setExplicitFocusOrder (filterOrder);
-        addAndMakeVisible (fromKit);
+        for (int i = 0; i < (int) kFilters.size(); ++i)
+        {
+            auto* f = filters.add (new PhraseFilter (kFilters[(std::size_t) i].name));
+            const juce::String key (kFilters[(std::size_t) i].key);
+            f->setComponentID ("phrases_filter_" + key);
+            f->setExplicitFocusOrder (filterOrder + i);
+            f->onClick = [this, key] { showFilter (key); };
+            addAndMakeVisible (f);
+        }
+        filters[9]->setTooltip ("The kit's own written phrases and its lead line, which were the chips on the drag strip");
+
+        moreButton.setComponentID ("phrases_more");
+        moreButton.setTooltip ("8 new phrases of the kind shown (one of each kind when the filter isn't a kind), written over this kit's chords. "
+                               "They stay until you close the plugin; star one to keep it.");
+        moreButton.onClick = [this] { more(); };
+        moreButton.setExplicitFocusOrder (moreOrder);
+        addAndMakeVisible (moreButton);
+
+        stopButton.setComponentID ("phrases_stop");
+        stopButton.setTooltip ("Stop the phrase playing");
+        stopButton.onClick = [this] {
+            controller.stopPhraseAudition();
+            audition = controller.phraseAuditionState();
+            refresh();
+        };
+        stopButton.setExplicitFocusOrder (stopOrder);
+        addAndMakeVisible (stopButton);
 
         closeButton.setComponentID ("phrases_close");
         closeButton.setTooltip ("Close the drawer; the Phrases button opens it again");
@@ -270,9 +449,14 @@ namespace wubansia::editor
     {
         failure.clear();
         failedTile = -1;
+        moreWaiting = false;
+        moreLine.clear();
         painted.clear();
+        filter = "all";
+        listed = false; // the list again, from All
         take (model);
         select (tiles.isEmpty() ? -1 : 0);
+        announced = statusText();
         if (announce != nullptr)
             announce ("Phrases");
     }
@@ -287,26 +471,59 @@ namespace wubansia::editor
     {
         kit = model.kit;
         forSynths = model.dragForSynths;
+        audition = model.phraseAudition;
+        mutedLanes = model.mutedLanes;
+        content = model.content.state;
+        standalone = model.standalone;
+        logicHost = model.logicHost;
 
-        // The list again only when it may have changed (a kit change), and never while a drag is handed over from one of
-        // the tiles it would delete: the next tick takes it.
+        // The list again only when it may have changed, and never while a drag is handed over from one of the tiles it
+        // would delete: the next tick takes it.
         if ((! listed || model.phrasesGeneration != listedGeneration) && ! handingOver)
         {
             listed = true;
             listedGeneration = model.phrasesGeneration;
             list = controller.phrases();
-            failure.clear();
-            failedTile = -1;
+            if (kit.id != listedKit)
+            {
+                // Another kit: All, and nothing of the last kit's says anything.
+                listedKit = kit.id;
+                filter = "all";
+                moreWaiting = false;
+                moreLine.clear();
+                failure.clear();
+                failedTile = -1;
+            }
+            if (moreWaiting)
+            {
+                int fresh = 0;
+                for (const auto& p : list)
+                    if (p.origin == PhraseOrigin::more && moreBefore.count (p.id) == 0)
+                        ++fresh;
+                if (fresh > 0)
+                {
+                    moreWaiting = false;
+                    const auto kinds = pluralOf (moreKind);
+                    moreLine = fresh >= 8 ? juce::String (fresh) + " new " + kinds + " at the end of the list."
+                                          : "Only " + juce::String (fresh) + " new " + kinds + " this time.";
+                }
+            }
+            const auto keep = selected;
             rebuildTiles();
-            selected = tiles.isEmpty() ? -1 : 0;
+            selected = tiles.isEmpty() ? -1 : juce::jlimit (0, tiles.size() - 1, juce::jmax (0, keep));
         }
         refresh();
     }
 
     void PhrasesPanel::rebuildTiles()
     {
-        tiles.clear();
+        shownRows.clear();
         for (int i = 0; i < (int) list.size(); ++i)
+            if (inFilter (list[(std::size_t) i], filter))
+                shownRows.push_back (i);
+        failedTile = -1;
+        tiles.clear();
+        for (int i = 0; i < (int) shownRows.size(); ++i)
             grid.addAndMakeVisible (tiles.add (new PhraseTile (*this, i)));
         layOutGrid();
     }
@@ -315,6 +532,21 @@ namespace wubansia::editor
     {
         if (grid.isShowing() && ! tiles.isEmpty())
             grid.grabKeyboardFocus();
+    }
+
+    const PhraseInfo* PhrasesPanel::phraseAt (int tile) const
+    {
+        return tile >= 0 && tile < (int) shownRows.size() ? &list[(std::size_t) shownRows[(std::size_t) tile]] : nullptr;
+    }
+
+    const PhraseInfo* PhrasesPanel::auditioned() const
+    {
+        if (audition.latest == 0 || audition.id.isEmpty() || ! (audition.waiting || (audition.sounding != 0 && audition.sounding == audition.latest)))
+            return nullptr;
+        for (const auto& p : list)
+            if (p.id == audition.id)
+                return &p;
+        return nullptr;
     }
 
     //==============================================================================================================
@@ -359,7 +591,7 @@ namespace wubansia::editor
         }
         if (key == juce::KeyPress::returnKey && selected >= 0 && selected < count)
         {
-            reveal (selected);
+            play (selected);
             return true;
         }
         return false; // Escape goes on to the drawer; Space, letters, shortcuts and the rest to the host
@@ -374,6 +606,55 @@ namespace wubansia::editor
         return true;
     }
 
+    void PhrasesPanel::play (int tile)
+    {
+        const auto* p = phraseAt (tile);
+        if (p == nullptr)
+            return;
+        select (tile);
+        moreLine.clear();
+        const auto* now = auditioned();
+        if (now != nullptr && now->id == p->id)
+            controller.stopPhraseAudition(); // a click on the playing (or waiting) tile stops it
+        else
+            controller.auditionPhrase (p->id);
+        audition = controller.phraseAuditionState();
+        refresh();
+    }
+
+    void PhrasesPanel::keep (int tile)
+    {
+        if (const auto* p = phraseAt (tile))
+            controller.setPhraseKept (p->id, ! p->kept);
+    }
+
+    void PhrasesPanel::showFilter (const juce::String& key)
+    {
+        if (key == filter)
+            return;
+        filter = key;
+        rebuildTiles();
+        select (tiles.isEmpty() ? -1 : 0);
+        viewport.setViewPosition (0, 0);
+    }
+
+    void PhrasesPanel::more()
+    {
+        // A kind's filter asks for that kind; All, From the kit and Kept ask for one of each and show All.
+        const auto kind = isKind (filter) ? filter : juce::String();
+        if (! controller.morePhrases (kind))
+            return;
+        moreWaiting = true;
+        moreKind = kind;
+        moreBefore.clear();
+        for (const auto& p : list)
+            moreBefore.insert (p.id);
+        moreLine.clear();
+        if (kind.isEmpty())
+            showFilter ("all");
+        refresh();
+    }
+
     bool PhrasesPanel::dragOut (int tile, juce::Component& source)
     {
         const auto file = write (tile);
@@ -383,30 +664,20 @@ namespace wubansia::editor
         return startDrag (file, source);
     }
 
-    void PhrasesPanel::reveal (int tile)
-    {
-        select (tile);
-        const auto file = write (tile);
-        if (file != juce::File() && revealFile != nullptr)
-            revealFile (file);
-    }
-
     juce::File PhrasesPanel::write (int tile)
     {
-        if (tile < 0 || tile >= (int) list.size())
+        const auto* phrase = phraseAt (tile);
+        if (phrase == nullptr)
             return {};
-        const auto& phrase = list[(std::size_t) tile];
         DragRequest request;
-        request.what = DragWhat::phrase;
-        request.phraseFile = phrase.id;
+        request.what = phrase->origin == PhraseOrigin::kit ? DragWhat::phrase : DragWhat::generatedPhrase;
+        request.phraseFile = phrase->id;
         const auto file = controller.writeDragFile (request);
         if (file == juce::File())
         {
-            // writeDragFile () gives no reason: it writes the kit's own file into the drag folder, or nothing.
+            // writeDragFile () gives no reason: it writes the phrase's file into the drag folder, or nothing.
             failedTile = tile;
-            failure = "Couldn't write " + phrase.name + ": its MIDI file couldn't be saved in Wubansia's drag folder.";
-            if (announce != nullptr)
-                announce (failure);
+            failure = "Couldn't write " + phrase->name + ": its MIDI file couldn't be saved in Wubansia's drag folder.";
         }
         else
         {
@@ -422,12 +693,50 @@ namespace wubansia::editor
     {
         if (kit.id.isEmpty())
             return {};
-        return kit.id + " " + kit.title + middleDot() + juce::String (kit.bpm) + " BPM" + middleDot() + shortKey (kit.key) + " " + kit.camelot;
+        auto line = kit.id + " " + kit.title;
+        if (! kit.phraseChords.isEmpty())
+            line << middleDot() << "over " << kit.phraseChords.joinIntoString (" " + enDash + " ");
+        return line + middleDot() + juce::String (kit.bpm) + " BPM" + middleDot() + shortKey (kit.key) + " " + kit.camelot;
     }
 
     juce::String PhrasesPanel::statusText() const
     {
-        return failure.isNotEmpty() ? failure : juce::String ("Drag a phrase into your DAW as MIDI, or click it to show the file.");
+        if (failure.isNotEmpty())
+            return failure;
+        if (audition.hostSilent && audition.latest != 0)
+            return noSoundLine (standalone, logicHost);
+        const auto* now = auditioned();
+        if (now != nullptr && (now->lanes & mutedLanes) != 0)
+        {
+            // A clip's lanes play through their mix channels: a muted one is silent (ADR 0031).
+            for (int lane = 0; lane < engine::kLanes; ++lane)
+                if ((now->lanes & mutedLanes & engine::laneBit (static_cast<engine::Lane> (lane))) != 0)
+                    return kit.laneLabels[(std::size_t) lane] + " is muted: unmute it to hear " + now->name + ".";
+        }
+        if (content != ContentState::ready && content != ContentState::loading)
+            return "The kit's samples aren't installed: the phrases drag out but play silent.";
+        if (moreWaiting)
+            return "Making 8 more" + ellipsis;
+        if (moreLine.isNotEmpty())
+            return moreLine;
+        if (now != nullptr && audition.waiting)
+            return audition.startsAtBar > 0 ? now->name + " starts at bar " + juce::String (audition.startsAtBar) + ellipsis
+                                            : now->name + " starts at the next chord" + ellipsis;
+        if (now != nullptr)
+        {
+            juce::StringArray lanes;
+            for (int lane = 0; lane < engine::kLanes; ++lane)
+                if ((now->lanes & engine::laneBit (static_cast<engine::Lane> (lane))) != 0 && kit.laneLabels[(std::size_t) lane].isNotEmpty())
+                    lanes.add (kit.laneLabels[(std::size_t) lane]);
+            auto line = "Playing " + now->name + " on " + now->sound;
+            if (! lanes.isEmpty())
+                line << ", in place of the kit's " << lanes.joinIntoString (" and ");
+            line << ".";
+            if (audition.startedTransport)
+                line << " Wubansia started playing for it; Stop ends both.";
+            return line;
+        }
+        return idleLine;
     }
 
     juce::String PhrasesPanel::synthsText() const
@@ -437,14 +746,34 @@ namespace wubansia::editor
 
     void PhrasesPanel::refresh()
     {
+        const auto* now = auditioned();
         for (int i = 0; i < tiles.size(); ++i)
-            tiles[i]->show (list[(std::size_t) i], i == selected, i == failedTile);
-        fromKit.show (tiles.size(), true);
-        fromKit.setBounds (filterArea.withTrimmedLeft (margin).withWidth (fromKit.fitWidth()).withSizeKeepingCentre (fromKit.fitWidth(), 24));
+        {
+            const auto& p = list[(std::size_t) shownRows[(std::size_t) i]];
+            const bool mine = now != nullptr && now->id == p.id;
+            tiles[i]->show (p, i == selected, i == failedTile, mine && ! audition.waiting, mine && audition.waiting, audition.startsAtBar);
+        }
+        for (int f = 0; f < filters.size(); ++f)
+        {
+            const juce::String key (kFilters[(std::size_t) f].key);
+            int n = 0;
+            for (const auto& p : list)
+                n += inFilter (p, key) ? 1 : 0;
+            filters[f]->show (n, key == filter);
+        }
+        layOutFilters();
+
+        // Changes are said to a screen reader, as the Samples drawer says them; the idle line never is.
+        const auto status = statusText();
+        if (status != announced)
+        {
+            announced = status;
+            if (status != idleLine && isVisible() && announce != nullptr)
+                announce (status);
+        }
 
         // What paint () draws of the text; repainted only when it changes.
-        const auto shown = kitLine() + "|" + statusText() + "|" + synthsText() + "|" + juce::String (tiles.size()) + "|"
-                           + juce::String (accentOf (*this).getARGB());
+        const auto shown = kitLine() + "|" + status + "|" + synthsText() + "|" + juce::String (tiles.size()) + "|" + juce::String (accentOf (*this).getARGB());
         if (shown != painted)
         {
             painted = shown;
@@ -461,9 +790,13 @@ namespace wubansia::editor
         gridArea = area.removeFromTop (gridHeight);
         footerArea = area.removeFromTop (footerHeight);
 
-        // The header: PHRASES, the kit line, Close.
+        // The header: PHRASES, the kit line, More, Stop, Close.
         auto header = headerArea.reduced (margin - 2, 0);
         closeButton.setBounds (header.removeFromRight (30).withSizeKeepingCentre (30, 28));
+        header.removeFromRight (6);
+        stopButton.setBounds (header.removeFromRight (30).withSizeKeepingCentre (30, 28));
+        header.removeFromRight (6);
+        moreButton.setBounds (header.removeFromRight (64).withSizeKeepingCentre (64, 26));
         header.removeFromRight (12);
         header.removeFromLeft (86); // the engraved PHRASES
         titleArea = header;
@@ -479,6 +812,30 @@ namespace wubansia::editor
         footer.removeFromRight (16);
         statusArea = footer;
         refresh();
+    }
+
+    void PhrasesPanel::layOutFilters()
+    {
+        // Left to right, each with its words in full: the padding narrows (14 px down to 4) until the row fits.
+        const auto room = filterArea.getWidth() - 2 * margin;
+        for (int padding = 14; padding >= 4; --padding)
+        {
+            int total = 0;
+            for (auto* f : filters)
+            {
+                f->setPadding (padding);
+                total += f->fitWidth() + filterGap;
+            }
+            if (total - filterGap <= room)
+                break;
+        }
+        auto x = filterArea.getX() + margin;
+        for (auto* f : filters)
+        {
+            const auto w = f->fitWidth();
+            f->setBounds (juce::Rectangle<int> (x, filterArea.getY(), w, filterArea.getHeight()).withSizeKeepingCentre (w, 24));
+            x += w + filterGap;
+        }
     }
 
     void PhrasesPanel::layOutGrid()
@@ -516,7 +873,11 @@ namespace wubansia::editor
             title.setJustification (juce::Justification::centredLeft);
             title.append (kit.id + " ", uiFont (12.5f, true, 0.08f), accent);
             title.append (kit.title, uiFont (14.0f, true), colours::text);
-            title.append (middleDot() + juce::String (kit.bpm) + " BPM" + middleDot() + shortKey (kit.key) + " " + kit.camelot, uiFont (12.5f), colours::textDim);
+            auto rest = juce::String();
+            if (! kit.phraseChords.isEmpty())
+                rest << middleDot() << "over " << kit.phraseChords.joinIntoString (" " + enDash + " ");
+            rest << middleDot() << juce::String (kit.bpm) << " BPM" << middleDot() << shortKey (kit.key) << " " << kit.camelot;
+            title.append (rest, uiFont (12.5f), colours::textDim);
             title.draw (g, titleArea.toFloat());
         }
 
@@ -524,10 +885,13 @@ namespace wubansia::editor
         {
             g.setFont (uiFont (13.0f));
             g.setColour (colours::textFaint);
-            g.drawText (kit.id + " has no phrases in this build", viewport.getBounds().toFloat(), juce::Justification::centred, true);
+            const auto empty = filter == "kept" ? juce::String ("Star a phrase to keep it here, in every project")
+                               : list.empty()   ? kit.id + " has no phrases in this build"
+                                                : juce::String ("None of this kind here yet: More writes 8");
+            g.drawText (empty, viewport.getBounds().toFloat(), juce::Justification::centred, true);
         }
 
-        // The footer: the status line, the failure in the warning colour, and For my synths.
+        // The footer: the status line, a failure in the warning colour, and For my synths.
         g.setFont (uiFont (11.5f, true));
         g.setColour (failure.isNotEmpty() ? colours::warning : colours::textDim);
         g.drawFittedText (statusText(), statusArea, juce::Justification::centredLeft, 2, 0.9f);

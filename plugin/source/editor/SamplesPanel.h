@@ -32,6 +32,10 @@
 
 namespace wubansia::editor
 {
+    // The line a drawer shows when the host ran no block for its audition (AuditionState::hostSilent,
+    // PhraseAuditionState::hostSilent): the Standalone's audio output, Logic's stopped track, or any other host's.
+    juce::String noSoundLine (bool standalone, bool logicHost);
+
     class SamplesPanel;
 
     // The name exportSound () gives a file: "Rave Stab v2 - FUT01 134 F#m 11A.wav", "Dub Chord Cm9 - FUT03 128 Gm

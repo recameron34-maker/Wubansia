@@ -3174,7 +3174,7 @@ TEST_CASE ("the tile names exactly the file a drag gives, for every file of the 
     CHECK (editor::exportFileName (card, rave).endsWith (" c2.wav"));
 }
 
-// The Phrases drawer (ADR 0031), against the FakeController's FUT01 phrases: its five phrase files, then its lead line.
+// The Phrases drawer (ADR 0031), against the FakeController's FUT01 list: five library phrases, then its own five phrase files and lead line.
 
 namespace
 {
@@ -3193,7 +3193,7 @@ namespace
         return get<editor::PhraseTile> (root, "phrase_tile_" + juce::String (index));
     }
 
-    // What the Phrases drawer hands the OS, recorded instead of done.
+    // What the Phrases drawer hands the OS, recorded instead of done. It shows no file (a click plays): revealed stays empty.
     struct PhraseHandoffs
     {
         juce::Array<juce::File> dragged, revealed;
@@ -3205,7 +3205,6 @@ namespace
                 dragged.add (file);
                 return true;
             };
-            drawer.revealFile = [this] (const juce::File& file) { revealed.add (file); };
         }
 
         ~PhraseHandoffs()
@@ -3228,7 +3227,7 @@ TEST_CASE ("the header's Phrases button opens the Phrases drawer and lights whil
         {
             auto& button = get<editor::LedButton> (editor, "phrases");
             CHECK (button.getButtonText() == "Phrases");
-            CHECK (button.getTooltip() == "Browse phrases for this kit and drag them into your DAW as MIDI");
+            CHECK (button.getTooltip() == "Browse 8-bar phrases written over this kit's chords, hear them with the groove, and drag them into your DAW as MIDI");
             auto& drawer = get<editor::PhrasesPanel> (editor, "phrases_drawer");
             CHECK_FALSE (editor.isPhrasesPanelShown());
             CHECK_FALSE (drawer.isVisible());
@@ -3382,7 +3381,22 @@ TEST_CASE ("the Phrases drawer covers and hides the lanes, A/B and FX at (20, 24
         });
 }
 
-TEST_CASE ("the drawer lists the kit's own phrases and its lead line", "[editor][phrases]")
+namespace
+{
+    const juce::String enDash (juce::CharPointer_UTF8 ("\xe2\x80\x93"));
+
+    juce::StringArray tileNames (PluginEditor& editor, const editor::PhrasesPanel& drawer)
+    {
+        juce::StringArray names;
+        for (int i = 0; i < drawer.numTiles(); ++i)
+            names.add (phraseTile (editor, i).phrase().name);
+        return names;
+    }
+
+    wubansia::DragRequest generatedDrag (const char* id) { return { wubansia::DragWhat::generatedPhrase, engine::Lane::kick, id }; }
+}
+
+TEST_CASE ("the drawer lists the library, the kit's own and the kept; the filters show their counts and filter the grid", "[editor][phrases]")
 {
     Rig rig;
     auto& c = rig.controller;
@@ -3391,53 +3405,87 @@ TEST_CASE ("the drawer lists the kit's own phrases and its lead line", "[editor]
         {
             auto& drawer = openPhrases (editor);
             const auto dot = editor::middleDot();
-            const std::array<std::pair<const char*, int>, 6> fut01 { { { "E Piano Stab Rhythm", 2 }, { "Organ Riff", 4 }, { "Pluck Riff", 4 },
-                { "Vox Synth Riff", 2 }, { "Warp Riff", 2 }, { "Lead Chrome Pluck", 2 } } };
-            REQUIRE (drawer.numTiles() == 6);
-            for (std::size_t i = 0; i < fut01.size(); ++i)
+
+            // All shows every tile when the drawer opens: the library, then the kit's own.
+            CHECK (drawer.shownFilter() == "all");
+            REQUIRE (drawer.numTiles() == 11);
+            CHECK (tileNames (editor, drawer)
+                   == juce::StringArray { "Night Bus", "Glass Hour", "Low Signal", "Cold Harbour", "Neon Stair", "E Piano Stab Rhythm", "Organ Riff",
+                       "Pluck Riff", "Vox Synth Riff", "Warp Riff", "Lead Chrome Pluck" });
+            CHECK (phraseTile (editor, 0).detailText() == "Hook" + dot + "8 bars" + dot + "steady, mid");
+            CHECK (phraseTile (editor, 2).detailText() == "Call & answer" + dot + "8 bars" + dot + "steady, mid");
+            CHECK (phraseTile (editor, 5).detailText() == "From the kit" + dot + "2 bars");
+            CHECK (phraseTile (editor, 6).detailText() == "From the kit" + dot + "4 bars");
+
+            // The filters, each with its count, in the plan's order; empty kinds still show, at 0.
+            const std::array<std::pair<const char*, const char*>, 11> filters { { { "all", "All 11" }, { "hook", "Hooks 2" },
+                { "answer", "Call & answer 1" }, { "period", "Periods 1" }, { "sparse", "Sparse 0" }, { "arp", "Arps 1" }, { "stabs", "Stabs 0" },
+                { "counter", "Counter-lines 0" }, { "bounce", "Bounce 0" }, { "kit", "From the kit 6" }, { "kept", "Kept 0" } } };
+            int right = 0;
+            for (const auto& [key, label] : filters)
             {
-                auto& tile = phraseTile (editor, (int) i);
-                INFO (fut01[i].first);
-                CHECK (tile.phrase() == c.phraseList[i]);
-                CHECK (tile.phrase().name == fut01[i].first);
-                CHECK (tile.detailText() == "From the kit" + dot + juce::String (fut01[i].second) + " bars");
+                INFO (key);
+                auto& filter = get<editor::PhraseFilter> (editor, juce::String ("phrases_filter_") + key);
+                CHECK (filter.label() == label);
+                CHECK (filter.isShown() == (juce::String (key) == "all"));
+                CHECK (filter.getX() >= right); // left to right, none over another
+                CHECK (filter.getWidth() >= filter.fitWidth()); // its words in full
+                right = filter.getRight();
             }
+            CHECK (right <= drawer.getWidth() - 12); // the row fits the drawer
+
+            // A filter shows its phrases only, and lights.
+            click (get<editor::PhraseFilter> (editor, "phrases_filter_hook"));
+            CHECK (drawer.shownFilter() == "hook");
+            CHECK (tileNames (editor, drawer) == juce::StringArray { "Night Bus", "Glass Hour" });
+            CHECK (get<editor::PhraseFilter> (editor, "phrases_filter_hook").isShown());
+            CHECK_FALSE (get<editor::PhraseFilter> (editor, "phrases_filter_all").isShown());
+            click (get<editor::PhraseFilter> (editor, "phrases_filter_kit"));
+            CHECK (drawer.numTiles() == 6);
             CHECK (phraseTile (editor, 5).phrase().id == "FUT01_Lead_ChromePluck_2bars.mid"); // the lead line comes last
-            CHECK (findAll (editor, "phrase_tile_6").empty());
-            auto& filter = get<editor::PhraseFilter> (editor, "phrases_filter_kit");
-            CHECK (filter.label() == "From the kit 6");
-            CHECK (filter.isShown());
-            CHECK (drawer.kitLine() == "FUT01 Alloy Signal" + dot + "134 BPM" + dot + "F#m 11A");
+            click (get<editor::PhraseFilter> (editor, "phrases_filter_stabs"));
+            CHECK (drawer.numTiles() == 0);
+
+            // Kept: the starred, whatever they are.
+            c.phraseList[3].kept = true;
+            c.phraseList[7].kept = true;
+            ++c.phraseGeneration;
+            editor.tick();
+            click (get<editor::PhraseFilter> (editor, "phrases_filter_kept"));
+            CHECK (get<editor::PhraseFilter> (editor, "phrases_filter_kept").label() == "Kept 2");
+            CHECK (tileNames (editor, drawer) == juce::StringArray { "Cold Harbour", "Pluck Riff" });
 
             // Four tiles a row, 256 x 72, 8 px apart.
+            click (get<editor::PhraseFilter> (editor, "phrases_filter_all"));
             CHECK (phraseTile (editor, 0).getBounds() == juce::Rectangle<int> (0, 0, 256, 72));
             CHECK (phraseTile (editor, 3).getBounds() == juce::Rectangle<int> (792, 0, 256, 72));
             CHECK (phraseTile (editor, 4).getBounds() == juce::Rectangle<int> (0, 80, 256, 72));
 
             // It asks for the list when it opens, then only when the generation moves on.
+            const auto calls = c.phrasesCalls;
             for (int i = 0; i < 5; ++i)
                 editor.tick();
-            CHECK (c.phrasesCalls == 1);
+            CHECK (c.phrasesCalls == calls);
 
-            // A kit change keeps the drawer open and shows the new kit's own phrases.
+            // A kit change keeps the drawer open, shows the new kit's list under All, and its kit line has no chords to name.
+            click (get<editor::PhraseFilter> (editor, "phrases_filter_hook"));
             click (get<juce::Component> (editor, "kit_FUT02"));
             c.phraseList = FakeController::ownPhrases ("FUT02");
             ++c.phraseGeneration;
             editor.tick();
             editor.tick();
             CHECK (editor.isPhrasesPanelShown());
-            CHECK (c.phrasesCalls == 2);
+            CHECK (c.phrasesCalls == calls + 1);
+            CHECK (drawer.shownFilter() == "all");
             REQUIRE (drawer.numTiles() == 5);
             CHECK (phraseTile (editor, 0).phrase().name == "Glass Melody");
-            CHECK (phraseTile (editor, 0).detailText() == "From the kit" + dot + "4 bars");
-            CHECK (phraseTile (editor, 4).phrase().id == "FUT02_Lead_ChromeArp_2bars.mid");
-            CHECK (findAll (editor, "phrase_tile_5").empty());
-            CHECK (filter.label() == "From the kit 5");
+            CHECK (get<editor::PhraseFilter> (editor, "phrases_filter_kit").label() == "From the kit 5");
+            CHECK (get<editor::PhraseFilter> (editor, "phrases_filter_hook").label() == "Hooks 0");
             CHECK (drawer.kitLine() == "FUT02 Orbit Relay" + dot + "130 BPM" + dot + "Dm 7A");
         });
 }
 
-TEST_CASE ("a 4-pixel drag on a tile hands the kit's file to the OS; a click shows it", "[editor][phrases]")
+TEST_CASE ("a click auditions a tile, and on the playing tile stops it; a 4-pixel drag writes the phrase's drag file", "[editor][phrases]")
 {
     Rig rig;
     auto& c = rig.controller;
@@ -3448,43 +3496,58 @@ TEST_CASE ("a 4-pixel drag on a tile hands the kit's file to the OS; a click sho
             PhraseHandoffs os;
             os.hook (drawer);
 
+            // A click plays the tile: no file is written or shown.
+            click (phraseTile (editor, 0));
+            CHECK (c.phraseAuditions == juce::StringArray { "hook-0" });
+            CHECK (c.dragRequests.empty());
+            CHECK (drawer.selectedTile() == 0);
+            editor.tick();
+            CHECK (phraseTile (editor, 0).isPlaying());
+            CHECK_FALSE (phraseTile (editor, 1).isPlaying());
+
+            // Another tile replaces it; a click on the playing one stops it.
+            click (phraseTile (editor, 6));
+            CHECK (c.phraseAuditions == juce::StringArray { "hook-0", "FUT01_Phrase_OrganRiff_4bars.mid" });
+            editor.tick();
+            CHECK (phraseTile (editor, 6).isPlaying());
+            CHECK_FALSE (phraseTile (editor, 0).isPlaying());
+            click (phraseTile (editor, 6));
+            CHECK (c.phraseStops == 1);
+            CHECK (c.phraseAuditions.size() == 2);
+            editor.tick();
+            CHECK_FALSE (phraseTile (editor, 6).isPlaying());
+
+            // A tile that waits for its chord line stops on a click too.
+            click (phraseTile (editor, 1));
+            c.phraseAudition.sounding = 0;
+            c.phraseAudition.waiting = true;
+            c.phraseAudition.startsAtBar = 9;
+            editor.tick();
+            CHECK (phraseTile (editor, 1).isWaiting());
+            click (phraseTile (editor, 1));
+            CHECK (c.phraseStops == 2);
+
             // 3 pixels is still a press; at 4 the file is written and handed to the OS, inside the mouse event.
-            auto& tile = phraseTile (editor, 0);
+            auto& tile = phraseTile (editor, 2);
             const auto start = tile.getLocalBounds().toFloat().getCentre();
+            const auto auditions = c.phraseAuditions.size();
             tile.mouseDown (mouseAt (tile, start, start));
             tile.mouseDrag (mouseAt (tile, start.translated (3.0f, 0.0f), start, true));
             CHECK (c.dragRequests.empty());
             tile.mouseDrag (mouseAt (tile, start.translated (4.0f, 0.0f), start, true));
             REQUIRE (c.dragRequests.size() == 1);
-            CHECK (c.dragRequests[0] == phraseDrag ("FUT01_Phrase_EPianoStabRhythm_2bars.mid"));
-            REQUIRE (os.dragged.size() == 1); // before the mouse comes up
+            CHECK (c.dragRequests[0] == generatedDrag ("answer-1"));
+            REQUIRE (os.dragged.size() == 1);
             CHECK (os.dragged[0].existsAsFile());
-            CHECK (os.dragged[0].getFileName() == "FUT01_Phrase_EPianoStabRhythm_2bars.mid"); // the fake's name for it
-            tile.mouseDrag (mouseAt (tile, start.translated (40.0f, 10.0f), start, true));
             tile.mouseUp (mouseAt (tile, start.translated (40.0f, 10.0f), start, true));
-            CHECK (c.dragRequests.size() == 1);
-            CHECK (os.dragged.size() == 1);
-            CHECK (os.revealed.isEmpty()); // a drag is never a click
+            CHECK (c.phraseAuditions.size() == auditions); // a drag is never a click
+            CHECK (os.revealed.isEmpty());
 
-            // A click without a drag shows the file, once, and starts no drag; the lead line's too.
-            click (phraseTile (editor, 5));
-            REQUIRE (os.revealed.size() == 1);
-            CHECK (os.revealed[0].getFileName() == "FUT01_Lead_ChromePluck_2bars.mid");
+            // The kit's own drag as they always have.
+            drag (phraseTile (editor, 10), 6.0f);
             REQUIRE (c.dragRequests.size() == 2);
             CHECK (c.dragRequests[1] == phraseDrag ("FUT01_Lead_ChromePluck_2bars.mid"));
-            CHECK (os.dragged.size() == 1);
-            CHECK (drawer.selectedTile() == 5); // a press selects the tile
-            CHECK (phraseTile (editor, 5).isSelected());
-            CHECK_FALSE (phraseTile (editor, 0).isSelected());
-
-            // The lead line drags like the phrases.
-            auto& lead = phraseTile (editor, 5);
-            lead.mouseDown (mouseAt (lead, start, start));
-            lead.mouseDrag (mouseAt (lead, start.translated (0.0f, 6.0f), start, true));
-            lead.mouseUp (mouseAt (lead, start.translated (0.0f, 6.0f), start, true));
-            REQUIRE (os.dragged.size() == 2);
-            CHECK (os.dragged[1].getFileName() == "FUT01_Lead_ChromePluck_2bars.mid");
-            CHECK (os.revealed.size() == 1);
+            CHECK (os.revealed.isEmpty()); // nothing shows a file any more
 
             // A tick while startDrag hands the drag over rebuilds no tile, so the one the drag starts from stays; the next
             // tick takes the new list. (JUCE 9.0.4 ticks nothing inside the call: its OS drags return as they begin.)
@@ -3499,14 +3562,13 @@ TEST_CASE ("a 4-pixel drag on a tile hands the kit's file to the OS; a click sho
                 return true;
             };
             drag (phraseTile (editor, 2), 6.0f);
-            CHECK (tilesDuringDrag == 6);
+            CHECK (tilesDuringDrag == 11);
             editor.tick();
             CHECK (drawer.numTiles() == 5);
         });
 }
 
-TEST_CASE ("the drawer's keys: the arrows move, Return shows the file, Escape closes; Space, letters and shortcuts go on to the host",
-    "[editor][phrases]")
+TEST_CASE ("the drawer's keys: the arrows and Return work; Space, K, M and shortcuts go on to the host", "[editor][phrases]")
 {
     Rig rig;
     auto& c = rig.controller;
@@ -3514,53 +3576,40 @@ TEST_CASE ("the drawer's keys: the arrows move, Return shows the file, Escape cl
     withEditor (rig, [&] (PluginEditor& editor)
         {
             auto& drawer = openPhrases (editor);
-            PhraseHandoffs os;
-            os.hook (drawer);
             auto& grid = get<juce::Component> (editor, "phrase_grid");
             CHECK (grid.getWantsKeyboardFocus()); // Tab enters the grid, in one stop: no tile is a stop of its own
             for (int i = 0; i < drawer.numTiles(); ++i)
                 CHECK_FALSE (phraseTile (editor, i).getWantsKeyboardFocus());
             const auto key = [&grid] (int code, juce::ModifierKeys mods = {}) { return grid.keyPressed (juce::KeyPress (code, mods, 0)); };
-
-            // Each arrow names the tile it lands on to a screen reader, at an edge too: the grid keeps the focus, so nothing
-            // else says which tile is selected.
             juce::StringArray said;
             drawer.announce = [&said] (const juce::String& text) { said.add (text); };
 
-            // Six tiles, four a row: 0 1 2 3 / 4 5. The first is selected when the drawer opens.
+            // Eleven tiles, four a row: 0 1 2 3 / 4 5 6 7 / 8 9 10. The first is selected when the drawer opens.
             CHECK (drawer.selectedTile() == 0);
             CHECK (key (juce::KeyPress::rightKey));
             CHECK (drawer.selectedTile() == 1);
-            CHECK (said == juce::StringArray { "Organ Riff, from the kit, 4 bars" });
+            CHECK (said == juce::StringArray { "Glass Hour, hook, 8 bars, busy, high" });
             CHECK (key (juce::KeyPress::downKey));
             CHECK (drawer.selectedTile() == 5);
+            CHECK (key (juce::KeyPress::downKey));
+            CHECK (drawer.selectedTile() == 9);
             CHECK (key (juce::KeyPress::downKey)); // the last row: nothing to do, but the key was the grid's
-            CHECK (drawer.selectedTile() == 5);
-            CHECK (key (juce::KeyPress::rightKey)); // the last tile
-            CHECK (drawer.selectedTile() == 5);
-            REQUIRE (said.size() == 4);
-            CHECK (said[3] == "Lead Chrome Pluck, from the kit, 2 bars"); // named again where it stays
-            CHECK (key (juce::KeyPress::leftKey));
-            CHECK (key (juce::KeyPress::leftKey)); // back over the row's start
-            CHECK (drawer.selectedTile() == 3);
-            CHECK (key (juce::KeyPress::upKey)); // the first row: stays
-            CHECK (drawer.selectedTile() == 3);
-            CHECK (key (juce::KeyPress::downKey)); // no tile under it: the next row's last
-            CHECK (drawer.selectedTile() == 5);
+            CHECK (drawer.selectedTile() == 9);
+            CHECK (said[3] == "Warp Riff, from the kit, 2 bars"); // named again where it stays
             CHECK (key (juce::KeyPress::upKey));
-            CHECK (drawer.selectedTile() == 1);
-            CHECK (phraseTile (editor, 1).isSelected());
-            CHECK (said.size() == 9); // one name for each arrow
-            CHECK (said[8] == "Organ Riff, from the kit, 4 bars");
-            CHECK (c.dragRequests.empty()); // moving writes nothing
+            CHECK (key (juce::KeyPress::leftKey));
+            CHECK (drawer.selectedTile() == 4);
+            CHECK (c.phraseAuditions.isEmpty()); // moving plays nothing
+            CHECK (c.dragRequests.empty());
 
-            // Return does the tile's click: it shows the file.
+            // Return plays the focused tile, and on the playing tile stops it.
             CHECK (key (juce::KeyPress::returnKey));
-            REQUIRE (os.revealed.size() == 1);
-            CHECK (os.revealed[0].getFileName() == "FUT01_Phrase_OrganRiff_4bars.mid");
-            CHECK (os.dragged.isEmpty());
+            CHECK (c.phraseAuditions == juce::StringArray { "arp-2" });
+            editor.tick();
+            CHECK (key (juce::KeyPress::returnKey));
+            CHECK (c.phraseStops == 1);
 
-            // Space, letters and shortcuts go on to the host, from the grid and from the drawer.
+            // Space, K, M, letters and shortcuts go on to the host, from the grid and from the drawer.
             for (const auto& press : { juce::KeyPress (juce::KeyPress::spaceKey), juce::KeyPress ('K', {}, 0), juce::KeyPress ('M', {}, 0),
                      juce::KeyPress ('S', juce::ModifierKeys::commandModifier, 0), juce::KeyPress (juce::KeyPress::downKey, juce::ModifierKeys::commandModifier, 0) })
             {
@@ -3568,17 +3617,246 @@ TEST_CASE ("the drawer's keys: the arrows move, Return shows the file, Escape cl
                 CHECK_FALSE (grid.keyPressed (press));
                 CHECK_FALSE (drawer.keyPressed (press));
             }
-            CHECK (drawer.selectedTile() == 1);
-            CHECK (os.revealed.size() == 1);
-            CHECK (said.size() == 9); // Return, Space, letters and shortcuts name nothing
+            CHECK (c.moreRequests.isEmpty());
+            CHECK (c.keptRequests.empty());
+            CHECK (c.phraseAuditions.size() == 1);
             CHECK (editor.isPhrasesPanelShown());
 
-            // Escape is the drawer's, not the grid's: it closes the drawer.
+            // The star and More are buttons Tab reaches: the focused tile's star, then More, Stop and Close.
+            juce::StringArray tabStops;
+            for (auto* comp : juce::KeyboardFocusTraverser().getAllComponents (&editor))
+                tabStops.add (comp->getComponentID());
+            INFO ("tab stops: " << tabStops.joinIntoString (" "));
+            const auto gridStop = tabStops.indexOf ("phrase_grid");
+            CHECK (gridStop > tabStops.indexOf ("phrases_filter_kept"));
+            CHECK (tabStops.indexOf ("phrase_star_4") > gridStop);
+            CHECK (tabStops.indexOf ("phrases_more") > tabStops.indexOf ("phrase_star_4"));
+            CHECK (tabStops.indexOf ("phrases_stop") > tabStops.indexOf ("phrases_more"));
+            CHECK (tabStops.indexOf ("phrases_close") > tabStops.indexOf ("phrases_stop"));
+            CHECK_FALSE (tabStops.contains ("phrase_star_0")); // only the selected tile's star
+
+            // Escape is the drawer's: it closes it, and stops the audition.
             CHECK_FALSE (key (juce::KeyPress::escapeKey));
             CHECK (drawer.keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
             editor.tick();
             CHECK_FALSE (editor.isPhrasesPanelShown());
-            CHECK_FALSE (get<juce::Button> (editor, "phrases").getToggleState());
+        });
+}
+
+TEST_CASE ("More asks for the shown kind", "[editor][phrases]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openPhrases (editor);
+            auto& more = get<juce::Button> (editor, "phrases_more");
+            CHECK (more.getButtonText() == "More");
+
+            // Under a kind: 8 of that kind, and the status line says so, then how many came.
+            click (get<editor::PhraseFilter> (editor, "phrases_filter_arp"));
+            click (more);
+            CHECK (c.moreRequests == juce::StringArray { "arp" });
+            CHECK (drawer.statusText() == juce::String (juce::CharPointer_UTF8 ("Making 8 more\xe2\x80\xa6")));
+            for (int i = 0; i < 8; ++i)
+            {
+                auto p = FakeController::libraryPhrase ("arp-x", "Fresh", "arp", 1000000 + (std::uint64_t) i, { "busy", "high" });
+                p.id = "arp-" + juce::String (1000000 + i);
+                p.origin = wubansia::PhraseOrigin::more;
+                p.fresh = true;
+                c.phraseList.push_back (p);
+            }
+            ++c.phraseGeneration;
+            editor.tick();
+            CHECK (drawer.statusText() == "8 new arps at the end of the list.");
+            CHECK (drawer.numTiles() == 9);
+            CHECK (phraseTile (editor, 8).badgeText() == "New");
+            CHECK (phraseTile (editor, 0).badgeText().isEmpty());
+
+            // Under All, From the kit or Kept: one of each kind, and All shows, so the new tiles are in view.
+            click (get<editor::PhraseFilter> (editor, "phrases_filter_kit"));
+            click (more);
+            CHECK (c.moreRequests == juce::StringArray { "arp", "" });
+            CHECK (drawer.shownFilter() == "all");
+            for (int i = 0; i < 3; ++i)
+            {
+                auto p = FakeController::libraryPhrase ("x", "Late", "hook", 1000100 + (std::uint64_t) i, { "steady" });
+                p.id = "hook-" + juce::String (1000100 + i);
+                p.origin = wubansia::PhraseOrigin::more;
+                p.fresh = true;
+                c.phraseList.push_back (p);
+            }
+            ++c.phraseGeneration;
+            editor.tick();
+            CHECK (drawer.statusText() == "Only 3 new phrases this time.");
+
+            // While a press is in flight, More says no and nothing changes.
+            c.moreBusy = true;
+            click (more);
+            CHECK (c.moreRequests.size() == 3);
+        });
+}
+
+TEST_CASE ("the star keeps a phrase", "[editor][phrases]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            openPhrases (editor);
+            auto& star = get<juce::Button> (editor, "phrase_star_2");
+            CHECK (star.getTooltip() == "Keep this phrase: it stays under Kept for you, in every project");
+            CHECK (star.getTitle() == "Keep Low Signal");
+            CHECK_FALSE (star.getToggleState());
+            click (star);
+            REQUIRE (c.keptRequests.size() == 1);
+            CHECK (c.keptRequests[0] == std::pair<juce::String, bool> { "answer-1", true });
+            CHECK (c.phraseAuditions.isEmpty()); // the star isn't the tile's click
+            editor.tick();
+            CHECK (get<juce::Button> (editor, "phrase_star_2").getToggleState());
+            CHECK (phraseTile (editor, 2).getTitle() == "Low Signal, call & answer, 8 bars, steady, mid, kept");
+            CHECK (get<editor::PhraseFilter> (editor, "phrases_filter_kept").label() == "Kept 1");
+            click (get<juce::Button> (editor, "phrase_star_2"));
+            CHECK (c.keptRequests[1] == std::pair<juce::String, bool> { "answer-1", false });
+        });
+}
+
+TEST_CASE ("Escape and Close close the drawer and stop its audition; so do Samples and closing the editor", "[editor][phrases]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto* drawer = &openPhrases (editor);
+            click (phraseTile (editor, 0));
+            click (get<juce::Button> (editor, "phrases_close"));
+            editor.tick();
+            CHECK_FALSE (editor.isPhrasesPanelShown());
+            CHECK (c.phraseStops == 1);
+
+            drawer = &openPhrases (editor);
+            click (phraseTile (editor, 0));
+            CHECK (drawer->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+            CHECK (c.phraseStops == 2);
+
+            openPhrases (editor);
+            click (phraseTile (editor, 0));
+            click (get<juce::Button> (editor, "samples"));
+            editor.tick();
+            CHECK (c.phraseStops == 3);
+            click (get<juce::Button> (editor, "samples"));
+
+            // Stop stops it and leaves the drawer open.
+            openPhrases (editor);
+            click (phraseTile (editor, 0));
+            auto& stop = get<juce::Button> (editor, "phrases_stop");
+            CHECK (stop.getButtonText() == "Stop");
+            CHECK (stop.getTooltip() == "Stop the phrase playing");
+            click (stop);
+            CHECK (c.phraseStops == 4);
+            CHECK (editor.isPhrasesPanelShown());
+            click (phraseTile (editor, 0));
+        });
+    CHECK (c.phraseStops == 5); // the editor closed with the drawer open
+}
+
+TEST_CASE ("the status line says waiting, playing and the transport it started", "[editor][phrases]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openPhrases (editor);
+            const juce::String idle ("Click a phrase to hear it with the groove; drag it into your DAW as MIDI.");
+            CHECK (drawer.statusText() == idle);
+
+            click (phraseTile (editor, 0));
+            c.phraseAudition.sounding = 0;
+            c.phraseAudition.waiting = true;
+            c.phraseAudition.startsAtBar = 9;
+            editor.tick();
+            CHECK (drawer.statusText() == juce::String (juce::CharPointer_UTF8 ("Night Bus starts at bar 9\xe2\x80\xa6")));
+            CHECK (phraseTile (editor, 0).getTitle() == "Night Bus, hook, 8 bars, steady, mid, starts at bar 9");
+
+            c.phraseAudition.sounding = c.phraseAudition.latest;
+            c.phraseAudition.waiting = false;
+            editor.tick();
+            CHECK (drawer.statusText() == "Playing Night Bus on Lead, in place of the kit's Lead.");
+            CHECK (phraseTile (editor, 0).getTitle() == "Night Bus, hook, 8 bars, steady, mid, playing");
+
+            c.phraseAudition.startedTransport = true;
+            editor.tick();
+            CHECK (drawer.statusText() == "Playing Night Bus on Lead, in place of the kit's Lead. Wubansia started playing for it; Stop ends both.");
+
+            // The Warp Riff plays on the bass lane: the line names it.
+            click (phraseTile (editor, 9));
+            editor.tick();
+            CHECK (drawer.statusText() == "Playing Warp Riff on Bass, in place of the kit's Bass.");
+
+            c.stopPhraseAudition();
+            editor.tick();
+            CHECK (drawer.statusText() == idle);
+
+            // The kit's samples missing: the phrases still drag.
+            c.contentStatus.state = wubansia::ContentState::missing;
+            editor.tick();
+            CHECK (drawer.statusText() == "The kit's samples aren't installed: the phrases drag out but play silent.");
+        });
+}
+
+TEST_CASE ("a muted lane says so in the status line", "[editor][phrases]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openPhrases (editor);
+            rig.processor.set (ids::laneMute[(std::size_t) engine::Lane::lead], 1.0f);
+            editor.tick();
+            CHECK (drawer.statusText() == "Click a phrase to hear it with the groove; drag it into your DAW as MIDI."); // nothing plays yet
+
+            click (phraseTile (editor, 0));
+            editor.tick();
+            CHECK (drawer.statusText() == "Lead is muted: unmute it to hear Night Bus.");
+            c.phraseAudition.sounding = 0;
+            c.phraseAudition.waiting = true;
+            editor.tick();
+            CHECK (drawer.statusText() == "Lead is muted: unmute it to hear Night Bus."); // while it waits too
+
+            rig.processor.set (ids::laneMute[(std::size_t) engine::Lane::lead], 0.0f);
+            editor.tick();
+            CHECK_FALSE (drawer.statusText().contains ("muted"));
+        });
+}
+
+TEST_CASE ("the drawer says when the host runs no audio", "[editor][phrases]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openPhrases (editor);
+            click (phraseTile (editor, 0));
+            c.phraseAudition.sounding = 0;
+            c.phraseAudition.hostSilent = true;
+            editor.tick();
+            // The host here is neither the Standalone nor Logic: the Samples drawer's line for any other host.
+            CHECK (drawer.statusText()
+                   == "No sound from your DAW: it isn't running Wubansia's audio right now. Check that its audio engine is on and this track is active.");
+            CHECK (drawer.statusText() == editor::noSoundLine (false, false));
+            CHECK (editor::noSoundLine (true, false) == "No sound: the app's audio output isn't running. Choose one in Options > Audio/MIDI Settings...");
+            CHECK (editor::noSoundLine (false, true).startsWith ("No sound from your DAW: Logic only runs"));
+
+            // The next click puts it away.
+            click (phraseTile (editor, 1));
+            editor.tick();
+            CHECK_FALSE (drawer.statusText().startsWith ("No sound"));
         });
 }
 
@@ -3595,42 +3873,36 @@ TEST_CASE ("the drawer's words", "[editor][phrases]")
             drawer.announce = [&said] (const juce::String& text) { said.add (text); };
             openPhrases (editor);
             CHECK (said == juce::StringArray { "Phrases" });
-            for (int i = 0; i < 3; ++i)
-                editor.tick();
-            CHECK (said.size() == 1);
 
             const auto dot = editor::middleDot();
             CHECK (drawer.getTitle() == "Phrases"); // engraved in capitals, PHRASES
-            CHECK (drawer.kitLine() == "FUT01 Alloy Signal" + dot + "134 BPM" + dot + "F#m 11A");
+            CHECK (drawer.kitLine() == "FUT01 Alloy Signal" + dot + "over F#m9 " + enDash + " Bm9" + dot + "134 BPM" + dot + "F#m 11A");
             CHECK (get<juce::Button> (editor, "phrases_close").getButtonText() == "Close");
+            CHECK (get<juce::Button> (editor, "phrases_more").getTooltip()
+                   == "8 new phrases of the kind shown (one of each kind when the filter isn't a kind), written over this kit's chords. They stay "
+                      "until you close the plugin; star one to keep it.");
+            CHECK (get<juce::Button> (editor, "phrases").getTooltip()
+                   == "Browse 8-bar phrases written over this kit's chords, hear them with the groove, and drag them into your DAW as MIDI");
 
             auto& filter = get<editor::PhraseFilter> (editor, "phrases_filter_kit");
-            CHECK (filter.label() == "From the kit 6");
             CHECK (filter.getTooltip() == "The kit's own written phrases and its lead line, which were the chips on the drag strip");
-            CHECK (filter.getTitle() == "From the kit, 6 phrases, shown");
+            CHECK (filter.getTitle() == "From the kit, 6 phrases");
+            CHECK (get<editor::PhraseFilter> (editor, "phrases_filter_all").getTitle() == "All, 11 phrases, shown");
 
             auto& tile = phraseTile (editor, 0);
-            CHECK (tile.phrase().name == "E Piano Stab Rhythm");
-            CHECK (tile.detailText() == "From the kit" + dot + "2 bars");
-            CHECK (tile.getTooltip() == "Drag it into your DAW as MIDI; click to show the file. The kit's own FUT01_Phrase_EPianoStabRhythm_2bars.mid.");
-            CHECK (tile.getTitle() == "E Piano Stab Rhythm, from the kit, 2 bars");
-            CHECK (phraseTile (editor, 1).getTitle() == "Organ Riff, from the kit, 4 bars");
-            CHECK (phraseTile (editor, 5).getTitle() == "Lead Chrome Pluck, from the kit, 2 bars");
-            CHECK (phraseTile (editor, 5).getTooltip() == "Drag it into your DAW as MIDI; click to show the file. The kit's own FUT01_Lead_ChromePluck_2bars.mid.");
+            CHECK (tile.getTitle() == "Night Bus, hook, 8 bars, steady, mid");
+            CHECK (tile.getTooltip() == "Click to hear it with the groove; drag it into your DAW. Seed 0.");
+            CHECK (phraseTile (editor, 5).getTitle() == "E Piano Stab Rhythm, from the kit, 2 bars");
+            CHECK (phraseTile (editor, 5).getTooltip()
+                   == "Click to hear it with the groove; drag it into your DAW. The kit's own FUT01_Phrase_EPianoStabRhythm_2bars.mid.");
 
-            // A tile is a button to a screen reader; its press shows the file, as a click does.
-            PhraseHandoffs os;
-            os.hook (drawer);
+            // A tile is a button to a screen reader; its press plays it, as a click does.
             const auto handler = tile.createAccessibilityHandler();
             REQUIRE (handler != nullptr);
             CHECK (handler->getRole() == juce::AccessibilityRole::button);
             CHECK (handler->getActions().invoke (juce::AccessibilityActionType::press));
-            REQUIRE (os.revealed.size() == 1);
-            CHECK (os.revealed[0].getFileName() == "FUT01_Phrase_EPianoStabRhythm_2bars.mid");
-            CHECK (os.dragged.isEmpty());
+            CHECK (c.phraseAuditions == juce::StringArray { "hook-0" });
 
-            const juce::String idle ("Drag a phrase into your DAW as MIDI, or click it to show the file.");
-            CHECK (drawer.statusText() == idle);
             CHECK (drawer.synthsText() == "For my synths: on");
             c.synthsOn = false; // the strip's switch, from any instance
             editor.tick();
@@ -3638,19 +3910,17 @@ TEST_CASE ("the drawer's words", "[editor][phrases]")
 
             // A write that fails says so, on the status line and to a screen reader, and the tile turns the warning colour;
             // the next good one puts it away.
+            PhraseHandoffs os;
+            os.hook (drawer);
             c.dragFails = true;
-            click (phraseTile (editor, 1));
-            CHECK (os.revealed.size() == 1);
+            drag (phraseTile (editor, 6), 6.0f);
             CHECK (drawer.statusText() == "Couldn't write Organ Riff: its MIDI file couldn't be saved in Wubansia's drag folder.");
             CHECK (said[said.size() - 1] == drawer.statusText());
-            CHECK (phraseTile (editor, 1).hasFailed());
-            editor.tick();
-            CHECK (drawer.statusText() == "Couldn't write Organ Riff: its MIDI file couldn't be saved in Wubansia's drag folder.");
+            CHECK (phraseTile (editor, 6).hasFailed());
             c.dragFails = false;
-            click (phraseTile (editor, 1));
-            CHECK (os.revealed.size() == 2);
-            CHECK (drawer.statusText() == idle);
-            CHECK_FALSE (phraseTile (editor, 1).hasFailed());
+            drag (phraseTile (editor, 6), 6.0f);
+            CHECK_FALSE (phraseTile (editor, 6).hasFailed());
+            CHECK_FALSE (drawer.statusText().startsWith ("Couldn't"));
         });
 }
 
@@ -3863,16 +4133,19 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
             save (editor, "FUT02-samples-missing-1x.png", 1);
         });
 
-    // The Phrases drawer on FUT01's own phrases and its lead line, the first one selected.
-    c.phraseList = FakeController::ownPhrases ("FUT01");
+    // The Phrases drawer on FUT01 under All, then with a tile playing.
+    c.phraseList = FakeController::fakePhrases();
     ++c.phraseGeneration;
     withEditor (rig, [&] (PluginEditor& editor)
         {
             editor.setZoom (1.0f);
             play (editor, 134, 3840.0 + 960.0 * 2.0, editor.model().kit.phraseLanes, 1.6f);
             auto& drawer = openPhrases (editor);
-            REQUIRE (drawer.numTiles() == 6);
+            REQUIRE (drawer.numTiles() == 11);
             save (editor, "phrases-drawer.png");
+            click (phraseTile (editor, 1));
+            editor.tick();
+            save (editor, "phrases-drawer-playing.png");
         });
 }
 

@@ -41,8 +41,9 @@ target_compile_definitions(WubansiaPluginCode INTERFACE
     "$<$<CONFIG:Debug>:WUBANSIA_DEV_CONTENT_DIR=\"${PROJECT_SOURCE_DIR}/content/samples\">")
 
 # The kits the plugin carries (ADR 0017; plugin/source/content/EmbeddedContent.h): each kit's two
-# manifests, content/plugin/<kit>/<KIT>_kit.json and <KIT>_mix.json, and every kit-prefixed MIDI file
-# under content/midi/<kit>/ (the extended mixes' region files stay out), about 1.4 MB. The kit prefix
+# manifests, content/plugin/<kit>/<KIT>_kit.json and <KIT>_mix.json, every kit-prefixed MIDI file
+# under content/midi/<kit>/ (the extended mixes' region files stay out), and its phrase spec and library
+# from content/phrases/<kit>/, about 1.5 MB. The kit prefix
 # keeps the resource names unique. Sorted, so the generated sources don't depend on the file system.
 file(GLOB WUBANSIA_KIT_MANIFESTS CONFIGURE_DEPENDS
     "${PROJECT_SOURCE_DIR}/content/plugin/*/*_kit.json"
@@ -51,7 +52,11 @@ set(WUBANSIA_CONTENT_FILES ${WUBANSIA_KIT_MANIFESTS})
 foreach(manifest IN LISTS WUBANSIA_KIT_MANIFESTS)
     if(manifest MATCHES "/([a-z0-9]+)/([A-Z0-9]+)_kit\\.json$")
         file(GLOB_RECURSE kit_midi CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/content/midi/${CMAKE_MATCH_1}/${CMAKE_MATCH_2}_*.mid")
-        list(APPEND WUBANSIA_CONTENT_FILES ${kit_midi})
+        # The Phrases drawer's spec and library (ADR 0031), about 40 KB for the four kits.
+        file(GLOB kit_phrases CONFIGURE_DEPENDS
+            "${PROJECT_SOURCE_DIR}/content/phrases/${CMAKE_MATCH_1}/${CMAKE_MATCH_2}_phrases.json"
+            "${PROJECT_SOURCE_DIR}/content/phrases/${CMAKE_MATCH_1}/${CMAKE_MATCH_2}_phrase_library.json")
+        list(APPEND WUBANSIA_CONTENT_FILES ${kit_midi} ${kit_phrases})
     endif()
 endforeach()
 list(SORT WUBANSIA_CONTENT_FILES)

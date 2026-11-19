@@ -5,7 +5,8 @@
 // track (ADR 0025) and For my synths (ADR 0027) switches. They live in one file per user,
 // <app data>/Wubansia Audio/Wubansia/settings.xml next to the default content folder
 // (ContentLocator::appDataFolder), as the root's attributes content_folder, samples_folder,
-// drag_drums_one_track ("1" while that switch is lit) and drag_for_synths ("0" while that one is off),
+// drag_drums_one_track ("1" while that switch is lit), drag_for_synths ("0" while that one is off) and the
+// Phrases drawer's phrases_next_<kit> and phrases_kept_<kit> (ADR 0031),
 // never in a project's state, and every plugin instance in the process shares them: instance () is one
 // object, and generation () tells the others that the content folder changed.
 //
@@ -75,12 +76,27 @@ namespace wubansia
         // still holds until the process ends.
         bool setDragForSynths (bool on);
 
+        // The Phrases drawer (ADR 0031), per kit: phrases_next_<kit> (More's next seed, decimal; 1,000,000 when absent) and
+        // phrases_kept_<kit> (the starred phrase ids, separated by spaces). Unlike the other settings these read the file
+        // every time, under the lock, and each setter re-reads the attribute it changes before it writes: two processes
+        // (the Standalone and a DAW) then keep both people's stars, and the next seed never goes back.
+        std::uint64_t phrasesNextSeed (const juce::String& kit) const;
+        // Writes max (the file's, seed). False when the file couldn't be written.
+        bool setPhrasesNextSeed (const juce::String& kit, std::uint64_t seed);
+        juce::StringArray keptPhrases (const juce::String& kit) const;
+        // Adds id to the kit's kept phrases, or takes it out, as the file has them now. False when the file couldn't be
+        // written.
+        bool setPhraseKept (const juce::String& kit, const juce::String& id, bool kept);
+
     private:
         void loadLocked() const;
 
         // Writes the file with attribute set to value, keeping whatever else it holds. An empty value removes the
         // attribute: a forgotten folder (juce::File ()'s path), the drum option off or For my synths on.
         bool saveLocked (const char* attribute, const juce::String& value) const;
+        // The attribute as the file has it now ("" when absent).
+        juce::String fileAttributeLocked (const juce::String& attribute) const;
+        static constexpr std::uint64_t firstMoreSeed = 1000000; // gen::firstMoreSeed
 
         const juce::File settingsFile;
         mutable std::mutex mutex;

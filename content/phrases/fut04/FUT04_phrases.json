@@ -1,0 +1,41 @@
+{
+  "format": 1,
+  "kit": "FUT04",
+  "tonic": 4,
+  "bpm": 136,
+  "about": "8-bar phrases over the app's chord loop, Em(add9) held: modular blip riffs, call and answer, acid-stab periods, sparse accents, 16th arps, rave stabs, counter-lines and acid octave bounces.",
+  "range": [69, 88],
+  "swing": 19,
+  "chords": [
+    {"name": "Em(add9)", "degree": 0, "keys": [52, 59, 64, 67, 78]}
+  ],
+  "material": {
+    "register": {"center": 78, "span": 15},
+    "contours": [{"shape": "late", "w": 2}, {"shape": "twin", "w": 2}],
+    "cells": [{"on": [0, 3, 4, 6, 7, 10, 11, 12, 14], "len": [1, 1, 2, 1, 1, 1, 1, 2, 2], "acc": [0, 4, 12], "w": 30}, {"on": [2, 5, 8, 11, 14], "len": [2, 2, 2, 2, 2], "acc": [2, 8, 14], "w": 15}, {"on": [0, 3, 6, 9, 12, 15], "len": [2, 2, 2, 2, 2, 1], "acc": [0, 6, 12], "w": 15}, {"on": [3, 7, 11, 14], "len": [2, 2, 2, 2], "acc": [3, 11], "w": 15}, {"on": [0, 3, 6, 8, 11, 14], "len": [2, 2, 2, 2, 2, 2], "acc": [0, 8], "w": 10}, {"on": [0, 4, 8, 12, 14], "len": [2, 2, 2, 1, 2], "acc": [0, 8], "w": 15}],
+    "mutate": {"drop": 25, "add": 25, "extra": [1, 5, 9, 13, 15]},
+    "answer": {"same": 4, "move": 3, "add": 2, "drop": 1, "headDiffers": 1},
+    "pitch": {"pool": [0, 1, 2, 3, 4, 5, 6], "start": [50, 0, 20, 0, 20, 0, 10], "end": [10, 30, 15, 0, 25, 5, 15], "moves": [6, 44, 11, 11, 11, 6, 6, 5], "leap": 10, "strong": "accents", "peak": [18, 28], "early": [4, 12], "tones": [0, 2, 4, 6, 8], "clash": [0, 2, 4, 6]},
+    "vel": {"down": 124, "accent": 114, "other": 88, "peak": 10, "shape": 6},
+    "guard": {"second": 78},
+    "period": {"idiom": "stab", "cells": [{"on": [2, 5, 7, 10, 13, 14], "len": [1, 1, 1, 1, 1, 2], "acc": [2, 7, 10, 14], "w": 3}, {"on": [2, 5, 8, 11, 14], "len": [1, 1, 1, 1, 2], "acc": [2, 8, 14], "w": 1}]}
+  },
+  "ending": [40, 0, 25, 0, 35, 0, 0],
+  "nearDuplicate": 700,
+  "kinds": {
+    "hook": {"quota": 12, "forms": [30, 25, 25, 20]},
+    "answer": {"quota": 6, "forms": [40, 35, 25]},
+    "period": {"quota": 8, "forms": [60, 40]},
+    "sparse": {"quota": 6, "forms": [50, 50]},
+    "arp": {"quota": 10, "forms": [50, 50], "center": 78, "cells": [{"on": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], "len": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], "acc": [0, 3, 6, 9, 12], "w": 2}, {"on": [0, 2, 3, 4, 6, 7, 8, 10, 11, 12, 14], "len": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], "acc": [0, 4, 8, 12], "w": 2}], "ladders": [[0, 1, 2], [0, 2, 1], [0, 1, 2, 3], [0, 0, 1, 2]]},
+    "stabs": {"quota": 6, "forms": [50, 50], "center": 78, "cells": [{"on": [2, 5, 8, 11, 14], "len": [1, 1, 1, 1, 2], "acc": [2, 8, 14], "w": 3}, {"on": [2, 6, 10, 13], "len": [1, 1, 1, 2], "acc": [2, 10], "w": 1}]},
+    "counter": {"quota": 4, "forms": [60, 40], "center": 76, "span": 10, "leap": 7, "vel": -14, "moves": [10, 60, 22, 8, 0, 0, 0, 0], "cells": [{"on": [0, 8], "len": [6, 6], "acc": [0, 8], "w": 2}, {"on": [0, 6, 12], "len": [5, 5, 4], "acc": [0, 12], "w": 2}, {"on": [2, 8], "len": [5, 7], "acc": [8], "w": 1}, {"on": [0, 10], "len": [8, 5], "acc": [0], "w": 2}, {"on": [4, 12], "len": [6, 4], "acc": [4, 12], "w": 1}]},
+    "bounce": {"quota": 12, "forms": [50, 30, 20], "center": 79, "span": 15, "leap": 12, "pool": [0, 4, 6], "moves": [30, 10, 0, 10, 15, 0, 0, 35], "cells": [{"on": [0, 2, 3, 6, 8, 10, 11, 14], "len": [1, 1, 1, 1, 1, 1, 1, 1], "acc": [0, 3, 8, 11], "w": 2}, {"on": [0, 1, 4, 5, 8, 9, 12, 13], "len": [1, 1, 1, 1, 1, 1, 1, 1], "acc": [0, 4, 8, 12], "w": 1}, {"on": [2, 3, 6, 7, 10, 11, 14, 15], "len": [1, 1, 1, 1, 1, 1, 1, 1], "acc": [2, 6, 10, 14], "w": 1}]}
+  },
+  "names": {
+    "first": ["Hot", "Iron", "Spark", "Slag", "Steel", "Black", "Pressure", "Rust", "Coil", "Ash", "Valve", "Forge", "Molten", "Heavy", "Carbon", "Burnt", "Static", "Hollow", "Night", "Raw", "Chrome", "Smoke", "Dust", "Bolt"],
+    "second": ["Line", "Gate", "Loop", "Press", "Code", "Signal", "Furnace", "Rail", "Burn", "Grid", "Drive", "Shaft", "Hammer", "Engine", "Piston", "Circuit", "Chamber", "Relay", "Gear", "Floor", "Vent", "Weld", "Plant", "Crane"]
+  },
+  "rename": {},
+  "cut": {}
+}

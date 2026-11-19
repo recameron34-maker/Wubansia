@@ -1,0 +1,30 @@
+{
+  "about": "Test 12's refusals: each case replaces one piece of base.json (the FUT01 spec) and names what the loader must say. The message also names the file, the JSON path and the line.",
+  "cases": [
+    { "why": "no chords", "from": "\"chords\": [\n    { \"name\": \"F#m9\", \"degree\": 0, \"keys\": [54, 61, 64, 68, 69] },\n    { \"name\": \"Bm9\", \"degree\": 3, \"keys\": [59, 66, 69, 73, 74] }\n  ]", "to": "\"chords\": [\n  ]", "path": "chords", "says": "1-4 chords" },
+    { "why": "more than 4 chords", "from": "{ \"name\": \"Bm9\", \"degree\": 3, \"keys\": [59, 66, 69, 73, 74] }", "to": "{ \"name\": \"Bm9\", \"degree\": 3, \"keys\": [59, 66, 69, 73, 74] }, { \"name\": \"A\", \"degree\": 2, \"keys\": [57] }, { \"name\": \"B\", \"degree\": 3, \"keys\": [59] }, { \"name\": \"C\", \"degree\": 4, \"keys\": [61] }", "path": "chords", "says": "1-4 chords" },
+    { "why": "a degree outside 0-6", "from": "\"degree\": 3,", "to": "\"degree\": 7,", "path": "chords[1].degree", "says": "0 to 6" },
+    { "why": "a voicing key outside 0-127", "from": "[59, 66, 69, 73, 74]", "to": "[59, 66, 69, 73, 128]", "path": "chords[1].keys", "says": "0 to 127" },
+    { "why": "a range outside 0-127", "from": "\"range\": [64, 86]", "to": "\"range\": [64, 130]", "path": "range", "says": "0 to 127" },
+    { "why": "an empty range", "from": "\"range\": [64, 86]", "to": "\"range\": [86, 64]", "path": "range", "says": "empty" },
+    { "why": "a swing outside 0-120", "from": "\"swing\": 43", "to": "\"swing\": 121", "path": "swing", "says": "0 to 120" },
+    { "why": "an unknown kind", "from": "\"bounce\":  {", "to": "\"bouncy\":  {", "path": "kinds", "says": "unknown key \"bouncy\"" },
+    { "why": "an unknown key", "from": "\"nearDuplicate\": 700,", "to": "\"nearDuplicate\": 700, \"colour\": 1,", "path": "", "says": "unknown key \"colour\"" },
+    { "why": "a quota of 0", "from": "\"hook\":    { \"quota\": 12,", "to": "\"hook\":    { \"quota\": 0,", "path": "kinds.hook.quota", "says": "1 to 64" },
+    { "why": "a quota over 64", "from": "\"hook\":    { \"quota\": 12,", "to": "\"hook\":    { \"quota\": 65,", "path": "kinds.hook.quota", "says": "1 to 64" },
+    { "why": "the wrong number of form weights", "from": "\"forms\": [30, 25, 25, 20]", "to": "\"forms\": [30, 25, 25]", "path": "kinds.hook.forms", "says": "4 form weights" },
+    { "why": "every form weight 0", "from": "\"forms\": [30, 25, 25, 20]", "to": "\"forms\": [0, 0, 0, 0]", "path": "kinds.hook.forms", "says": "every weight is 0" },
+    { "why": "an arp without ladders", "from": "\"ladders\": [ [0, 1, 2, 3], [0, 2, 1, 3], [0, 1, 2, 1], [2, 1, 0, 1], [0, 1, 2, 3, 4, 3, 2, 1], [0, 1, 2] ] },", "to": "\"leap\": 9 },", "path": "kinds.arp", "says": "ladders" },
+    { "why": "a cell onset outside 0-15", "from": "{ \"on\": [0, 8], \"len\": [6, 6], \"acc\": [0, 8], \"w\": 2 }", "to": "{ \"on\": [0, 16], \"len\": [6, 6], \"acc\": [0], \"w\": 2 }", "path": "kinds.counter.cells[0].on", "says": "0 to 15" },
+    { "why": "an accent that isn't an onset", "from": "{ \"on\": [0, 8], \"len\": [6, 6], \"acc\": [0, 8], \"w\": 2 }", "to": "{ \"on\": [0, 8], \"len\": [6, 6], \"acc\": [0, 9], \"w\": 2 }", "path": "kinds.counter.cells[0].acc", "says": "isn't one of the onsets" },
+    { "why": "a channel outside 1-16", "from": "\"period\":  { \"quota\": 8,", "to": "\"period\":  { \"quota\": 8, \"channel\": 17,", "path": "kinds.period.channel", "says": "1 to 16" },
+    { "why": "an empty kind register", "from": "\"period\":  { \"quota\": 8,", "to": "\"period\":  { \"quota\": 8, \"register\": [88, 77],", "path": "kinds.period.register", "says": "empty" },
+    { "why": "23 first words", "from": "\"Fading\", \"Open\"]", "to": "\"Fading\"]", "path": "names.first", "says": "24 words" },
+    { "why": "a word twice", "from": "\"Fading\", \"Open\"]", "to": "\"Fading\", \"Night\"]", "path": "names.first", "says": "\"Night\" twice" },
+    { "why": "a word in both lists", "from": "\"Ticket\", \"Shutter\"]", "to": "\"Ticket\", \"Night\"]", "path": "names.second", "says": "\"Night\" is in both lists" },
+    { "why": "a rename of an id the library can't have", "from": "\"rename\": {}", "to": "\"rename\": { \"hook-1000000\": \"Night Bus Home\" }", "path": "rename.hook-1000000", "says": "no library phrase" },
+    { "why": "a rename of an unknown kind", "from": "\"rename\": {}", "to": "\"rename\": { \"chord-1\": \"Night Bus Home\" }", "path": "rename.chord-1", "says": "no library phrase" },
+    { "why": "a cut seed listed twice", "from": "\"cut\": {}", "to": "\"cut\": { \"hook\": [5, 17, 5] }", "path": "cut.hook", "says": "5 is listed twice" },
+    { "why": "a cut word other than all", "from": "\"cut\": {}", "to": "\"cut\": { \"hook\": \"some\" }", "path": "cut.hook", "says": "\"all\"" }
+  ]
+}

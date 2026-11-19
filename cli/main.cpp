@@ -25,9 +25,10 @@ namespace
         std::string_view summary;
     };
 
-    constexpr std::array<Entry, 3> commands = { {
+    constexpr std::array<Entry, 4> commands = { {
         { "gen", &wubansia::cli::runGen, "write MIDI from a kit and a seed" },
         { "metrics", &wubansia::cli::runMetrics, "score MIDI files with the generator metrics" },
+        { "phrases", &wubansia::cli::runPhrases, "write or check a kit's phrase library" },
         { "render", &wubansia::cli::runRender, "play a kit through the engine into a WAV" },
     } };
 

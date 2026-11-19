@@ -17,11 +17,21 @@ namespace wubansia
           service (std::make_unique<KitService> (player, *content)),
           sounds (std::make_unique<SoundService> (*content, auditions)),
           drumKits (std::make_unique<DrumKitService> (*content)),
+          phraseThread (std::make_unique<PhraseService> (player, [this]() -> const KitCatalog& { return service->catalog(); })),
           controllerImpl (*this)
     {
         // Nothing else: no file is read and no thread starts until the first prepareToPlay or
         // setStateInformation (hosts and validators make instances by the dozen to scan them).
         mirrorSettings (stateOnly);
+
+        // The Phrases drawer's audition given up for a host that runs no audio: the Preview it started goes off too.
+        phraseThread->setOnGiveUp ([this] { stopPhrasePreview(); });
+    }
+
+    void PluginProcessor::stopPhrasePreview() noexcept
+    {
+        if (previewForPhrase.exchange (false, std::memory_order_acq_rel))
+            transport.setPreview (false);
     }
 
     PluginProcessor::~PluginProcessor()
@@ -30,13 +40,15 @@ namespace wubansia
         // player still exist. ~AuditionPlayer then deletes the clips it still holds. The drum kit thread first of all: it
         // reads the content.
         drumKits.reset();
+        phraseThread.reset();
         sounds.reset();
         service.reset();
     }
 
     void PluginProcessor::setContentForTesting (std::unique_ptr<ContentSourceFactory> replacement, const juce::String& kit)
     {
-        jassert (replacement != nullptr && ! service->started() && ! sounds->started() && ! drumKits->started());
+        jassert (replacement != nullptr && ! service->started() && ! sounds->started() && ! drumKits->started()
+                 && ! phraseThread->started());
         drumKits.reset();
         sounds.reset();
         service.reset();
@@ -292,6 +304,7 @@ namespace wubansia
             bypassed = true;
         }
         auditions.process (nullptr, 0, buffer.getNumSamples(), true); // every block: an audition offered now never plays
+        player.dropPhraseOffer(); // and a phrase offered now goes back unplayed (ADR 0031)
         lastPlaying.store (false, std::memory_order_relaxed);
     }
 

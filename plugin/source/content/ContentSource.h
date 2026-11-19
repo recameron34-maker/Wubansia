@@ -39,6 +39,8 @@ namespace wubansia
         std::string_view mixJson; // <KIT>_mix.json (P3); empty when the kit has none
         std::array<std::span<const std::uint8_t>, 4> smfs; // by engine::timelineIndex: Loop vox, Loop no-vox, Song vox, Song no-vox
         std::span<const EmbeddedMidi> midiFiles; // every MIDI file of the kit's, for drag-out
+        std::string_view phraseSpec; // <KIT>_phrases.json (ADR 0031); empty when the kit has none
+        std::string_view phraseLibrary; // <KIT>_phrase_library.json; empty when the kit has none
     };
 
     class ContentSourceFactory

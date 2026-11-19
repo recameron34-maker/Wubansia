@@ -1,5 +1,7 @@
 #include "services/KitCatalog.h"
 
+#include "util/sha256.h"
+
 #include "sounds/SoundCatalog.h"
 
 #include "kit/channel_map.h"
@@ -149,6 +151,40 @@ namespace wubansia
         return R::success (std::move (timelines));
     }
 
+    namespace
+    {
+        // The Phrases drawer's spec and library (ADR 0031), parsed once: the library must be the kit's, chosen for this
+        // very spec (its "spec" is the spec file's SHA-256). Without them the kit lists only its own phrases.
+        void readPhrases (KitCatalog::Entry& e, const KitSource& source)
+        {
+            if (source.phraseSpec.empty() || source.phraseLibrary.empty())
+            {
+                e.phraseError = "the plugin carries no phrase spec and library for " + e.id;
+                return;
+            }
+            auto spec = gen::parsePhraseSpec (source.phraseSpec, e.id + "_phrases.json");
+            if (! spec.ok())
+            {
+                e.phraseError = spec.error;
+                return;
+            }
+            auto library = gen::parsePhraseLibrary (source.phraseLibrary, e.id + "_phrase_library.json");
+            if (! library.ok())
+                e.phraseError = library.error;
+            else if (spec.value.kitId != e.id || library.value.kitId != e.id)
+                e.phraseError = e.id + "_phrases.json and " + e.id + "_phrase_library.json are for kit " + spec.value.kitId + " and " + library.value.kitId;
+            else if (library.value.specSha256
+                     != util::sha256Hex (std::span<const std::uint8_t> (reinterpret_cast<const std::uint8_t*> (source.phraseSpec.data()), source.phraseSpec.size())))
+                e.phraseError = e.id + "_phrase_library.json was chosen for another " + e.id + "_phrases.json: run groovecore phrases --library";
+            if (! e.phraseError.empty())
+                return;
+            for (const auto& chord : spec.value.chords)
+                e.card.phraseChords.add (juce::String::fromUTF8 (chord.name.data(), static_cast<int> (chord.name.size())));
+            e.phraseSpec = std::move (spec.value);
+            e.phraseRows = std::move (library.value.rows);
+        }
+    }
+
     KitCatalog::KitCatalog (std::span<const KitSource> kits)
     {
         list.reserve (kits.size());
@@ -202,6 +238,7 @@ namespace wubansia
             }
             for (const auto& m : source.midiFiles)
                 e.midiFiles.push_back ({ m.name, m.bytes });
+            readPhrases (e, source);
             list.push_back (std::move (e));
         }
     }

@@ -127,8 +127,9 @@ TEST_CASE ("the fake controller shows what a test sets and records what the edit
         using wubansia::test::FakeController;
         CHECK (controller.phrasesGeneration() == 1u);
         const auto fut01 = controller.phrases();
-        REQUIRE (fut01.size() == 6); // FUT01's own until a test sets others
-        CHECK (fut01 == FakeController::ownPhrases ("FUT01"));
+        REQUIRE (fut01.size() == 11); // five library phrases and FUT01's own six, until a test sets others
+        CHECK (fut01 == FakeController::fakePhrases());
+        CHECK (fut01.front().id == "hook-0");
         CHECK (fut01.back().id == "FUT01_Lead_ChromePluck_2bars.mid");
 
         fake.phraseList = FakeController::ownPhrases ("FUT02");
@@ -153,6 +154,30 @@ TEST_CASE ("the fake controller shows what a test sets and records what the edit
             }
         }
         CHECK (FakeController::ownPhrases ("NOPE").empty());
+    }
+
+    SECTION ("the Phrases drawer's More, audition, Stop and Keep: each call recorded")
+    {
+        CHECK (controller.morePhrases ("arp"));
+        fake.moreBusy = true;
+        CHECK_FALSE (controller.morePhrases (""));
+        CHECK (fake.moreRequests == juce::StringArray { "arp", "" });
+
+        CHECK (controller.auditionPhrase ("hook-0") == 1u);
+        CHECK (controller.phraseAuditionState().sounding == 1u); // as a playing host would
+        CHECK (controller.phraseAuditionState().id == "hook-0");
+        CHECK (controller.auditionPhrase ("arp-2") == 2u);
+        CHECK (fake.phraseAuditions == juce::StringArray { "hook-0", "arp-2" });
+        controller.stopPhraseAudition();
+        CHECK (fake.phraseStops == 1);
+        CHECK (controller.phraseAuditionState().sounding == 0u);
+        CHECK (controller.phraseAuditionState().latest == 2u);
+
+        const auto generation = controller.phrasesGeneration();
+        controller.setPhraseKept ("hook-3", true);
+        CHECK (fake.keptRequests == std::vector<std::pair<juce::String, bool>> { { "hook-3", true } });
+        CHECK (controller.phrases()[1].kept);
+        CHECK (controller.phrasesGeneration() > generation);
     }
 }
 

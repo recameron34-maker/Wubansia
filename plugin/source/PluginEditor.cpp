@@ -48,7 +48,7 @@ namespace wubansia
 
         // The Phrases button opens the Phrases drawer (ADR 0031) where the Samples drawer sits; the two never show together.
         phrasesButton.setComponentID ("phrases");
-        phrasesButton.setTooltip ("Browse phrases for this kit and drag them into your DAW as MIDI");
+        phrasesButton.setTooltip ("Browse 8-bar phrases written over this kit's chords, hear them with the groove, and drag them into your DAW as MIDI");
         phrasesButton.setClickingTogglesState (false);
         phrasesButton.onClick = [this] { showPhrasesPanel (! phrasesPanel.isVisible()); };
 
@@ -94,6 +94,8 @@ namespace wubansia
         stopTimer();
         if (samplesPanel.isVisible())
             controller.stopAudition(); // the drawer's sound ends with the window it plays from
+        if (phrasesPanel.isVisible())
+            controller.stopPhraseAudition(); // and the Phrases drawer's, with the Preview it started
         attachments.clear(); // before the controls they hold callbacks on
         setLookAndFeel (nullptr);
     }
@@ -288,6 +290,7 @@ namespace wubansia
         m.audition = controller.auditionState();
         m.drumKit = controller.drumKitStatus();
         m.phrasesGeneration = controller.phrasesGeneration();
+        m.phraseAudition = controller.phraseAuditionState();
 
         if (playModeParameter != nullptr)
             m.playMode = static_cast<engine::PlayMode> (juce::jlimit (0, 2, juce::roundToInt (playModeParameter->convertFrom0to1 (playModeParameter->getValue()))));
@@ -377,6 +380,7 @@ namespace wubansia
             {
                 phrasesPanel.setVisible (false);
                 coverFace (false);
+                controller.stopPhraseAudition(); // closing the drawer stops what it plays, and the Preview it started
             }
         }
         phrasesButton.setToggleState (show, juce::dontSendNotification);

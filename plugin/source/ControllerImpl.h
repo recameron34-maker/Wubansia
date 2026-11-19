@@ -62,6 +62,11 @@ namespace wubansia
 
         std::vector<PhraseInfo> phrases() const override;
         std::uint64_t phrasesGeneration() const override;
+        bool morePhrases (const juce::String& kind) override;
+        std::uint32_t auditionPhrase (const juce::String& id) override;
+        void stopPhraseAudition() override;
+        PhraseAuditionState phraseAuditionState() const override;
+        void setPhraseKept (const juce::String& id, bool kept) override;
 
         // Where writeDragFile () writes: dragout::cacheFolder () unless a test sets another.
         void setDragFolderForTesting (const juce::File& folder) { dragFolder = folder; }
@@ -71,7 +76,7 @@ namespace wubansia
 
         // The settings file that keeps the samples folder and the drum option: UserSettings::instance () unless a test
         // sets another.
-        void setUserSettingsForTesting (UserSettings& settings) { userSettings = &settings; }
+        void setUserSettingsForTesting (UserSettings& settings); // the phrase thread's too
 
     private:
         UserSettings& settingsFile() const;

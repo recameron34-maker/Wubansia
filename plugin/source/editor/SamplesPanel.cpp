@@ -1136,12 +1136,8 @@ namespace wubansia::editor
             return failedPlayLine (auditionLabel, auditionKit, *failed);
         if (auditionDismissed || ticket == 0 || audition.latest != ticket)
             return {};
-        if (audition.hostSilent && standalone) // JUCE's standalone window: its Options button and menu item
-            return "No sound: the app's audio output isn't running. Choose one in Options > Audio/MIDI Settings...";
-        if (audition.hostSilent && logicHost)
-            return "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed. Select this track, or press Play.";
-        if (audition.hostSilent) // any other host: Live with its audio engine off, a deactivated track, a frozen one...
-            return "No sound from your DAW: it isn't running Wubansia's audio right now. Check that its audio engine is on and this track is active.";
+        if (audition.hostSilent)
+            return noSoundLine (standalone, logicHost);
         return {};
     }
 
@@ -1642,5 +1638,15 @@ namespace wubansia::editor
             g.setColour (statusTone());
             g.drawFittedText (status, statusArea, juce::Justification::centredLeft, 2, 0.9f);
         }
+    }
+
+    juce::String noSoundLine (bool standalone, bool logicHost)
+    {
+        if (standalone) // JUCE's standalone window: its Options button and menu item
+            return "No sound: the app's audio output isn't running. Choose one in Options > Audio/MIDI Settings...";
+        if (logicHost)
+            return "No sound from your DAW: Logic only runs a stopped instrument track while it's selected or armed. Select this track, or press Play.";
+        // Any other host: Live with its audio engine off, a deactivated track, a frozen one...
+        return "No sound from your DAW: it isn't running Wubansia's audio right now. Check that its audio engine is on and this track is active.";
     }
 }

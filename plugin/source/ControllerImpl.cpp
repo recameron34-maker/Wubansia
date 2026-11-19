@@ -88,28 +88,6 @@ namespace wubansia
             source.entry = entry;
             return source;
         }
-
-        // One of the kit's own files as the Phrases drawer lists it (ADR 0031): editor::phraseTitle's words without the bar
-        // count, which gives its bars. "FUT01_Phrase_OrganRiff_4bars.mid" is Organ Riff, 4 bars, and the lead line
-        // "FUT01_Lead_ChromePluck_2bars.mid" Lead Chrome Pluck, 2 bars, as its drag's file name has it.
-        PhraseInfo kitPhrase (const juce::String& file, const juce::String& kit)
-        {
-            PhraseInfo phrase;
-            phrase.id = file;
-            phrase.kind = "kit";
-            phrase.origin = PhraseOrigin::kit;
-            const auto dot = editor::middleDot();
-            auto title = editor::phraseTitle (file, kit); // "Lead · Chrome Pluck · 2 bars"
-            const auto last = title.fromLastOccurrenceOf (dot, false, false);
-            const auto count = last.upToFirstOccurrenceOf (" ", false, false);
-            if (title.contains (dot) && count.isNotEmpty() && count.containsOnly ("0123456789") && (last == count + " bars" || last == count + " bar"))
-            {
-                phrase.bars = count.getIntValue();
-                title = title.upToLastOccurrenceOf (dot, false, false);
-            }
-            phrase.name = title.replace (dot, " ");
-            return phrase;
-        }
     }
 
     ControllerImpl::ControllerImpl (PluginProcessor& p) : processor (p) {}
@@ -143,8 +121,10 @@ namespace wubansia
         if (entry == nullptr)
             return; // not a kit this build carries
 
-        // A kit chosen stops the Samples drawer's audition (ADR 0024).
+        // A kit chosen stops the Samples drawer's audition (ADR 0024) and the Phrases drawer's (ADR 0031).
         processor.sounds->stop();
+        processor.phraseThread->stop();
+        processor.stopPhrasePreview();
 
         // Already there, or on its way: nothing to do. A kit whose load failed loads again.
         const auto status = processor.kitService().status();
@@ -254,6 +234,7 @@ namespace wubansia
 
     void ControllerImpl::setPreview (bool on)
     {
+        processor.previewForPhrase.store (false, std::memory_order_release); // the person's from now on
         processor.transport.setPreview (on);
     }
 
@@ -336,6 +317,17 @@ namespace wubansia
         state.part = dragPartChoice;
 
         const auto folder = dragFolder != juce::File() ? dragFolder : dragout::cacheFolder();
+        if (request.what == DragWhat::generatedPhrase)
+        {
+            // The phrase thread's file for it, made here: the OS drag starts inside the mouse event. Dragged, it isn't New.
+            const auto phrase = processor.phraseThread->file (processor.settings().kit, request.phraseFile);
+            if (! phrase.ok())
+                return {};
+            const auto file = dragout::writeGeneratedPhrase (entry->info, phrase.value.name, phrase.value.kindWord, phrase.value.bytes, state, folder);
+            if (file.ok())
+                processor.phraseThread->markSeen (processor.settings().kit, request.phraseFile);
+            return file.ok() ? file.value : juce::File();
+        }
         const auto file = dragout::writeDragFile (entry->info, entry->midiFiles, state, request, folder);
         return file.ok() ? file.value : juce::File();
     }
@@ -463,26 +455,70 @@ namespace wubansia
 
     std::vector<PhraseInfo> ControllerImpl::phrases() const
     {
+        // The phrase thread makes the current kit's list (the first call starts it); until it has, none.
         const auto kit = processor.settings().kit;
-        const auto* entry = entryOf (processor, kit);
-        if (entry == nullptr || ! entry->ok())
-            return {}; // nothing a drag could write
-        std::vector<PhraseInfo> list;
-        for (const auto& file : dragout::kitPhraseFiles (entry->id, entry->midiFiles))
-            list.push_back (kitPhrase (file, kit));
-        return list;
+        processor.phraseThread->show (kit);
+        const auto list = processor.phraseThread->list();
+        return list != nullptr && list->kit == kit ? list->phrases : std::vector<PhraseInfo> {};
     }
 
     std::uint64_t ControllerImpl::phrasesGeneration() const
     {
-        // phrases () is the current kit's own: it moves on when the kit does, a project's included.
+        // phrases () is the current kit's: it moves on when the kit does (a project's included), and with every list the
+        // phrase thread makes. Asking starts nothing: the editor asks on every tick, drawer open or not.
         const auto kit = processor.settings().kit;
         if (kit != phrasesKit)
         {
             phrasesKit = kit;
             ++phrasesListed;
         }
-        return phrasesListed;
+        return phrasesListed + processor.phraseThread->generation();
+    }
+
+    bool ControllerImpl::morePhrases (const juce::String& kind)
+    {
+        return processor.phraseThread->more (processor.settings().kit, kind);
+    }
+
+    std::uint32_t ControllerImpl::auditionPhrase (const juce::String& id)
+    {
+        const auto kit = processor.settings().kit;
+        const auto ticket = processor.phraseThread->audition (kit, id);
+        if (ticket == 0)
+            return 0;
+        processor.phraseThread->markSeen (kit, id);
+
+        // Nothing plays (the last block was stopped): Preview plays the kit for it, the Standalone's clock or a stopped host's.
+        if (! processor.lastPlaying.load (std::memory_order_relaxed) && ! processor.transport.preview())
+        {
+            processor.transport.setPreview (true);
+            processor.previewForPhrase.store (true, std::memory_order_release);
+        }
+        return ticket;
+    }
+
+    void ControllerImpl::stopPhraseAudition()
+    {
+        processor.phraseThread->stop();
+        processor.stopPhrasePreview();
+    }
+
+    PhraseAuditionState ControllerImpl::phraseAuditionState() const
+    {
+        auto s = processor.phraseThread->status();
+        s.startedTransport = processor.previewForPhrase.load (std::memory_order_acquire) && processor.transport.preview();
+        return s;
+    }
+
+    void ControllerImpl::setPhraseKept (const juce::String& id, bool kept)
+    {
+        processor.phraseThread->setKept (processor.settings().kit, id, kept);
+    }
+
+    void ControllerImpl::setUserSettingsForTesting (UserSettings& settings)
+    {
+        userSettings = &settings;
+        processor.phraseThread->setUserSettings (&settings);
     }
 
     std::vector<juce::File> ControllerImpl::contentFolders() const
