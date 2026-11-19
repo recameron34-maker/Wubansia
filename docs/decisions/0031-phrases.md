@@ -29,7 +29,7 @@ need that room: with Part on the strip, FUT01's five phrase chips would get 152 
    - Keys: Tab reaches the grid in one stop; the arrows move between tiles, Return shows the file, Escape closes the
      drawer. Space, letters and every shortcut go on to the host, as in the Samples drawer. The drag stays mouse-only.
    - Screen readers hear each tile as a button, "E Piano Stab Rhythm, from the kit, 2 bars", whose press shows the file;
-     opening the drawer says "Phrases".
+     opening the drawer says "Phrases", and each arrow says the tile it lands on, in those words.
    - It asks the Controller for the list (`phrases ()`) only when `phrasesGeneration ()` moves on, so a kit change keeps
      it open with the new kit's phrases. It registers no listener and saves nothing.
 3. **From the kit** lists the kit's phrase files, then its lead line (`dragout::kitPhraseFiles`): 6 for FUT01, 5 for

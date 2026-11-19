@@ -83,8 +83,9 @@ namespace wubansia::editor
         bool selected = false, failed = false, hover = false, pressed = false, dragging = false;
     };
 
-    // The tiles, in the drawer's scrolling grid: one stop for Tab. It takes the arrows (between tiles) and Return (shows
-    // the selected tile's file); Escape goes on to the drawer, and Space, letters and shortcuts to the host.
+    // The tiles, in the drawer's scrolling grid: one stop for Tab. It takes the arrows (between tiles, each naming the tile
+    // it lands on to a screen reader) and Return (shows the selected tile's file); Escape goes on to the drawer, and Space,
+    // letters and shortcuts to the host.
     class PhraseGrid : public juce::Component
     {
     public:

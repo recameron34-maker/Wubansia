@@ -353,6 +353,8 @@ namespace wubansia::editor
             else if (selected / columns < (count - 1) / columns)
                 next = juce::jmin (count - 1, selected + columns); // the next row's tile below, or its last
             select (next);
+            if (announce != nullptr)
+                announce (tiles[selected]->getTitle()); // the grid keeps the focus, so nothing else names the tile
             return true; // at an edge: nothing to do, but the key was the grid's
         }
         if (key == juce::KeyPress::returnKey && selected >= 0 && selected < count)
