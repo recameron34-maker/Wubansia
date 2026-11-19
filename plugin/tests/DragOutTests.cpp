@@ -11,6 +11,7 @@
 #include "dragout/DragFiles.h"
 #include "editor/DragChip.h"
 #include "editor/ExternalDrag.h"
+#include "editor/PhrasesPanel.h"
 #include "editor/SamplesPanel.h"
 #include "helpers/fake_controller.h"
 #include "services/KitCatalog.h"
@@ -896,7 +897,7 @@ TEST_CASE ("1 drum track leaves lane and phrase drags as they are", "[dragout]")
                 std::vector<DragRequest> requests;
                 for (const auto lane : allLanes)
                     requests.push_back (laneRequest (lane));
-                for (const auto& phrase : dragout::phraseFiles (k.info.id, k.files))
+                for (const auto& phrase : dragout::kitPhraseFiles (k.info.id, k.files))
                     requests.push_back (phraseRequest (phrase.toStdString()));
                 for (const auto& request : requests)
                 {
@@ -989,7 +990,8 @@ TEST_CASE ("1 drum track: drums that can't go on one track fail the drag, saying
 TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched tracks made for synths, and says so", "[dragout]")
 {
     // Loop and Song: nothing muted, each lane alone, every lane but one, and only the drums, accents and FX left, each
-    // with 1 drum track off and on. Then every lane in both modes, and every phrase file, each in both variants.
+    // with 1 drum track off and on. Then every lane in both modes, and every phrase file and lead line, each in both
+    // variants.
     std::vector<std::uint32_t> mutes { 0u, 0b0011110000u };
     for (const auto lane : allLanes)
     {
@@ -1014,7 +1016,7 @@ TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched 
             for (const auto mode : { PlayMode::loop, PlayMode::song })
                 for (const auto lane : allLanes)
                     drags.emplace_back (state (mode, v), laneRequest (lane));
-            for (const auto& phrase : dragout::phraseFiles (k.info.id, k.files))
+            for (const auto& phrase : dragout::kitPhraseFiles (k.info.id, k.files))
                 drags.emplace_back (state (PlayMode::loop, v), phraseRequest (phrase.toStdString()));
         }
 
@@ -1052,7 +1054,7 @@ TEST_CASE ("For my synths: every drag is the plain drag's file with its pitched 
                 ++changed; // a pitched track whose notes already play well on a synth comes out the same
         }
     }
-    CHECK (marked > 500); // 576: 564 changed, 12 already played well
+    CHECK (marked > 500); // 584: 572 changed, 12 already played well
     CHECK (changed > 500);
     CHECK (plain > 250); // 294
 }
@@ -1472,22 +1474,19 @@ TEST_CASE ("a lane with no tracks in the mode's files can't be dragged", "[drago
 
 TEST_CASE ("a phrase drag is the phrase file, byte for byte", "[dragout]")
 {
+    // Every file the Phrases drawer lists (kitPhraseFiles' own case checks the list): the phrases and the lead line.
     for (const auto& k : kits())
     {
         INFO (k.info.id);
-        const auto phrases = dragout::phraseFiles (k.info.id, k.files);
-        juce::StringArray expected;
-        for (const auto& name : k.names)
-            if (name.rfind (k.info.id + "_Phrase_", 0) == 0)
-                expected.add (juce::String (name));
-        CHECK (phrases == expected);
-        CHECK (phrases.size() >= 4);
-
+        const auto phrases = dragout::kitPhraseFiles (k.info.id, k.files);
+        CHECK (phrases.size() >= 5);
         for (const auto& name : phrases)
         {
+            INFO (name);
             const auto file = drag (k, state (PlayMode::song, Variant::novox, everyLane), phraseRequest (name.toStdString()));
             CHECK (file.bytes == k.bytesOf (name.toStdString()));
-            CHECK_THAT (file.name, StartsWith (k.prefix() + "Phrase ") && EndsWith (" bars.mid"));
+            const auto lead = name.startsWith (juce::String (k.info.id) + "_Lead_");
+            CHECK_THAT (file.name, StartsWith (k.prefix() + (lead ? "Lead " : "Phrase ")) && EndsWith (" bars.mid"));
         }
     }
 
@@ -1498,6 +1497,80 @@ TEST_CASE ("a phrase drag is the phrase file, byte for byte", "[dragout]")
            == "FUT01 Alloy Signal 134 F#m 11A - Phrase Vox Synth Riff 2 bars.mid");
     CHECK_THAT (dragError (k, state (PlayMode::loop, Variant::vox), phraseRequest ("FUT01_Phrase_Nothing_2bars.mid")), ContainsSubstring ("FUT01_Phrase_Nothing_2bars.mid"));
     CHECK_THAT (dragError (k, state (PlayMode::loop, Variant::vox), phraseRequest ("FUT02_Phrase_GlassMelody_4bars.mid")), ContainsSubstring ("FUT02_Phrase_GlassMelody_4bars.mid"));
+}
+
+TEST_CASE ("kitPhraseFiles lists the kit's phrases and its lead line", "[dragout]")
+{
+    // The Phrases drawer's From the kit (ADR 0031): the phrase files by name, then the lead line.
+    const std::map<std::string, juce::StringArray> expected {
+        { "FUT01", { "FUT01_Phrase_EPianoStabRhythm_2bars.mid", "FUT01_Phrase_OrganRiff_4bars.mid", "FUT01_Phrase_PluckRiff_4bars.mid",
+                       "FUT01_Phrase_VoxSynthRiff_2bars.mid", "FUT01_Phrase_WarpRiff_2bars.mid", "FUT01_Lead_ChromePluck_2bars.mid" } },
+        { "FUT02", { "FUT02_Phrase_GlassMelody_4bars.mid", "FUT02_Phrase_LaserStabRiff_2bars.mid", "FUT02_Phrase_VoxChoirChords_4bars.mid",
+                       "FUT02_Phrase_VoxSynthRiff_2bars.mid", "FUT02_Lead_ChromeArp_2bars.mid" } },
+        { "FUT03", { "FUT03_Phrase_DubChords_4bars.mid", "FUT03_Phrase_KeysArp_4bars.mid", "FUT03_Phrase_RubberRiff_2bars.mid",
+                       "FUT03_Phrase_VoxSynthRiff_2bars.mid", "FUT03_Lead_KeysEP_2bars.mid" } },
+        { "FUT04", { "FUT04_Phrase_AcidStabRiff_2bars.mid", "FUT04_Phrase_MetalChords_4bars.mid", "FUT04_Phrase_RaveStabRiff_2bars.mid",
+                       "FUT04_Phrase_VoxSynthRiff_2bars.mid", "FUT04_Lead_ModBlip_2bars.mid" } },
+    };
+
+    // Every kit's files in one list, and each file in a folder: each kit still finds only its own, by file name.
+    std::vector<dragout::MidiFile> all;
+    for (const auto& k : kits())
+        all.insert (all.end(), k.files.begin(), k.files.end());
+    for (const auto& k : kits())
+    {
+        INFO (k.info.id);
+        const auto& wanted = expected.at (k.info.id);
+        CHECK (dragout::kitPhraseFiles (k.info.id, k.files) == wanted);
+        CHECK (dragout::kitPhraseFiles (k.info.id, all) == wanted);
+        std::vector<std::string> paths;
+        for (const auto& name : k.names)
+            paths.push_back ("midi/" + juce::String (k.info.id).toLowerCase().toStdString() + "/" + name);
+        std::vector<dragout::MidiFile> inFolders;
+        for (std::size_t i = 0; i < paths.size(); ++i)
+            inFolders.push_back ({ paths[i], k.data[i] });
+        CHECK (dragout::kitPhraseFiles (k.info.id, inFolders) == wanted);
+    }
+    CHECK (dragout::kitPhraseFiles ("FUT05", all).isEmpty());
+}
+
+TEST_CASE ("the kit's lead line drags as a phrase does", "[dragout]")
+{
+    // FUT01's, spelled out: the file's own bytes and the phrases' name form, and " (synths)" with For my synths lit.
+    const auto& fut01 = kit ("FUT01");
+    const auto request = phraseRequest ("FUT01_Lead_ChromePluck_2bars.mid");
+    const auto plain = drag (fut01, state (PlayMode::loop, Variant::vox), request);
+    CHECK (plain.bytes == fut01.bytesOf ("FUT01_Lead_ChromePluck_2bars.mid"));
+    CHECK (plain.name == "FUT01 Alloy Signal 134 F#m 11A - Lead Chrome Pluck 2 bars.mid");
+    const auto synths = drag (fut01, forSynths (state (PlayMode::loop, Variant::vox)), request);
+    CHECK (synths.name == "FUT01 Alloy Signal 134 F#m 11A - Lead Chrome Pluck 2 bars (synths).mid");
+    const auto made = midi::forSynths (plain.bytes, synthPartsOf (fut01, plain.bytes));
+    INFO (made.error);
+    REQUIRE (made.ok());
+    CHECK (synths.bytes == made.value);
+
+    // Every kit's lead line, whatever the mode, the vox switch, the mutes and 1 drum track: its own bytes, named as a
+    // phrase is, and made for synths like one.
+    int leads = 0;
+    for (const auto& k : kits())
+        for (const auto& name : dragout::kitPhraseFiles (k.info.id, k.files))
+        {
+            if (! name.startsWith (juce::String (k.info.id) + "_Lead_"))
+                continue;
+            ++leads;
+            INFO (name);
+            const auto file = name.toStdString();
+            const auto asIs = drag (k, state (PlayMode::song, Variant::novox, everyLane, true), phraseRequest (file));
+            CHECK (asIs.bytes == k.bytesOf (file));
+            CHECK_THAT (asIs.name, StartsWith (k.prefix() + "Lead ") && EndsWith (" 2 bars.mid"));
+            const auto lit = drag (k, forSynths (state (PlayMode::loop, Variant::vox)), phraseRequest (file));
+            CHECK (lit.name == withSynthsMark (asIs.name));
+            const auto expected = midi::forSynths (asIs.bytes, synthPartsOf (k, asIs.bytes));
+            INFO (expected.error);
+            REQUIRE (expected.ok());
+            CHECK (lit.bytes == expected.value);
+        }
+    CHECK (leads == 4);
 }
 
 TEST_CASE ("embedded file names may carry folders", "[dragout]")
@@ -1513,7 +1586,7 @@ TEST_CASE ("embedded file names may carry folders", "[dragout]")
     const auto loop = dragout::makeDragFile (k.info, files, state (PlayMode::loop, Variant::vox), loopRequest());
     REQUIRE (loop.ok());
     CHECK (loop.value.bytes == k.bytesOf ("FUT04_Loop_Vox_4bars.mid"));
-    CHECK (dragout::phraseFiles (k.info.id, files) == dragout::phraseFiles (k.info.id, k.files));
+    CHECK (dragout::kitPhraseFiles (k.info.id, files) == dragout::kitPhraseFiles (k.info.id, k.files));
     const auto phrase = dragout::makeDragFile (k.info, files, state (PlayMode::loop, Variant::vox), phraseRequest ("FUT04_Phrase_RaveStabRiff_2bars.mid"));
     REQUIRE (phrase.ok());
     CHECK (phrase.value.bytes == k.bytesOf ("FUT04_Phrase_RaveStabRiff_2bars.mid"));
@@ -1533,7 +1606,7 @@ TEST_CASE ("a drag only ever takes the kit's own files", "[dragout]")
     for (const auto& k : kits())
     {
         INFO (k.info.id);
-        CHECK (dragout::phraseFiles (k.info.id, all) == dragout::phraseFiles (k.info.id, k.files));
+        CHECK (dragout::kitPhraseFiles (k.info.id, all) == dragout::kitPhraseFiles (k.info.id, k.files));
         CHECK (drag ({ k.info, {}, {}, all }, state (PlayMode::song, Variant::novox), songRequest()).bytes == drag (k, state (PlayMode::song, Variant::novox), songRequest()).bytes);
         CHECK (drag ({ k.info, {}, {}, all }, state (PlayMode::loop, Variant::vox), laneRequest (Lane::bass)).bytes == drag (k, state (PlayMode::loop, Variant::vox), laneRequest (Lane::bass)).bytes);
     }
@@ -1600,7 +1673,7 @@ TEST_CASE ("drag file names hold kit, title, BPM, key and Camelot, in safe chara
                 for (const auto lane : allLanes)
                     add (k, state (mode, v), laneRequest (lane));
         }
-        for (const auto& name : dragout::phraseFiles (k.info.id, k.files))
+        for (const auto& name : dragout::kitPhraseFiles (k.info.id, k.files))
             add (k, state (PlayMode::loop, Variant::vox), phraseRequest (name.toStdString()));
     }
     REQUIRE (named.size() > 1600);
@@ -2025,8 +2098,9 @@ TEST_CASE ("the drawer's and the MIDI chips' own reveal opens the folder with xd
     // Each component as the plugin builds it, its default hooks untouched: the call the plugin makes, not the helper alone.
     wubansia::test::FakeController fake;
     const editor::SamplesPanel drawer (fake);
+    const editor::PhrasesPanel phrases (fake);
     const editor::DragChip chip (fake, DragRequest {}, "Loop");
-    for (const auto* revealFile : { &drawer.revealFile, &chip.revealFile })
+    for (const auto* revealFile : { &drawer.revealFile, &phrases.revealFile, &chip.revealFile })
     {
         const StubOpener stub;
         CHECK (stub.reveal (*revealFile) == juce::StringArray { "1", stub.kitFolder.getFullPathName() });
@@ -2044,22 +2118,26 @@ TEST_CASE ("the drawer's and the MIDI chips' default hooks are drag-out's own fu
     using Announce = void (*) (const juce::String&);
     wubansia::test::FakeController fake;
     editor::SamplesPanel drawer (fake);
+    editor::PhrasesPanel phrases (fake);
     editor::DragChip chip (fake, DragRequest {}, "Loop");
-    for (auto* startDrag : { &drawer.startDrag, &chip.startDrag })
+    for (auto* startDrag : { &drawer.startDrag, &phrases.startDrag, &chip.startDrag })
     {
         const auto* drag = startDrag->target<Drag>();
         REQUIRE (drag != nullptr);
         CHECK (*drag == &editor::startExternalDrag);
     }
-    for (auto* revealFile : { &drawer.revealFile, &chip.revealFile })
+    for (auto* revealFile : { &drawer.revealFile, &phrases.revealFile, &chip.revealFile })
     {
         const auto* reveal = revealFile->target<Reveal>();
         REQUIRE (reveal != nullptr);
         CHECK (*reveal == &dragout::revealToUser);
     }
-    const auto* say = drawer.announce.target<Announce>();
-    REQUIRE (say != nullptr);
-    CHECK (*say == &editor::announceToScreenReader);
+    for (auto* announce : { &drawer.announce, &phrases.announce })
+    {
+        const auto* say = announce->target<Announce>();
+        REQUIRE (say != nullptr);
+        CHECK (*say == &editor::announceToScreenReader);
+    }
 }
 
 TEST_CASE ("an OS drag from the drawer or a MIDI chip hands over its one file as externalDragPath gives it", "[dragout]")

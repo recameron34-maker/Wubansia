@@ -6,8 +6,10 @@
 
 #include "PluginEditor.h"
 #include "content/ContentLocator.h"
+#include "content/InstalledContent.h"
 #include "content/UserSettings.h"
 #include "dragout/DragFiles.h"
+#include "helpers/fake_controller.h"
 #include "helpers/test_helpers.h"
 #include "sounds/SampleExport.h"
 
@@ -268,7 +270,9 @@ TEST_CASE ("drag-out: the kit's own MIDI, cut to the request, into the drag fold
     controller.setDragFolderForTesting (drag.folder);
     controller.setDragForSynths (false); // the kit's files as they are (For my synths has a test of its own)
 
-    CHECK (controller.phraseFiles() == juce::StringArray { "DRG01_Phrase_Lead_2bars.mid" });
+    const auto phrases = controller.phrases(); // the synthetic kit's own one, for the Phrases drawer
+    REQUIRE (phrases.size() == 1);
+    CHECK (phrases[0] == PhraseInfo { "DRG01_Phrase_Lead_2bars.mid", "Lead", "kit", PhraseOrigin::kit, 2 });
 
     DragRequest loop;
     const auto file = controller.writeDragFile (loop);
@@ -303,6 +307,55 @@ TEST_CASE ("drag-out: the kit's own MIDI, cut to the request, into the drag fold
     CHECK (controller.writeDragFile (phrase).existsAsFile());
     phrase.phraseFile = "DRG02_Phrase_Lead_2bars.mid"; // another kit's
     CHECK (controller.writeDragFile (phrase) == juce::File());
+}
+
+TEST_CASE ("phrases () lists the current kit's own phrases and follows the kit", "[controller][phrases]")
+{
+    // The four embedded kits, with no samples anywhere and a settings file of the test's own.
+    UserSettings settings (juce::File::getSpecialLocation (juce::File::tempDirectory)
+                               .getNonexistentChildFile ("WubansiaTestSettings " + juce::Uuid().toString(), ".xml", false));
+    {
+        PluginProcessor processor;
+        processor.setContentForTesting (std::make_unique<InstalledContent> (ContentLocator::Places {}, settings), "FUT01");
+        auto& controller = static_cast<ControllerImpl&> (processor.controller());
+        controller.setUserSettingsForTesting (settings);
+        REQUIRE (controller.currentKit() == "FUT01");
+
+        // FUT01's five phrase files by name, then its lead line: what the editor's fake lists too.
+        const auto first = controller.phrasesGeneration();
+        CHECK (controller.phrasesGeneration() == first); // nothing changed, nothing moves on
+        const auto fut01 = controller.phrases();
+        REQUIRE (fut01.size() == 6);
+        CHECK (fut01.front() == PhraseInfo { "FUT01_Phrase_EPianoStabRhythm_2bars.mid", "E Piano Stab Rhythm", "kit", PhraseOrigin::kit, 2 });
+        CHECK (fut01[1] == PhraseInfo { "FUT01_Phrase_OrganRiff_4bars.mid", "Organ Riff", "kit", PhraseOrigin::kit, 4 });
+        CHECK (fut01.back() == PhraseInfo { "FUT01_Lead_ChromePluck_2bars.mid", "Lead Chrome Pluck", "kit", PhraseOrigin::kit, 2 });
+        CHECK (fut01 == test::FakeController::ownPhrases ("FUT01"));
+
+        // Another kit: the generation moves on, and the list is the new kit's.
+        controller.selectKit ("FUT02");
+        const auto second = controller.phrasesGeneration();
+        CHECK (second > first);
+        const auto fut02 = controller.phrases();
+        CHECK (fut02.size() == 5);
+        CHECK (fut02 == test::FakeController::ownPhrases ("FUT02"));
+
+        // Every kit, and back to one seen before.
+        for (const auto* kit : { "FUT03", "FUT04", "FUT01" })
+        {
+            INFO (kit);
+            const auto before = controller.phrasesGeneration();
+            controller.selectKit (kit);
+            CHECK (controller.phrasesGeneration() > before);
+            CHECK (controller.phrases() == test::FakeController::ownPhrases (kit));
+        }
+
+        // An unknown kit changes nothing.
+        const auto last = controller.phrasesGeneration();
+        controller.selectKit ("NOPE");
+        CHECK (controller.phrasesGeneration() == last);
+        CHECK (controller.phrases().size() == 6);
+    }
+    settings.file().deleteFile();
 }
 
 TEST_CASE ("drag-out: 1 drum track gives the Loop's and Song's drums as one track, kept in the person's settings", "[controller][dragout]")

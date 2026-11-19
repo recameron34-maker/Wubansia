@@ -41,7 +41,6 @@ namespace wubansia
         engine::PhraseMode phraseMode() const override;
         void setPhraseMode (engine::PhraseMode mode) override;
 
-        juce::StringArray phraseFiles() const override;
         bool dragDrumsOnOneTrack() const override;
         void setDragDrumsOnOneTrack (bool on) override;
         bool dragForSynths() const override;
@@ -55,6 +54,9 @@ namespace wubansia
         SoundExport exportSound (const SoundRef& sound) override;
         juce::File samplesFolder() const override;
         bool setSamplesFolder (const juce::File& folder) override;
+
+        std::vector<PhraseInfo> phrases() const override;
+        std::uint64_t phrasesGeneration() const override;
 
         // Where writeDragFile () writes: dragout::cacheFolder () unless a test sets another.
         void setDragFolderForTesting (const juce::File& folder) { dragFolder = folder; }
@@ -77,5 +79,9 @@ namespace wubansia
         juce::File dragFolder;
         juce::File samplesFolderOverride;
         UserSettings* userSettings = nullptr;
+
+        // The kit phrasesGeneration () last saw, and its count of kit changes (message thread, as every call).
+        mutable juce::String phrasesKit;
+        mutable std::uint64_t phrasesListed = 0;
     };
 }

@@ -5,6 +5,7 @@
 #include "content/ContentLocator.h"
 #include "content/UserSettings.h"
 #include "dragout/DragFiles.h"
+#include "editor/EditorModel.h"
 #include "sounds/SampleExport.h"
 
 #include <algorithm>
@@ -68,6 +69,28 @@ namespace wubansia
             }
             source.entry = entry;
             return source;
+        }
+
+        // One of the kit's own files as the Phrases drawer lists it (ADR 0031): editor::phraseTitle's words without the bar
+        // count, which gives its bars. "FUT01_Phrase_OrganRiff_4bars.mid" is Organ Riff, 4 bars, and the lead line
+        // "FUT01_Lead_ChromePluck_2bars.mid" Lead Chrome Pluck, 2 bars, as its drag's file name has it.
+        PhraseInfo kitPhrase (const juce::String& file, const juce::String& kit)
+        {
+            PhraseInfo phrase;
+            phrase.id = file;
+            phrase.kind = "kit";
+            phrase.origin = PhraseOrigin::kit;
+            const auto dot = editor::middleDot();
+            auto title = editor::phraseTitle (file, kit); // "Lead · Chrome Pluck · 2 bars"
+            const auto last = title.fromLastOccurrenceOf (dot, false, false);
+            const auto count = last.upToFirstOccurrenceOf (" ", false, false);
+            if (title.contains (dot) && count.isNotEmpty() && count.containsOnly ("0123456789") && (last == count + " bars" || last == count + " bar"))
+            {
+                phrase.bars = count.getIntValue();
+                title = title.upToLastOccurrenceOf (dot, false, false);
+            }
+            phrase.name = title.replace (dot, " ");
+            return phrase;
         }
     }
 
@@ -244,14 +267,6 @@ namespace wubansia
         processor.changeSettings ([mode] (StateOnly& s) { s.phrases = mode; });
     }
 
-    juce::StringArray ControllerImpl::phraseFiles() const
-    {
-        const auto* entry = entryOf (processor, processor.settings().kit);
-        if (entry == nullptr)
-            return {};
-        return dragout::phraseFiles (entry->id, entry->midiFiles);
-    }
-
     bool ControllerImpl::dragDrumsOnOneTrack() const
     {
         return settingsFile().dragDrumsOnOneTrack();
@@ -379,6 +394,30 @@ namespace wubansia
 
         settingsFile().setSamplesFolder (folder); // kept even if settings.xml can't be written, until the process ends
         return true;
+    }
+
+    std::vector<PhraseInfo> ControllerImpl::phrases() const
+    {
+        const auto kit = processor.settings().kit;
+        const auto* entry = entryOf (processor, kit);
+        if (entry == nullptr || ! entry->ok())
+            return {}; // nothing a drag could write
+        std::vector<PhraseInfo> list;
+        for (const auto& file : dragout::kitPhraseFiles (entry->id, entry->midiFiles))
+            list.push_back (kitPhrase (file, kit));
+        return list;
+    }
+
+    std::uint64_t ControllerImpl::phrasesGeneration() const
+    {
+        // phrases () is the current kit's own: it moves on when the kit does, a project's included.
+        const auto kit = processor.settings().kit;
+        if (kit != phrasesKit)
+        {
+            phrasesKit = kit;
+            ++phrasesListed;
+        }
+        return phrasesListed;
     }
 
     std::vector<juce::File> ControllerImpl::contentFolders() const

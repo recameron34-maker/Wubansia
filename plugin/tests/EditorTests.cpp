@@ -285,11 +285,12 @@ namespace
         }
     };
 
-    // Whether a click at the middle of a component lands in the drawer instead. It asks the zoomed face the
-    // drawer sits on: the editor itself is only visible once a host puts it in a window.
-    bool coveredByDrawer (PluginEditor& editor, juce::Component& component)
+    // Whether a click at the middle of a component lands in the drawer instead (the Samples drawer, or the one with
+    // drawerId). It asks the zoomed face the drawer sits on: the editor itself is only visible once a host puts it in a
+    // window.
+    bool coveredByDrawer (PluginEditor& editor, juce::Component& component, const juce::String& drawerId = "samples_drawer")
     {
-        auto& drawer = get<editor::SamplesPanel> (editor, "samples_drawer");
+        auto& drawer = get<juce::Component> (editor, drawerId);
         auto* face = drawer.getParentComponent();
         REQUIRE (face != nullptr);
         auto* hit = face->getComponentAt (face->getLocalPoint (&component, component.getLocalBounds().getCentre()));
@@ -562,6 +563,75 @@ TEST_CASE ("every kit card reads its direction in full at 100 %", "[editor]")
         });
 }
 
+TEST_CASE ("the header fits Phrases and Samples beside the zoom with every label in full at 100 %", "[editor]")
+{
+    Rig rig;
+    addKit (rig.controller, "FUT03", "Glass Current", "garage-house / deep tech house", "G minor", "6A", 128, {}, 0, {}, {});
+    addKit (rig.controller, "FUT04", "Furnace Code", "dark industrial / techno", "E minor", "9A", 136, {}, 0, {}, {});
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            editor.setZoom (1.0f);
+            editor.tick();
+            auto& phrases = get<editor::LedButton> (editor, "phrases");
+            auto& samples = get<editor::LedButton> (editor, "samples");
+            auto& zoom = get<juce::ComboBox> (editor, "zoom");
+            auto& kits = get<editor::KitPanel> (editor, "kits");
+            auto* face = samples.getParentComponent();
+            REQUIRE (face != nullptr);
+            CHECK (phrases.getParentComponent() == face);
+
+            // The right block, 278 px: Phrases 91, 7, Samples 91, 7, the zoom 82, ending 20 px in ("SAMPLES" needs 90.1 px of
+            // its button in DejaVu Sans Bold); the kit cards take the rest, 2 px in from each side.
+            CHECK (phrases.getWidth() == 91);
+            CHECK (samples.getWidth() == 91);
+            CHECK (zoom.getWidth() == 82);
+            CHECK (phrases.getRight() + 7 == samples.getX());
+            CHECK (samples.getRight() + 7 == zoom.getX());
+            CHECK (zoom.getRight() == PluginEditor::baseWidth - 20);
+            CHECK (kits.getRight() + 2 == phrases.getX());
+            REQUIRE (kits.numCards() == 4);
+            for (int i = 0; i < kits.numCards(); ++i)
+            {
+                const auto& card = *kits.card (i);
+                INFO (card.getComponentID());
+                CHECK (card.getWidth() == 146);
+                CHECK_THAT (card.directionArea().getWidth(), WithinAbs (114.0, 1.0e-3));
+                // Its title reads in full beside its ID, at 10 points or more (FUT03's and FUT04's shrink to fit).
+                CHECK (juce::GlyphArrangement::getStringWidth (card.titleFont(), card.card().title) <= card.titleArea().getWidth());
+                CHECK (card.titleFont().getHeight() >= 10.0f);
+            }
+
+            // Each button's label in full, in the font and area its paint code uses.
+            for (auto* button : { &phrases, &samples })
+            {
+                const auto label = button->getButtonText().toUpperCase();
+                INFO (label);
+                CHECK (juce::GlyphArrangement::getStringWidth (button->labelFont(), label) <= button->labelArea().getWidth());
+                CHECK (button->labelFont().getHeight() >= 10.0f);
+            }
+
+            // Nothing overlaps: the kit cards, the two buttons and the zoom, all in the header's row.
+            std::vector<juce::Component*> parts;
+            for (int i = 0; i < kits.numCards(); ++i)
+                parts.push_back (kits.card (i));
+            for (auto* c : std::initializer_list<juce::Component*> { &phrases, &samples, &zoom })
+                parts.push_back (c);
+            std::vector<juce::Rectangle<int>> areas;
+            for (auto* c : parts)
+                areas.push_back (face->getLocalArea (c, c->getLocalBounds()));
+            for (std::size_t i = 0; i < areas.size(); ++i)
+            {
+                INFO (parts[i]->getComponentID());
+                CHECK (areas[i].getY() >= 12);
+                CHECK (areas[i].getBottom() <= 70);
+                CHECK (areas[i].getX() >= 210); // right of the logo
+                for (std::size_t j = i + 1; j < areas.size(); ++j)
+                    CHECK_FALSE (areas[i].intersects (areas[j]));
+            }
+        });
+}
+
 TEST_CASE ("lanes are labelled the kit's way, and lanes the kit lacks are dimmed", "[editor]")
 {
     Rig rig;
@@ -607,11 +677,11 @@ TEST_CASE ("phrase lanes say whether they play their recording or the multisampl
             CHECK (tags() == juce::StringArray { "multisample", "multisample" });
 
             rig.controller.transportState.bpm = 134.0;
-            rig.controller.phrases = engine::PhraseMode::off;
+            rig.controller.phraseLaneMode = engine::PhraseMode::off;
             CHECK (tags() == juce::StringArray { "multisample", "multisample" });
 
             // While playing, the engine's own answer wins.
-            rig.controller.phrases = engine::PhraseMode::automatic;
+            rig.controller.phraseLaneMode = engine::PhraseMode::automatic;
             rig.controller.nextSnapshot.playing = true;
             rig.controller.nextSnapshot.bpm = 134.0;
             rig.controller.nextSnapshot.phraseRecorded = engine::laneBit (engine::Lane::lead);
@@ -751,13 +821,6 @@ TEST_CASE ("drag chips write their MIDI file and hand it to the OS", "[editor]")
             CHECK (rig.controller.dragRequests[1].what == wubansia::DragWhat::loop);
             CHECK (rig.controller.dragRequests[2].what == wubansia::DragWhat::song);
 
-            auto& phrase = get<editor::DragChip> (editor, "drag_phrase_1");
-            hook (phrase);
-            CHECK (phrase.label() == "Vox Synth" + editor::middleDot() + "2 bars");
-            CHECK (phrase.beginDrag());
-            CHECK (rig.controller.dragRequests[3].what == wubansia::DragWhat::phrase);
-            CHECK (rig.controller.dragRequests[3].phraseFile == "FUT01_Phrase_VoxSynth_2bars.mid");
-
             // A click without a drag shows the file instead.
             click (loop);
             REQUIRE (revealed.size() == 1);
@@ -767,7 +830,7 @@ TEST_CASE ("drag chips write their MIDI file and hand it to the OS", "[editor]")
             rig.controller.dragFails = true;
             CHECK_FALSE (song.beginDrag());
             CHECK (song.hasFailed());
-            CHECK (dragged.size() == 4);
+            CHECK (dragged.size() == 3);
 
             for (const auto& file : dragged)
                 file.deleteFile();
@@ -776,13 +839,6 @@ TEST_CASE ("drag chips write their MIDI file and hand it to the OS", "[editor]")
 
 namespace
 {
-    // FUT01's five phrase files, the most any kit has, in the order phraseFiles () gives them.
-    juce::StringArray fut01PhraseFiles()
-    {
-        return { "FUT01_Phrase_EPianoStabRhythm_2bars.mid", "FUT01_Phrase_OrganRiff_4bars.mid", "FUT01_Phrase_PluckRiff_4bars.mid",
-            "FUT01_Phrase_VoxSynthRiff_2bars.mid", "FUT01_Phrase_WarpRiff_2bars.mid" };
-    }
-
     // The drag strip's 1 drum track switch, or nullptr after a failed check: a failed REQUIRE inside withEditor would
     // leave the editor ticking after its test.
     editor::LedButton* drumSwitch (PluginEditor& editor)
@@ -808,7 +864,6 @@ namespace
 TEST_CASE ("the drag strip's For my synths switch is lit by default, asks the Controller and follows it", "[editor]")
 {
     Rig rig;
-    rig.controller.phraseFileNames = fut01PhraseFiles();
 
     withEditor (rig, [&] (PluginEditor& editor)
         {
@@ -848,8 +903,7 @@ TEST_CASE ("the drag strip's For my synths switch is lit by default, asks the Co
             juce::Array<juce::File> dragged;
             auto& loop = get<editor::DragChip> (editor, "drag_loop");
             auto& bass = get<editor::DragChip> (editor, "drag_bass");
-            auto& phrase = get<editor::DragChip> (editor, "drag_phrase_0");
-            for (auto* chip : { &loop, &bass, &phrase })
+            for (auto* chip : { &loop, &bass })
                 chip->startDrag = [&] (const juce::File& file, juce::Component&)
                 {
                     dragged.add (file);
@@ -857,11 +911,9 @@ TEST_CASE ("the drag strip's For my synths switch is lit by default, asks the Co
                 };
             CHECK (loop.beginDrag());
             CHECK (bass.beginDrag());
-            CHECK (phrase.beginDrag());
-            REQUIRE (rig.controller.dragRequests.size() == 3);
+            REQUIRE (rig.controller.dragRequests.size() == 2);
             CHECK (rig.controller.dragRequests[0] == wubansia::DragRequest { wubansia::DragWhat::loop, engine::Lane::kick, {} });
             CHECK (rig.controller.dragRequests[1] == wubansia::DragRequest { wubansia::DragWhat::lane, engine::Lane::bass, {} });
-            CHECK (rig.controller.dragRequests[2] == wubansia::DragRequest { wubansia::DragWhat::phrase, engine::Lane::kick, fut01PhraseFiles()[0] });
             for (const auto& file : dragged)
                 file.deleteFile();
         });
@@ -870,7 +922,6 @@ TEST_CASE ("the drag strip's For my synths switch is lit by default, asks the Co
 TEST_CASE ("the drag strip's 1 drum track switch asks the Controller and follows it", "[editor]")
 {
     Rig rig;
-    rig.controller.phraseFileNames = fut01PhraseFiles();
 
     withEditor (rig, [&] (PluginEditor& editor)
         {
@@ -924,7 +975,6 @@ TEST_CASE ("the drag strip's 1 drum track switch asks the Controller and follows
 TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every label in full at 100 %", "[editor]")
 {
     Rig rig;
-    rig.controller.phraseFileNames = fut01PhraseFiles();
 
     withEditor (rig, [&] (PluginEditor& editor)
         {
@@ -939,13 +989,12 @@ TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every la
                 return;
             auto& drums = *foundDrums;
             auto& synths = *foundSynths;
-            REQUIRE (strip.numPhraseChips() == 5);
 
-            // For my synths, Loop, Song, 1 drum track, then the phrase chips, in that order: none overlapping, all inside
-            // the strip.
-            std::vector<juce::Component*> parts { &synths, &loop, &song, &drums };
-            for (int i = 0; i < strip.numPhraseChips(); ++i)
-                parts.push_back (strip.phraseChip (i));
+            // For my synths, Loop, Song and 1 drum track, in that order and in their places, and nothing else: the kit's
+            // phrases are in the Phrases drawer (ADR 0031). None overlapping, all inside the strip.
+            CHECK (strip.getNumChildComponents() == 4);
+            CHECK (findAll (editor, "drag_phrase_0").empty());
+            const std::vector<juce::Component*> parts { &synths, &loop, &song, &drums };
             for (std::size_t i = 0; i < parts.size(); ++i)
             {
                 INFO (parts[i]->getComponentID());
@@ -956,6 +1005,23 @@ TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every la
                 for (std::size_t j = i + 1; j < parts.size(); ++j)
                     CHECK_FALSE (parts[i]->getBounds().intersects (parts[j]->getBounds()));
             }
+            CHECK (synths.getBounds() == juce::Rectangle<int> (76, 5, 126, 28));
+            CHECK (loop.getBounds() == juce::Rectangle<int> (208, 5, 80, 28));
+            CHECK (song.getBounds() == juce::Rectangle<int> (294, 5, 80, 28));
+            CHECK (drums.getBounds() == juce::Rectangle<int> (380, 5, 120, 28));
+            CHECK (strip.getWidth() - 8 - drums.getRight() >= 570); // the room Part and Drum kit take (ADRs 0029, 0030)
+
+            // Nothing is drawn right of 1 drum track: no divider, no chip.
+            juce::Image image (juce::Image::ARGB, strip.getWidth(), strip.getHeight(), true, juce::SoftwareImageType());
+            {
+                juce::Graphics g (image);
+                strip.paintEntireComponent (g, false);
+            }
+            int drawn = 0;
+            for (int x = drums.getRight(); x < strip.getWidth(); ++x)
+                for (int y = 0; y < strip.getHeight(); ++y)
+                    drawn += image.getPixelAt (x, y).getAlpha() > 0 ? 1 : 0;
+            CHECK (drawn == 0);
 
             // Every label reads in full, in the font and area its paint code uses.
             const auto width = [] (const juce::Font& font, const juce::String& text) { return juce::GlyphArrangement::getStringWidth (font, text); };
@@ -970,26 +1036,8 @@ TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every la
             {
                 INFO (chip->label());
                 CHECK (width (chip->labelFont(), chip->label()) <= chip->labelArea().getWidth());
+                CHECK (chip->shownLabel() == chip->label());
             }
-
-            // Every phrase chip shows a title it can hold, squeezed to 0.8 at most, in whatever font this machine gives
-            // (Verdana on Windows and DejaVu Sans on some Linux machines are 8 and 12 % wider than Liberation Sans): the
-            // whole title where it fits, else the title without its bar count, which the tooltip's file name still has.
-            // "E Piano Stab Rhythm · 2 bars" fits in no default font. The two switches leave no room for five equal chips
-            // that wide, so a chip whose title needs more than an equal share gets what it needs, and the others share
-            // the rest.
-            for (int i = 0; i < strip.numPhraseChips(); ++i)
-            {
-                auto* chip = strip.phraseChip (i);
-                const auto title = chip->label();
-                INFO (title);
-                const auto fits = [&] (const juce::String& text) { return width (chip->labelFont(), text) * 0.8f < chip->labelArea().getWidth(); };
-                const auto shown = chip->shownLabel();
-                CHECK (shown == (fits (title) ? title : title.upToLastOccurrenceOf (editor::middleDot(), false, false)));
-                CHECK (fits (shown));
-                CHECK_THAT (chip->getTooltip().toStdString(), ContainsSubstring (fut01PhraseFiles()[i].toStdString()));
-            }
-            CHECK (strip.phraseChip (0)->shownLabel() == "E Piano Stab Rhythm");
         });
 }
 
@@ -1067,9 +1115,9 @@ TEST_CASE ("MIDI-in mode and the phrase switch go to the Controller", "[editor]"
             auto& phrases = get<editor::SegmentedChoice> (editor, "phrase_mode");
             CHECK (phrases.getSelectedItemIndex() == 0);
             click (phrases, { (float) phrases.getWidth() * 0.75f, (float) phrases.getHeight() * 0.5f });
-            CHECK (rig.controller.phrases == engine::PhraseMode::off);
+            CHECK (rig.controller.phraseLaneMode == engine::PhraseMode::off);
             click (phrases, { (float) phrases.getWidth() * 0.25f, (float) phrases.getHeight() * 0.5f });
-            CHECK (rig.controller.phrases == engine::PhraseMode::automatic);
+            CHECK (rig.controller.phraseLaneMode == engine::PhraseMode::automatic);
 
             click (mode, { (float) mode.getWidth() * 0.25f, (float) mode.getHeight() * 0.5f });
             CHECK (rig.controller.midiMode == engine::MidiInMode::multi);
@@ -2828,9 +2876,489 @@ TEST_CASE ("the tile names exactly the file a drag gives, for every file of the 
     CHECK (editor::exportFileName (card, rave).endsWith (" c2.wav"));
 }
 
+// The Phrases drawer (ADR 0031), against the FakeController's FUT01 phrases: its five phrase files, then its lead line.
+
+namespace
+{
+    // Opens the Phrases drawer as the header's button does, and returns it.
+    editor::PhrasesPanel& openPhrases (PluginEditor& editor)
+    {
+        if (! editor.isPhrasesPanelShown())
+            click (get<juce::Button> (editor, "phrases"));
+        editor.tick();
+        REQUIRE (editor.isPhrasesPanelShown());
+        return get<editor::PhrasesPanel> (editor, "phrases_drawer");
+    }
+
+    editor::PhraseTile& phraseTile (juce::Component& root, int index)
+    {
+        return get<editor::PhraseTile> (root, "phrase_tile_" + juce::String (index));
+    }
+
+    // What the Phrases drawer hands the OS, recorded instead of done.
+    struct PhraseHandoffs
+    {
+        juce::Array<juce::File> dragged, revealed;
+
+        void hook (editor::PhrasesPanel& drawer)
+        {
+            drawer.startDrag = [this] (const juce::File& file, juce::Component&)
+            {
+                dragged.add (file);
+                return true;
+            };
+            drawer.revealFile = [this] (const juce::File& file) { revealed.add (file); };
+        }
+
+        ~PhraseHandoffs()
+        {
+            for (const auto& file : dragged)
+                file.deleteFile();
+            for (const auto& file : revealed)
+                file.deleteFile();
+        }
+    };
+
+    wubansia::DragRequest phraseDrag (const char* file) { return { wubansia::DragWhat::phrase, engine::Lane::kick, file }; }
+}
+
+TEST_CASE ("the header's Phrases button opens the Phrases drawer and lights while it shows", "[editor][phrases]")
+{
+    Rig rig;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& button = get<editor::LedButton> (editor, "phrases");
+            CHECK (button.getButtonText() == "Phrases");
+            CHECK (button.getTooltip() == "Browse phrases for this kit and drag them into your DAW as MIDI");
+            auto& drawer = get<editor::PhrasesPanel> (editor, "phrases_drawer");
+            CHECK_FALSE (editor.isPhrasesPanelShown());
+            CHECK_FALSE (drawer.isVisible());
+            CHECK_FALSE (button.getToggleState());
+
+            click (button);
+            editor.tick();
+            CHECK (editor.isPhrasesPanelShown());
+            CHECK (drawer.isVisible());
+            CHECK (button.getToggleState()); // its LED is lit while the drawer shows
+            for (int i = 0; i < 3; ++i)
+                editor.tick();
+            CHECK (button.getToggleState());
+
+            // A second click closes it, and its LED goes out.
+            click (button);
+            editor.tick();
+            CHECK_FALSE (editor.isPhrasesPanelShown());
+            CHECK_FALSE (drawer.isVisible());
+            CHECK_FALSE (button.getToggleState());
+        });
+}
+
+TEST_CASE ("Phrases and Samples never show together", "[editor][phrases]")
+{
+    Rig rig;
+    rig.controller.contentStatus.state = wubansia::ContentState::missing;
+    rig.controller.contentStatus.problem = "no folder holds FUT01";
+    rig.controller.kitCards[0].content = rig.controller.contentStatus;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& phrases = get<juce::Button> (editor, "phrases");
+            auto& samples = get<juce::Button> (editor, "samples");
+            editor.tick();
+            CHECK (editor.isContentPanelShown()); // FUT01's samples are missing: the install panel opens by itself
+
+            // The install panel steps aside for the drawer, as for Samples, and stays aside while it shows.
+            openPhrases (editor);
+            CHECK_FALSE (editor.isContentPanelShown());
+            for (int i = 0; i < 5; ++i)
+                editor.tick();
+            CHECK_FALSE (editor.isContentPanelShown());
+
+            // Samples closes Phrases...
+            click (samples);
+            editor.tick();
+            CHECK (editor.isSamplesPanelShown());
+            CHECK_FALSE (editor.isPhrasesPanelShown());
+            CHECK (samples.getToggleState());
+            CHECK_FALSE (phrases.getToggleState());
+            CHECK_FALSE (editor.isContentPanelShown());
+
+            // ...and Phrases closes Samples, which stops its sound; the lanes stay hidden under the drawer.
+            const auto stops = rig.controller.stops;
+            click (phrases);
+            editor.tick();
+            CHECK (editor.isPhrasesPanelShown());
+            CHECK_FALSE (editor.isSamplesPanelShown());
+            CHECK (phrases.getToggleState());
+            CHECK_FALSE (samples.getToggleState());
+            CHECK (rig.controller.stops == stops + 1);
+            CHECK_FALSE (lane (editor, engine::Lane::kick).isVisible());
+            CHECK_FALSE (get<juce::Component> (editor, "ab").isVisible());
+
+            // Closed, the install panel comes back by itself: the kit still can't play.
+            click (phrases);
+            editor.tick();
+            CHECK_FALSE (editor.isPhrasesPanelShown());
+            CHECK (editor.isContentPanelShown());
+            CHECK (lane (editor, engine::Lane::kick).isVisible());
+
+            // Whatever the clicks, never both drawers, never a drawer with the install panel, and each button lit while
+            // its drawer shows.
+            for (const auto* id : { "phrases", "samples", "samples", "phrases", "samples", "phrases", "phrases", "phrases" })
+            {
+                INFO (id);
+                click (get<juce::Button> (editor, id));
+                editor.tick();
+                CHECK_FALSE ((editor.isSamplesPanelShown() && editor.isPhrasesPanelShown()));
+                CHECK_FALSE ((editor.isPhrasesPanelShown() && editor.isContentPanelShown()));
+                CHECK (phrases.getToggleState() == editor.isPhrasesPanelShown());
+                CHECK (samples.getToggleState() == editor.isSamplesPanelShown());
+                CHECK (lane (editor, engine::Lane::kick).isVisible() == ! (editor.isPhrasesPanelShown() || editor.isSamplesPanelShown()));
+            }
+        });
+}
+
+TEST_CASE ("the Phrases drawer covers and hides the lanes, A/B and FX at (20, 246, 1080, 396)", "[editor][phrases]")
+{
+    Rig rig;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            editor.setZoom (1.0f);
+            auto& drawer = openPhrases (editor);
+            CHECK (drawer.getBounds() == juce::Rectangle<int> (20, 246, 1080, 396));
+            CHECK (drawer.getBounds() == get<editor::SamplesPanel> (editor, "samples_drawer").getBounds());
+            CHECK (editor.getWidth() == 1120);
+            CHECK (editor.getHeight() == 700);
+
+            // What it covers goes out of sight, so Tab and screen readers never reach it; the header, display, section
+            // strip and drag strip stay in reach.
+            for (const auto l : { engine::Lane::kick, engine::Lane::bass, engine::Lane::fx })
+            {
+                CHECK_FALSE (lane (editor, l).isVisible());
+                CHECK (coveredByDrawer (editor, lane (editor, l), "phrases_drawer"));
+            }
+            for (const auto* id : { "ab", "fx" })
+            {
+                INFO (id);
+                CHECK_FALSE (get<juce::Component> (editor, id).isVisible());
+                CHECK (coveredByDrawer (editor, get<juce::Component> (editor, id), "phrases_drawer"));
+            }
+            for (const auto* id : { "drag", "drag_loop", "sections", "lcd", "kit_FUT02", "phrases", "samples", "zoom" })
+            {
+                INFO (id);
+                CHECK_FALSE (coveredByDrawer (editor, get<juce::Component> (editor, id), "phrases_drawer"));
+                CHECK (get<juce::Component> (editor, id).isVisible());
+            }
+            juce::StringArray tabStops;
+            for (auto* c : juce::KeyboardFocusTraverser().getAllComponents (&editor))
+                tabStops.add (c->getComponentID());
+            INFO ("tab stops: " << tabStops.joinIntoString (" "));
+            CHECK (tabStops.contains ("phrase_grid"));
+            CHECK (tabStops.contains ("phrases_close"));
+            CHECK_FALSE (tabStops.contains (ids::laneMute[0]));
+            CHECK_FALSE (tabStops.contains (ids::clubMaster));
+
+            // Inside the drawer, Tab goes from the filter to the grid, then to Close.
+            const auto filterStop = tabStops.indexOf ("phrases_filter_kit");
+            const auto gridStop = tabStops.indexOf ("phrase_grid");
+            CHECK (filterStop >= 0);
+            CHECK (filterStop < gridStop);
+            CHECK (gridStop < tabStops.indexOf ("phrases_close"));
+
+            // At 200 % it covers the same, scaled with the whole face.
+            editor.setZoom (2.0f);
+            CHECK (editor.getLocalPoint (&drawer, juce::Point<int> (0, 0)) == juce::Point<int> (40, 492));
+            CHECK (editor.getLocalPoint (&drawer, juce::Point<int> (1080, 396)) == juce::Point<int> (2200, 1284));
+            editor.setZoom (1.0f);
+
+            // Closed with its Close, they're back.
+            click (get<juce::Button> (editor, "phrases_close"));
+            editor.tick();
+            CHECK_FALSE (editor.isPhrasesPanelShown());
+            CHECK (lane (editor, engine::Lane::kick).isVisible());
+            CHECK (get<juce::Component> (editor, "ab").isVisible());
+            CHECK (get<juce::Component> (editor, "fx").isVisible());
+            CHECK_FALSE (coveredByDrawer (editor, lane (editor, engine::Lane::kick), "phrases_drawer"));
+        });
+}
+
+TEST_CASE ("the drawer lists the kit's own phrases and its lead line", "[editor][phrases]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openPhrases (editor);
+            const auto dot = editor::middleDot();
+            const std::array<std::pair<const char*, int>, 6> fut01 { { { "E Piano Stab Rhythm", 2 }, { "Organ Riff", 4 }, { "Pluck Riff", 4 },
+                { "Vox Synth Riff", 2 }, { "Warp Riff", 2 }, { "Lead Chrome Pluck", 2 } } };
+            REQUIRE (drawer.numTiles() == 6);
+            for (std::size_t i = 0; i < fut01.size(); ++i)
+            {
+                auto& tile = phraseTile (editor, (int) i);
+                INFO (fut01[i].first);
+                CHECK (tile.phrase() == c.phraseList[i]);
+                CHECK (tile.phrase().name == fut01[i].first);
+                CHECK (tile.detailText() == "From the kit" + dot + juce::String (fut01[i].second) + " bars");
+            }
+            CHECK (phraseTile (editor, 5).phrase().id == "FUT01_Lead_ChromePluck_2bars.mid"); // the lead line comes last
+            CHECK (findAll (editor, "phrase_tile_6").empty());
+            auto& filter = get<editor::PhraseFilter> (editor, "phrases_filter_kit");
+            CHECK (filter.label() == "From the kit 6");
+            CHECK (filter.isShown());
+            CHECK (drawer.kitLine() == "FUT01 Alloy Signal" + dot + "134 BPM" + dot + "F#m 11A");
+
+            // Four tiles a row, 256 x 72, 8 px apart.
+            CHECK (phraseTile (editor, 0).getBounds() == juce::Rectangle<int> (0, 0, 256, 72));
+            CHECK (phraseTile (editor, 3).getBounds() == juce::Rectangle<int> (792, 0, 256, 72));
+            CHECK (phraseTile (editor, 4).getBounds() == juce::Rectangle<int> (0, 80, 256, 72));
+
+            // It asks for the list when it opens, then only when the generation moves on.
+            for (int i = 0; i < 5; ++i)
+                editor.tick();
+            CHECK (c.phrasesCalls == 1);
+
+            // A kit change keeps the drawer open and shows the new kit's own phrases.
+            click (get<juce::Component> (editor, "kit_FUT02"));
+            c.phraseList = FakeController::ownPhrases ("FUT02");
+            ++c.phraseGeneration;
+            editor.tick();
+            editor.tick();
+            CHECK (editor.isPhrasesPanelShown());
+            CHECK (c.phrasesCalls == 2);
+            REQUIRE (drawer.numTiles() == 5);
+            CHECK (phraseTile (editor, 0).phrase().name == "Glass Melody");
+            CHECK (phraseTile (editor, 0).detailText() == "From the kit" + dot + "4 bars");
+            CHECK (phraseTile (editor, 4).phrase().id == "FUT02_Lead_ChromeArp_2bars.mid");
+            CHECK (findAll (editor, "phrase_tile_5").empty());
+            CHECK (filter.label() == "From the kit 5");
+            CHECK (drawer.kitLine() == "FUT02 Orbit Relay" + dot + "130 BPM" + dot + "Dm 7A");
+        });
+}
+
+TEST_CASE ("a 4-pixel drag on a tile hands the kit's file to the OS; a click shows it", "[editor][phrases]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openPhrases (editor);
+            PhraseHandoffs os;
+            os.hook (drawer);
+
+            // 3 pixels is still a press; at 4 the file is written and handed to the OS, inside the mouse event.
+            auto& tile = phraseTile (editor, 0);
+            const auto start = tile.getLocalBounds().toFloat().getCentre();
+            tile.mouseDown (mouseAt (tile, start, start));
+            tile.mouseDrag (mouseAt (tile, start.translated (3.0f, 0.0f), start, true));
+            CHECK (c.dragRequests.empty());
+            tile.mouseDrag (mouseAt (tile, start.translated (4.0f, 0.0f), start, true));
+            REQUIRE (c.dragRequests.size() == 1);
+            CHECK (c.dragRequests[0] == phraseDrag ("FUT01_Phrase_EPianoStabRhythm_2bars.mid"));
+            REQUIRE (os.dragged.size() == 1); // before the mouse comes up
+            CHECK (os.dragged[0].existsAsFile());
+            CHECK (os.dragged[0].getFileName() == "FUT01_Phrase_EPianoStabRhythm_2bars.mid"); // the fake's name for it
+            tile.mouseDrag (mouseAt (tile, start.translated (40.0f, 10.0f), start, true));
+            tile.mouseUp (mouseAt (tile, start.translated (40.0f, 10.0f), start, true));
+            CHECK (c.dragRequests.size() == 1);
+            CHECK (os.dragged.size() == 1);
+            CHECK (os.revealed.isEmpty()); // a drag is never a click
+
+            // A click without a drag shows the file, once, and starts no drag; the lead line's too.
+            click (phraseTile (editor, 5));
+            REQUIRE (os.revealed.size() == 1);
+            CHECK (os.revealed[0].getFileName() == "FUT01_Lead_ChromePluck_2bars.mid");
+            REQUIRE (c.dragRequests.size() == 2);
+            CHECK (c.dragRequests[1] == phraseDrag ("FUT01_Lead_ChromePluck_2bars.mid"));
+            CHECK (os.dragged.size() == 1);
+            CHECK (drawer.selectedTile() == 5); // a press selects the tile
+            CHECK (phraseTile (editor, 5).isSelected());
+            CHECK_FALSE (phraseTile (editor, 0).isSelected());
+
+            // The lead line drags like the phrases.
+            auto& lead = phraseTile (editor, 5);
+            lead.mouseDown (mouseAt (lead, start, start));
+            lead.mouseDrag (mouseAt (lead, start.translated (0.0f, 6.0f), start, true));
+            lead.mouseUp (mouseAt (lead, start.translated (0.0f, 6.0f), start, true));
+            REQUIRE (os.dragged.size() == 2);
+            CHECK (os.dragged[1].getFileName() == "FUT01_Lead_ChromePluck_2bars.mid");
+            CHECK (os.revealed.size() == 1);
+
+            // A tick while startDrag hands the drag over rebuilds no tile, so the one the drag starts from stays; the next
+            // tick takes the new list. (JUCE 9.0.4 ticks nothing inside the call: its OS drags return as they begin.)
+            auto tilesDuringDrag = -1;
+            drawer.startDrag = [&] (const juce::File& file, juce::Component&)
+            {
+                os.dragged.add (file);
+                c.phraseList = FakeController::ownPhrases ("FUT02");
+                ++c.phraseGeneration;
+                editor.tick();
+                tilesDuringDrag = drawer.numTiles();
+                return true;
+            };
+            drag (phraseTile (editor, 2), 6.0f);
+            CHECK (tilesDuringDrag == 6);
+            editor.tick();
+            CHECK (drawer.numTiles() == 5);
+        });
+}
+
+TEST_CASE ("the drawer's keys: the arrows move, Return shows the file, Escape closes; Space, letters and shortcuts go on to the host",
+    "[editor][phrases]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto& drawer = openPhrases (editor);
+            PhraseHandoffs os;
+            os.hook (drawer);
+            auto& grid = get<juce::Component> (editor, "phrase_grid");
+            CHECK (grid.getWantsKeyboardFocus()); // Tab enters the grid, in one stop: no tile is a stop of its own
+            for (int i = 0; i < drawer.numTiles(); ++i)
+                CHECK_FALSE (phraseTile (editor, i).getWantsKeyboardFocus());
+            const auto key = [&grid] (int code, juce::ModifierKeys mods = {}) { return grid.keyPressed (juce::KeyPress (code, mods, 0)); };
+
+            // Each arrow names the tile it lands on to a screen reader, at an edge too: the grid keeps the focus, so nothing
+            // else says which tile is selected.
+            juce::StringArray said;
+            drawer.announce = [&said] (const juce::String& text) { said.add (text); };
+
+            // Six tiles, four a row: 0 1 2 3 / 4 5. The first is selected when the drawer opens.
+            CHECK (drawer.selectedTile() == 0);
+            CHECK (key (juce::KeyPress::rightKey));
+            CHECK (drawer.selectedTile() == 1);
+            CHECK (said == juce::StringArray { "Organ Riff, from the kit, 4 bars" });
+            CHECK (key (juce::KeyPress::downKey));
+            CHECK (drawer.selectedTile() == 5);
+            CHECK (key (juce::KeyPress::downKey)); // the last row: nothing to do, but the key was the grid's
+            CHECK (drawer.selectedTile() == 5);
+            CHECK (key (juce::KeyPress::rightKey)); // the last tile
+            CHECK (drawer.selectedTile() == 5);
+            REQUIRE (said.size() == 4);
+            CHECK (said[3] == "Lead Chrome Pluck, from the kit, 2 bars"); // named again where it stays
+            CHECK (key (juce::KeyPress::leftKey));
+            CHECK (key (juce::KeyPress::leftKey)); // back over the row's start
+            CHECK (drawer.selectedTile() == 3);
+            CHECK (key (juce::KeyPress::upKey)); // the first row: stays
+            CHECK (drawer.selectedTile() == 3);
+            CHECK (key (juce::KeyPress::downKey)); // no tile under it: the next row's last
+            CHECK (drawer.selectedTile() == 5);
+            CHECK (key (juce::KeyPress::upKey));
+            CHECK (drawer.selectedTile() == 1);
+            CHECK (phraseTile (editor, 1).isSelected());
+            CHECK (said.size() == 9); // one name for each arrow
+            CHECK (said[8] == "Organ Riff, from the kit, 4 bars");
+            CHECK (c.dragRequests.empty()); // moving writes nothing
+
+            // Return does the tile's click: it shows the file.
+            CHECK (key (juce::KeyPress::returnKey));
+            REQUIRE (os.revealed.size() == 1);
+            CHECK (os.revealed[0].getFileName() == "FUT01_Phrase_OrganRiff_4bars.mid");
+            CHECK (os.dragged.isEmpty());
+
+            // Space, letters and shortcuts go on to the host, from the grid and from the drawer.
+            for (const auto& press : { juce::KeyPress (juce::KeyPress::spaceKey), juce::KeyPress ('K', {}, 0), juce::KeyPress ('M', {}, 0),
+                     juce::KeyPress ('S', juce::ModifierKeys::commandModifier, 0), juce::KeyPress (juce::KeyPress::downKey, juce::ModifierKeys::commandModifier, 0) })
+            {
+                INFO (press.getTextDescription());
+                CHECK_FALSE (grid.keyPressed (press));
+                CHECK_FALSE (drawer.keyPressed (press));
+            }
+            CHECK (drawer.selectedTile() == 1);
+            CHECK (os.revealed.size() == 1);
+            CHECK (said.size() == 9); // Return, Space, letters and shortcuts name nothing
+            CHECK (editor.isPhrasesPanelShown());
+
+            // Escape is the drawer's, not the grid's: it closes the drawer.
+            CHECK_FALSE (key (juce::KeyPress::escapeKey));
+            CHECK (drawer.keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+            editor.tick();
+            CHECK_FALSE (editor.isPhrasesPanelShown());
+            CHECK_FALSE (get<juce::Button> (editor, "phrases").getToggleState());
+        });
+}
+
+TEST_CASE ("the drawer's words", "[editor][phrases]")
+{
+    Rig rig;
+    auto& c = rig.controller;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            // Opening it says so to a screen reader.
+            auto& drawer = get<editor::PhrasesPanel> (editor, "phrases_drawer");
+            juce::StringArray said;
+            drawer.announce = [&said] (const juce::String& text) { said.add (text); };
+            openPhrases (editor);
+            CHECK (said == juce::StringArray { "Phrases" });
+            for (int i = 0; i < 3; ++i)
+                editor.tick();
+            CHECK (said.size() == 1);
+
+            const auto dot = editor::middleDot();
+            CHECK (drawer.getTitle() == "Phrases"); // engraved in capitals, PHRASES
+            CHECK (drawer.kitLine() == "FUT01 Alloy Signal" + dot + "134 BPM" + dot + "F#m 11A");
+            CHECK (get<juce::Button> (editor, "phrases_close").getButtonText() == "Close");
+
+            auto& filter = get<editor::PhraseFilter> (editor, "phrases_filter_kit");
+            CHECK (filter.label() == "From the kit 6");
+            CHECK (filter.getTooltip() == "The kit's own written phrases and its lead line, which were the chips on the drag strip");
+            CHECK (filter.getTitle() == "From the kit, 6 phrases, shown");
+
+            auto& tile = phraseTile (editor, 0);
+            CHECK (tile.phrase().name == "E Piano Stab Rhythm");
+            CHECK (tile.detailText() == "From the kit" + dot + "2 bars");
+            CHECK (tile.getTooltip() == "Drag it into your DAW as MIDI; click to show the file. The kit's own FUT01_Phrase_EPianoStabRhythm_2bars.mid.");
+            CHECK (tile.getTitle() == "E Piano Stab Rhythm, from the kit, 2 bars");
+            CHECK (phraseTile (editor, 1).getTitle() == "Organ Riff, from the kit, 4 bars");
+            CHECK (phraseTile (editor, 5).getTitle() == "Lead Chrome Pluck, from the kit, 2 bars");
+            CHECK (phraseTile (editor, 5).getTooltip() == "Drag it into your DAW as MIDI; click to show the file. The kit's own FUT01_Lead_ChromePluck_2bars.mid.");
+
+            // A tile is a button to a screen reader; its press shows the file, as a click does.
+            PhraseHandoffs os;
+            os.hook (drawer);
+            const auto handler = tile.createAccessibilityHandler();
+            REQUIRE (handler != nullptr);
+            CHECK (handler->getRole() == juce::AccessibilityRole::button);
+            CHECK (handler->getActions().invoke (juce::AccessibilityActionType::press));
+            REQUIRE (os.revealed.size() == 1);
+            CHECK (os.revealed[0].getFileName() == "FUT01_Phrase_EPianoStabRhythm_2bars.mid");
+            CHECK (os.dragged.isEmpty());
+
+            const juce::String idle ("Drag a phrase into your DAW as MIDI, or click it to show the file.");
+            CHECK (drawer.statusText() == idle);
+            CHECK (drawer.synthsText() == "For my synths: on");
+            c.synthsOn = false; // the strip's switch, from any instance
+            editor.tick();
+            CHECK (drawer.synthsText() == "For my synths: off");
+
+            // A write that fails says so, on the status line and to a screen reader, and the tile turns the warning colour;
+            // the next good one puts it away.
+            c.dragFails = true;
+            click (phraseTile (editor, 1));
+            CHECK (os.revealed.size() == 1);
+            CHECK (drawer.statusText() == "Couldn't write Organ Riff: its MIDI file couldn't be saved in Wubansia's drag folder.");
+            CHECK (said[said.size() - 1] == drawer.statusText());
+            CHECK (phraseTile (editor, 1).hasFailed());
+            editor.tick();
+            CHECK (drawer.statusText() == "Couldn't write Organ Riff: its MIDI file couldn't be saved in Wubansia's drag folder.");
+            c.dragFails = false;
+            click (phraseTile (editor, 1));
+            CHECK (os.revealed.size() == 2);
+            CHECK (drawer.statusText() == idle);
+            CHECK_FALSE (phraseTile (editor, 1).hasFailed());
+        });
+}
+
 // Renders the editor at 2x into PNGs for the lead: each kit in Loop mode while playing, FUT02 in
-// Song mode, FUT01 with its content missing, and the Samples drawer (at 1x too) on FUT01's Accents and on
-// FUT02 browsed while its samples are missing. Run with:
+// Song mode, FUT01 with its content missing, the Samples drawer (at 1x too) on FUT01's Accents and on
+// FUT02 browsed while its samples are missing, and the Phrases drawer on FUT01's own phrases. Run with:
 //   WUBANSIA_SCREENSHOTS=<folder> WubansiaPluginTests "[.screenshot]"
 TEST_CASE ("editor screenshots", "[.screenshot]")
 {
@@ -2850,12 +3378,6 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
         { "Kick", "Snare", "Hats", "Perc", "Acid", "Blip", "Drone", "Vox", "Accents", "FX" },
         engine::laneBit (engine::Lane::bass) | engine::laneBit (engine::Lane::lead), { "", "Acid Clean", "" }, { "", "Acid Warm", "" });
 
-    const std::map<juce::String, juce::StringArray> phraseFiles {
-        { "FUT01", { "FUT01_Phrase_EPianoStabRhythm_2bars.mid", "FUT01_Phrase_OrganRiff_4bars.mid", "FUT01_Phrase_PluckRiff_4bars.mid", "FUT01_Phrase_VoxSynthRiff_2bars.mid", "FUT01_Phrase_WarpRiff_2bars.mid" } },
-        { "FUT02", { "FUT02_Phrase_GlassMelody_4bars.mid", "FUT02_Phrase_LaserStabRiff_2bars.mid", "FUT02_Phrase_VoxChoirChords_4bars.mid", "FUT02_Phrase_VoxSynthRiff_2bars.mid" } },
-        { "FUT03", { "FUT03_Phrase_DubChords_4bars.mid", "FUT03_Phrase_KeysArp_4bars.mid", "FUT03_Phrase_RubberRiff_2bars.mid", "FUT03_Phrase_VoxSynthRiff_2bars.mid" } },
-        { "FUT04", { "FUT04_Phrase_AcidStabRiff_2bars.mid", "FUT04_Phrase_MetalChords_4bars.mid", "FUT04_Phrase_RaveStabRiff_2bars.mid", "FUT04_Phrase_VoxSynthRiff_2bars.mid" } },
-    };
     using Song = std::vector<wubansia::SectionInfo>;
     const Song houseForm { { "Intro", 1, 32 }, { "Groove", 33, 32 }, { "Break", 65, 16 }, { "Build", 81, 16 }, { "Drop", 97, 32 },
         { "Switch Up", 129, 16 }, { "Break 2", 145, 16 }, { "Drop 2", 161, 32 }, { "Outro", 193, 32 } };
@@ -2925,7 +3447,6 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
         c.selectKit (kit);
         c.contentStatus.state = wubansia::ContentState::ready;
         c.contentStatus.folder = contentRoot.getChildFile (kit.toLowerCase()).getChildFile ("v1");
-        c.phraseFileNames = phraseFiles.at (kit);
         c.sectionList = songs.at (kit);
         c.transportState = {};
         for (const auto& card : c.kitCards)
@@ -2962,7 +3483,6 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
         standaloneController.kitCards = c.kitCards;
         standaloneController.selectKit ("FUT04");
         standaloneController.contentStatus.folder = contentRoot.getChildFile ("fut04/v1");
-        standaloneController.phraseFileNames = phraseFiles.at ("FUT04");
         standaloneController.sectionList = songs.at ("FUT04");
         standaloneController.transportState = { true, true, 136.0, 0.0 };
         juce::AudioProcessor::setTypeOfNextNewPlugin (juce::AudioProcessor::wrapperType_Standalone);
@@ -2995,7 +3515,6 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
         juce::File::getSpecialLocation (juce::File::userHomeDirectory).getChildFile ("Music/Wubansia Content").getFullPathName() };
     c.kitCards[0].content = c.contentStatus;
     c.nextSnapshot = {};
-    c.phraseFileNames = phraseFiles.at ("FUT01");
     c.sectionList = songs.at ("FUT01");
     c.transportState = {};
     c.transportState.bpm = 134.0;
@@ -3044,5 +3563,17 @@ TEST_CASE ("editor screenshots", "[.screenshot]")
             REQUIRE (drawer.bannerText().isNotEmpty());
             save (editor, "FUT02-samples-missing.png");
             save (editor, "FUT02-samples-missing-1x.png", 1);
+        });
+
+    // The Phrases drawer on FUT01's own phrases and its lead line, the first one selected.
+    c.phraseList = FakeController::ownPhrases ("FUT01");
+    ++c.phraseGeneration;
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            editor.setZoom (1.0f);
+            play (editor, 134, 3840.0 + 960.0 * 2.0, editor.model().kit.phraseLanes, 1.6f);
+            auto& drawer = openPhrases (editor);
+            REQUIRE (drawer.numTiles() == 6);
+            save (editor, "phrases-drawer.png");
         });
 }

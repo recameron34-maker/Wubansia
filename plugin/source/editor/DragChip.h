@@ -1,9 +1,9 @@
 #pragma once
 
-// MIDI drag-out. A chip asks the Controller to write the MIDI file it stands for (the loop, the song,
-// a lane or a phrase file), then hands that file to the OS as an external drag, so it drops straight
-// into a DAW's arrangement. A click without a drag shows the file instead, for hosts that don't take
-// drops from plug-in windows.
+// MIDI drag-out. A chip asks the Controller to write the MIDI file it stands for (the loop, the song
+// or a lane), then hands that file to the OS as an external drag, so it drops straight into a DAW's
+// arrangement. A click without a drag shows the file instead, for hosts that don't take drops from
+// plug-in windows. The kit's own phrases are in the Phrases drawer (PhrasesPanel.h, ADR 0031).
 
 #include "Controls.h"
 #include "EditorModel.h"
@@ -32,7 +32,7 @@ namespace wubansia::editor
         juce::Rectangle<float> labelArea() const;
 
         // The narrowest width at this height that shows the label whole, or a phrase title without its bar count, squeezed
-        // to 0.8 at most (shownLabel ()'s test): what the drag strip gives a phrase chip at least, where it can.
+        // to 0.8 at most (shownLabel ()'s test).
         int fitWidth (int height) const;
 
         // What paint () writes: the label, or a phrase title without its bar count where the whole title doesn't fit even
@@ -62,9 +62,9 @@ namespace wubansia::editor
         bool hover = false, pressed = false, dragging = false, failed = false, compact = false;
     };
 
-    // The strip of song-wide chips: the loop, the song and each phrase file, and two switches, the person's settings kept
-    // by the Controller: For my synths (ADR 0027), which every drag follows, and 1 drum track (ADR 0025), which the Loop
-    // and Song drags follow.
+    // The strip of song-wide chips, the loop and the song, and two switches, the person's settings kept by the Controller:
+    // For my synths (ADR 0027), which every drag follows, and 1 drum track (ADR 0025), which the Loop and Song drags
+    // follow. The kit's own phrases left it for the Phrases drawer (ADR 0031).
     class DragStrip : public juce::Component
     {
     public:
@@ -77,16 +77,11 @@ namespace wubansia::editor
         DragChip loop, song;
         LedButton drums { "1 drum track" };
         LedButton synths { "For my synths" };
-        int numPhraseChips() const noexcept { return phraseChips.size(); }
-        DragChip* phraseChip (int index) const noexcept { return phraseChips[index]; }
 
         // Where the engraved "Drag MIDI" is drawn, so tests can check it fits.
         juce::Rectangle<float> labelArea() const;
 
     private:
         Controller& controller;
-        juce::OwnedArray<DragChip> phraseChips;
-        juce::StringArray files;
-        juce::String kitId;
     };
 }

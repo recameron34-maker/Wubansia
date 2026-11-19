@@ -55,18 +55,34 @@ namespace wubansia::editor
             return bounds.reduced (1.5f).withTrimmedLeft (19.0f).withTrimmedRight (10.0f).reduced (0.0f, 6.0f);
         }
 
-        // The largest font from 11 down to 8 points that fits the text into the width.
-        juce::Font fitted (const juce::String& text, float width)
+        // The largest font from `from` down to `floor` points, a quarter point at a time, that fits the text into the width.
+        juce::Font fitted (const juce::String& text, float width, float from = 11.0f, float floor = 8.0f, bool bold = false)
         {
-            auto height = 11.0f;
-            auto font = uiFont (height);
-            while (height > 8.0f && juce::GlyphArrangement::getStringWidth (font, text) > width)
+            auto height = from;
+            auto font = uiFont (height, bold);
+            while (height > floor && juce::GlyphArrangement::getStringWidth (font, text) > width)
             {
                 height -= 0.25f;
-                font = uiFont (height);
+                font = uiFont (height, bold);
             }
             return font;
         }
+
+        juce::Font idFont() { return uiFont (10.5f, true, 0.1f); }
+    }
+
+    juce::Rectangle<float> KitPanel::Card::titleArea() const
+    {
+        const auto lines = linesOf (getLocalBounds().toFloat());
+        const auto idWidth = juce::GlyphArrangement::getStringWidth (idFont(), data.id) + 7.0f;
+        return lines.withHeight (lines.getHeight() / 3.0f).withTrimmedLeft (idWidth);
+    }
+
+    juce::Font KitPanel::Card::titleFont() const
+    {
+        // 14 points where the title fits; 146 px cards fit FUT03's and FUT04's from 12.25 (Liberation Sans) or 10.5 (DejaVu
+        // Sans), so the floor is 10.
+        return fitted (data.title, titleArea().getWidth(), 14.0f, 10.0f, true);
     }
 
     juce::Rectangle<float> KitPanel::Card::directionArea() const
@@ -117,13 +133,13 @@ namespace wubansia::editor
 
         // The ID and title.
         auto line1 = lines.removeFromTop (lineHeight);
-        g.setFont (uiFont (10.5f, true, 0.1f));
+        const auto title = titleArea().translated (0.0f, isButtonDown ? 0.6f : 0.0f);
+        g.setFont (idFont());
         g.setColour (selected ? accent : accent.withAlpha (0.75f));
-        const auto idWidth = juce::GlyphArrangement::getStringWidth (g.getCurrentFont(), data.id) + 7.0f;
-        g.drawText (data.id, line1.removeFromLeft (idWidth), juce::Justification::centredLeft, false);
-        g.setFont (uiFont (14.0f, true));
+        g.drawText (data.id, line1.withRight (title.getX()), juce::Justification::centredLeft, false);
+        g.setFont (titleFont());
         g.setColour (selected ? colours::text : colours::text.withAlpha (0.82f));
-        g.drawText (data.title, line1, juce::Justification::centredLeft, true);
+        g.drawText (data.title, title, juce::Justification::centredLeft, true);
 
         // The direction, or what stands in the way of playing.
         const auto line2 = lines.removeFromTop (lineHeight);

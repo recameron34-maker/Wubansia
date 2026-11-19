@@ -24,7 +24,10 @@ namespace wubansia::editor
             bool isSelected() const noexcept { return selected; }
             juce::String statusText() const;
 
-            // The direction line, which shrinks its font to read in full rather than be cut.
+            // The title, right of the ID, and the direction line under it: each shrinks its font to read in full rather
+            // than be cut.
+            juce::Rectangle<float> titleArea() const;
+            juce::Font titleFont() const;
             juce::Rectangle<float> directionArea() const;
             juce::Font directionFont() const;
 

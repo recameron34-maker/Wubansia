@@ -5,8 +5,6 @@
 #include "dragout/DragFiles.h"
 
 #include <cmath>
-#include <numeric>
-#include <vector>
 
 namespace wubansia::editor
 {
@@ -219,28 +217,11 @@ namespace wubansia::editor
         // The person's settings, which another instance may change too: shown as they are every tick.
         drums.setToggleState (model.dragDrumsOnOneTrack, juce::dontSendNotification);
         synths.setToggleState (model.dragForSynths, juce::dontSendNotification);
-
-        if (model.phraseFiles == files && model.kit.id == kitId)
-            return;
-
-        files = model.phraseFiles;
-        kitId = model.kit.id;
-        phraseChips.clear();
-        for (int i = 0; i < files.size(); ++i)
-        {
-            DragRequest request;
-            request.what = DragWhat::phrase;
-            request.phraseFile = files[i];
-            auto* chip = phraseChips.add (new DragChip (controller, request, phraseTitle (files[i], kitId)));
-            chip->setComponentID ("drag_phrase_" + juce::String (i));
-            chip->setTooltip ("Drag " + files[i] + " into your DAW. Click to show the file.");
-            addAndMakeVisible (chip);
-        }
-        resized();
     }
 
     void DragStrip::resized()
     {
+        // The room right of 1 drum track, 572 px of the 1064, is for Part and Drum kit (ADRs 0029, 0030).
         auto area = getLocalBounds().reduced (8, 5);
         area.removeFromLeft (68); // the engraved label (labelArea ())
         synths.setBounds (area.removeFromLeft (126)); // "FOR MY SYNTHS" needs 90.5 of its 92.4 px in DejaVu Sans, the widest
@@ -250,47 +231,6 @@ namespace wubansia::editor
         song.setBounds (area.removeFromLeft (80));
         area.removeFromLeft (6);
         drums.setBounds (area.removeFromLeft (120));
-        area.removeFromLeft (12); // the divider, in the middle
-
-        if (phraseChips.isEmpty())
-            return;
-
-        // The phrase chips share what's left, as evenly as their titles let them: a chip whose title (without its bar
-        // count, if need be) needs more than an equal share gets what it needs, and the others share the rest. Where the
-        // titles can't all fit, the shares are equal. 60 to 176 px each.
-        constexpr auto gap = 6;
-        const auto count = phraseChips.size();
-        const auto room = area.getWidth() - gap * (count - 1);
-        std::vector<int> need, width ((std::size_t) count, room / count);
-        for (auto* chip : phraseChips)
-            need.push_back (chip->fitWidth (area.getHeight()));
-        if (std::accumulate (need.begin(), need.end(), 0) <= room)
-        {
-            std::vector<bool> fixed ((std::size_t) count, false);
-            auto left = room;
-            auto open = count;
-            for (auto changed = true; changed && open > 0;)
-            {
-                changed = false;
-                const auto share = left / open;
-                for (std::size_t i = 0; i < need.size(); ++i)
-                    if (! fixed[i] && need[i] > share)
-                    {
-                        fixed[i] = changed = true;
-                        width[i] = need[i];
-                        left -= need[i];
-                        --open;
-                    }
-            }
-            for (std::size_t i = 0; i < need.size(); ++i)
-                if (! fixed[i])
-                    width[i] = left / open;
-        }
-        for (int i = 0; i < count; ++i)
-        {
-            phraseChips[i]->setBounds (area.removeFromLeft (juce::jlimit (60, 176, width[(std::size_t) i])));
-            area.removeFromLeft (gap);
-        }
     }
 
     juce::Rectangle<float> DragStrip::labelArea() const
@@ -301,11 +241,5 @@ namespace wubansia::editor
     void DragStrip::paint (juce::Graphics& g)
     {
         draw::engraved (g, "Drag MIDI", labelArea(), juce::Justification::centredLeft, 9.5f);
-        if (! phraseChips.isEmpty())
-        {
-            const auto x = (float) drums.getRight() + 6.0f;
-            g.setColour (juce::Colours::white.withAlpha (0.08f));
-            g.fillRect (juce::Rectangle<float> (1.0f, (float) getHeight() * 0.5f).withCentre ({ x, (float) getHeight() * 0.5f }));
-        }
     }
 }

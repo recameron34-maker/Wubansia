@@ -29,7 +29,8 @@ namespace wubansia
           abPanel(),
           dragStrip (controller),
           contentPanel (controller),
-          samplesPanel (controller)
+          samplesPanel (controller),
+          phrasesPanel (controller)
     {
         setLookAndFeel (&lookAndFeel);
         setOpaque (true);
@@ -45,6 +46,12 @@ namespace wubansia
         samplesButton.setClickingTogglesState (false);
         samplesButton.onClick = [this] { showSamplesPanel (! samplesPanel.isVisible()); };
 
+        // The Phrases button opens the Phrases drawer (ADR 0031) where the Samples drawer sits; the two never show together.
+        phrasesButton.setComponentID ("phrases");
+        phrasesButton.setTooltip ("Browse phrases for this kit and drag them into your DAW as MIDI");
+        phrasesButton.setClickingTogglesState (false);
+        phrasesButton.onClick = [this] { showPhrasesPanel (! phrasesPanel.isVisible()); };
+
         zoomBox.setComponentID ("zoom");
         zoomBox.setTooltip ("Window size");
         for (const auto percent : zoomPercents)
@@ -58,8 +65,9 @@ namespace wubansia
         samplesPanel.onClose = [this] { showSamplesPanel (false); };
         samplesPanel.onShowContent = [this] { showContentPanel (true); };
         samplesPanel.chooseContentFolder = [this] { contentPanel.chooseContentFolder(); };
+        phrasesPanel.onClose = [this] { showPhrasesPanel (false); };
 
-        for (auto* component : std::initializer_list<juce::Component*> { &kitPanel, &samplesButton, &zoomBox, &lcd, &transport, &modePanel, &sectionStrip })
+        for (auto* component : std::initializer_list<juce::Component*> { &kitPanel, &phrasesButton, &samplesButton, &zoomBox, &lcd, &transport, &modePanel, &sectionStrip })
             content.addAndMakeVisible (component);
         for (auto& lane : lanes)
             content.addAndMakeVisible (*lane);
@@ -67,6 +75,7 @@ namespace wubansia
             content.addAndMakeVisible (component);
         content.addChildComponent (contentPanel);
         content.addChildComponent (samplesPanel);
+        content.addChildComponent (phrasesPanel);
         addAndMakeVisible (content);
 
         bindParameters (audioProcessor);
@@ -164,14 +173,19 @@ namespace wubansia
 
         auto area = content.getLocalBounds().reduced (20, 0);
 
-        // The header: the logo, the kit cards, the samples button and the zoom.
+        // The header: the logo, the kit cards, the Phrases and Samples buttons and the zoom. "PHRASES" needs 89.8 px of its
+        // button and "SAMPLES" 90.1 in DejaVu Sans Bold, the widest default font: both buttons are 91 px, 7 apart, in a
+        // 278 px block, and the cards come 2 px from the logo and the buttons, 146 px each with a 114 px direction line
+        // (FUT03's needs 111.42 at 8 px in DejaVu Sans).
         auto header = area.removeFromTop (76).withTrimmedTop (12).withTrimmedBottom (6);
         backdrop.logo = header.removeFromLeft (190).toFloat();
-        auto right = header.removeFromRight (180);
+        auto right = header.removeFromRight (278);
         zoomBox.setBounds (right.removeFromRight (82).withSizeKeepingCentre (82, 28));
-        right.removeFromRight (8);
-        samplesButton.setBounds (right.withSizeKeepingCentre (right.getWidth(), 30));
-        kitPanel.setBounds (header.reduced (8, 0));
+        right.removeFromRight (7);
+        samplesButton.setBounds (right.removeFromRight (91).withSizeKeepingCentre (91, 30));
+        right.removeFromRight (7);
+        phrasesButton.setBounds (right.withSizeKeepingCentre (right.getWidth(), 30));
+        kitPanel.setBounds (header.reduced (2, 0));
 
         // The display, the transport and the mode switches.
         area.removeFromTop (4);
@@ -206,8 +220,9 @@ namespace wubansia
         area.removeFromTop (8);
         auto bottom = area.removeFromTop (112);
 
-        // The Samples drawer covers the lanes, A/B and FX: (20, 246), 1080 x 396.
+        // The Samples and Phrases drawers cover the lanes, A/B and FX: (20, 246), 1080 x 396.
         samplesPanel.setBounds (laneArea.withBottom (bottom.getBottom()));
+        phrasesPanel.setBounds (samplesPanel.getBounds());
         abPanel.setBounds (bottom.removeFromLeft (340));
         bottom.removeFromLeft (10);
         fxPanel.setBounds (bottom);
@@ -265,8 +280,8 @@ namespace wubansia
         m.phraseMode = controller.phraseMode();
         m.dragDrumsOnOneTrack = controller.dragDrumsOnOneTrack();
         m.dragForSynths = controller.dragForSynths();
-        m.phraseFiles = controller.phraseFiles();
         m.audition = controller.auditionState();
+        m.phrasesGeneration = controller.phrasesGeneration();
 
         if (playModeParameter != nullptr)
             m.playMode = static_cast<engine::PlayMode> (juce::jlimit (0, 2, juce::roundToInt (playModeParameter->convertFrom0to1 (playModeParameter->getValue()))));
@@ -282,6 +297,7 @@ namespace wubansia
         if (show)
         {
             showSamplesPanel (false);
+            showPhrasesPanel (false);
             contentOpenedByHand = true;
             contentDismissedFor.clear();
         }
@@ -295,20 +311,26 @@ namespace wubansia
             contentPanel.toFront (false);
     }
 
+    void PluginEditor::coverFace (bool covered)
+    {
+        // What a drawer covers goes out of sight altogether while it shows, so Tab and screen readers never reach a control
+        // the person can't see (a mute pad, an A/B switch) and change the project there. Their ticks go on: none of them
+        // depends on being visible.
+        for (auto& lane : lanes)
+            lane->setVisible (! covered);
+        abPanel.setVisible (! covered);
+        fxPanel.setVisible (! covered);
+    }
+
     void PluginEditor::showSamplesPanel (bool show)
     {
         if (show != samplesPanel.isVisible())
         {
-            // What the drawer covers goes out of sight altogether while it shows, so Tab and screen readers never
-            // reach a control the person can't see (a mute pad, an A/B switch) and change the project there. Their
-            // ticks go on: none of them depends on being visible.
-            for (auto& lane : lanes)
-                lane->setVisible (! show);
-            abPanel.setVisible (! show);
-            fxPanel.setVisible (! show);
-
             if (show)
             {
+                showPhrasesPanel (false); // the two drawers never show together
+                coverFace (true);
+
                 // The install panel goes; it comes back by itself once the drawer closes if the kit still can't play
                 // and the person hasn't closed it.
                 contentOpenedByHand = false;
@@ -321,10 +343,37 @@ namespace wubansia
             else
             {
                 samplesPanel.setVisible (false);
+                coverFace (false);
                 controller.stopAudition(); // closing the drawer stops what it plays
             }
         }
         samplesButton.setToggleState (show, juce::dontSendNotification);
+    }
+
+    void PluginEditor::showPhrasesPanel (bool show)
+    {
+        if (show != phrasesPanel.isVisible())
+        {
+            if (show)
+            {
+                showSamplesPanel (false); // the two drawers never show together
+                coverFace (true);
+
+                // The install panel steps aside as for the Samples drawer.
+                contentOpenedByHand = false;
+                contentPanel.setVisible (false);
+                phrasesPanel.open (state);
+                phrasesPanel.setVisible (true);
+                phrasesPanel.toFront (false);
+                phrasesPanel.focusGrid(); // the keys go to the grid, not to the Phrases button just clicked
+            }
+            else
+            {
+                phrasesPanel.setVisible (false);
+                coverFace (false);
+            }
+        }
+        phrasesButton.setToggleState (show, juce::dontSendNotification);
     }
 
     void PluginEditor::tick()
@@ -355,13 +404,15 @@ namespace wubansia
         dragStrip.update (state);
         contentPanel.update (state);
         samplesPanel.update (state);
+        phrasesPanel.update (state);
 
-        // The content panel opens by itself while the kit can't play, until the person closes it; never while the
-        // Samples drawer is open, whose banner says the same.
+        // The content panel opens by itself while the kit can't play, until the person closes it; never while a drawer is
+        // open (the Samples drawer's banner says the same).
         const auto key = state.kit.id + "/" + juce::String ((int) state.content.state);
         if (contentDismissedFor.isNotEmpty() && contentDismissedFor != key)
             contentDismissedFor.clear();
-        const auto show = ! samplesPanel.isVisible() && (contentOpenedByHand || (isProblem (state.content.state) && contentDismissedFor.isEmpty()));
+        const auto drawerOpen = samplesPanel.isVisible() || phrasesPanel.isVisible();
+        const auto show = ! drawerOpen && (contentOpenedByHand || (isProblem (state.content.state) && contentDismissedFor.isEmpty()));
         if (show != contentPanel.isVisible())
         {
             contentPanel.setVisible (show);
@@ -369,6 +420,7 @@ namespace wubansia
                 contentPanel.toFront (false);
         }
         samplesButton.setToggleState (samplesPanel.isVisible(), juce::dontSendNotification);
+        phrasesButton.setToggleState (phrasesPanel.isVisible(), juce::dontSendNotification);
     }
 
     void PluginEditor::Backdrop::paint (juce::Graphics& g)

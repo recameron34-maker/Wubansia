@@ -16,6 +16,7 @@
 #include "editor/Lcd.h"
 #include "editor/LookAndFeel.h"
 #include "editor/ModePanel.h"
+#include "editor/PhrasesPanel.h"
 #include "editor/PollingAttachment.h"
 #include "editor/SamplesPanel.h"
 #include "editor/SectionStrip.h"
@@ -57,6 +58,7 @@ namespace wubansia
         void setLogicHostForTesting (bool isLogic) noexcept { logicHost = isLogic; }
         bool isContentPanelShown() const noexcept { return contentPanel.isVisible(); }
         bool isSamplesPanelShown() const noexcept { return samplesPanel.isVisible(); }
+        bool isPhrasesPanelShown() const noexcept { return phrasesPanel.isVisible(); }
 
     private:
         class Backdrop : public juce::Component
@@ -75,7 +77,10 @@ namespace wubansia
         void layOut();
         void refreshModel();
         void showContentPanel (bool show);
-        void showSamplesPanel (bool show); // the drawer and the install panel never show together
+        // A drawer, the Samples drawer (ADR 0024) or the Phrases drawer (ADR 0031): never both, never with the install panel.
+        void showSamplesPanel (bool show);
+        void showPhrasesPanel (bool show);
+        void coverFace (bool covered); // hides the lanes, A/B and FX under a drawer, or shows them again
 
         Controller& controller;
         const bool standalone;
@@ -86,6 +91,7 @@ namespace wubansia
         juce::Component content; // everything, at 1120 x 700, scaled by the zoom
         Backdrop backdrop;
         editor::KitPanel kitPanel;
+        editor::LedButton phrasesButton { "Phrases" };
         editor::LedButton samplesButton { "Samples" };
         juce::ComboBox zoomBox { "Zoom" };
         editor::Lcd lcd;
@@ -98,6 +104,7 @@ namespace wubansia
         editor::DragStrip dragStrip;
         editor::ContentPanel contentPanel;
         editor::SamplesPanel samplesPanel;
+        editor::PhrasesPanel phrasesPanel;
         juce::TooltipWindow tooltips { this, 650 };
 
         // After the controls they bind, so they go first.

@@ -106,7 +106,39 @@ TEST_CASE ("the fake controller shows what a test sets and records what the edit
 
         fake.dragFails = true;
         CHECK (controller.writeDragFile ({}) == juce::File());
-        CHECK (controller.phraseFiles().size() == 2);
+    }
+
+    SECTION ("the Phrases drawer's list: what a test sets, each request counted")
+    {
+        using wubansia::test::FakeController;
+        CHECK (controller.phrasesGeneration() == 1u);
+        const auto fut01 = controller.phrases();
+        REQUIRE (fut01.size() == 6); // FUT01's own until a test sets others
+        CHECK (fut01 == FakeController::ownPhrases ("FUT01"));
+        CHECK (fut01.back().id == "FUT01_Lead_ChromePluck_2bars.mid");
+
+        fake.phraseList = FakeController::ownPhrases ("FUT02");
+        ++fake.phraseGeneration;
+        CHECK (controller.phrasesGeneration() == 2u);
+        CHECK (controller.phrases().size() == 5);
+        CHECK (fake.phrasesCalls == 2);
+
+        controller.selectKit ("FUT02"); // the test's to change, as a kit change would
+        CHECK (controller.phrasesGeneration() == 2u);
+        for (const auto* kit : { "FUT01", "FUT02", "FUT03", "FUT04" })
+        {
+            INFO (kit);
+            const auto own = FakeController::ownPhrases (kit);
+            CHECK (own.size() == (juce::String (kit) == "FUT01" ? 6u : 5u));
+            for (const auto& phrase : own)
+            {
+                CHECK (phrase.id.startsWith (juce::String (kit) + "_"));
+                CHECK (phrase.kind == "kit");
+                CHECK (phrase.origin == wubansia::PhraseOrigin::kit);
+                CHECK ((phrase.bars == 2 || phrase.bars == 4));
+            }
+        }
+        CHECK (FakeController::ownPhrases ("NOPE").empty());
     }
 }
 
