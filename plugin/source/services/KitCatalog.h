@@ -63,6 +63,7 @@ namespace wubansia
     // A Song's sections from its SMF's markers (FF 06): name, 1-based start bar and length in bars, the
     // last one running to the file's end. Empty for a file that doesn't read.
     std::vector<SectionInfo> sectionsOf (std::span<const std::uint8_t> smf);
+    std::vector<SectionInfo> sectionsOf (const midi::File& file);
 
     // The kit's four timelines (P7's buildTimeline: Loop vox, Loop no-vox, Song vox, Song no-vox; the
     // loops wrap at 4 bars), or the first error. cancel, when raised, stops it between files with a

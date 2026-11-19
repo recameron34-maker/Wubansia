@@ -1,6 +1,9 @@
 #include "Controls.h"
 #include "LookAndFeel.h"
 
+#include <cmath>
+#include <vector>
+
 namespace wubansia::editor
 {
     Knob::Knob()
@@ -248,11 +251,11 @@ namespace wubansia::editor
         if (count <= 0)
             return;
 
-        const auto width = area.getWidth() / (float) count;
         const auto selected = getSelectedItemIndex();
+        const auto font = labelFont();
         for (int i = 0; i < count; ++i)
         {
-            const auto cell = juce::Rectangle<float> (area.getX() + width * (float) i, area.getY(), width, area.getHeight()).reduced (2.5f);
+            const auto cell = segmentArea (i).reduced (2.5f);
             const auto on = i == selected && isEnabled();
             if (on)
             {
@@ -269,9 +272,16 @@ namespace wubansia::editor
                 g.fillRect (juce::Rectangle<float> (1.0f, cell.getHeight() * 0.5f).withCentre ({ cell.getX() - 2.5f, cell.getCentreY() }));
             }
 
-            g.setFont (uiFont (juce::jmin (11.5f, cell.getHeight() * 0.5f), true, 0.1f));
+            g.setFont (font);
             g.setColour (! isEnabled() ? colours::textFaint : (on ? colours::text : colours::textDim));
             g.drawFittedText (getItemText (i).toUpperCase(), cell.toNearestInt(), juce::Justification::centred, 1, 0.75f);
+        }
+
+        // Keyboard focus: the outline LookAndFeel draws round a focused combo box.
+        if (hasKeyboardFocus (false))
+        {
+            g.setColour (accent.withAlpha (0.6f));
+            g.drawRoundedRectangle (area, 6.0f, 1.0f);
         }
     }
 
@@ -282,15 +292,104 @@ namespace wubansia::editor
         const auto count = getNumItems();
         if (! isEnabled() || count <= 0 || getWidth() <= 0)
             return;
-        const auto index = juce::jlimit (0, count - 1, e.x * count / getWidth());
+        const auto x = (float) e.x;
+        int index = x < segmentArea (0).getX() ? 0 : count - 1;
+        for (int i = 0; i < count; ++i)
+            if (const auto area = segmentArea (i); x >= area.getX() && x < area.getRight())
+                index = i;
         setSelectedItemIndex (index, juce::sendNotificationSync);
     }
 
     void SegmentedChoice::showPopup()
     {
-        // No menu: the keyboard's "open" steps to the next segment.
+        // No menu: the keyboard's "open" (Return) steps to the next segment. ComboBox marks its popup active before it
+        // asks for it and only hidePopup clears that, so without it Return would work once and a screen reader would
+        // hear "expanded" from then on.
         if (const auto count = getNumItems(); count > 0)
             setSelectedItemIndex ((getSelectedItemIndex() + 1) % count, juce::sendNotificationSync);
+        hidePopup();
+    }
+
+    bool SegmentedChoice::keyPressed (const juce::KeyPress& key)
+    {
+        // The arrows tell onChange at once: ComboBox's own would tell it later, and a tick showing the caller's value in
+        // between would take the key back. Return goes ComboBox's way, to showPopup; every other key, Space included,
+        // goes on to the host.
+        const auto step = key == juce::KeyPress::upKey || key == juce::KeyPress::leftKey ? -1
+                          : key == juce::KeyPress::downKey || key == juce::KeyPress::rightKey ? 1
+                                                                                                : 0;
+        if (step == 0)
+            return key == juce::KeyPress::returnKey && juce::ComboBox::keyPressed (key);
+        if (const auto count = getNumItems(); isEnabled() && count > 0)
+        {
+            const auto index = juce::jlimit (0, count - 1, getSelectedItemIndex() + step);
+            if (index != getSelectedItemIndex())
+                setSelectedItemIndex (index, juce::sendNotificationSync);
+        }
+        return true;
+    }
+
+    void SegmentedChoice::setSegmentsFitLabels (bool shouldFit)
+    {
+        if (fitLabels != shouldFit)
+        {
+            fitLabels = shouldFit;
+            repaint();
+        }
+    }
+
+    namespace
+    {
+        // The widths a segment's label needs at this font, kLabelPad each side.
+        std::vector<float> labelWidths (const SegmentedChoice& choice, const juce::Font& font)
+        {
+            std::vector<float> widths;
+            for (int i = 0; i < choice.getNumItems(); ++i)
+                widths.push_back (juce::GlyphArrangement::getStringWidth (font, choice.getItemText (i).toUpperCase())
+                                  + 2.0f * SegmentedChoice::kLabelPad);
+            return widths;
+        }
+    }
+
+    int SegmentedChoice::fitWidth (int height) const
+    {
+        const auto font = uiFont (juce::jmin (11.5f, ((float) height - 6.0f) * 0.5f), true, 0.1f);
+        float total = 1.0f; // the 0.5 px border on each side
+        for (const auto w : labelWidths (*this, font))
+            total += w;
+        return (int) std::ceil (total);
+    }
+
+    juce::Rectangle<float> SegmentedChoice::segmentArea (int index) const
+    {
+        const auto count = getNumItems();
+        if (index < 0 || index >= count)
+            return {};
+        const auto area = getLocalBounds().toFloat().reduced (0.5f);
+        if (! fitLabels)
+        {
+            const auto width = area.getWidth() / (float) count;
+            return { area.getX() + width * (float) index, area.getY(), width, area.getHeight() };
+        }
+
+        // Each label's need, then the room left over shared equally, or every segment squeezed alike when short.
+        const auto widths = labelWidths (*this, labelFont());
+        float need = 0.0f;
+        for (const auto w : widths)
+            need += w;
+        const auto extra = (area.getWidth() - need) / (float) count;
+        const auto scale = need > 0.0f && extra < 0.0f ? area.getWidth() / need : 1.0f;
+        const auto widthOf = [&] (int i) { return extra < 0.0f ? widths[(std::size_t) i] * scale : widths[(std::size_t) i] + extra; };
+        float x = area.getX();
+        for (int i = 0; i < index; ++i)
+            x += widthOf (i);
+        const auto right = index == count - 1 ? area.getRight() : x + widthOf (index);
+        return { x, area.getY(), right - x, area.getHeight() };
+    }
+
+    juce::Font SegmentedChoice::labelFont() const
+    {
+        return uiFont (juce::jmin (11.5f, ((float) getHeight() - 6.0f) * 0.5f), true, 0.1f);
     }
 
     IconButton::IconButton (const juce::String& name, Icon iconToShow)

@@ -430,6 +430,9 @@ TEST_CASE ("a state-only change tells the host the project changed", "[state]")
     CHECK (controller.dragDrumsOnOneTrack());
     controller.setDragForSynths (false);
     CHECK_FALSE (controller.dragForSynths());
+    // Nor is the drag strip's Part (ADR 0029), the instance's own.
+    controller.setDragPart (DragPart::drums);
+    CHECK (controller.dragPart() == DragPart::drums);
     CHECK (saveState (*plugin) == before);
     CHECK (host.stateChanges == 4);
 

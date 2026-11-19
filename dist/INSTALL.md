@@ -217,7 +217,19 @@ and each lane's **MIDI** chip. Drag a chip onto your DAW, or click it to show th
 track, so a dropped Loop or Song gives one DAW track per instrument; the vox switch picks the file, and muted lanes are
 left out.
 
-**1 drum track**, the switch next to Song, puts the drums on one track instead. Lit, a Loop or Song drag brings the
+**Part**, next to Song, picks what Loop and Song bring. **All**, the default, is the whole kit as above. The others
+bring one part, whatever you muted: **Drums** (kick, snare or clap, hats and percussion, and FUT04's rumble),
+**Bass** (the bassline, and FUT01's organ bass and FUT02's drop glide), **Chords** (the chord sample's track on
+channel 4, whole chords while For my synths is lit; the Chord voicing on channel 3; and each kit's pad or stab),
+**Lead**, **Vox** (the vox synth's line, even with the vox switch off) or **Accents** (the Accents and FX lanes:
+stabs, sweeps, risers, fills and, in the Song, FUT02's and FUT04's accent synths). A Song part keeps all 224 bars, the
+tempo, the key and the section markers, so it lines up with the Song when you drop it on the same bar. The name says
+the part: `FUT01 Alloy Signal 134 F#m 11A - Song Drums.mid`. Each Wubansia keeps its Part while your project is open
+and starts on All; a lane's MIDI chip still gives that lane's own tracks. Loop or Song greys out when the part has
+nothing there (FUT03's loop has no lead). For your own drum samples, pick **Drums**, light **1 drum track** and drag
+**Song**: the whole mix's drums come as one track; the pads below say which note is which drum.
+
+**1 drum track**, the switch next to Part, puts the drums on one track instead. Lit, a Loop or Song drag brings the
 kick, snare or clap, hats and percussion as one track, Drums, on channel 10 with the same notes, ready for one drum
 rack, and every other instrument keeps its own track. The file's name says so:
 `FUT01 Alloy Signal 134 F#m 11A - Song (1 drum track).mid`. Wubansia remembers the switch for your user, in
@@ -279,8 +291,8 @@ note's pad. Its files are in the kit's content folder, in `Content/<kit>/v1/Drum
   instruments on the tracks after it, making new tracks only when it runs out, and a clip it drops replaces what it
   covers. So drop it where no track of yours follows: in a new set, or with your Drum Rack's track last. Or drop the
   Song below your last track, so every instrument gets a new track, then move the Drums clip onto your Drum Rack's
-  track. For the drums alone, mute Wubansia's six other lanes before you drag, and unmute them after: the file then
-  brings only Drums.
+  track. For the drums alone, pick Drums under Part: with 1 drum track lit, the file then brings only Drums, so
+  nothing lands on the tracks after it.
 - The rack shows the pads from C1 to D#2: scroll its pad overview for B0 (FUT04's rumble) and F#2 (FUT01's
   tambourine, FUT03's shaker).
 - Put the closed and open hats (42 and 46) in one choke group, and leave the ride (51) out of it.

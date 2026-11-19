@@ -136,6 +136,7 @@ namespace wubansia::test
         engine::PhraseMode phraseLaneMode = engine::PhraseMode::automatic; // what phraseMode () gives
         bool drumsOneTrack = false; // what dragDrumsOnOneTrack () gives; another instance may change it
         bool synthsOn = true; // what dragForSynths () gives; another instance may change it
+        DragPart partOn = DragPart::all; // what dragPart () gives (ADR 0029); the Loop and Song files are named for it
         juce::File dragFolder; // where writeDragFile writes
         bool dragFails = false;
         std::map<juce::String, std::vector<SoundInfo>> soundLists; // what sounds () gives, by kit
@@ -161,6 +162,7 @@ namespace wubansia::test
         std::vector<bool> previewRequests;
         std::vector<bool> drumOptionRequests; // setDragDrumsOnOneTrack () calls, in order
         std::vector<bool> synthOptionRequests; // setDragForSynths () calls, in order
+        std::vector<DragPart> partRequests; // setDragPart () calls, in order
         std::vector<DragRequest> dragRequests;
         int snapshotsTaken = 0;
         mutable int soundsCalls = 0; // sounds (): the editor should ask once per kit it shows, not every tick
@@ -251,7 +253,16 @@ namespace wubansia::test
             synthsOn = on;
         }
 
-        // Writes a minimal, valid SMF (one empty track) named for the request.
+        DragPart dragPart() const override { return partOn; }
+
+        void setDragPart (DragPart part) override
+        {
+            partRequests.push_back (part);
+            partOn = part;
+        }
+
+        // Writes a minimal, valid SMF (one empty track) named for the request: "FUT01 - Loop.mid", or with a part
+        // "FUT01 - Song Drums.mid".
         juce::File writeDragFile (const DragRequest& request) override
         {
             dragRequests.push_back (request);
@@ -259,10 +270,11 @@ namespace wubansia::test
                 return {};
 
             juce::String name = current + " - ";
+            const auto part = partOn == DragPart::all ? juce::String() : " " + juce::String (std::string (kDragPartNames[static_cast<std::size_t> (partOn)]));
             switch (request.what)
             {
-                case DragWhat::loop: name << "Loop.mid"; break;
-                case DragWhat::song: name << "Song.mid"; break;
+                case DragWhat::loop: name << "Loop" << part << ".mid"; break;
+                case DragWhat::song: name << "Song" << part << ".mid"; break;
                 case DragWhat::lane: name << juce::String (std::string (engine::laneId (request.lane))) << ".mid"; break;
                 case DragWhat::phrase: name = request.phraseFile; break;
             }

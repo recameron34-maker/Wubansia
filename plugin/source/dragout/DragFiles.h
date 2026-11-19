@@ -24,6 +24,11 @@
 //   lane differs between the two (the accents, the vox); where it doesn't, the vox file gives it, so a
 //   name stands for one file; and where the switch's file has none of the lane's tracks (the vox synth
 //   with the switch off), the other file does. A lane with tracks in neither can't be dragged.
+// - loop and song with a part (DragState::part, ADR 0029) other than All: the conductor and the tracks on
+//   the part's lanes (dragPartLanes) from the chip's own files, Loop or Song, whatever the play mode and
+//   the mutes, picked between the vox and no-vox file as a lane drag picks its file. A Drums part with
+//   drumsOnOneTrack and two or more drum tracks gives the conductor and Drums. A part with tracks in
+//   neither file can't be dragged (FUT03's Loop has no lead).
 // - phrase: the named file (one of kitPhraseFiles (); any of the kit's own <KIT>_ files), byte for byte,
 //   whatever the mutes.
 // Lane and phrase drags never merge drums. Every kept track is kept whole, but drums merged on one
@@ -48,6 +53,8 @@
 //     FUT01 Alloy Signal 134 F#m 11A - Song NoVox (no Kick, Warp Bass).mid
 //     FUT01 Alloy Signal 134 F#m 11A - Song NoVox (1 drum track, no Clap, Warp Bass).mid
 //     FUT01 Alloy Signal 134 F#m 11A - Song NoVox (synths, 1 drum track, no Clap, Warp Bass).mid
+//     FUT01 Alloy Signal 134 F#m 11A - Song Drums (1 drum track).mid
+//     FUT01 Alloy Signal 134 F#m 11A - Song Chords NoVox (synths).mid
 //     FUT01 Alloy Signal 134 F#m 11A - Warp Bass Song.mid
 //     FUT01 Alloy Signal 134 F#m 11A - Warp Bass Song (synths).mid
 //     FUT01 Alloy Signal 134 F#m 11A - Phrase Organ Riff 4 bars.mid
@@ -57,14 +64,16 @@
 // out; with at most one drum track left nothing merges, so the name has no "1 drum track". Only letters, digits, spaces and
 // # ( ) , - . _ survive from the kit's strings, so a name is safe on macOS, Windows and Linux. The same
 // drag always gives the same name and bytes, and drags that give different files get different names
-// (DragOutTests checks it for the four kits; a lane label reading like "Loop" or "Phrase ..." would
-// break it).
+// (DragOutTests checks it for the four kits; a lane label reading like "Loop", "Song ..." or "Phrase ..."
+// would break it). A part drag is named "Loop <Part>" or "Song <Part>", then " NoVox" when the no-vox file
+// gave it, and never lists mutes.
 //
 // The cache folder keeps the newest kKeepFiles .mid files: a DAW imports a dropped MIDI file, and
 // the newest stay for any drop still in flight.
 
 #include "Controller.h"
 
+#include "midi/smf.h"
 #include "util/result.h"
 
 #include <juce_core/juce_core.h>
@@ -92,6 +101,7 @@ namespace wubansia::dragout
         std::uint32_t mutedLanes = 0; // a bit per engine::Lane (engine::laneBit): left out of Loop and Song
         bool drumsOnOneTrack = false; // Loop and Song: the drum tracks as one track, Drums (ADR 0025)
         bool forSynths = false; // every drag: pitched tracks made for the person's own synths (ADR 0027); off here, so a bare state gives the files as they are
+        DragPart part = DragPart::all; // Loop and Song: All, or only the part's lanes (ADR 0029)
     };
 
     // A drag's file before it is written.
@@ -119,6 +129,10 @@ namespace wubansia::dragout
     // The Phrases drawer's From the kit (ADR 0031): the kit's phrase files, "<KIT>_Phrase_*.mid", then its lead line,
     // "<KIT>_Lead_*.mid", each by file name in byte order. Each drags as DragWhat::phrase.
     juce::StringArray kitPhraseFiles (std::string_view kitId, std::span<const MidiFile> files);
+
+    // Bit per engine::Lane holding a track of file (each track after the conductor, by engine::trackLane); a track no
+    // lane claims adds nothing (ADR 0029).
+    std::uint32_t trackLanes (const engine::KitInfo& kit, const midi::File& file);
 
     // The file a request drags, or why there is none. Pure: no file I/O.
     [[nodiscard]] util::Result<DragFile> makeDragFile (const engine::KitInfo& kit, std::span<const MidiFile> files,

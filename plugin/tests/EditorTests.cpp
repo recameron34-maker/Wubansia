@@ -15,6 +15,7 @@
 
 #include "kit/file_sample_source.h"
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
@@ -990,9 +991,9 @@ TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every la
             auto& drums = *foundDrums;
             auto& synths = *foundSynths;
 
-            // For my synths, Loop, Song and 1 drum track, in that order and in their places, and nothing else: the kit's
-            // phrases are in the Phrases drawer (ADR 0031). None overlapping, all inside the strip.
-            CHECK (strip.getNumChildComponents() == 4);
+            // For my synths, Loop, Song, Part and 1 drum track, in that order and in their places, and nothing else: the
+            // kit's phrases are in the Phrases drawer (ADR 0031). None overlapping, all inside the strip.
+            CHECK (strip.getNumChildComponents() == 5);
             CHECK (findAll (editor, "drag_phrase_0").empty());
             const std::vector<juce::Component*> parts { &synths, &loop, &song, &drums };
             for (std::size_t i = 0; i < parts.size(); ++i)
@@ -1008,8 +1009,10 @@ TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every la
             CHECK (synths.getBounds() == juce::Rectangle<int> (76, 5, 126, 28));
             CHECK (loop.getBounds() == juce::Rectangle<int> (208, 5, 80, 28));
             CHECK (song.getBounds() == juce::Rectangle<int> (294, 5, 80, 28));
-            CHECK (drums.getBounds() == juce::Rectangle<int> (380, 5, 120, 28));
-            CHECK (strip.getWidth() - 8 - drums.getRight() >= 570); // the room Part and Drum kit take (ADRs 0029, 0030)
+            CHECK (drums.getY() == 5);
+            CHECK (drums.getWidth() == 120);
+            CHECK (drums.getX() > song.getRight() + 300); // Part between them (ADR 0029)
+            CHECK (strip.getWidth() - 8 - drums.getRight() >= 160); // the room the Drum kit takes (ADR 0030)
 
             // Nothing is drawn right of 1 drum track: no divider, no chip.
             juce::Image image (juce::Image::ARGB, strip.getWidth(), strip.getHeight(), true, juce::SoftwareImageType());
@@ -1039,6 +1042,284 @@ TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every la
                 CHECK (chip->shownLabel() == chip->label());
             }
         });
+}
+
+namespace
+{
+    // The drag strip's Part, or nullptr after a failed check, as drumSwitch ().
+    editor::SegmentedChoice* partChoice (PluginEditor& editor)
+    {
+        const auto found = findAll (editor, "drag_part");
+        CHECK (found.size() == 1);
+        auto* part = found.size() == 1 ? dynamic_cast<editor::SegmentedChoice*> (found.front()) : nullptr;
+        CHECK (part != nullptr);
+        return part;
+    }
+
+    // A click in the middle of a segment, where mouseDown picks it.
+    void clickSegment (editor::SegmentedChoice& choice, int index)
+    {
+        click (choice, choice.segmentArea (index).getCentre());
+    }
+}
+
+TEST_CASE ("the drag strip's Part picks what Loop and Song bring, asks the Controller and follows it", "[editor]")
+{
+    Rig rig;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto* found = partChoice (editor);
+            if (found == nullptr)
+                return;
+            auto& part = *found;
+            REQUIRE (part.getNumItems() == wubansia::kDragParts);
+            for (int i = 0; i < part.getNumItems(); ++i)
+                CHECK (part.getItemText (i) == juce::String (std::string (wubansia::kDragPartNames[(std::size_t) i])));
+            CHECK (part.getItemText (0) == "All");
+            CHECK (part.getItemText (6) == "Accents");
+            CHECK (part.getTitle() == "Part");
+            CHECK (part.getSelectedItemIndex() == 0);
+            CHECK (editor.model().dragPart == wubansia::DragPart::all);
+            const auto tip = part.getTooltip().toStdString();
+            CHECK_THAT (tip, ContainsSubstring ("Part: what Loop and Song bring") && ContainsSubstring ("whatever you muted")
+                                 && ContainsSubstring ("Drums (Kick, Clap, Hats, Perc)") && ContainsSubstring ("Accents (Accents, FX)")
+                                 && ContainsSubstring ("Back to All when the project opens"));
+
+            auto& loop = get<editor::DragChip> (editor, "drag_loop");
+            auto& song = get<editor::DragChip> (editor, "drag_song");
+            const auto loopAll = loop.getTooltip();
+            CHECK (loop.getTitle() == "Drag MIDI: Loop");
+            CHECK (song.getTitle() == "Drag MIDI: Song");
+
+            // A click on Drums asks for it; the next tick shows it, and Loop and Song say what they bring.
+            clickSegment (part, 1);
+            CHECK (rig.controller.partRequests == std::vector<wubansia::DragPart> { wubansia::DragPart::drums });
+            editor.tick();
+            CHECK (part.getSelectedItemIndex() == 1);
+            CHECK (editor.model().dragPart == wubansia::DragPart::drums);
+            CHECK_THAT (loop.getTooltip().toStdString(), ContainsSubstring ("4-bar loop's drums (Kick, Clap, Hats, Perc)")
+                                                            && ContainsSubstring ("whatever you muted") && ContainsSubstring ("1 drum track"));
+            CHECK_THAT (song.getTooltip().toStdString(), ContainsSubstring ("extended mix's drums (Kick, Clap, Hats, Perc)")
+                                                            && ContainsSubstring ("section markers"));
+            CHECK (song.getTitle() == "Drag MIDI: Song, drums");
+            CHECK (loop.getTitle() == "Drag MIDI: Loop, drums");
+            CHECK (song.getHelpText() == song.getTooltip());
+
+            // The chip asks for the same request as ever and hands over the part's file.
+            juce::Array<juce::File> dragged;
+            song.startDrag = [&] (const juce::File& file, juce::Component&)
+            {
+                dragged.add (file);
+                return true;
+            };
+            CHECK (song.beginDrag());
+            REQUIRE (rig.controller.dragRequests.size() == 1);
+            CHECK (rig.controller.dragRequests[0] == wubansia::DragRequest { wubansia::DragWhat::song, engine::Lane::kick, {} });
+            REQUIRE (dragged.size() == 1);
+            CHECK (dragged[0].getFileName() == "FUT01 - Song Drums.mid");
+            for (const auto& file : dragged)
+                file.deleteFile();
+
+            // Another way to Bass (the Controller's own): shown at the next tick, with nothing asked.
+            rig.controller.partOn = wubansia::DragPart::bass;
+            editor.tick();
+            CHECK (part.getSelectedItemIndex() == 2);
+            CHECK (rig.controller.partRequests.size() == 1);
+
+            // A click on Bass (from All), then Right: Chords is asked for at once, so the next tick doesn't take it back.
+            clickSegment (part, 0);
+            clickSegment (part, 2);
+            CHECK (rig.controller.partRequests.back() == wubansia::DragPart::bass);
+            CHECK (part.keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+            editor.tick();
+            CHECK (rig.controller.partRequests.back() == wubansia::DragPart::chords);
+            CHECK (part.getSelectedItemIndex() == 3);
+            editor.tick();
+            CHECK (part.getSelectedItemIndex() == 3);
+
+            // Left goes back one, and the arrows stop at the ends.
+            CHECK (part.keyPressed (juce::KeyPress (juce::KeyPress::leftKey)));
+            CHECK (rig.controller.partRequests.back() == wubansia::DragPart::bass);
+            CHECK (part.keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
+            CHECK (part.keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
+            CHECK (part.keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
+            editor.tick();
+            CHECK (part.getSelectedItemIndex() == 0);
+            CHECK (rig.controller.partRequests.back() == wubansia::DragPart::all);
+            const auto asked = rig.controller.partRequests.size();
+            CHECK (part.keyPressed (juce::KeyPress (juce::KeyPress::leftKey)));
+            CHECK (rig.controller.partRequests.size() == asked);
+            CHECK (loop.getTooltip() == loopAll);
+
+            // Space goes on to the host.
+            CHECK_FALSE (part.keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+
+            // Return steps every time, and leaves no popup open behind it.
+            CHECK (part.keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+            CHECK (rig.controller.partRequests.back() == wubansia::DragPart::drums);
+            CHECK (part.keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+            juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+            CHECK (rig.controller.partRequests.back() == wubansia::DragPart::bass);
+            CHECK_FALSE (part.isPopupActive());
+        });
+}
+
+TEST_CASE ("Loop and Song grey out with the reason when the part or the mutes leave nothing to drag", "[editor]")
+{
+    Rig rig;
+    // FUT01's Loop files without a lead, as FUT03's are.
+    for (const auto v : { engine::Variant::vox, engine::Variant::novox })
+        rig.controller.kitCards[0].fileLanes[(std::size_t) engine::timelineIndex (engine::PlayMode::loop, v)] &= ~engine::laneBit (engine::Lane::lead);
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            auto* found = partChoice (editor);
+            if (found == nullptr)
+                return;
+            auto& part = *found;
+            auto& loop = get<editor::DragChip> (editor, "drag_loop");
+            auto& song = get<editor::DragChip> (editor, "drag_song");
+            CHECK (loop.isEnabled());
+            CHECK (song.isEnabled());
+
+            clickSegment (part, 4); // Lead
+            editor.tick();
+            CHECK (editor::whyNoDrag (editor.model(), false) == "FUT01's loop has no lead (Lead): drag the Song, or pick another part.");
+            CHECK (editor::whyNoDrag (editor.model(), true) == "");
+            CHECK_FALSE (loop.isEnabled());
+            CHECK (loop.getTooltip() == "FUT01's loop has no lead (Lead): drag the Song, or pick another part.");
+            CHECK (loop.getHelpText() == loop.getTooltip());
+            CHECK (song.isEnabled());
+
+            // A disabled chip starts no drag.
+            bool started = false;
+            loop.startDrag = [&] (const juce::File&, juce::Component&) { return started = true; };
+            const auto at = loop.getLocalBounds().toFloat().getCentre();
+            loop.mouseDown (mouseAt (loop, at, at));
+            loop.mouseDrag (mouseAt (loop, at + juce::Point<float> (12.0f, 0.0f), at, true));
+            loop.mouseUp (mouseAt (loop, at + juce::Point<float> (12.0f, 0.0f), at, true));
+            CHECK_FALSE (started);
+            CHECK (rig.controller.dragRequests.empty());
+
+            // All with every lane muted: nothing left to drag in either file.
+            clickSegment (part, 0);
+            for (int lane = 0; lane < engine::kLanes; ++lane)
+                rig.processor.set (ids::laneMute[lane], 1.0f);
+            editor.tick();
+            CHECK (editor.model().mutedLanes == (1u << engine::kLanes) - 1u);
+            CHECK_FALSE (loop.isEnabled());
+            CHECK_FALSE (song.isEnabled());
+            CHECK (loop.getTooltip() == "Every lane with notes in the loop is muted: unmute one to drag it.");
+            CHECK (song.getTooltip() == "Every lane with notes in the extended mix is muted: unmute one to drag it.");
+
+            // A part ignores the mutes.
+            clickSegment (part, 1);
+            editor.tick();
+            CHECK (loop.isEnabled());
+            CHECK (song.isEnabled());
+
+            // One lane back on: All drags again.
+            clickSegment (part, 0);
+            rig.processor.set (ids::laneMute[4], 0.0f);
+            editor.tick();
+            CHECK (loop.isEnabled());
+            CHECK (song.isEnabled());
+        });
+}
+
+TEST_CASE ("the drag strip fits Part between Song and 1 drum track, every label in full at 100 %", "[editor]")
+{
+    Rig rig;
+
+    withEditor (rig, [&] (PluginEditor& editor)
+        {
+            editor.setZoom (1.0f);
+            editor.tick();
+            auto& strip = get<editor::DragStrip> (editor, "drag");
+            auto& loop = get<editor::DragChip> (editor, "drag_loop");
+            auto& song = get<editor::DragChip> (editor, "drag_song");
+            auto* foundPart = partChoice (editor);
+            auto* foundDrums = drumSwitch (editor);
+            auto* foundSynths = synthSwitch (editor);
+            if (foundPart == nullptr || foundDrums == nullptr || foundSynths == nullptr)
+                return;
+            auto& part = *foundPart;
+
+            // For my synths, Loop, Song, Part and 1 drum track, in that order, none overlapping, all inside the strip.
+            const std::vector<juce::Component*> items { foundSynths, &loop, &song, &part, foundDrums };
+            for (std::size_t i = 0; i < items.size(); ++i)
+            {
+                INFO (items[i]->getComponentID());
+                CHECK (items[i]->getParentComponent() == &strip);
+                CHECK (strip.getLocalBounds().contains (items[i]->getBounds()));
+                if (i > 0)
+                    CHECK (items[i]->getX() >= items[i - 1]->getRight());
+            }
+            CHECK (part.getHeight() == 28);
+            CHECK (part.getWidth() >= part.fitWidth (28));
+            CHECK (strip.getWidth() - 8 - foundDrums->getRight() >= 160); // the room left for the Drum kit (ADR 0030)
+
+            // "PART", engraved, fits its area between Song and Part.
+            const auto engraved = editor::uiFont (9.5f, true, 0.12f); // draw::engraved's font at 9.5 px
+            const auto label = strip.partLabelArea();
+            CHECK (juce::GlyphArrangement::getStringWidth (engraved, "PART") <= label.getWidth());
+            CHECK (label.getX() >= (float) song.getRight());
+            CHECK (label.getRight() <= (float) part.getX());
+
+            // Every segment's label reads in full in the font its paint code uses.
+            for (int i = 0; i < part.getNumItems(); ++i)
+            {
+                INFO (part.getItemText (i));
+                const auto text = part.getItemText (i).toUpperCase();
+                CHECK (juce::GlyphArrangement::getStringWidth (part.labelFont(), text)
+                       <= part.segmentArea (i).getWidth() - 2.0f * editor::SegmentedChoice::kLabelPad);
+            }
+        });
+}
+
+TEST_CASE ("a segmented choice fitted to its labels sizes segments by their labels and picks the one clicked", "[editor]")
+{
+    juce::StringArray words;
+    for (const auto word : wubansia::kDragPartNames)
+        words.add (juce::String (std::string (word)));
+    editor::SegmentedChoice choice ("Part", words);
+    choice.setSegmentsFitLabels (true);
+    const auto fit = choice.fitWidth (28);
+    CHECK (fit > 200);
+    choice.setSize (fit, 28);
+
+    // Ordered and touching, inside the box, wider labels in wider segments.
+    for (int i = 0; i < choice.getNumItems(); ++i)
+    {
+        INFO (i);
+        const auto area = choice.segmentArea (i);
+        CHECK (area.getWidth() > 0.0f);
+        CHECK (choice.getLocalBounds().toFloat().contains (area));
+        if (i > 0)
+            CHECK (area.getX() == Catch::Approx (choice.segmentArea (i - 1).getRight()));
+    }
+    CHECK (choice.segmentArea (6).getWidth() > choice.segmentArea (0).getWidth()); // ACCENTS, ALL
+    CHECK (choice.segmentArea (3).getWidth() > choice.segmentArea (2).getWidth()); // CHORDS, BASS
+    CHECK (choice.segmentArea (7).isEmpty());
+    CHECK (choice.segmentArea (-1).isEmpty());
+
+    // A click at each segment's centre picks it.
+    for (int i = choice.getNumItems() - 1; i >= 0; --i)
+    {
+        click (choice, choice.segmentArea (i).getCentre());
+        CHECK (choice.getSelectedItemIndex() == i);
+    }
+
+    // More room is shared by every segment; with the fitted mode off, the segments are equal.
+    const auto narrowest = choice.segmentArea (0).getWidth();
+    choice.setSize (fit + 70, 28);
+    CHECK (choice.segmentArea (0).getWidth() == Catch::Approx (narrowest + 10.0f));
+    CHECK (choice.segmentArea (6).getRight() == Catch::Approx (choice.getLocalBounds().toFloat().reduced (0.5f).getRight()));
+    choice.setSegmentsFitLabels (false);
+    for (int i = 1; i < choice.getNumItems(); ++i)
+        CHECK (choice.segmentArea (i).getWidth() == Catch::Approx (choice.segmentArea (0).getWidth()));
 }
 
 TEST_CASE ("in a host the transport offers Preview", "[editor]")

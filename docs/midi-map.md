@@ -47,7 +47,8 @@ instrument, and the sound on each key of channels 6, 7 and 8.
   hats).
 - One track for a drum rack (ADR 0025): with the drag strip's 1 drum track switch lit, a Loop or Song drag carries the
   drum tracks as one track, Drums, where the first of them was, every note as it is and note-offs first on a tick; the
-  other tracks don't change. A lane drag still gives the lane's own tracks.
+  other tracks don't change. A lane drag still gives the lane's own tracks. With Part on Drums (ADR 0029), a Loop or
+  Song drag brings the drum tracks alone, as one Drums track when 1 drum track is lit.
 
 ## Conventions
 - **Roots.** Every pitched sample is triggered at its musical root: root each file at its MIDI number. The sample names
@@ -115,6 +116,11 @@ are labels for the reader: the notes play.
 A Loop or Song drag with 1 drum track lit carries one track named Drums in place of Kick, Rumble, Snare, Clap,
 Snare/Clap, Hats and Perc. It isn't a TRACKS name: it spans four lanes, and no file here holds it.
 
+A Loop or Song drag with Part on Drums, Bass, Chords, Lead, Vox or Accents (ADR 0029) keeps the conductor and the
+tracks of that part's lanes, whatever the mutes: Drums the kick, snare, hats and perc lanes; Bass, Chords, Lead and Vox
+their lane; Accents the accents and FX lanes. A kit's extras go with their lane (the table above). It takes the vox
+file unless the vox switch is off and the part differs in the no-vox file, as a lane drag does.
+
 ## Files per kit
 - `<KIT>_Loop_Vox_4bars.mid` and `<KIT>_Loop_NoVox_4bars.mid`: the kit's context loop as its club master plays it,
   lane by lane, with the vox synth or without.
@@ -151,7 +157,8 @@ engineer replaces these with the kit's own form.
   kit's samples in your own sampler instead, put one on each track, root every sample at its MIDI number and turn For my
   synths off, as for Wubansia. With 1 drum track lit, the drums come as one clip: drop the Song on a track holding a
   Drum Rack with the kit's drums on the notes above. The other instruments then land on the tracks after it, over the
-  clips there: `dist/INSTALL.md` gives the drops that write over nothing.
+  clips there: `dist/INSTALL.md` gives the drops that write over nothing. With Part on Drums and 1 drum track lit, the
+  Song is the conductor and Drums alone: drop it on your Drum Rack's track and nothing lands after it.
 - **Logic Pro.** File > Open on a whole-mix file brings its tempo, key and section markers with it (an import doesn't).
   Imported tracks keep their channels: to play them into Wubansia, turn For my synths off first, as for Live, then on
   Wubansia's track set the MIDI input to Multi (channels as above), or to one lane. For your own instruments, one

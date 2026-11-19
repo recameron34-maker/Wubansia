@@ -65,6 +65,10 @@ namespace wubansia::editor
     // The strip of song-wide chips, the loop and the song, and two switches, the person's settings kept by the Controller:
     // For my synths (ADR 0027), which every drag follows, and 1 drum track (ADR 0025), which the Loop and Song drags
     // follow. The kit's own phrases left it for the Phrases drawer (ADR 0031).
+    // Why the strip's Loop (song false) or Song chip has nothing to drag, or "": a part with none of its lanes in either
+    // of the chip's files, or All with every lane holding notes in the vox switch's file muted (ADR 0029).
+    juce::String whyNoDrag (const EditorModel& model, bool song);
+
     class DragStrip : public juce::Component
     {
     public:
@@ -78,10 +82,15 @@ namespace wubansia::editor
         LedButton drums { "1 drum track" };
         LedButton synths { "For my synths" };
 
-        // Where the engraved "Drag MIDI" is drawn, so tests can check it fits.
+        // What Loop and Song bring (ADR 0029): All, or one part.
+        SegmentedChoice part { "Part" };
+
+        // Where the engraved "Drag MIDI" and "Part" are drawn, so tests can check they fit.
         juce::Rectangle<float> labelArea() const;
+        juce::Rectangle<float> partLabelArea() const;
 
     private:
         Controller& controller;
+        juce::String partTipKit; // the kit Part's tooltip was last written for, with its labels
     };
 }

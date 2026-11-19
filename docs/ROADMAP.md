@@ -166,7 +166,7 @@ Goal: test all four goals small, on one kit: FUT01 "Alloy Signal", sci-fi club Ã
     voiced as the kit voices it and lifted above the For my synths bass.
   - [x] The Phrases drawer (ADR 0031): the header's Phrases button, the kit's own phrases and lead line there, off
     the drag strip.
-  - [ ] Part drags (ADR 0029): All, Drums, Bass, Chords, Lead, Vox or Accents for Loop and Song, the whole 224 bars
+  - [x] Part drags (ADR 0029): All, Drums, Bass, Chords, Lead, Vox or Accents for Loop and Song, the whole 224 bars
     with tempo, key and markers; Drums with 1 drum track is one track for your drum rack.
   - [ ] Drum kits (ADR 0030): the Drum kit button saves the playing kit's drums as a folder: a WAV per pad, every
     layer and round robin, an SFZ file and a README.

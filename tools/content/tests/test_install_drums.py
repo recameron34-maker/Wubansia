@@ -229,9 +229,23 @@ class TestDrumPads(unittest.TestCase):
         live = flat(live)
         for needed in ('replaces what it covers',  # the warning
                        'a new set', 'below your last track',  # nothing of yours after the drop
-                       'six other lanes'):  # the drums alone
+                       'Drums under Part'):  # the drums alone (ADR 0029)
             with self.subTest(needed=needed):
                 self.assertTrue(needed in live, f'the Live steps never say {needed!r}')
+
+    def test_the_drag_section_offers_every_part_the_strip_has(self):
+        # The strip's Part (ADR 0029): the section names each of its words, in bold, and says a part ignores the mutes.
+        self.assertIsNotNone(self.drag, 'INSTALL.md has no "## Drag MIDI into Live or Logic"')
+        header = (REPO / 'plugin' / 'source' / 'Controller.h').read_text(encoding='utf-8')
+        m = re.search(r'kDragPartNames\s*\{([^}]*)\}', header)
+        self.assertIsNotNone(m, 'Controller.h has no kDragPartNames')
+        words = re.findall(r'"([^"]+)"', m.group(1))
+        self.assertEqual(words, ['All', 'Drums', 'Bass', 'Chords', 'Lead', 'Vox', 'Accents'])
+        drag = flat(self.drag)
+        for word in ['Part'] + words:
+            with self.subTest(word=word):
+                self.assertTrue(f'**{word}**' in drag, f'the drag section never names **{word}**')
+        self.assertTrue('whatever you muted' in drag, 'the drag section never says a part ignores the mutes')
 
 
 if __name__ == '__main__':
