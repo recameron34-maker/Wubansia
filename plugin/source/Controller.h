@@ -124,9 +124,21 @@ namespace wubansia
 
     // A part's lanes, a bit per engine::Lane: every lane for All; Drums kick, snare, hats and perc; Bass, Chords, Lead and
     // Vox their own lane; Accents the accents and FX lanes. A kit's extras go with their lane (kit.json extras[].lane).
-    constexpr std::uint32_t dragPartLanes (DragPart) noexcept
+    constexpr std::uint32_t dragPartLanes (DragPart part) noexcept
     {
-        return (1u << engine::kLanes) - 1u;
+        using engine::Lane;
+        using engine::laneBit;
+        switch (part)
+        {
+            case DragPart::all: return (1u << engine::kLanes) - 1u;
+            case DragPart::drums: return laneBit (Lane::kick) | laneBit (Lane::snare) | laneBit (Lane::hats) | laneBit (Lane::perc);
+            case DragPart::bass: return laneBit (Lane::bass);
+            case DragPart::chords: return laneBit (Lane::chords);
+            case DragPart::lead: return laneBit (Lane::lead);
+            case DragPart::vox: return laneBit (Lane::vox);
+            case DragPart::accents: return laneBit (Lane::accents) | laneBit (Lane::fx);
+        }
+        return 0u;
     }
 
     // The Phrases drawer (ADR 0031): where a phrase comes from. Part 1 lists only the kit's own.

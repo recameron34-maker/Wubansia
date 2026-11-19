@@ -123,12 +123,13 @@ namespace wubansia::dragout
             return R::success ({ file, std::move (name), std::move (tracks.value) });
         }
 
-        // The source's tracks after the conductor that play on lane.
-        std::vector<int> laneTracks (const engine::KitInfo& kit, const Source& source, int lane)
+        // The source's tracks after the conductor that play on lanes (a bit per engine::Lane).
+        std::vector<int> laneTracks (const engine::KitInfo& kit, const Source& source, std::uint32_t lanes)
         {
             std::vector<int> out;
             for (std::size_t i = 1; i < source.tracks.size(); ++i)
-                if (engine::trackLane (kit, source.tracks[i].name) == lane)
+                if (const int lane = engine::trackLane (kit, source.tracks[i].name);
+                    lane >= 0 && (lanes & engine::laneBit (static_cast<engine::Lane> (lane))) != 0)
                     out.push_back (static_cast<int> (i));
             return out;
         }
@@ -298,14 +299,12 @@ namespace wubansia::dragout
             return made;
         }
 
-        // One lane's tracks from the mode's files: see the header.
-        DragResult laneDrag (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state, engine::Lane lane)
+        // The conductor and the tracks on lanes (a bit per Lane) from the Loop or Song files, picked as a lane drag
+        // picks its file (the header); who names the lanes in a failure; what is the name's stem before " NoVox";
+        // merge puts two or more drum tracks on one track, Drums (a Drums part with 1 drum track).
+        DragResult lanesDrag (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state,
+            std::uint32_t lanes, bool song, const std::string& who, const std::string& what, bool merge)
         {
-            const int index = static_cast<int> (lane);
-            if (index < 0 || index >= engine::kLanes)
-                return DragResult::failure ("lane " + std::to_string (index) + " isn't one of the " + std::to_string (engine::kLanes) + " lanes");
-
-            const bool song = state.mode == engine::PlayMode::song;
             const auto fileOf = [&] (engine::Variant v) { return song ? songFileName (kit.id, v) : loopFileName (kit.id, v); };
             auto vox = sourceOf (files, fileOf (engine::Variant::vox));
             if (!vox.ok())
@@ -314,22 +313,59 @@ namespace wubansia::dragout
             if (!novox.ok())
                 return DragResult::failure (std::move (novox.error));
 
-            const auto label = laneLabel (kit, static_cast<std::size_t> (index));
-            const auto inVox = laneTracks (kit, vox.value, index);
-            const auto inNovox = laneTracks (kit, novox.value, index);
+            const auto inVox = laneTracks (kit, vox.value, lanes);
+            const auto inNovox = laneTracks (kit, novox.value, lanes);
             if (inVox.empty() && inNovox.empty())
-                return DragResult::failure (label + " has no tracks in " + vox.value.name + " or " + novox.value.name);
+                return DragResult::failure (who + " has no tracks in " + vox.value.name + " or " + novox.value.name);
 
             const bool fromNovox = inVox.empty()
                                    || (state.variant == engine::Variant::novox && !inNovox.empty()
                                        && chunkBytes (novox.value, inNovox) != chunkBytes (vox.value, inVox));
             const auto& source = fromNovox ? novox.value : vox.value;
             const auto& tracks = fromNovox ? inNovox : inVox;
+
+            std::vector<int> drums;
+            if (merge)
+                for (const int i : tracks)
+                    if (isDrumTrack (source.tracks[static_cast<std::size_t> (i)].name))
+                        drums.push_back (i);
+            const bool merged = drums.size() >= 2;
             const bool synths = state.forSynths && changesForSynths (kit, source, tracks);
-            auto made = cut (source, tracks, fileName (kit, label + (song ? " Song" : "") + (fromNovox ? " NoVox" : "") + (synths ? " (synths)" : "")));
+
+            std::string marks = synths ? "synths" : "";
+            if (merged)
+                marks += marks.empty() ? "1 drum track" : ", 1 drum track";
+            const auto name = fileName (kit, what + (fromNovox ? " NoVox" : "") + (marks.empty() ? "" : " (" + marks + ")"));
+            auto made = [&] {
+                if (!merged)
+                    return cut (source, tracks, name);
+                auto bytes = midi::mergeTracks (source.file->bytes, tracks, drums, kDrumTrackName);
+                if (!bytes.ok())
+                    return DragResult::failure (source.name + ": can't put the drums on one track: " + bytes.error);
+                return DragResult::success ({ name, std::move (bytes.value) });
+            }();
             if (synths)
                 return madeForSynths (kit, std::move (made));
             return made;
+        }
+
+        // One lane's tracks from the mode's files: see the header.
+        DragResult laneDrag (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state, engine::Lane lane)
+        {
+            const int index = static_cast<int> (lane);
+            if (index < 0 || index >= engine::kLanes)
+                return DragResult::failure ("lane " + std::to_string (index) + " isn't one of the " + std::to_string (engine::kLanes) + " lanes");
+            const bool song = state.mode == engine::PlayMode::song;
+            const auto label = laneLabel (kit, static_cast<std::size_t> (index));
+            return lanesDrag (kit, files, state, engine::laneBit (lane), song, label, label + (song ? " Song" : ""), false);
+        }
+
+        // A part's tracks from the chip's own file, Loop or Song, whatever the play mode and the mutes: see the header.
+        DragResult partDrag (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state, bool song)
+        {
+            const auto word = std::string (kDragPartNames[static_cast<std::size_t> (state.part)]);
+            return lanesDrag (kit, files, state, dragPartLanes (state.part), song, word, std::string (song ? "Song " : "Loop ") + word,
+                state.part == DragPart::drums && state.drumsOnOneTrack);
         }
 
         // One of the kit's own files (named <KIT>_...) as it is, or made for synths.
@@ -425,18 +461,24 @@ namespace wubansia::dragout
         return out;
     }
 
-    std::uint32_t trackLanes (const engine::KitInfo&, const midi::File&)
+    std::uint32_t trackLanes (const engine::KitInfo& kit, const midi::File& file)
     {
-        return 0;
+        std::uint32_t lanes = 0;
+        for (std::size_t i = 1; i < file.tracks.size(); ++i)
+            if (const int lane = engine::trackLane (kit, midi::trackName (file.tracks[i])); lane >= 0)
+                lanes |= engine::laneBit (static_cast<engine::Lane> (lane));
+        return lanes;
     }
 
     util::Result<DragFile> makeDragFile (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state,
         const DragRequest& request)
     {
+        if (static_cast<int> (state.part) >= kDragParts)
+            return DragResult::failure ("an unknown part");
         switch (request.what)
         {
-            case DragWhat::loop: return wholeDrag (kit, files, state, false);
-            case DragWhat::song: return wholeDrag (kit, files, state, true);
+            case DragWhat::loop: return state.part == DragPart::all ? wholeDrag (kit, files, state, false) : partDrag (kit, files, state, false);
+            case DragWhat::song: return state.part == DragPart::all ? wholeDrag (kit, files, state, true) : partDrag (kit, files, state, true);
             case DragWhat::lane: return laneDrag (kit, files, state, request.lane);
             case DragWhat::phrase: return phraseDrag (kit, files, state, request.phraseFile);
         }

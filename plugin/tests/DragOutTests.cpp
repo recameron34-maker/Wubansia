@@ -1837,9 +1837,10 @@ TEST_CASE ("For my synths: a part drag is the plain part drag made for synths; D
                         if (part == DragPart::chords || part == DragPart::bass)
                             CHECK (synthsMark);
                     }
-    CHECK (marked > 250); // 288
-    CHECK (plain > 80); // 88: every Drums drag, and Accents but in FUT02's and FUT04's Songs
-    CHECK (chordTracks > 100);
+    // 188 drags: 4 kits x Loop and Song x 2 variants x 1 drum track off and on x 6 parts, less FUT03's Loop Lead (4).
+    CHECK (plain == 56); // every Drums drag (32), and Accents in every Loop (16) and in FUT01's and FUT03's Songs (8)
+    CHECK (marked == 132);
+    CHECK (chordTracks >= 50); // 56
 }
 
 TEST_CASE ("each kit's Song parts hold these tracks", "[dragout]")
