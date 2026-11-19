@@ -797,5 +797,7 @@ namespace wubansia::engine
         telemetry.kitIndex.store (kit_ != nullptr ? kit_->info.index : -1, std::memory_order_relaxed);
         telemetry.phraseSounding.store (clip_ != nullptr ? clip_->ticket : 0u, std::memory_order_relaxed);
         telemetry.phraseStartTicks.store (clip_ != nullptr ? anchorH_ / kMilliticksPerTick : -1, std::memory_order_relaxed);
+        telemetry.phraseTicks.store (clip_ != nullptr ? static_cast<std::int64_t> (std::floor (position.ppq * 960.0 + 1.0e-6)) - anchorH_ / kMilliticksPerTick : 0,
+            std::memory_order_relaxed);
     }
 }
