@@ -23,6 +23,8 @@ Two downloads: the macOS zip from CI (`Wubansia-macOS-<commit>.zip`: the VST3, A
 
 **v0.2 Samples** ([ADR 0024](docs/decisions/0024-samples-drawer-and-audio-drag-out.md)): the **Samples** button opens a drawer of every kit's sounds; click one to hear it, or drag it into your DAW as the kit's own 48 kHz / 24-bit WAV, saved in `~/Music/Wubansia/Samples` (how, in [`dist/INSTALL.md`](dist/INSTALL.md)'s "Samples into your DAW"; its DAW checklist is v0.2's in [`docs/listening.md`](docs/listening.md)).
 
+**v0.3 Looks** ([ADR 0032](docs/decisions/0032-four-looks.md)): each kit wears its own look and the window switches with the kit: FUT01 night bus (a step grid of the kit's own MIDI), FUT02 mission HUD (the lead's notes in orbit round the chord), FUT03 deep glass (the drums' and music's levels as water), FUT04 machine room (a scope of the plugin's output). The same controls sit in the same places in every look; the fonts are built in (SIL OFL 1.1, in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
+
 To start with Claude Code, open this repo and say:
 
 > Read CLAUDE.md and docs/ROADMAP.md. We're starting M0. Propose the exact steps first: template, JUCE version pin, CMake presets, CI matrix, CLAP wrapper. Wait for my OK, then implement. Stop when the M0 "Done when" checks pass, and tell me how to load the plugin in my DAW.

@@ -239,7 +239,7 @@ and the integration's own (the later commits change only docs). ctest ran withou
 - [ ] The first drag from Logic's AU makes `~/Music/Wubansia/Samples`
 - [ ] Whether either DAW reads anything from the files besides the audio (a root note, a tempo)
 
-Drums on one track (the switch next to Song on the drag strip):
+Drums on one track (the 1 drum track switch, right of Drum kit on the drag strip):
 - [ ] The switch reads "1 drum track" in full in your Mac's font (the phrase chips beside it moved to the Phrases
       drawer, ADR 0031)
 - [ ] With the switch lit, in a new Live 12 set: drop FUT01's Song on a track holding a Drum Rack. The drums land there
@@ -253,7 +253,7 @@ Drums on one track (the switch next to Song on the drag strip):
 - [ ] The switch stays lit in another project and after the DAW restarts; switched off, the drags are the files as
       before
 
-For my synths (the switch before Loop, lit until you turn it off; ADR 0027):
+For my synths (the switch at the drag strip's right end, lit until you turn it off; ADR 0027):
 - [ ] Drag a bassline (the bass lane's MIDI chip, or `FUT01 ... - Warp Bass (synths).mid`) onto a synth of yours, in
       Live 12 and in Logic: it plays around C1-C2, every note sounds, no note doubles where the line slides, and the
       soft notes still speak. Switched off, the drags are the files as before

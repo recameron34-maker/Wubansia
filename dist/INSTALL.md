@@ -245,13 +245,13 @@ and starts on All; a lane's MIDI chip still gives that lane's own tracks. Loop o
 nothing there (FUT03's loop has no lead). For your own drum samples, pick **Drums**, light **1 drum track** and drag
 **Song**: the whole mix's drums come as one track; the pads below say which note is which drum.
 
-**1 drum track**, the switch next to Part, puts the drums on one track instead. Lit, a Loop or Song drag brings the
+**1 drum track**, the switch right of Drum kit, puts the drums on one track instead. Lit, a Loop or Song drag brings the
 kick, snare or clap, hats and percussion as one track, Drums, on channel 10 with the same notes, ready for one drum
 rack, and every other instrument keeps its own track. The file's name says so:
 `FUT01 Alloy Signal 134 F#m 11A - Song (1 drum track).mid`. Wubansia remembers the switch for your user, in
 `settings.xml`, in every project. A lane's MIDI chip still gives that lane's own tracks.
 
-**For my synths**, the switch before Loop, is lit until you turn it off: every drag is then made for your own synths,
+**For my synths**, the switch at the strip's right end, is lit until you turn it off: every drag is then made for your own synths,
 and its name says so: `FUT01 Alloy Signal 134 F#m 11A - Loop (synths).mid`. The bass comes up an octave, to around
 C1-C2; no note is shorter than a 16th unless the next starts sooner; notes never overlap, so a slide is two notes; and
 soft notes play at velocity 72. The drums and the one-key Accents and FX tracks stay as they are. In a Song, the
