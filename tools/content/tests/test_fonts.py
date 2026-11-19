@@ -92,7 +92,7 @@ class FontsTest(unittest.TestCase):
             self.assertTrue(os.path.isfile(ofl), ofl)
             with open(ofl, encoding="utf-8") as f:
                 text = f.read()
-            self.assertIn("SIL OPEN FONT LICENSE Version 1.1", text.upper().replace("  ", " "))
+            self.assertIn("SIL OPEN FONT LICENSE VERSION 1.1", text.upper())
             self.assertIn(family["copyright"], text)
         self.assertEqual(7, len(self.lock["families"]))
 

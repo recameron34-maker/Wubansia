@@ -68,6 +68,15 @@ juce_add_binary_data(WubansiaContent
     HEADER_NAME WubansiaContentData.h
     SOURCES ${WUBANSIA_CONTENT_FILES})
 
+# The looks' thirteen font faces (ADR 0032): SIL OFL 1.1 subsets made by tools/fonts/subset_fonts.py, 326 KB,
+# loaded once per process (editor/skin/Fonts.cpp). Licences in THIRD_PARTY_NOTICES.md and docs/third_party/fonts/.
+file(GLOB WUBANSIA_FONT_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/*.ttf")
+list(SORT WUBANSIA_FONT_FILES)
+juce_add_binary_data(WubansiaFonts
+    NAMESPACE WubansiaFontData
+    HEADER_NAME WubansiaFontData.h
+    SOURCES ${WUBANSIA_FONT_FILES})
+
 target_link_libraries(WubansiaPluginCode INTERFACE
     juce::juce_audio_utils
     juce::juce_audio_processors
@@ -77,7 +86,8 @@ target_link_libraries(WubansiaPluginCode INTERFACE
     juce::juce_recommended_warning_flags
     wubansia_build_defaults
     wubansia_engine # the engine and, through it, the groove core (ADR 0017); both are built PIC for the .so
-    WubansiaContent) # the embedded manifests and MIDI
+    WubansiaContent # the embedded manifests and MIDI
+    WubansiaFonts) # the looks' fonts
 
 target_link_libraries(Wubansia PRIVATE WubansiaPluginCode)
 

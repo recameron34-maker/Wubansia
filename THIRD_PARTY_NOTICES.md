@@ -32,11 +32,25 @@ M0 builds with `JUCE_USE_OGGVORBIS=0`, `JUCE_USE_OPUS=0`, `JUCE_USE_WEBP=0`, `JU
 | clap-juce-extensions | `7adee3a` | MIT | CLAP (see below) | `libs/clap-juce-extensions` |
 | CLAP | 1.2.7 (`29ffcc27`) | MIT | Headers only: CLAP (see below) | `libs/clap-juce-extensions/clap-libs/clap` |
 | clap-helpers | `a61bcdf0` | MIT | Headers only: CLAP (see below) | `libs/clap-juce-extensions/clap-libs/clap-helpers` |
+| Archivo font (the looks, ADR 0032): Regular 400, ExtraBold 800 (instanced at wdth 100), subset | 2.001 | SIL OFL 1.1 | all formats | `plugin/resources/fonts/Archivo-*.ttf` |
+| JetBrains Mono font (the looks, ADR 0032): Regular 400 (instanced), subset | 2.211 | SIL OFL 1.1 | all formats | `plugin/resources/fonts/JetBrainsMono-Regular.ttf` |
+| Chakra Petch font (the looks, ADR 0032): Regular 400, Bold 700, subset | 1.000 | SIL OFL 1.1 | all formats | `plugin/resources/fonts/ChakraPetch-*.ttf` |
+| IBM Plex Mono font (the looks, ADR 0032): Regular 400, renamed "Wubansia HUD Mono", subset | 2.3 | SIL OFL 1.1 | all formats | `plugin/resources/fonts/WubansiaHudMono-Regular.ttf` |
+| Manrope font (the looks, ADR 0032): Regular 400, SemiBold 600, ExtraBold 800 (instanced), subset | 4.505 | SIL OFL 1.1 | all formats | `plugin/resources/fonts/Manrope-*.ttf` |
+| Barlow Condensed font (the looks, ADR 0032): SemiBold 600, Bold 700, ExtraBold 800, subset | 1.408 | SIL OFL 1.1 | all formats | `plugin/resources/fonts/BarlowCondensed-*.ttf` |
+| Space Mono font (the looks, ADR 0032): Regular 400, subset | 1.003 | SIL OFL 1.1 | all formats | `plugin/resources/fonts/SpaceMono-Regular.ttf` |
 | Pamplejuce (template) | `ca3cae0` | MIT | Our build files, plugin sources, tests and CI workflow started from it | `docs/third_party/pamplejuce-LICENSE` |
 
 "All formats" means VST3, AU, CLAP and Standalone: JUCE's module code is compiled once into the shared code that every format links.
 
 clap-juce-extensions also links its small `clap_juce_extensions` library into the shared code (`libs/clap-juce-extensions/cmake/ClapTargetHelpers.cmake:156`). In the Linux build only the CLAP keeps any of it: `nm` finds its symbols in the CLAP and none in the VST3 or Standalone, and no shared-code object includes a CLAP header (`ninja -t deps`). macOS and Windows may differ, so treat these three as possibly in every format.
+
+The seven font families are built into the plugin as binary data (`WubansiaFonts`) and drawn by the editor's four
+looks. Each is a subset (the UI's characters, no hinting) with a "Wubansia " prefix on its family name, made by
+`tools/fonts/subset_fonts.py` from the Google Fonts files `tools/fonts/fonts.lock.json` lists by URL, upstream commit
+and SHA-256. A subset is a Modified Version under the OFL; IBM Plex Mono carries the Reserved Font Name "Plex", so its
+subset is renamed "Wubansia HUD Mono" and no name record of it says "Plex". The licence texts are below and, as the
+upstream files, in `docs/third_party/fonts/`.
 
 ## Not shipped
 
@@ -47,6 +61,7 @@ These are used to build or test Wubansia, but nothing from them is linked into a
 | Catch2 | v3.8.1 (`2b60af89`) | BSL-1.0 | Linked into the test binary `WubansiaPluginTests` only (`libs/Catch2`). |
 | pluginval | v1.0.4 | GPL-3.0 | Downloaded and run by CI and `tools/ci/validate.sh`. |
 | clap-validator | 0.4.1 | MIT | Downloaded and run by CI and `tools/ci/validate.sh`. |
+| fontTools | 4.55.3 | MIT | Run by hand by `tools/fonts/subset_fonts.py` to make the embedded font subsets; never in CI or the build. |
 | `actions/checkout` | v7 | MIT | GitHub Actions workflow. |
 | `actions/cache` | v5 | MIT | GitHub Actions workflow. |
 | `actions/upload-artifact` | v7 | MIT | GitHub Actions workflow. |
@@ -923,6 +938,115 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+### SIL Open Font License 1.1 (the looks' fonts)
+
+The seven families' copyright lines, as their OFL.txt files give them:
+
+- Archivo: Copyright 2020 The Archivo Project Authors (https://github.com/Omnibus-Type/Archivo)
+- JetBrains Mono: Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+- Chakra Petch: Copyright 2018 The Chakra Petch Project Authors (https://github.com/m4rc1e/Chakra-Petch.git)
+- IBM Plex Mono: Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"
+- Manrope: Copyright 2018 The Manrope Project Authors (https://github.com/googlefonts/manrope)
+- Barlow Condensed: Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow)
+- Space Mono: Copyright 2016 The Space Mono Project Authors (https://github.com/googlefonts/spacemono)
+
+IBM Plex Mono's Reserved Font Name "Plex" is why its subset is called "Wubansia HUD Mono". The other six declare no
+Reserved Font Name. Each family's own file is in `docs/third_party/fonts/`. The licence, once:
+
+```
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded, 
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 
 ### Apache License 2.0
