@@ -1,0 +1,196 @@
+// FUT03 Glass Current drum kit, from Wubansia (content v1).
+// garage-house / deep tech house, 128 BPM, G minor (6A). Plays the kit's drum MIDI (channel 10).
+// Notes as Live and Logic name them (36 is C1). A velocity plays the nearest layer, the louder on a tie;
+// round robins take turns. Levels and pans are the kit's channel faders and pans in Wubansia's mix.
+
+<control>
+default_path=Samples/
+
+<global>
+amp_veltrack=0
+
+// 36 C1 Kick Deep
+<group>
+key=36
+loop_mode=one_shot
+seq_length=2
+<region> lovel=1 hivel=37 seq_position=1 sample=36 C1 Kick Deep v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=37 seq_position=2 sample=36 C1 Kick Deep v1 rr2 - FUT03.wav
+<region> lovel=38 hivel=63 seq_position=1 sample=36 C1 Kick Deep v2 rr1 - FUT03.wav
+<region> lovel=38 hivel=63 seq_position=2 sample=36 C1 Kick Deep v2 rr2 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=1 sample=36 C1 Kick Deep v3 rr1 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=2 sample=36 C1 Kick Deep v3 rr2 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=1 sample=36 C1 Kick Deep v4 rr1 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=2 sample=36 C1 Kick Deep v4 rr2 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=1 sample=36 C1 Kick Deep v5 rr1 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=2 sample=36 C1 Kick Deep v5 rr2 - FUT03.wav
+
+// 37 C#1 Rimshot
+<group>
+key=37
+loop_mode=one_shot
+volume=-5
+seq_length=2
+<region> lovel=1 hivel=56 seq_position=1 sample=37 C#1 Rimshot v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=56 seq_position=2 sample=37 C#1 Rimshot v1 rr2 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=1 sample=37 C#1 Rimshot v2 rr1 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=2 sample=37 C#1 Rimshot v2 rr2 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=1 sample=37 C#1 Rimshot v3 rr1 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=2 sample=37 C#1 Rimshot v3 rr2 - FUT03.wav
+
+// 38 D1 Clap Snare
+<group>
+key=38
+loop_mode=one_shot
+volume=-1
+seq_length=2
+<region> lovel=1 hivel=37 seq_position=1 sample=38 D1 Clap Snare v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=37 seq_position=2 sample=38 D1 Clap Snare v1 rr2 - FUT03.wav
+<region> lovel=38 hivel=63 seq_position=1 sample=38 D1 Clap Snare v2 rr1 - FUT03.wav
+<region> lovel=38 hivel=63 seq_position=2 sample=38 D1 Clap Snare v2 rr2 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=1 sample=38 D1 Clap Snare v3 rr1 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=2 sample=38 D1 Clap Snare v3 rr2 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=1 sample=38 D1 Clap Snare v4 rr1 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=2 sample=38 D1 Clap Snare v4 rr2 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=1 sample=38 D1 Clap Snare v5 rr1 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=2 sample=38 D1 Clap Snare v5 rr2 - FUT03.wav
+
+// 41 F1 Conga G3
+<group>
+key=41
+loop_mode=one_shot
+volume=-5
+seq_length=2
+<region> lovel=1 hivel=56 seq_position=1 sample=41 F1 Conga G3 v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=56 seq_position=2 sample=41 F1 Conga G3 v1 rr2 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=1 sample=41 F1 Conga G3 v2 rr1 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=2 sample=41 F1 Conga G3 v2 rr2 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=1 sample=41 F1 Conga G3 v3 rr1 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=2 sample=41 F1 Conga G3 v3 rr2 - FUT03.wav
+
+// 42 F#1 Closed Hat Deep
+<group>
+key=42
+loop_mode=one_shot
+volume=-5
+pan=15
+group=1
+seq_length=3
+<region> lovel=1 hivel=37 seq_position=1 sample=42 F#1 Closed Hat Deep v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=37 seq_position=2 sample=42 F#1 Closed Hat Deep v1 rr2 - FUT03.wav
+<region> lovel=1 hivel=37 seq_position=3 sample=42 F#1 Closed Hat Deep v1 rr3 - FUT03.wav
+<region> lovel=38 hivel=63 seq_position=1 sample=42 F#1 Closed Hat Deep v2 rr1 - FUT03.wav
+<region> lovel=38 hivel=63 seq_position=2 sample=42 F#1 Closed Hat Deep v2 rr2 - FUT03.wav
+<region> lovel=38 hivel=63 seq_position=3 sample=42 F#1 Closed Hat Deep v2 rr3 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=1 sample=42 F#1 Closed Hat Deep v3 rr1 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=2 sample=42 F#1 Closed Hat Deep v3 rr2 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=3 sample=42 F#1 Closed Hat Deep v3 rr3 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=1 sample=42 F#1 Closed Hat Deep v4 rr1 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=2 sample=42 F#1 Closed Hat Deep v4 rr2 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=3 sample=42 F#1 Closed Hat Deep v4 rr3 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=1 sample=42 F#1 Closed Hat Deep v5 rr1 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=2 sample=42 F#1 Closed Hat Deep v5 rr2 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=3 sample=42 F#1 Closed Hat Deep v5 rr3 - FUT03.wav
+
+// 43 G1 Conga C4
+<group>
+key=43
+loop_mode=one_shot
+volume=-5
+seq_length=2
+<region> lovel=1 hivel=56 seq_position=1 sample=43 G1 Conga C4 v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=56 seq_position=2 sample=43 G1 Conga C4 v1 rr2 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=1 sample=43 G1 Conga C4 v2 rr1 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=2 sample=43 G1 Conga C4 v2 rr2 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=1 sample=43 G1 Conga C4 v3 rr1 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=2 sample=43 G1 Conga C4 v3 rr2 - FUT03.wav
+
+// 45 A1 Conga D4
+<group>
+key=45
+loop_mode=one_shot
+volume=-5
+seq_length=2
+<region> lovel=1 hivel=56 seq_position=1 sample=45 A1 Conga D4 v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=56 seq_position=2 sample=45 A1 Conga D4 v1 rr2 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=1 sample=45 A1 Conga D4 v2 rr1 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=2 sample=45 A1 Conga D4 v2 rr2 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=1 sample=45 A1 Conga D4 v3 rr1 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=2 sample=45 A1 Conga D4 v3 rr2 - FUT03.wav
+
+// 46 A#1 Open Hat Deep
+<group>
+key=46
+loop_mode=one_shot
+volume=-5
+pan=15
+group=2
+off_by=1
+off_mode=normal
+ampeg_release=0.004
+seq_length=3
+<region> lovel=1 hivel=37 seq_position=1 sample=46 A#1 Open Hat Deep v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=37 seq_position=2 sample=46 A#1 Open Hat Deep v1 rr2 - FUT03.wav
+<region> lovel=1 hivel=37 seq_position=3 sample=46 A#1 Open Hat Deep v1 rr3 - FUT03.wav
+<region> lovel=38 hivel=63 seq_position=1 sample=46 A#1 Open Hat Deep v2 rr1 - FUT03.wav
+<region> lovel=38 hivel=63 seq_position=2 sample=46 A#1 Open Hat Deep v2 rr2 - FUT03.wav
+<region> lovel=38 hivel=63 seq_position=3 sample=46 A#1 Open Hat Deep v2 rr3 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=1 sample=46 A#1 Open Hat Deep v3 rr1 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=2 sample=46 A#1 Open Hat Deep v3 rr2 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=3 sample=46 A#1 Open Hat Deep v3 rr3 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=1 sample=46 A#1 Open Hat Deep v4 rr1 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=2 sample=46 A#1 Open Hat Deep v4 rr2 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=3 sample=46 A#1 Open Hat Deep v4 rr3 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=1 sample=46 A#1 Open Hat Deep v5 rr1 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=2 sample=46 A#1 Open Hat Deep v5 rr2 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=3 sample=46 A#1 Open Hat Deep v5 rr3 - FUT03.wav
+
+// 47 B1 Bongo G4
+<group>
+key=47
+loop_mode=one_shot
+volume=-5
+seq_length=2
+<region> lovel=1 hivel=56 seq_position=1 sample=47 B1 Bongo G4 v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=56 seq_position=2 sample=47 B1 Bongo G4 v1 rr2 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=1 sample=47 B1 Bongo G4 v2 rr1 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=2 sample=47 B1 Bongo G4 v2 rr2 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=1 sample=47 B1 Bongo G4 v3 rr1 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=2 sample=47 B1 Bongo G4 v3 rr2 - FUT03.wav
+
+// 48 C2 Bongo D5
+<group>
+key=48
+loop_mode=one_shot
+volume=-5
+seq_length=2
+<region> lovel=1 hivel=56 seq_position=1 sample=48 C2 Bongo D5 v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=56 seq_position=2 sample=48 C2 Bongo D5 v1 rr2 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=1 sample=48 C2 Bongo D5 v2 rr1 - FUT03.wav
+<region> lovel=57 hivel=101 seq_position=2 sample=48 C2 Bongo D5 v2 rr2 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=1 sample=48 C2 Bongo D5 v3 rr1 - FUT03.wav
+<region> lovel=102 hivel=127 seq_position=2 sample=48 C2 Bongo D5 v3 rr2 - FUT03.wav
+
+// 54 F#2 Shaker Deep
+<group>
+key=54
+loop_mode=one_shot
+volume=-9
+pan=-20
+seq_length=4
+<region> lovel=1 hivel=63 seq_position=1 sample=54 F#2 Shaker Deep v1 rr1 - FUT03.wav
+<region> lovel=1 hivel=63 seq_position=2 sample=54 F#2 Shaker Deep v1 rr2 - FUT03.wav
+<region> lovel=1 hivel=63 seq_position=3 sample=54 F#2 Shaker Deep v1 rr3 - FUT03.wav
+<region> lovel=1 hivel=63 seq_position=4 sample=54 F#2 Shaker Deep v1 rr4 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=1 sample=54 F#2 Shaker Deep v2 rr1 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=2 sample=54 F#2 Shaker Deep v2 rr2 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=3 sample=54 F#2 Shaker Deep v2 rr3 - FUT03.wav
+<region> lovel=64 hivel=88 seq_position=4 sample=54 F#2 Shaker Deep v2 rr4 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=1 sample=54 F#2 Shaker Deep v3 rr1 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=2 sample=54 F#2 Shaker Deep v3 rr2 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=3 sample=54 F#2 Shaker Deep v3 rr3 - FUT03.wav
+<region> lovel=89 hivel=114 seq_position=4 sample=54 F#2 Shaker Deep v3 rr4 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=1 sample=54 F#2 Shaker Deep v4 rr1 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=2 sample=54 F#2 Shaker Deep v4 rr2 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=3 sample=54 F#2 Shaker Deep v4 rr3 - FUT03.wav
+<region> lovel=115 hivel=127 seq_position=4 sample=54 F#2 Shaker Deep v4 rr4 - FUT03.wav

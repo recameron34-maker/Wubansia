@@ -1,0 +1,122 @@
+// FUT02 Orbit Relay drum kit, from Wubansia (content v1).
+// sci-fi club, 130 BPM, D minor (7A). Plays the kit's drum MIDI (channel 10).
+// Notes as Live and Logic name them (36 is C1). A velocity plays the nearest layer, the louder on a tie;
+// round robins take turns. Levels and pans are the kit's channel faders and pans in Wubansia's mix.
+
+<control>
+default_path=Samples/
+
+<global>
+amp_veltrack=0
+
+// 36 C1 Kick Split
+<group>
+key=36
+loop_mode=one_shot
+volume=-2
+seq_length=2
+<region> lovel=1 hivel=37 seq_position=1 sample=36 C1 Kick Split v1 rr1 - FUT02.wav
+<region> lovel=1 hivel=37 seq_position=2 sample=36 C1 Kick Split v1 rr2 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=1 sample=36 C1 Kick Split v2 rr1 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=2 sample=36 C1 Kick Split v2 rr2 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=1 sample=36 C1 Kick Split v3 rr1 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=2 sample=36 C1 Kick Split v3 rr2 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=1 sample=36 C1 Kick Split v4 rr1 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=2 sample=36 C1 Kick Split v4 rr2 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=1 sample=36 C1 Kick Split v5 rr1 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=2 sample=36 C1 Kick Split v5 rr2 - FUT02.wav
+
+// 38 D1 Electro Clap
+<group>
+key=38
+loop_mode=one_shot
+volume=-2.5
+seq_length=2
+<region> lovel=1 hivel=37 seq_position=1 sample=38 D1 Electro Clap v1 rr1 - FUT02.wav
+<region> lovel=1 hivel=37 seq_position=2 sample=38 D1 Electro Clap v1 rr2 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=1 sample=38 D1 Electro Clap v2 rr1 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=2 sample=38 D1 Electro Clap v2 rr2 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=1 sample=38 D1 Electro Clap v3 rr1 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=2 sample=38 D1 Electro Clap v3 rr2 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=1 sample=38 D1 Electro Clap v4 rr1 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=2 sample=38 D1 Electro Clap v4 rr2 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=1 sample=38 D1 Electro Clap v5 rr1 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=2 sample=38 D1 Electro Clap v5 rr2 - FUT02.wav
+
+// 42 F#1 Closed Hat
+<group>
+key=42
+loop_mode=one_shot
+volume=-3.44
+pan=15
+group=1
+seq_length=3
+<region> lovel=1 hivel=37 seq_position=1 sample=42 F#1 Closed Hat v1 rr1 - FUT02.wav
+<region> lovel=1 hivel=37 seq_position=2 sample=42 F#1 Closed Hat v1 rr2 - FUT02.wav
+<region> lovel=1 hivel=37 seq_position=3 sample=42 F#1 Closed Hat v1 rr3 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=1 sample=42 F#1 Closed Hat v2 rr1 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=2 sample=42 F#1 Closed Hat v2 rr2 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=3 sample=42 F#1 Closed Hat v2 rr3 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=1 sample=42 F#1 Closed Hat v3 rr1 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=2 sample=42 F#1 Closed Hat v3 rr2 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=3 sample=42 F#1 Closed Hat v3 rr3 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=1 sample=42 F#1 Closed Hat v4 rr1 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=2 sample=42 F#1 Closed Hat v4 rr2 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=3 sample=42 F#1 Closed Hat v4 rr3 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=1 sample=42 F#1 Closed Hat v5 rr1 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=2 sample=42 F#1 Closed Hat v5 rr2 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=3 sample=42 F#1 Closed Hat v5 rr3 - FUT02.wav
+
+// 46 A#1 Open Hat
+<group>
+key=46
+loop_mode=one_shot
+volume=-3.44
+pan=15
+group=2
+off_by=1
+off_mode=normal
+ampeg_release=0.004
+seq_length=3
+<region> lovel=1 hivel=37 seq_position=1 sample=46 A#1 Open Hat v1 rr1 - FUT02.wav
+<region> lovel=1 hivel=37 seq_position=2 sample=46 A#1 Open Hat v1 rr2 - FUT02.wav
+<region> lovel=1 hivel=37 seq_position=3 sample=46 A#1 Open Hat v1 rr3 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=1 sample=46 A#1 Open Hat v2 rr1 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=2 sample=46 A#1 Open Hat v2 rr2 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=3 sample=46 A#1 Open Hat v2 rr3 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=1 sample=46 A#1 Open Hat v3 rr1 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=2 sample=46 A#1 Open Hat v3 rr2 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=3 sample=46 A#1 Open Hat v3 rr3 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=1 sample=46 A#1 Open Hat v4 rr1 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=2 sample=46 A#1 Open Hat v4 rr2 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=3 sample=46 A#1 Open Hat v4 rr3 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=1 sample=46 A#1 Open Hat v5 rr1 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=2 sample=46 A#1 Open Hat v5 rr2 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=3 sample=46 A#1 Open Hat v5 rr3 - FUT02.wav
+
+// 47 B1 Zap
+<group>
+key=47
+loop_mode=one_shot
+volume=-12.3
+seq_length=4
+<region> lovel=1 hivel=37 seq_position=1 pan=-55 sample=47 B1 Zap v1 rr1 - FUT02.wav
+<region> lovel=1 hivel=37 seq_position=2 pan=55 sample=47 B1 Zap v1 rr2 - FUT02.wav
+<region> lovel=1 hivel=37 seq_position=3 pan=-55 sample=47 B1 Zap v1 rr1 - FUT02.wav
+<region> lovel=1 hivel=37 seq_position=4 pan=35 sample=47 B1 Zap v1 rr2 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=1 pan=-55 sample=47 B1 Zap v2 rr1 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=2 pan=55 sample=47 B1 Zap v2 rr2 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=3 pan=-55 sample=47 B1 Zap v2 rr1 - FUT02.wav
+<region> lovel=38 hivel=63 seq_position=4 pan=35 sample=47 B1 Zap v2 rr2 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=1 pan=-55 sample=47 B1 Zap v3 rr1 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=2 pan=55 sample=47 B1 Zap v3 rr2 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=3 pan=-55 sample=47 B1 Zap v3 rr1 - FUT02.wav
+<region> lovel=64 hivel=88 seq_position=4 pan=35 sample=47 B1 Zap v3 rr2 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=1 pan=-55 sample=47 B1 Zap v4 rr1 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=2 pan=55 sample=47 B1 Zap v4 rr2 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=3 pan=-55 sample=47 B1 Zap v4 rr1 - FUT02.wav
+<region> lovel=89 hivel=114 seq_position=4 pan=35 sample=47 B1 Zap v4 rr2 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=1 pan=-55 sample=47 B1 Zap v5 rr1 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=2 pan=55 sample=47 B1 Zap v5 rr2 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=3 pan=-55 sample=47 B1 Zap v5 rr1 - FUT02.wav
+<region> lovel=115 hivel=127 seq_position=4 pan=35 sample=47 B1 Zap v5 rr2 - FUT02.wav
