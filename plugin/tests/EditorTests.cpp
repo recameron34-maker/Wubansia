@@ -3224,16 +3224,24 @@ TEST_CASE ("the drawer's keys: the arrows move, Return shows the file, Escape cl
                 CHECK_FALSE (phraseTile (editor, i).getWantsKeyboardFocus());
             const auto key = [&grid] (int code, juce::ModifierKeys mods = {}) { return grid.keyPressed (juce::KeyPress (code, mods, 0)); };
 
+            // Each arrow names the tile it lands on to a screen reader, at an edge too: the grid keeps the focus, so nothing
+            // else says which tile is selected.
+            juce::StringArray said;
+            drawer.announce = [&said] (const juce::String& text) { said.add (text); };
+
             // Six tiles, four a row: 0 1 2 3 / 4 5. The first is selected when the drawer opens.
             CHECK (drawer.selectedTile() == 0);
             CHECK (key (juce::KeyPress::rightKey));
             CHECK (drawer.selectedTile() == 1);
+            CHECK (said == juce::StringArray { "Organ Riff, from the kit, 4 bars" });
             CHECK (key (juce::KeyPress::downKey));
             CHECK (drawer.selectedTile() == 5);
             CHECK (key (juce::KeyPress::downKey)); // the last row: nothing to do, but the key was the grid's
             CHECK (drawer.selectedTile() == 5);
             CHECK (key (juce::KeyPress::rightKey)); // the last tile
             CHECK (drawer.selectedTile() == 5);
+            REQUIRE (said.size() == 4);
+            CHECK (said[3] == "Lead Chrome Pluck, from the kit, 2 bars"); // named again where it stays
             CHECK (key (juce::KeyPress::leftKey));
             CHECK (key (juce::KeyPress::leftKey)); // back over the row's start
             CHECK (drawer.selectedTile() == 3);
@@ -3244,6 +3252,8 @@ TEST_CASE ("the drawer's keys: the arrows move, Return shows the file, Escape cl
             CHECK (key (juce::KeyPress::upKey));
             CHECK (drawer.selectedTile() == 1);
             CHECK (phraseTile (editor, 1).isSelected());
+            CHECK (said.size() == 9); // one name for each arrow
+            CHECK (said[8] == "Organ Riff, from the kit, 4 bars");
             CHECK (c.dragRequests.empty()); // moving writes nothing
 
             // Return does the tile's click: it shows the file.
@@ -3262,6 +3272,7 @@ TEST_CASE ("the drawer's keys: the arrows move, Return shows the file, Escape cl
             }
             CHECK (drawer.selectedTile() == 1);
             CHECK (os.revealed.size() == 1);
+            CHECK (said.size() == 9); // Return, Space, letters and shortcuts name nothing
             CHECK (editor.isPhrasesPanelShown());
 
             // Escape is the drawer's, not the grid's: it closes the drawer.
