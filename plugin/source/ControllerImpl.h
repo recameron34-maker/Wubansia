@@ -6,7 +6,8 @@
 // MIDI-in mode and the phrase mode) tell the host the project changed
 // (updateHostDisplay withNonParameterStateChanged); the content and samples folders and the drag
 // strip's drum option (drag_drums_one_track) and For my synths (drag_for_synths) are the person's,
-// kept in settings.xml, and don't.
+// kept in settings.xml, and don't. The drag strip's Part is the instance's own (ADR 0029): a member,
+// All when the instance starts, in neither settings.xml nor the project.
 
 #include "Controller.h"
 
@@ -81,6 +82,7 @@ namespace wubansia
         juce::File dragFolder;
         juce::File samplesFolderOverride;
         UserSettings* userSettings = nullptr;
+        DragPart dragPartChoice = DragPart::all; // what Loop and Song bring (ADR 0029), message thread only
 
         // The kit phrasesGeneration () last saw, and its count of kit changes (message thread, as every call).
         mutable juce::String phrasesKit;

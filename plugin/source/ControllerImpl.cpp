@@ -291,11 +291,12 @@ namespace wubansia
 
     DragPart ControllerImpl::dragPart() const
     {
-        return DragPart::all;
+        return dragPartChoice;
     }
 
-    void ControllerImpl::setDragPart (DragPart)
+    void ControllerImpl::setDragPart (DragPart part)
     {
+        dragPartChoice = part; // the instance's own: no settings file, no changeSettings
     }
 
     juce::File ControllerImpl::writeDragFile (const DragRequest& request)
@@ -314,6 +315,7 @@ namespace wubansia
                 state.mutedLanes |= 1u << lane;
         state.drumsOnOneTrack = settingsFile().dragDrumsOnOneTrack();
         state.forSynths = settingsFile().dragForSynths();
+        state.part = dragPartChoice;
 
         const auto folder = dragFolder != juce::File() ? dragFolder : dragout::cacheFolder();
         const auto file = dragout::writeDragFile (entry->info, entry->midiFiles, state, request, folder);
