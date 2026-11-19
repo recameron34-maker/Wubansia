@@ -293,6 +293,31 @@ namespace wubansia::editor
             setSelectedItemIndex ((getSelectedItemIndex() + 1) % count, juce::sendNotificationSync);
     }
 
+    void SegmentedChoice::setSegmentsFitLabels (bool shouldFit)
+    {
+        fitLabels = shouldFit;
+    }
+
+    int SegmentedChoice::fitWidth (int) const
+    {
+        return 0;
+    }
+
+    juce::Rectangle<float> SegmentedChoice::segmentArea (int index) const
+    {
+        const auto count = getNumItems();
+        if (index < 0 || index >= count)
+            return {};
+        const auto area = getLocalBounds().toFloat().reduced (0.5f);
+        const auto width = area.getWidth() / (float) count;
+        return { area.getX() + width * (float) index, area.getY(), width, area.getHeight() };
+    }
+
+    juce::Font SegmentedChoice::labelFont() const
+    {
+        return uiFont (juce::jmin (11.5f, ((float) getHeight() - 6.0f) * 0.5f), true, 0.1f);
+    }
+
     IconButton::IconButton (const juce::String& name, Icon iconToShow)
         : juce::Button (name), icon (iconToShow)
     {

@@ -238,6 +238,16 @@ namespace wubansia::editor
         return getLocalBounds().toFloat().reduced (10.0f, 5.0f).withWidth (64.0f);
     }
 
+    juce::Rectangle<float> DragStrip::partLabelArea() const
+    {
+        return {};
+    }
+
+    juce::String whyNoDrag (const EditorModel&, bool)
+    {
+        return {};
+    }
+
     void DragStrip::paint (juce::Graphics& g)
     {
         draw::engraved (g, "Drag MIDI", labelArea(), juce::Justification::centredLeft, 9.5f);

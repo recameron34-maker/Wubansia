@@ -113,6 +113,20 @@ namespace wubansia::editor
         void mouseUp (const juce::MouseEvent&) override {}
         void mouseDrag (const juce::MouseEvent&) override {}
         void showPopup() override;
+
+        // Segments as wide as their labels need (the paint code's font, unsqueezed, kLabelPad each side) instead of
+        // equal: the drag strip's Part. Room beyond that is shared equally; too little squeezes every label alike
+        // (drawFittedText's 0.75, then cut). Off by default, so the mode panel's choices stay equal.
+        void setSegmentsFitLabels (bool shouldFit);
+        // The narrowest width at this height that shows every label whole: the labels' widths, 2 x kLabelPad each, and 1.
+        int fitWidth (int height) const;
+        // Segment i's area as paint () lights it and mouseDown () picks it, in local coordinates; empty out of range.
+        juce::Rectangle<float> segmentArea (int index) const;
+        juce::Font labelFont() const; // the paint code's font at the current height
+        static constexpr float kLabelPad = 7.0f;
+
+    private:
+        bool fitLabels = false;
     };
 
     // A small button with a drawn icon; toggled ones light up (play).

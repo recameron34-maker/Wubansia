@@ -44,12 +44,14 @@ namespace wubansia::editor
         engine::PhraseMode phraseMode = engine::PhraseMode::automatic;
         bool dragDrumsOnOneTrack = false; // the drag strip's 1 drum track switch (ADR 0025)
         bool dragForSynths = true; // the drag strip's For my synths switch (ADR 0027)
+        DragPart dragPart = DragPart::all; // the drag strip's Part (ADR 0029): what Loop and Song bring
         AuditionState audition; // the Samples drawer's last audition (ADR 0024)
         std::uint64_t phrasesGeneration = 0; // the Phrases drawer's list (ADR 0031): asked again only when this moves on
 
         // From the parameters.
         engine::PlayMode playMode = engine::PlayMode::loop;
         bool vox = true;
+        std::uint32_t mutedLanes = 0; // bit per lane whose mute is on
 
         juce::Colour accent;
 
