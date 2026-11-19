@@ -172,7 +172,8 @@ class TestContract(unittest.TestCase):
                     for a, b in zip(ins['zones'], ins['zones'][1:]):
                         self.assertLess(a['hi'], b['lo'])
                     for z in ins['zones']:
-                        self.assertEqual(['root', 'lo', 'hi', 'layers'], list(z))
+                        voiced = ['voicing'] if 'voicing' in z else []   # optional: a chord sample's chord (ADR 0027)
+                        self.assertEqual(['root', 'lo', 'hi'] + voiced + ['layers'], list(z))
                         self.assertTrue(0 <= z['lo'] <= z['hi'] <= 127)
                         vels = [layer['vel'] for layer in z['layers']]
                         self.assertEqual(sorted(set(vels)), vels)
@@ -297,6 +298,43 @@ class TestItems(unittest.TestCase):
                             self.assertEqual(z['root'], z['lo'])
                         for a, b in zip(ins['zones'], ins['zones'][1:]):
                             self.assertEqual(a['hi'] + 1, b['lo'])
+
+    def test_chord_instruments_carry_their_recipe_voicing(self):
+        """Chords as chords (ADR 0027, amended): each chord sample's zone carries the chord its recipe voices, as
+        semitones over the zone's root (the root first, 0), so For my synths can write a note as its chord. Exactly these
+        ten instruments, thirteen zones; no other zone has a voicing."""
+        from tools.sound.recipes.fut01 import keys as K1, music as M1
+        from tools.sound.recipes.fut02 import accents as A2, pad as P2
+        from tools.sound.recipes.fut03 import chords as C3
+        from tools.sound.recipes.fut04 import accents as A4, pad as P4
+        recipes = {   # (kit, instrument): {zone root: the chord's keys}, the constants each recipe renders
+            ('FUT01', 'organ_stab'): {z: K1.chord(z) for z in K1.ZONES},          # keys.SHAPE over F#3 and B3
+            ('FUT01', 'e_piano_stab'): {z: K1.chord(z) for z in K1.ZONES},
+            ('FUT01', 'air_pad_fsm9'): {M1.PAD_CHORD[0]: M1.PAD_CHORD},
+            ('FUT02', 'starfield_pad_dm9'): {P2.CHORD[0]: P2.CHORD},
+            ('FUT02', 'laser_chord_stab'): dict(A2.STAB_CHORDS),                  # B-flat maj9 on A#3, Dm9 on D4
+            ('FUT03', 'dub_stab_gm9'): {C3.CHORD[0]: C3.CHORD},
+            ('FUT03', 'pad_warm'): {C3.CHORD[0]: C3.CHORD},
+            ('FUT04', 'drone_em_add_9'): {P4.CHORD[0]: P4.CHORD},
+            ('FUT04', 'accent_metal_chord_em'): {A4.EM[0]: A4.EM},
+            ('FUT04', 'accent_rave_stab_em'): {A4.EM[0]: A4.EM},
+        }
+        want = {key: {root: [k - root for k in sorted(chord)] for root, chord in zones.items()}
+                for key, zones in recipes.items()}
+        found = {}
+        for kit in KITS:
+            for ins in manifest(kit)['instruments']:
+                for z in ins['zones']:
+                    if 'voicing' in z:
+                        found.setdefault((kit, ins['id']), {})[z['root']] = z['voicing']
+        self.assertEqual(want, found)
+        self.assertEqual(10, len(found))
+        self.assertEqual(13, sum(len(zones) for zones in found.values()))
+        for zones in want.values():
+            for voicing in zones.values():
+                self.assertEqual(0, voicing[0])                              # the zone's root plays the chord's root
+                self.assertEqual(sorted(set(voicing)), voicing)
+                self.assertTrue(len(voicing) <= 8 and voicing[-1] <= 48)     # what the engine's parser takes
 
     def test_files_are_the_items_takes(self):
         """Each zone's layers and round robins name the WAVs of the Item's takes (listen.plain), by note, layer and
@@ -577,12 +615,14 @@ class TestExport(unittest.TestCase):
             PC.check_strings(PK.export(kit))
 
     def test_every_object_has_the_contracts_keys_in_order(self):
-        """Every object of every manifest has exactly its kind's keys, in the contract's order (plugin_common.KEYS)."""
+        """Every object of every manifest has exactly its kind's keys, in the contract's order (plugin_common.KEYS), an
+        optional one (plugin_common.OPTIONAL) only where it has one."""
         for kit in KITS:
             m = manifest(kit)
 
             def check(kind, obj):
-                self.assertEqual(list(PC.KEYS[kind]), list(obj), (kit, kind))
+                keys = [k for k in PC.KEYS[kind] if k in obj or k not in PC.OPTIONAL.get(kind, ())]
+                self.assertEqual(keys, list(obj), (kit, kind))
 
             check('kit.json', m)
             check('kit', m['kit'])

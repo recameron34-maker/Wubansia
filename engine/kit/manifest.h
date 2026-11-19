@@ -67,6 +67,7 @@ namespace wubansia::engine
         std::int32_t lo = 0;
         std::int32_t hi = 127;
         std::vector<LayerEntry> layers; // by vel, ascending
+        std::vector<std::int32_t> voicing; // ADR 0027: intervals over root, ascending from 0; empty: not a chord
 
         friend bool operator== (const ZoneEntry&, const ZoneEntry&) = default;
     };

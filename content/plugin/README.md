@@ -51,10 +51,10 @@ exporter falls back to the checkout for them. A content folder for the plugin ne
 
 | Kit | `kit.json` | Instruments | Keymap entries | Files | WAV listed | Phrase lanes (slices) |
 |---|---|---|---|---|---|---|
-| FUT01 | 99,646 bytes | 34 | 31 | 189 | 68.3 MB | 2 (20) |
-| FUT02 | 96,381 bytes | 31 | 29 | 138 | 53.2 MB | 5 (103) |
-| FUT03 | 92,908 bytes | 30 | 32 | 161 | 39.5 MB | 4 (60) |
-| FUT04 | 99,981 bytes | 28 | 27 | 130 | 43.5 MB | 4 (130) |
+| FUT01 | 99,852 bytes | 34 | 31 | 189 | 68.3 MB | 2 (20) |
+| FUT02 | 96,508 bytes | 31 | 29 | 138 | 53.2 MB | 5 (103) |
+| FUT03 | 92,990 bytes | 30 | 32 | 161 | 39.5 MB | 4 (60) |
+| FUT04 | 100,096 bytes | 28 | 27 | 130 | 43.5 MB | 4 (130) |
 
 A/B switches: the kick on FUT01 only (A Kick Split, B Kick Garage: the loops play B), the bass on all four (A clean,
 B warm: the wet and club loops play B), the stab on FUT01 only (A Organ Stab, the loops'; B E Piano Stab). FUT02's

@@ -1,14 +1,16 @@
 """For my synths (ADR 0027) in dist/INSTALL.md, docs/midi-map.md and the ADR, held to the kits.
 
-For my synths makes a drag's pitched tracks for the person's own synths. The text must say what that can't give and
-what it leaves, read here from the content where the content can say it:
-- A chord sample plays a whole chord from one key, so its track holds one note per chord, the root: INSTALL names each
-  such track (CHORD_TRACKS, checked against each kit's Song) and each phrase chip holding only such tracks (the kit's
-  phrase files in content/midi), and points to the Chord voicing track.
+For my synths makes a drag's pitched tracks for the person's own synths. The text must say what it gives and what it
+leaves, read here from the content where the content can say it:
+- A chord sample plays a whole chord from one key, so its track holds one note per chord; lit, For my synths writes each
+  note as the whole chord, above the bass (ADR 0027, chords as chords): INSTALL says so and names each such track
+  (CHORD_TRACKS, checked against each kit's Song) and each phrase holding only such tracks, by its title (the kit's
+  phrase files in content/midi). It no longer says the track carries only the root, or to put a chord device first.
 - The drums and the one-key Accents and FX tracks stay as they are, while the Accents lane's pitched extras
   (kit.json) are made for synths: INSTALL names each extra.
 - A drag played back into Wubansia wants the switch off: INSTALL, midi-map's Live and Logic bullets and ADR 0027's
-  Consequences say so.
+  Consequences say so. INSTALL and the Live bullet (Logic's says "as for Live") name each change a lit drag brings,
+  the whole chords among them.
 
 From the repo root: python3 -m unittest discover -s tools/content/tests -t .
 Standard library only, like the rest of tools/content/tests.
@@ -64,9 +66,8 @@ def onsets(path):
     return out
 
 
-def chip_title(path, kit):
-    """A phrase file's chip title without its bar count: FUT01_Phrase_EPianoStabRhythm_2bars.mid is "E Piano Stab
-    Rhythm"."""
+def phrase_title(path, kit):
+    """A phrase file's title without its bar count: FUT01_Phrase_EPianoStabRhythm_2bars.mid is "E Piano Stab Rhythm"."""
     stem = re.fullmatch(rf'{kit}_Phrase_(\w+?)_\d+bars\.mid', path.name).group(1)
     return re.sub(r'(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])', ' ', stem)
 
@@ -88,28 +89,31 @@ class TestForMySynths(unittest.TestCase):
         drag = section(INSTALL_MD.read_text(encoding='utf-8'), 'Drag MIDI into Live or Logic') or ''
         cls.text = paragraphs(drag, '**For my synths**')
 
-    def test_it_names_every_chord_track_and_chord_phrase_chip(self):
+    def test_it_says_chord_tracks_come_as_whole_chords(self):
         self.assertTrue(self.text, 'INSTALL.md\'s drag section has no "**For my synths**" paragraph')
-        chips = []
+        phrases = []
         for kit in KITS:
             folder = MIDI / kit.lower()
             song = onsets(folder / 'extended' / 'vox' / f'{kit}_ExtendedMix_Vox_224bars.mid')
             for track in CHORD_TRACKS[kit]:
                 with self.subTest(kit=kit, track=track):
-                    # One note per chord: a track playing its chords' notes would need no word in the text.
+                    # One note per chord, the key its sample plays the chord from: For my synths writes the chord.
                     self.assertIn(track, song)
                     self.assertEqual(len(song[track]), len(set(song[track])), f'{track} plays notes together')
                     self.assertIn(track, self.text)
             for path in sorted(folder.glob(f'{kit}_Phrase_*.mid')):
                 tracks = set(onsets(path))
                 if tracks and tracks <= set(CHORD_TRACKS[kit]):
-                    chips.append(chip_title(path, kit))
-                    with self.subTest(kit=kit, chip=chips[-1]):
-                        self.assertIn(chips[-1], self.text)
-        self.assertTrue(chips, 'no phrase file holds only chord tracks, but FUT03 Dub Chords does')
-        for needed in ('root', 'Chord voicing', 'chord device'):
+                    phrases.append(phrase_title(path, kit))
+                    with self.subTest(kit=kit, phrase=phrases[-1]):
+                        self.assertIn(phrases[-1], self.text)
+        self.assertEqual(['E Piano Stab Rhythm', 'Laser Stab Riff', 'Dub Chords', 'Metal Chords', 'Rave Stab Riff'], phrases)
+        for needed in ('whole chord', 'above the bass'):
             with self.subTest(needed=needed):
                 self.assertIn(needed, self.text)
+        for gone in ("only each chord's root", 'a chord device'):
+            with self.subTest(gone=gone):
+                self.assertNotIn(gone, self.text)
 
     def test_it_says_what_stays_and_names_the_pitched_accents(self):
         self.assertIn('one-key Accents and FX tracks stay as they are', self.text)
@@ -121,17 +125,24 @@ class TestForMySynths(unittest.TestCase):
                         self.assertIn(extra['name'], self.text)
 
     def test_it_says_to_turn_it_off_before_playing_a_drag_into_wubansia(self):
-        # Lit, Wubansia would play the bass an octave up, its slides as separate notes, short notes longer and soft
-        # notes louder: INSTALL names each.
-        for needed in (ROUND_TRIP, 'octave up', 'slides become separate notes', 'short notes hold longer', 'velocity 72'):
+        # Lit, Wubansia would play the bass an octave up, its slides as separate notes, short notes longer, soft notes
+        # louder and each chord sample's note as a whole chord: INSTALL's way back names each, and so does midi-map's
+        # Live bullet, which Logic's points to ("as for Live").
+        changes = ('octave up', 'slides become separate notes', 'short notes hold longer', 'velocity 72', 'whole chord')
+        way_back = self.text[self.text.find(ROUND_TRIP):]
+        for needed in (ROUND_TRIP,) + changes:
             with self.subTest(needed=needed):
-                self.assertIn(needed, self.text)
+                self.assertIn(needed, way_back)
         items = bullets(section(MIDI_MAP.read_text(encoding='utf-8'), 'In a DAW') or '')
         for daw in ('**Ableton Live.**', '**Logic Pro.**'):
             with self.subTest(daw=daw):
                 found = [item for item in items if item.startswith(daw)]
                 self.assertEqual(len(found), 1, f'midi-map.md\'s "In a DAW" needs one {daw} bullet')
                 self.assertIn(ROUND_TRIP, found[0])
+                if daw == '**Ableton Live.**':
+                    for needed in changes:
+                        with self.subTest(needed=needed):
+                            self.assertIn(needed, found[0])
         self.assertIn(ROUND_TRIP, flat(section(ADR.read_text(encoding='utf-8'), 'Consequences') or ''))
 
 

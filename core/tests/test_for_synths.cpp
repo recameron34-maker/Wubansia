@@ -2,11 +2,13 @@
 // drag-out's "For my synths" option (plugin/source/dragout/DragFiles.h).
 //
 // The rules on hand-made notes first, then a hand-made file whose rewritten tracks are spelled out byte for byte, then
-// every committed content/midi file.
+// every committed content/midi file, then chords as chords (a chord sample's track written as its chords) on
+// hand-made files.
 
 #include "midi/for_synths.h"
 #include "midi/reader.h"
 #include "midi/track_select.h"
+#include "midi/writer.h"
 #include "util/file_io.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -254,6 +256,52 @@ namespace
         if (asIs.count (name) != 0)
             return SynthPart::asIs;
         return bass.count (name) != 0 ? SynthPart::bass : SynthPart::pitched;
+    }
+
+    // ------------------------------------------------------------------ chords as chords
+
+    // FUT01's stabs: F#m9 on F#3 (54) for keys 0-58, Bm9 on B3 (59) above, each root, 5, m7, 9, m3.
+    midi::ChordSample stabs()
+    {
+        return { { 0, 58, { 0, 7, 10, 14, 15 } }, { 59, 127, { 0, 7, 10, 14, 15 } } };
+    }
+
+    std::vector<int> keysOf (const std::vector<std::uint8_t>& chord) { return std::vector<int> (chord.begin(), chord.end()); }
+
+    constexpr int chordChannel = 3; // MIDI channel 4
+
+    // Format 1, 960 PPQ, one bar: a conductor and one Chords track on channel 4 holding notes, as the writer lays it out.
+    Bytes chordsFile (const std::vector<midi::Note>& notes)
+    {
+        midi::SongSpec song;
+        song.ppq = ppq;
+        song.endTick = bar;
+        song.name = "Song";
+        midi::TrackSpec chords;
+        chords.name = "Chords";
+        chords.notes = notes;
+        song.tracks.push_back (std::move (chords));
+        auto r = midi::writeSmf (song);
+        INFO (r.error);
+        REQUIRE (r.ok());
+        return r.value;
+    }
+
+    Bytes madeWithChords (const Bytes& smf, std::initializer_list<SynthPart> parts, const std::vector<midi::ChordSample>& chords)
+    {
+        const std::vector<SynthPart> list (parts);
+        auto r = midi::forSynths (smf, list, chords);
+        INFO (r.error);
+        REQUIRE (r.ok());
+        return r.value;
+    }
+
+    // Track 1's notes when a chordsFile () is made for synths with track 1 marked chords and played by sample.
+    std::vector<midi::Note> chordsMade (const Bytes& smf, const midi::ChordSample& sample)
+    {
+        const auto file = read (madeWithChords (smf, { SynthPart::asIs, SynthPart::chords }, { {}, sample }));
+        REQUIRE (file.tracks.size() == 2);
+        return midi::notesOf (file.tracks[1]);
     }
 }
 
@@ -519,4 +567,171 @@ TEST_CASE ("every committed content/midi file comes out for synths: pitched trac
     }
     CHECK (bassFiles > 70); // 77 bass tracks with notes: the Bassline files, the Loops, the mixes and their regions
     CHECK (rewritten > 250); // 267 of the 354 pitched tracks with notes change
+}
+
+// ------------------------------------------------------------------ chords as chords (ADR 0027, amended)
+
+TEST_CASE ("chordFor: a key plays its zone's chord, the key plus each interval", "[midi][for_synths]")
+{
+    CHECK (keysOf (midi::chordFor (stabs(), 59)) == std::vector<int> { 59, 66, 69, 73, 74 });
+    CHECK (keysOf (midi::chordFor (stabs(), 54)) == std::vector<int> { 66, 73, 76, 80, 81 }); // F#m9, an octave up
+    CHECK (keysOf (midi::chordFor (stabs(), 58)) == std::vector<int> { 58, 65, 68, 72, 73 }); // the low zone's top key
+
+    // A key no zone holds plays nothing.
+    const midi::ChordSample narrow { { 50, 60, { 0, 7 } } };
+    CHECK (keysOf (midi::chordFor (narrow, 60)) == std::vector<int> { 60, 67 });
+    CHECK (midi::chordFor (narrow, 61).empty());
+    CHECK (midi::chordFor (narrow, 49).empty());
+    CHECK (midi::chordFor (midi::ChordSample {}, 60).empty());
+}
+
+TEST_CASE ("chordFor: lifted whole octaves to start on 56 or more, never past 127", "[midi][for_synths]")
+{
+    CHECK (midi::kChordFloor == 56);
+    const midi::ChordSample fifth { { 0, 127, { 0, 7 } } };
+    CHECK (keysOf (midi::chordFor (fifth, 40)) == std::vector<int> { 64, 71 }); // two octaves
+    CHECK (keysOf (midi::chordFor (fifth, 55)) == std::vector<int> { 67, 74 });
+    CHECK (keysOf (midi::chordFor (fifth, 56)) == std::vector<int> { 56, 63 });
+    CHECK (keysOf (midi::chordFor (fifth, 0)) == std::vector<int> { 60, 67 });
+
+    // Never past 127: a tone that passes it even unlifted is left out, and a chord whose next octave would pass it
+    // stays where it is.
+    const midi::ChordSample octave { { 0, 127, { 0, 7, 12 } } };
+    CHECK (keysOf (midi::chordFor (octave, 120)) == std::vector<int> { 120, 127 });
+    const midi::ChordSample wide { { 0, 127, { 0, 26, 70 } } };
+    CHECK (keysOf (midi::chordFor (wide, 50)) == std::vector<int> { 50, 76, 120 });
+    CHECK (keysOf (midi::chordFor (wide, 30)) == std::vector<int> { 54, 80, 124 }); // two octaves would start on 54, three pass 127
+}
+
+TEST_CASE ("forSynths: a chords track's note becomes its chord, each tone at the note's tick, channel, length and velocity", "[midi][for_synths]")
+{
+    const auto smf = chordsFile ({ note (0, 480, 54, 100, chordChannel), note (1920, 480, 59, 100, chordChannel) });
+    const auto out = chordsMade (smf, stabs());
+    REQUIRE (out.size() == 10);
+    CHECK (keys (out) == std::vector<int> { 66, 73, 76, 80, 81, 59, 66, 69, 73, 74 });
+    for (std::size_t i = 0; i < out.size(); ++i)
+    {
+        INFO ("tone " << i);
+        CHECK (out[i].tick == (i < 5 ? 0 : 1920));
+        CHECK (out[i].length == 480);
+        CHECK (out[i].velocity == 100);
+        CHECK (int { out[i].channel } == chordChannel);
+    }
+
+    // The rest of the file as the pitched rule writes it: the conductor byte for byte, the track's name and end.
+    const auto made = madeWithChords (smf, { SynthPart::asIs, SynthPart::chords }, { {}, stabs() });
+    CHECK (chunksOf (made)[0] == chunksOf (smf)[0]);
+    const auto file = read (made);
+    CHECK (midi::trackName (file.tracks[1]) == "Chords");
+    CHECK (file.tracks[1].endTick == bar);
+    CHECK (offsBeforeOns (file.tracks[1]));
+}
+
+TEST_CASE ("forSynths: chord tones follow the pitched rules as their root would", "[midi][for_synths]")
+{
+    // A 32nd at velocity 40: a 16th at 72, every tone.
+    const auto shortSoft = chordsMade (chordsFile ({ note (0, 60, 59, 40, chordChannel) }), stabs());
+    CHECK (keys (shortSoft) == std::vector<int> { 59, 66, 69, 73, 74 });
+    CHECK (spans (shortSoft) == std::vector<std::pair<std::int64_t, std::int64_t>> (5, { 0, 240 }));
+    CHECK (velocities (shortSoft) == std::vector<int> (5, 72));
+
+    // A chord held 2000 ticks before the next at 960: its tones end at 950, 10 ticks before it.
+    const std::vector<midi::Note> roots { note (0, 2000, 54, 100, chordChannel), note (960, 480, 59, 90, chordChannel) };
+    const auto held = chordsMade (chordsFile (roots), stabs());
+    REQUIRE (held.size() == 10);
+    for (std::size_t i = 0; i < 5; ++i)
+        CHECK (held[i].tick + held[i].length == 950);
+
+    // Each tone as synthNotes () makes its root alone.
+    for (const auto& file : { std::vector<midi::Note> { note (0, 60, 59, 40, chordChannel) }, roots })
+    {
+        const auto alone = midi::synthNotes (file, ppq, bar, false);
+        const auto tones = chordsMade (chordsFile (file), stabs());
+        REQUIRE (tones.size() == 5 * alone.size());
+        for (std::size_t i = 0; i < tones.size(); ++i)
+        {
+            const auto& root = alone[i / 5];
+            INFO ("tone " << i << " key " << int { tones[i].key });
+            CHECK (tones[i].tick == root.tick);
+            CHECK (tones[i].length == root.length);
+            CHECK (tones[i].velocity == root.velocity);
+            CHECK (tones[i].releaseVelocity == root.releaseVelocity);
+        }
+    }
+}
+
+TEST_CASE ("forSynths: a note no zone holds stays one note, made for synths as a pitched note", "[midi][for_synths]")
+{
+    // Keys 50-60 play the chord; 61 is no zone's.
+    const midi::ChordSample narrow { { 50, 60, { 0, 7 } } };
+    const auto out = chordsMade (chordsFile ({ note (0, 60, 61, 40, chordChannel), note (960, 480, 55, 100, chordChannel) }), narrow);
+    CHECK (keys (out) == std::vector<int> { 61, 67, 74 });
+    CHECK (spans (out) == std::vector<std::pair<std::int64_t, std::int64_t>> { { 0, 240 }, { 960, 480 }, { 960, 480 } });
+    CHECK (velocities (out) == std::vector<int> { 72, 100, 100 });
+}
+
+TEST_CASE ("forSynths: a chords track without zones is a pitched track, as before", "[midi][for_synths]")
+{
+    const auto smf = chordsFile ({ note (0, 60, 54, 40, chordChannel), note (1920, 480, 59, 100, chordChannel) });
+    const auto pitched = made (smf, { SynthPart::asIs, SynthPart::pitched });
+    CHECK (pitched != smf);
+    CHECK (made (smf, { SynthPart::asIs, SynthPart::chords }) == pitched); // no chords at all
+    CHECK (madeWithChords (smf, { SynthPart::asIs, SynthPart::chords }, {}) == pitched);
+    CHECK (madeWithChords (smf, { SynthPart::asIs, SynthPart::chords }, { stabs() }) == pitched); // chords shorter than parts
+    CHECK (madeWithChords (smf, { SynthPart::asIs, SynthPart::chords }, { {}, {} }) == pitched); // an empty sample
+    CHECK (madeWithChords (smf, { SynthPart::asIs, SynthPart::chords }, { {}, { { 0, 127, {} } } }) == pitched); // a zone without intervals
+    // Chords given for a track that isn't marked chords change nothing.
+    CHECK (madeWithChords (smf, { SynthPart::asIs, SynthPart::pitched }, { {}, stabs() }) == pitched);
+}
+
+TEST_CASE ("forSynths: chords leave every other track as the two-argument forSynths makes it", "[midi][for_synths]")
+{
+    // clang-format off
+    // Chords on channel 4: F#3 (54) at 0 and B3 (59) at 1920, each 480 ticks at velocity 100.
+    const Bytes chordsBody = {
+        0x00, 0xFF, 0x03, 0x06, 'C', 'h', 'o', 'r', 'd', 's',
+        0x00, 0x93, 0x36, 0x64,
+        0x83, 0x60, 0x83, 0x36, 0x40,
+        0x8B, 0x20, 0x93, 0x3B, 0x64,
+        0x83, 0x60, 0x83, 0x3B, 0x40,
+        0x8B, 0x20, 0xFF, 0x2F, 0x00,
+    };
+    // clang-format on
+    const auto smf = concat ({ mthd (4), mtrk (conductorBody), mtrk (kickBody), mtrk (bassBody), mtrk (chordsBody) });
+    const auto out = chunksOf (madeWithChords (smf, { SynthPart::asIs, SynthPart::asIs, SynthPart::bass, SynthPart::chords }, { {}, {}, {}, stabs() }));
+    const auto plain = chunksOf (made (smf, { SynthPart::asIs, SynthPart::asIs, SynthPart::bass, SynthPart::pitched }));
+    REQUIRE (out.size() == 4);
+    REQUIRE (plain.size() == 4);
+    for (std::size_t i = 0; i < 3; ++i)
+    {
+        INFO ("track " << i);
+        CHECK (out[i] == plain[i]);
+    }
+    CHECK (plain[2] == mtrk (bassForSynths));
+    CHECK (out[3] != plain[3]);
+    const auto file = read (concat ({ mthd (4), out[0], out[1], out[2], out[3] }));
+    CHECK (keys (midi::notesOf (file.tracks[3])) == std::vector<int> { 66, 73, 76, 80, 81, 59, 66, 69, 73, 74 });
+}
+
+TEST_CASE ("forSynths: chords come out the same twice, tones ascending on each tick", "[midi][for_synths]")
+{
+    const midi::ChordSample laser { { 0, 61, { 0, 7, 11, 14, 16 } }, { 62, 127, { 0, 7, 10, 14, 15 } } };
+    const auto smf = chordsFile ({ note (0, 240, 58, 90, chordChannel), note (480, 240, 62, 100, chordChannel), note (960, 120, 40, 70, chordChannel),
+        note (1440, 960, 70, 127, chordChannel) });
+    const auto once = madeWithChords (smf, { SynthPart::asIs, SynthPart::chords }, { {}, laser });
+    const auto twice = madeWithChords (smf, { SynthPart::asIs, SynthPart::chords }, { {}, laser });
+    CHECK (once == twice);
+
+    // In file order, each tick's note-ons go up by key: five per chord.
+    const auto file = read (once);
+    std::vector<std::pair<std::int64_t, int>> ons;
+    for (const auto& e : file.tracks[1].events)
+        if (e.isNoteOn())
+            ons.emplace_back (e.tick, e.data1);
+    REQUIRE (ons.size() == 20);
+    for (std::size_t i = 1; i < ons.size(); ++i)
+        if (ons[i].first == ons[i - 1].first)
+            CHECK (ons[i].second > ons[i - 1].second);
+    CHECK (keys (midi::notesOf (file.tracks[1]))
+           == std::vector<int> { 58, 65, 69, 72, 74, 62, 69, 72, 76, 77, 64, 71, 75, 78, 80, 70, 77, 80, 84, 85 });
 }

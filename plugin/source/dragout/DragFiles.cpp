@@ -165,12 +165,32 @@ namespace wubansia::dragout
 
         constexpr std::string_view kDrumTrackName = "Drums";
 
-        // What For my synths (ADR 0027) does with a kit's track, by its name: the bass lane's pitched tracks (Bass, and a
-        // kit's extras on the bass lane) go up an octave; the other pitched tracks (lead, chord voicing, chords, vox, and
-        // the kit's other extras, multisampled instruments on channels 11-16) are made for synths; drums, one-key sounds
+        // The kit's track of that name whose sample plays a whole chord (KitInfo::chordTracks), or none.
+        const engine::KitChordTrack* chordTrack (const engine::KitInfo& kit, std::string_view name)
+        {
+            for (const auto& t : kit.chordTracks)
+                if (t.name == name && ! t.zones.empty())
+                    return &t;
+            return nullptr;
+        }
+
+        midi::ChordSample chordSampleOf (const engine::KitChordTrack& track)
+        {
+            midi::ChordSample sample;
+            for (const auto& z : track.zones)
+                sample.push_back ({ z.lo, z.hi, z.intervals });
+            return sample;
+        }
+
+        // What For my synths (ADR 0027) does with a kit's track, by its name: a chord sample's track (Chords, and the
+        // kit's chord extras: KitInfo::chordTracks) is written as its chords; the bass lane's pitched tracks (Bass, and a
+        // kit's extras on the bass lane) go up an octave; the other pitched tracks (lead, chord voicing, vox, and the
+        // kit's other extras, multisampled instruments on channels 11-16) are made for synths; drums, one-key sounds
         // (accents, FX, vox chops), the merged Drums and a track no lane claims stay as they are.
         midi::SynthPart synthPart (const engine::KitInfo& kit, std::string_view name)
         {
+            if (chordTrack (kit, name) != nullptr)
+                return midi::SynthPart::chords;
             for (const auto& t : engine::kTracks)
                 if (t.name == name)
                 {
@@ -192,7 +212,8 @@ namespace wubansia::dragout
             });
         }
 
-        // A drag's file with its tracks made for synths (midi::forSynths), each by synthPart (), the conductor as it is.
+        // A drag's file with its tracks made for synths (midi::forSynths), each by synthPart (), a chord sample's track
+        // with its chords, the conductor as it is.
         DragResult madeForSynths (const engine::KitInfo& kit, DragResult made)
         {
             if (!made.ok())
@@ -202,9 +223,14 @@ namespace wubansia::dragout
             if (!tracks.ok())
                 return DragResult::failure (file.name + ": " + tracks.error);
             std::vector<midi::SynthPart> parts;
+            std::vector<midi::ChordSample> chords;
             for (std::size_t i = 0; i < tracks.value.size(); ++i)
+            {
                 parts.push_back (i == 0 ? midi::SynthPart::asIs : synthPart (kit, tracks.value[i].name));
-            auto bytes = midi::forSynths (file.bytes, parts);
+                const auto* chord = parts.back() == midi::SynthPart::chords ? chordTrack (kit, tracks.value[i].name) : nullptr;
+                chords.push_back (chord != nullptr ? chordSampleOf (*chord) : midi::ChordSample {});
+            }
+            auto bytes = midi::forSynths (file.bytes, parts, chords);
             if (!bytes.ok())
                 return DragResult::failure (file.name + ": can't make it for synths: " + bytes.error);
             file.bytes = std::move (bytes.value);

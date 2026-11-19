@@ -57,6 +57,14 @@ class TestKeyOrder(unittest.TestCase):
         with self.assertRaisesRegex(KeyError, 'no object kind'):
             PC.ordered('glider', {})
 
+    def test_a_zones_voicing_is_optional_and_sits_before_its_layers(self):
+        self.assertEqual(['root', 'lo', 'hi', 'layers'], list(PC.ordered('zone', layers=[], hi=58, lo=0, root=54)))
+        chord = PC.ordered('zone', layers=[], voicing=[0, 7, 10, 14, 15], hi=58, lo=0, root=54)
+        self.assertEqual(['root', 'lo', 'hi', 'voicing', 'layers'], list(chord))
+        with self.assertRaisesRegex(KeyError, 'missing layers'):
+            PC.ordered('zone', root=54, lo=0, hi=58, voicing=[0, 7])
+        self.assertEqual({'zone': ('voicing',)}, PC.OPTIONAL)
+
     def test_an_insert_starts_with_its_type_and_ends_with_its_when(self):
         got = PC.insert('peak', q_pm=900, freq_hz=900, gain_mdb=-3500, when={'variant': 'novox', 'ab': 'none', 'is': 'a'})
         self.assertEqual(list(got), ['type', 'freq_hz', 'gain_mdb', 'q_pm', 'when'])

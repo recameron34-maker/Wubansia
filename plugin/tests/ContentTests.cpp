@@ -17,10 +17,12 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <functional>
 #include <future>
+#include <map>
 #include <set>
 #include <sstream>
 #include <thread>
@@ -767,6 +769,121 @@ TEST_CASE ("the catalog of the embedded kits: cards, sections and drag-out files
         CHECK_FALSE (timelines.value[2].loops);
         CHECK (timelines.value[2].length == engine::kSongLength);
         CHECK_FALSE (timelines.value[2].sections.empty());
+    }
+}
+
+TEST_CASE ("kit.json's chord voicings are the chords the Chord voicing track plays", "[content][embedded]")
+{
+    // Chords as chords (ADR 0027, amended): the recipes wrote the Chord voicing track (channel 3) beside each Chords note
+    // as its sample's chord, so at every Chords note of every Loop and Song, kit.json's voicing for channel 4's instrument
+    // (the A side of its switch) is the voicing track's notes on that tick, with the same length and velocity.
+    const std::map<std::string, std::size_t> expected { { "FUT01", 979 }, { "FUT02", 22 }, { "FUT03", 1120 }, { "FUT04", 50 } };
+    std::size_t total = 0;
+    for (const auto id : EmbeddedContent::kits())
+    {
+        CAPTURE (std::string (id));
+        const auto kit = engine::parseKitManifest (EmbeddedContent::kitManifest (id));
+        REQUIRE (kit.ok());
+        const auto& keymap = kit.value.keymap;
+        const auto ch4 = std::find_if (keymap.begin(), keymap.end(), [] (const engine::KeymapEntry& k) { return k.ch == 4; });
+        REQUIRE (ch4 != keymap.end());
+        const auto& zones = kit.value.instruments[static_cast<std::size_t> (ch4->a)].zones;
+
+        std::size_t notes = 0;
+        for (const auto mode : { engine::PlayMode::loop, engine::PlayMode::song })
+            for (const auto variant : { engine::Variant::vox, engine::Variant::novox })
+            {
+                const auto file = midi::readSmf (EmbeddedContent::timeline (id, mode, variant));
+                REQUIRE (file.ok());
+                std::vector<midi::Note> chords;
+                std::map<std::int64_t, std::vector<midi::Note>> voicing; // by tick
+                for (const auto& track : file.value.tracks)
+                {
+                    if (midi::trackName (track) == "Chords")
+                        chords = midi::notesOf (track);
+                    if (midi::trackName (track) == "Chord voicing")
+                        for (const auto& n : midi::notesOf (track))
+                            voicing[n.tick].push_back (n);
+                }
+                REQUIRE_FALSE (chords.empty());
+                for (const auto& n : chords)
+                {
+                    INFO ("the Chords note at " << n.tick << ", key " << int { n.key });
+                    const auto zone = std::find_if (zones.begin(), zones.end(), [&] (const engine::ZoneEntry& z) { return z.lo <= n.key && n.key <= z.hi; });
+                    REQUIRE (zone != zones.end());
+                    REQUIRE_FALSE (zone->voicing.empty());
+                    std::vector<int> want;
+                    for (const auto interval : zone->voicing)
+                        want.push_back (n.key + interval);
+                    std::vector<int> got;
+                    for (const auto& v : voicing[n.tick])
+                    {
+                        got.push_back (v.key);
+                        CHECK (v.length == n.length);
+                        CHECK (v.velocity == n.velocity);
+                    }
+                    std::sort (got.begin(), got.end());
+                    CHECK (got == want);
+                    ++notes;
+                }
+            }
+        CHECK (notes == expected.at (std::string (id)));
+        total += notes;
+    }
+    CHECK (total == 2171);
+}
+
+TEST_CASE ("the catalog gives each kit its chord tracks", "[content][embedded]")
+{
+    // Chords as chords (ADR 0027, amended): Chords (channel 4) and each chord extra, in channel order, with each zone's
+    // keys and its voicing (semitones over the zone's root), as the recipes voice them.
+    using Zone = engine::KitChordZone;
+    using Track = engine::KitChordTrack;
+    const std::vector<std::int8_t> m9 { 0, 7, 10, 14, 15 }; // root, 5, m7, 9, m3: FUT01's stabs, FUT02's Dm9 stab, FUT03's Gm9
+    const std::vector<std::int8_t> em { 0, 7, 12, 15 }; // FUT04's Em, open
+    const std::map<std::string, std::vector<Track>> expected {
+        { "FUT01", { Track { "Chords", { Zone { 0, 58, m9 }, Zone { 59, 127, m9 } } }, Track { "Air Pad", { Zone { 0, 127, { 0, 10, 15, 19, 26 } } } } } },
+        { "FUT02", { Track { "Chords", { Zone { 0, 127, { 0, 7, 10, 15, 19, 26 } } } },
+                       Track { "Laser Chord Stab", { Zone { 0, 61, { 0, 7, 11, 14, 16 } }, Zone { 62, 127, m9 } } } } },
+        { "FUT03", { Track { "Chords", { Zone { 0, 127, m9 } } }, Track { "Pad Warm", { Zone { 0, 127, m9 } } } } },
+        { "FUT04", { Track { "Chords", { Zone { 0, 127, { 0, 7, 12, 15, 26 } } } }, Track { "Metal Chord", { Zone { 0, 127, em } } },
+                       Track { "Rave Stab", { Zone { 0, 127, em } } } } },
+    };
+    const KitCatalog catalog (EmbeddedContent::sources());
+    REQUIRE (catalog.entries().size() == 4);
+    for (const auto& entry : catalog.entries())
+    {
+        CAPTURE (entry.id);
+        const auto& tracks = entry.info.chordTracks;
+        const auto& want = expected.at (entry.id);
+        REQUIRE (tracks.size() == want.size());
+        for (std::size_t i = 0; i < tracks.size(); ++i)
+        {
+            CAPTURE (i);
+            CHECK (tracks[i].name == want[i].name);
+            CHECK (tracks[i] == want[i]);
+        }
+    }
+
+    // FUT01's stab switch: the organ (A) and the e-piano (B) voice alike, so Chords plays one chord on either side.
+    const auto fut01 = engine::parseKitManifest (EmbeddedContent::kitManifest ("FUT01"));
+    REQUIRE (fut01.ok());
+    const auto instrument = [&] (std::string_view iid) -> const engine::InstrumentEntry& {
+        const auto& all = fut01.value.instruments;
+        const auto found = std::find_if (all.begin(), all.end(), [&] (const engine::InstrumentEntry& in) { return in.id == iid; });
+        REQUIRE (found != all.end());
+        return *found;
+    };
+    const auto& organ = instrument ("organ_stab");
+    const auto& piano = instrument ("e_piano_stab");
+    REQUIRE (organ.zones.size() == 2);
+    REQUIRE (piano.zones.size() == 2);
+    for (std::size_t i = 0; i < 2; ++i)
+    {
+        CHECK (organ.zones[i].voicing == std::vector<std::int32_t> { 0, 7, 10, 14, 15 });
+        CHECK (piano.zones[i].voicing == organ.zones[i].voicing);
+        CHECK (piano.zones[i].lo == organ.zones[i].lo);
+        CHECK (piano.zones[i].hi == organ.zones[i].hi);
     }
 }
 

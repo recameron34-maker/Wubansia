@@ -33,11 +33,15 @@
 // claims stays in Loop and Song drags and is never in a lane drag.
 //
 // With forSynths (For my synths, ADR 0027), every drag's pitched tracks are made for the person's own
-// synths (core/midi/for_synths.h): the bass lane's (Bass and a kit's extras on the bass lane) an octave
-// up, and on each of them and every other pitched track (lead, chord voicing, chords, vox, the other
-// extras) every note a 16th at least, ending 10 ticks before the next note on its track, at velocity 72
-// at least. The conductor, drums, one-key sounds (accents, FX, vox chops), the merged Drums and a track
-// no lane claims stay byte for byte; a drag with no pitched track (a drum lane) is the plain one.
+// synths (core/midi/for_synths.h): a chord sample's track (KitInfo::chordTracks: Chords and a kit's
+// chord extras) has each note written as the whole chord its sample plays (midi::chordFor), lifted
+// whole octaves to start at 56 (midi::kChordFloor) or above; the bass lane's (Bass and a kit's extras
+// on the bass lane) go an octave up; and on each of them and every other pitched track (lead, chord
+// voicing, vox, the other extras) every note is a 16th at least, ending 10 ticks before the next note
+// on its track, at velocity 72 at least. Only the catalog fills chordTracks (KitCatalog::Entry::info,
+// from kitInfoOf; buildKit leaves it empty): without it, a chord track is a plain pitched track, its
+// roots alone. The conductor, drums, one-key sounds (accents, FX, vox chops), the merged Drums and a
+// track no lane claims stay byte for byte; a drag with no pitched track (a drum lane) is the plain one.
 //
 // Names are "<KIT> <Title> <BPM> <Key> <Camelot> - <what>.mid", for example
 //     FUT01 Alloy Signal 134 F#m 11A - Loop.mid

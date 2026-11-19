@@ -5,7 +5,7 @@ channels its sounds play on (P3's, in FUT01_mix.json)."""
 import math
 
 from tools.sound.phrase_tables import SR, Spec, loops_path
-from tools.sound.recipes.fut01 import context4 as C, context5 as C5, fx, music as M, voxsynth as V
+from tools.sound.recipes.fut01 import context4 as C, context5 as C5, fx, keys as Ky, music as M, voxsynth as V
 
 LANE_LABELS = ('Kick', 'Clap', 'Hats', 'Perc', 'Warp Bass', 'Chrome Pluck', 'Organ Stab', 'Vox Synth', 'Accents', 'FX')
 KICK_AB = ('KickSplit', 'KickGarage')   # drum note 36's A and B: context4 plays B, Garage (KICK, FILES)
@@ -29,6 +29,11 @@ CHORD_LAW = 'pow15'                        # context4.zoned_lane: the whole file
 VOX = (round(V.CHOP_REL * 1e6), 'pow15', int(math.floor(V.ONSET_LEAD['d'] * SR + 0.5)))   # release, law, pre-roll
 CHOKE = (5000, 'linear')                   # context4.choked_lane: the open hat, 5 ms linear
 LAYERS = {}
+# Chords as chords (ADR 0027, amended): each chord sample's chord, {Item: {zone root: its keys}}; plugin_kit writes
+# them as zones[].voicing (keys less the root). keys.chord: keys.SHAPE over F#3 and B3, the organ and the e-piano
+# alike (midi.py writes the Chord voicing track from it); music.PAD_CHORD: the Air Pad's F#m9, open.
+VOICINGS = {'OrganStab': {z: Ky.chord(z) for z in Ky.ZONES}, 'EPianoStab': {z: Ky.chord(z) for z in Ky.ZONES},
+            'AirPadFsm9': {M.PAD_CHORD[0]: M.PAD_CHORD}}
 
 
 def chop_preroll(item):

@@ -307,6 +307,25 @@ namespace wubansia::engine
         friend bool operator== (const KitExtra&, const KitExtra&) = default;
     };
 
+    // A chord sample's zone (ADR 0027, chords as chords): a key in [lo, hi] plays the key plus each interval, kit.json's
+    // zones[].voicing (semitones over the zone's root, from 0).
+    struct KitChordZone
+    {
+        std::uint8_t lo = 0, hi = 127;
+        std::vector<std::int8_t> intervals;
+
+        friend bool operator== (const KitChordZone&, const KitChordZone&) = default;
+    };
+
+    // A track that plays a chord sample, by its name in the kit's MIDI files, and the chord each of its keys plays.
+    struct KitChordTrack
+    {
+        std::string name; // "Chords", or an extra's name ("Air Pad")
+        std::vector<KitChordZone> zones;
+
+        friend bool operator== (const KitChordTrack&, const KitChordTrack&) = default;
+    };
+
     struct KitInfo
     {
         std::string id; // "FUT01"
@@ -323,6 +342,9 @@ namespace wubansia::engine
         std::uint32_t lanes = 0; // bit per Lane the kit has (laneLabels[i] not empty)
         std::uint32_t abSwitches = 0; // bit per AbSwitch the kit has
         std::vector<KitExtra> extras;
+        // The tracks whose sample plays a whole chord, in channel order: "Chords" (channel 4's instrument, its A side)
+        // and each extra whose instrument's zones are voiced. Filled by the plugin's catalog (KitCatalog.cpp).
+        std::vector<KitChordTrack> chordTracks;
 
         friend bool operator== (const KitInfo&, const KitInfo&) = default;
     };

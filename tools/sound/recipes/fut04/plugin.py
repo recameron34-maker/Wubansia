@@ -7,7 +7,8 @@ import numpy as np
 from tools.sound import phrase as Ph
 from tools.sound.kits import fut04 as K
 from tools.sound.phrase_tables import Spec, cycle_frames, iround, loops_path, words
-from tools.sound.recipes.fut04 import bass as B, context as C, context5 as C5, lead as Ld, midi as Md
+from tools.sound.recipes.fut04 import accents as Ac, bass as B, context as C, context5 as C5, lead as Ld, midi as Md
+from tools.sound.recipes.fut04 import pad as Pd
 from tools.sound.recipes.fut04 import voxsynth as V
 
 LANE_LABELS = ('Kick', 'Snare', 'Hats', 'Anvil', 'Acid', 'Mod Blip', 'Drone', 'Vox Synth', 'Accents', 'FX')
@@ -29,6 +30,10 @@ CHORD_LAW = 'layer_only'
 VOX = (iround(V.RELEASE_GRID_S, 1e6), 'layer_only', 0)   # voxsynth.riff_hit: gated plus 30 ms; the velocity picks
 CHOKE = (iround(C.drums.CHOKE['fade_s'], 1e6), 'cos2')  # the vowel; no lead. drums.CHOKE: 4 ms cos2
 LAYERS = {}
+# Chords as chords (ADR 0027, amended): each chord sample's chord, {Item: {zone root: its keys}} (plugin_kit writes
+# zones[].voicing). pad.CHORD: the drone's Em(add9); accents.EM: the Metal Chord's and the Rave Stab's Em, open.
+VOICINGS = {'DroneEmAdd9': {Pd.CHORD[0]: Pd.CHORD}, 'AccentMetalChordEm': {Ac.EM[0]: Ac.EM},
+            'AccentRaveStabEm': {Ac.EM[0]: Ac.EM}}
 DERIVED = tuple(f'Stems/Acid Line {n} {c} 4 Bars.wav' for n in (1, 2) for c in ('Clean', 'Warm'))
 
 
