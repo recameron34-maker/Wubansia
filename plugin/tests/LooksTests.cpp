@@ -954,7 +954,12 @@ TEST_CASE ("machine room's scope draws the plugin's output, triggered on the low
                     float peak = 0.0f;
                     for (const auto y : trace.out)
                         peak = std::max (peak, std::abs (y));
-                    CHECK (peak == Catch::Approx (0.5f * 34.0f).margin (3.0f));
+                    // Full scale is 34 px: the test signal peaks at 0.35 (the saw's top, where the octave sine
+                    // crosses zero), so about 11.9 px less a little from the column means.
+                    float signalPeak = 0.0f;
+                    for (const auto v : scopeSignal (0, 4800))
+                        signalPeak = std::max (signalPeak, std::abs (v));
+                    CHECK (peak == Catch::Approx (signalPeak * 34.0f).margin (1.0f));
                     // Triggered: the picture stands still from tick to tick.
                     if (! previous.empty())
                     {

@@ -100,6 +100,7 @@ namespace wubansia::editor
         void lookAndFeelChanged() override { resized(); repaint(); }
 
     private:
+        static int hazardWidth (const Skin&);
         Controller& controller;
         juce::String partTipKit; // the kit Part's tooltip was last written for, with its labels
     };

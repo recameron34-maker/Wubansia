@@ -165,6 +165,23 @@ namespace wubansia::editor::paint
         g.setColour (lit);
         g.strokePath (arc, juce::PathStrokeType (3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
+        if (skin.id == SkinId::machineRoom)
+        {
+            // A machined body with a pointer line, the arc outside it.
+            const auto body = bounds.reduced (size * 0.18f);
+            g.setGradientFill (juce::ColourGradient::vertical (c.panel.brighter (0.25f), body.getY(), c.well, body.getBottom()));
+            g.fillEllipse (body);
+            g.setColour (c.controlEdge);
+            g.drawEllipse (body, 1.0f);
+            const auto angle = start + (end - start) * value;
+            const auto r = body.getWidth() * 0.5f;
+            const juce::Point<float> tip { centre.x + std::sin (angle) * (r - 3.0f), centre.y - std::cos (angle) * (r - 3.0f) };
+            const juce::Point<float> base { centre.x + std::sin (angle) * r * 0.25f, centre.y - std::cos (angle) * r * 0.25f };
+            g.setColour (enabled ? c.text : c.faint);
+            g.drawLine ({ base, tip }, 2.5f);
+            return;
+        }
+
         // The body and its cap.
         const auto body = bounds.reduced (size * 0.2f);
         g.setColour (c.well);

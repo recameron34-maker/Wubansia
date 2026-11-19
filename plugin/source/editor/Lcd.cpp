@@ -262,8 +262,90 @@ namespace wubansia::editor
             repaintArea (*this, viewArea());
         levelsMoving = moved;
     }
-    void Lcd::updateScope (const EditorModel&) {}
-    void Lcd::pushScope (const float*, int) {}
+    namespace
+    {
+        constexpr int kScopeHistory = 4096, kScopeWindow = 2048, kScopeColumns = 556;
+        constexpr float kScopeScale = 34.0f; // full scale, in px either side of the centre line
+    }
+
+    void Lcd::updateScope (const EditorModel&)
+    {
+        if (trace.out.size() != (std::size_t) kScopeColumns)
+        {
+            trace.out.assign ((std::size_t) kScopeColumns, 0.0f);
+            trace.sub.assign ((std::size_t) kScopeColumns, 0.0f);
+        }
+        if (scopeArrived)
+        {
+            scopeArrived = false;
+            repaintArea (*this, viewArea().expanded (2));
+        }
+    }
+
+    void Lcd::pushScope (const float* samples, int count)
+    {
+        if (scopeHistory.size() != (std::size_t) kScopeHistory)
+        {
+            scopeHistory.assign ((std::size_t) kScopeHistory, 0.0f);
+            subHistory.assign ((std::size_t) kScopeHistory, 0.0f);
+        }
+        if (count <= 0)
+            return;
+        // Only the newest 4,096 matter; the low band still runs over every sample so it stays continuous.
+        const auto a = (float) (1.0 - std::exp (-2.0 * juce::MathConstants<double>::pi * 150.0 / 48000.0));
+        const auto skip = std::max (0, count - kScopeHistory);
+        for (int i = 0; i < skip; ++i)
+            lowPassState += a * (samples[i] - lowPassState);
+        const auto n = count - skip;
+        const auto keep = (std::size_t) (kScopeHistory - n);
+        std::move (scopeHistory.begin() + n, scopeHistory.end(), scopeHistory.begin());
+        std::move (subHistory.begin() + n, subHistory.end(), subHistory.begin());
+        for (int i = 0; i < n; ++i)
+        {
+            const auto x = samples[skip + i];
+            lowPassState += a * (x - lowPassState);
+            scopeHistory[keep + (std::size_t) i] = x;
+            subHistory[keep + (std::size_t) i] = lowPassState;
+        }
+        scopeFill = std::min (kScopeHistory, scopeFill + n);
+        scopeArrived = true;
+        traceScope();
+    }
+
+    // The trigger: the steepest rising zero crossing of the low band within the first 2,048 samples (the earliest
+    // when two are as steep), so a bass note with a second crossing in its period still stands still. The 2,048
+    // samples from there become 556 columns, each the mean of its samples.
+    void Lcd::traceScope()
+    {
+        int start = std::max (0, kScopeHistory - std::max (scopeFill, kScopeWindow));
+        float best = 0.0f;
+        for (int i = std::max (1, kScopeHistory - scopeFill); i < kScopeWindow; ++i)
+        {
+            const auto prev = subHistory[(std::size_t) i - 1], now = subHistory[(std::size_t) i];
+            if (prev < 0.0f && now >= 0.0f && now - prev > best * 1.02f)
+            {
+                best = now - prev;
+                start = i;
+            }
+        }
+        start = std::min (start, kScopeHistory - kScopeWindow);
+        trace.out.assign ((std::size_t) kScopeColumns, 0.0f);
+        trace.sub.assign ((std::size_t) kScopeColumns, 0.0f);
+        for (int c = 0; c < kScopeColumns; ++c)
+        {
+            const auto from = start + c * kScopeWindow / kScopeColumns;
+            const auto to = std::max (from + 1, start + (c + 1) * kScopeWindow / kScopeColumns);
+            float out = 0.0f, sub = 0.0f;
+            for (int i = from; i < to; ++i)
+            {
+                out += scopeHistory[(std::size_t) i];
+                sub += subHistory[(std::size_t) i];
+            }
+            const auto count = (float) (to - from);
+            trace.out[(std::size_t) c] = juce::jlimit (-1.0f, 1.0f, out / count) * kScopeScale;
+            trace.sub[(std::size_t) c] = juce::jlimit (-1.0f, 1.0f, sub / count) * kScopeScale;
+        }
+    }
     void Lcd::paintOrbit (juce::Graphics& g, const Skin& skin) const
     {
         const auto& c = skin.colours;
@@ -357,7 +439,48 @@ namespace wubansia::editor
             if (h.kicks[(std::size_t) i])
                 g.fillEllipse (juce::Rectangle<float> (6.0f, 6.0f).withCentre (pointOf (h.drums, i)));
     }
-    void Lcd::paintScope (juce::Graphics&, const Skin&) const {}
+    void Lcd::paintScope (juce::Graphics& g, const Skin& skin) const
+    {
+        const auto& c = skin.colours;
+        const auto view = viewArea().toFloat();
+        const auto mid = view.getCentreY();
+        // Graticule: the centre line and quarter divisions.
+        g.setColour (c.grid);
+        for (int i = 1; i < 8; ++i)
+            g.fillRect (view.getX() + view.getWidth() * (float) i / 8.0f, view.getY(), 1.0f, view.getHeight());
+        g.fillRect (view.getX(), mid - 17.0f, view.getWidth(), 1.0f);
+        g.fillRect (view.getX(), mid + 17.0f, view.getWidth(), 1.0f);
+        g.setColour (c.grid.withMultipliedAlpha (2.0f));
+        g.fillRect (view.getX(), mid, view.getWidth(), 1.0f);
+        if (trace.out.size() != (std::size_t) kScopeColumns)
+            return;
+        const auto line = [&] (const std::vector<float>& ys)
+        {
+            juce::Path p;
+            for (std::size_t i = 0; i < ys.size(); ++i)
+            {
+                const auto x = view.getX() + (float) i + 0.5f;
+                const auto y = mid - ys[i];
+                if (i == 0)
+                    p.startNewSubPath (x, y);
+                else
+                    p.lineTo (x, y);
+            }
+            return p;
+        };
+        const auto sub = line (trace.sub), out = line (trace.out);
+        g.setColour (c.accent2.withAlpha (0.35f));
+        g.strokePath (sub, juce::PathStrokeType (4.0f, juce::PathStrokeType::curved));
+        g.setColour (c.accent2);
+        g.strokePath (sub, juce::PathStrokeType (1.5f, juce::PathStrokeType::curved));
+        g.setColour (c.accent.withAlpha (0.3f));
+        g.strokePath (out, juce::PathStrokeType (3.0f, juce::PathStrokeType::curved));
+        g.setColour (c.accent);
+        g.strokePath (out, juce::PathStrokeType (1.2f, juce::PathStrokeType::curved));
+        const auto texts = drawnText();
+        for (std::size_t i = 2; i < texts.size(); ++i)
+            drawText (g, texts[i], i == 2 ? c.accent : c.accent2);
+    }
 
     std::vector<DrawnText> Lcd::drawnText() const
     {
@@ -379,6 +502,12 @@ namespace wubansia::editor
             const auto view = viewArea().toFloat();
             for (int i = 0; i < orbitText.size(); ++i)
                 out.push_back (fitText (skin.type.displayLine, orbitText[i], { view.getX() + 313.0f, view.getY() + 2.0f + 18.0f * (float) i, 243.0f, 16.0f }));
+        }
+        else if (kind == DisplayKind::scope)
+        {
+            const auto view = viewArea().toFloat();
+            out.push_back (fitText (skin.type.displayLabel, "OUT", { view.getX() + 2.0f, view.getY(), 40.0f, 12.0f }));
+            out.push_back (fitText (skin.type.displayLabel, "SUB", { view.getX() + 2.0f, view.getBottom() - 12.0f, 40.0f, 12.0f }));
         }
         return out;
     }

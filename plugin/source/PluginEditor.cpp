@@ -549,7 +549,16 @@ namespace wubansia
                 }
                 break;
             }
-            case editor::Texture::furnace:
+            case editor::Texture::furnace: // machine room: the furnace's glow from below, scanlines over it
+            {
+                g.setGradientFill (juce::ColourGradient (c.faceGlow, bounds.getCentreX(), bounds.getBottom() + 60.0f, c.faceGlow.withAlpha (0.0f),
+                    bounds.getCentreX(), bounds.getBottom() - bounds.getHeight() * 0.75f, true));
+                g.fillRect (bounds);
+                g.setColour (c.texture);
+                for (auto y = 0.0f; y < bounds.getHeight(); y += 3.0f)
+                    g.fillRect (0.0f, y, bounds.getWidth(), 1.0f);
+                break;
+            }
             case editor::Texture::plain:
                 break;
         }

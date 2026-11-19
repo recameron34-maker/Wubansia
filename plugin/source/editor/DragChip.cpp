@@ -329,6 +329,7 @@ namespace wubansia::editor
         // wide as its words in the look (ADR 0032; commit 11 puts them in the boards' order).
         const auto& skin = skinOf (*this);
         auto area = getLocalBounds().reduced (8, 5);
+        area.removeFromLeft (hazardWidth (skin));
         const auto h = area.getHeight();
         const auto labelWidth = [&] (const TextStyle& style, const juce::String& words)
         { return (int) std::ceil (juce::GlyphArrangement::getStringWidth (style.font(), style.apply (words))) + 2; };
@@ -349,7 +350,8 @@ namespace wubansia::editor
 
     juce::Rectangle<float> DragStrip::labelArea() const
     {
-        return { 10.0f, 5.0f, (float) synths.getX() - 12.0f, (float) getHeight() - 10.0f };
+        const auto x = 10.0f + (float) hazardWidth (skinOf (*this));
+        return { x, 5.0f, (float) synths.getX() - x - 2.0f, (float) getHeight() - 10.0f };
     }
 
     juce::Rectangle<float> DragStrip::partLabelArea() const
@@ -363,9 +365,31 @@ namespace wubansia::editor
         return { fitText (skin.type.stripLabel, skin.words.stripLabel, labelArea()), fitText (skin.type.stripLabel, skin.words.partLabel, partLabelArea()) };
     }
 
+    int DragStrip::hazardWidth (const Skin& skin)
+    {
+        return skin.texture == Texture::furnace ? 24 : 0; // the stripe's 16 px and a gap
+    }
+
     void DragStrip::paint (juce::Graphics& g)
     {
-        const auto& c = skinOf (*this).colours;
+        const auto& skin = skinOf (*this);
+        const auto& c = skin.colours;
+        if (hazardWidth (skin) > 0)
+        {
+            // Machine room: a hazard stripe, amber and black at 45 degrees, at the strip's left.
+            const auto stripe = juce::Rectangle<float> (6.0f, 5.0f, 16.0f, (float) getHeight() - 10.0f);
+            juce::Graphics::ScopedSaveState clip (g);
+            g.reduceClipRegion (stripe.toNearestInt());
+            g.setColour (c.accent);
+            g.fillRect (stripe);
+            g.setColour (c.face);
+            for (auto y = stripe.getY() - 16.0f; y < stripe.getBottom(); y += 12.0f)
+            {
+                juce::Path band;
+                band.addQuadrilateral (stripe.getX(), y + 16.0f, stripe.getRight(), y, stripe.getRight(), y + 6.0f, stripe.getX(), y + 22.0f);
+                g.fillPath (band);
+            }
+        }
         for (const auto& t : drawnText())
             drawText (g, t, c.label);
     }

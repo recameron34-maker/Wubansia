@@ -97,7 +97,9 @@ namespace wubansia::editor
         LevelHistory levels;
         bool levelsMoving = false;
         ScopeTrace trace;
-        std::vector<float> scopeHistory; // the newest 4,096 samples
+        void traceScope();
+        std::vector<float> scopeHistory; // the newest 4,096 samples, oldest first
+        std::vector<float> subHistory; // their low band (150 Hz one-pole, run across ticks)
         int scopeFill = 0; // how many of them are real
         float lowPassState = 0.0f;
         bool scopeArrived = false;

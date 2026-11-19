@@ -408,6 +408,126 @@ namespace wubansia::editor
             return s;
         }
 
+        // FUT04: the machine room (FurnaceCode.dc.html). Barlow Condensed and Space Mono in capitals, near-square
+        // boxes, amber on black with molten for the drums and accents, scanlines and a furnace glow.
+        Skin makeMachineRoom()
+        {
+            Skin s;
+            s.id = SkinId::machineRoom;
+            s.name = "Machine room";
+            auto& c = s.colours;
+            const auto amber = hex (0xffb000), molten = hex (0xff4a1c);
+            c.face = hex (0x0c0c0d);
+            c.faceGlow = molten.withAlpha (0.16f);
+            c.texture = white (0.014f);
+            c.panel = hex (0x1a1b1e);
+            c.panelEdge = hex (0x2c2d31);
+            c.panelHighlight = hex (0x111214);
+            c.lane = hex (0x18191c);
+            c.laneEdge = hex (0x2c2d31);
+            c.laneHighlight = hex (0x111214);
+            c.well = hex (0x070502);
+            c.wellEdge = hex (0x3a2a00);
+            c.grid = amber.withAlpha (0.11f);
+            c.text = hex (0xece6da);
+            c.dim = hex (0xc9c2b4);
+            c.faint = hex (0x8d877c);
+            c.label = hex (0xc99a3a);
+            c.laneNumber = hex (0x948d82); // the board's #6f6a61 reads 3.37:1; 5.51:1 here
+            c.accent = amber;
+            c.accentInk = hex (0x0c0c0d);
+            c.accentTint = hex (0x241a00);
+            c.accentTintText = hex (0xffe2a6);
+            c.accent2 = molten;
+            c.accent2Ink = hex (0x0c0c0d);
+            c.accent2Tint = hex (0x2a0f08);
+            c.accent2TintText = hex (0xffd2c4);
+            c.drums = molten;
+            c.music = amber;
+            c.hookLane = amber;
+            c.controlEdge = hex (0x6a6c73); // the board's #3a3b40 reads 1.62:1; 3.45:1 here
+            c.faderTrack = hex (0x6a6c73);
+            c.faderCap = amber;
+            c.cellOff = hex (0x1c1d21);
+            c.cellOffEdge = hex (0x2a2b30);
+            c.cellHeld = hex (0x8a6000); // the board's #4a3300 reads 1.42:1 against an empty cell; 3.01:1 here
+            c.meterOff = hex (0x24252a);
+            c.sectionOff = hex (0x17181b);
+            c.sectionOffText = hex (0x8d877c);
+            c.sectionLit = molten;
+            c.sectionLitText = hex (0x0c0c0d);
+            c.pillOff = hex (0x141518);
+            c.pillOffEdge = hex (0x2c2d31);
+            c.pillOffText = hex (0x8d877c);
+            c.pillOn = hex (0x24252a);
+            c.pillOnEdge = hex (0x3a3b40);
+            c.pillOnText = hex (0xf6f0e4);
+            c.busy = amber;
+            c.warning = molten;
+            c.focus = amber;
+
+            using F = FaceId;
+            auto& t = s.type;
+            t.wordmark = style (F::barlowCondensedExtraBold, 22, 3, true);
+            t.subtitle = style (F::spaceMonoRegular, 10, 0, true, 8);
+            t.pill = style (F::barlowCondensedSemiBold, 16, 1.5f, true);
+            t.pillSelected = style (F::barlowCondensedBold, 17, 1.5f, true, 13);
+            t.headerButton = style (F::barlowCondensedBold, 16, 2, true);
+            t.displayLine = style (F::spaceMonoRegular, 11);
+            t.displayLineStrong = style (F::spaceMonoRegular, 11);
+            t.displayLabel = style (F::spaceMonoRegular, 9, 0, false, 8);
+            t.transportLine = style (F::spaceMonoRegular, 10, 0, true, 8);
+            t.playMode = style (F::barlowCondensedExtraBold, 17, 3, true);
+            t.playModeOff = style (F::barlowCondensedExtraBold, 17, 3, true);
+            t.rowLabel = style (F::spaceMonoRegular, 10, 0, true);
+            t.rowValue = style (F::spaceMonoRegular, 11, 0, true);
+            t.section = style (F::barlowCondensedBold, 14, 1.5f, true, 9);
+            t.laneName = style (F::barlowCondensedBold, 15, 1, true, 10);
+            t.laneSub = style (F::spaceMonoRegular, 9, 0, false, 7);
+            t.laneButton = style (F::barlowCondensedBold, 13, 2, true);
+            t.laneChip = style (F::barlowCondensedBold, 12, 2);
+            t.abTitle = style (F::spaceMonoRegular, 10, 0, true, 8);
+            t.abSide = style (F::barlowCondensedSemiBold, 16, 1, true, 12);
+            t.abSideOn = style (F::barlowCondensedExtraBold, 16, 1, true, 12);
+            t.abRow = style (F::barlowCondensedBold, 13, 1, true, 10);
+            t.fxName = style (F::barlowCondensedBold, 13, 1.5f, true);
+            t.fxValue = style (F::spaceMonoRegular, 10);
+            t.stripLabel = style (F::spaceMonoRegular, 10, 0, true);
+            t.stripChip = style (F::barlowCondensedBold, 14, 1.5f, true);
+            t.stripChipOff = style (F::barlowCondensedSemiBold, 14, 1.5f, true);
+            t.stripSegment = style (F::barlowCondensedSemiBold, 14, 1.5f, true);
+            t.stripSegmentOn = style (F::barlowCondensedExtraBold, 14, 1.5f, true);
+            t.body = style (F::barlowCondensedSemiBold, 14);
+            t.bodyStrong = style (F::barlowCondensedBold, 14);
+            t.path = style (F::spaceMonoRegular, 11);
+
+            auto& b = s.shape;
+            b.panel = boxStyle (4);
+            b.panel.gradient = true;
+            b.lane = boxStyle (4);
+            b.lane.gradient = true;
+            b.well = boxStyle (4);
+            b.drawer = boxStyle (4);
+            for (auto* box : { &b.pill, &b.pillSelected, &b.headerButton })
+                *box = boxStyle (3);
+            for (auto* box : { &b.segmentTrack, &b.segment, &b.abSide, &b.laneButton, &b.laneChip, &b.stripChip, &b.stripSwitch, &b.section })
+                *box = boxStyle (2);
+            b.pillSelected.gradient = true;
+            b.pillSelected.underline = true; // a molten bar under the selected pill
+            b.laneChip.dashed = true;
+            b.cell = boxStyle (2, 0);
+            b.knob = 58.0f;
+            b.playButton = 64.0f;
+
+            s.words = { "WUBANSIA", "DRAG MIDI", "PART", "MUTE", "ON", "OFF" };
+            s.display = DisplayKind::scope;
+            s.lane = LaneKind::stepsAndSlide;
+            s.fx = FxKind::knobs;
+            s.texture = Texture::furnace;
+            finish (s);
+            return s;
+        }
+
         float luminance (juce::Colour c) noexcept
         {
             const auto channel = [] (juce::uint8 v)
@@ -438,12 +558,13 @@ namespace wubansia::editor
         static const Skin nightBus = makeNightBus();
         static const Skin missionHud = makeMissionHud();
         static const Skin deepGlass = makeDeepGlass();
+        static const Skin machineRoom = makeMachineRoom();
         switch (id)
         {
             case SkinId::missionHud: return missionHud;
             case SkinId::deepGlass: return deepGlass;
+            case SkinId::machineRoom: return machineRoom;
             case SkinId::nightBus:
-            case SkinId::machineRoom:
                 break;
         }
         return nightBus;
@@ -455,6 +576,8 @@ namespace wubansia::editor
             return skinFor (SkinId::missionHud);
         if (kitId == "FUT03")
             return skinFor (SkinId::deepGlass);
+        if (kitId == "FUT04")
+            return skinFor (SkinId::machineRoom);
         return skinFor (SkinId::nightBus); // FUT01, and any kit without a look of its own
     }
 

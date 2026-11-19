@@ -192,12 +192,16 @@ namespace wubansia::editor
     juce::Rectangle<float> LaneStrip::nameArea() const
     {
         const auto x = (float) (getWidth() - 84) * 0.5f;
+        if (kind == LaneKind::stepsAndSlide)
+            return { x, 22.0f, 84.0f, 16.0f }; // machine room: the number line above the name
         return { x, 10.0f, 84.0f, 16.0f };
     }
 
     juce::Rectangle<float> LaneStrip::subArea() const
     {
         const auto x = (float) (getWidth() - 84) * 0.5f;
+        if (kind == LaneKind::stepsAndSlide)
+            return { x, 10.0f, 84.0f, 10.0f };
         return { x, 28.0f, 84.0f, 12.0f };
     }
 
@@ -208,8 +212,8 @@ namespace wubansia::editor
         {
             case LaneKind::telemetryColumn: return { x + 8, 48, 84, 148 };
             case LaneKind::glassPill: return { x + 14, 48, 72, 148 };
-            case LaneKind::faderAndMeter:
-            case LaneKind::stepsAndSlide: break;
+            case LaneKind::stepsAndSlide: return { x + 11, 132, 78, 8 }; // machine room: 10 segments across
+            case LaneKind::faderAndMeter: break;
         }
         return { x + 26, 48, 10, 148 };
     }
@@ -231,8 +235,12 @@ namespace wubansia::editor
             case LaneKind::glassPill:
                 level.setBounds (x + 14, 48, 72, 148); // the pill is the fader; the meter runs inside it
                 break;
-            case LaneKind::faderAndMeter:
             case LaneKind::stepsAndSlide:
+                level.setBounds (x + 8, 148, 84, 24); // the slide, across
+                mute.setBounds (x + 8, 212, 84, 28);
+                chip.setBounds (x + 8, 246, 84, 24);
+                return;
+            case LaneKind::faderAndMeter:
                 level.setBounds (x + 40, 48, 36, 148);
                 break;
         }
@@ -280,8 +288,35 @@ namespace wubansia::editor
                 if (hit) // the hit glows the pill's top
                     paint::glow (g, meter.withHeight (18.0f).withSizeKeepingCentre (36.0f, 18.0f), 9.0f, colour.withAlpha (0.6f), 6.0f);
                 break;
-            case LaneKind::faderAndMeter:
             case LaneKind::stepsAndSlide:
+            {
+                // Machine room: the bar's 16 steps, 4 by 4, the playing one ringed; the meter under them, 10 segments.
+                const auto grid = gridRect().toFloat();
+                for (int i = 0; i < 16; ++i)
+                {
+                    const auto cell = juce::Rectangle<float> (grid.getX() + 21.0f * (float) (i % 4), grid.getY() + 21.0f * (float) (i / 4), 17.0f, 17.0f);
+                    const auto state = cells[(std::size_t) i];
+                    if (state == StepCell::accent)
+                        paint::glow (g, cell, 2.0f, c.accent2.withAlpha (0.5f), 4.0f);
+                    const auto fillColour = state == StepCell::accent ? c.accent2
+                                          : state == StepCell::hit ? c.accent
+                                          : state == StepCell::held ? c.cellHeld
+                                                                     : c.cellOff;
+                    g.setColour (muted ? fillColour.withMultipliedAlpha (0.45f) : fillColour);
+                    g.fillRoundedRectangle (cell, 2.0f);
+                    g.setColour (c.cellOffEdge);
+                    g.drawRoundedRectangle (cell.reduced (0.5f), 2.0f, 1.0f);
+                    if (i == playing)
+                    {
+                        g.setColour (c.text);
+                        g.drawRoundedRectangle (cell.expanded (1.5f), 3.0f, 1.5f);
+                    }
+                }
+                paint::meter (g, meter, 10, 2.0f, fill, hold, colour.withMultipliedAlpha (meterAlpha), over (c.meterOff, c.face), false, 9,
+                    c.accent2.withMultipliedAlpha (meterAlpha));
+                break;
+            }
+            case LaneKind::faderAndMeter:
                 // Night bus: the meter beside the fader, 18 segments of 3 dB, the top two hot.
                 paint::meter (g, meter, 18, 1.0f, fill, hold, colour.withMultipliedAlpha (meterAlpha), over (c.meterOff, c.face), true, 16,
                     c.text.withMultipliedAlpha (meterAlpha));
