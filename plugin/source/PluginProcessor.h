@@ -32,6 +32,7 @@
 #include "content/ContentSource.h"
 #include "services/DrumKitService.h"
 #include "services/KitService.h"
+#include "services/PhraseService.h"
 #include "services/SoundService.h"
 #include "transport/InternalTransport.h"
 
@@ -122,6 +123,9 @@ namespace wubansia
         const SoundService& soundService() const noexcept { return *sounds; }
         DrumKitService& drumKitService() noexcept { return *drumKits; }
         const DrumKitService& drumKitService() const noexcept { return *drumKits; }
+        const PhraseService& phraseService() const noexcept { return *phraseThread; }
+        bool phraseOffered() const noexcept { return player.phraseOffered(); } // for tests: a phrase clip waits for a block
+        void setPhraseWakeProbeForTesting (std::function<void()> probe) { phraseThread->setWakeProbeForTesting (std::move (probe)); }
         StateOnly settings() const;
 
         juce::AudioProcessorValueTreeState apvts;
@@ -144,6 +148,8 @@ namespace wubansia
         std::unique_ptr<KitService> service; // after the engine and content: it uses both, so it goes first
         std::unique_ptr<SoundService> sounds; // after content and auditions, which it uses: it goes first
         std::unique_ptr<DrumKitService> drumKits; // after content, which it reads: it goes first of all
+        std::unique_ptr<PhraseService> phraseThread; // the Phrases drawer's (ADR 0031): after the engine and the kit service
+        std::atomic<bool> previewForPhrase { false }; // the Phrases drawer's audition turned Preview on, and nothing since off
         ControllerImpl controllerImpl;
         InternalTransport transport;
 

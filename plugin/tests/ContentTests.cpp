@@ -19,6 +19,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <atomic>
 #include <chrono>
 #include <functional>
@@ -680,6 +681,51 @@ TEST_CASE ("the plugin carries four kits, each with two manifests and four SMFs 
     }
     CHECK (EmbeddedContent::kitManifest ("FUT09").empty());
     CHECK (EmbeddedContent::midiFiles ("FUT09").empty());
+}
+
+TEST_CASE ("each kit's phrase spec and library are embedded and parse, and the spec's swing is the manifest's", "[content][embedded][phrases]")
+{
+    // ADR 0031: content/phrases/<kit>/<KIT>_phrases.json and <KIT>_phrase_library.json, as the checkout has them.
+    const juce::File root (WUBANSIA_SOURCE_DIR);
+    const KitCatalog catalog (EmbeddedContent::sources());
+    REQUIRE (catalog.entries().size() == 4);
+    for (const auto& source : EmbeddedContent::sources())
+    {
+        const std::string id (source.id);
+        CAPTURE (id);
+        const auto folder = root.getChildFile ("content/phrases").getChildFile (juce::String (id).toLowerCase());
+        CHECK (folder.getChildFile (id + "_phrases.json").loadFileAsString().toStdString() == std::string (source.phraseSpec));
+        CHECK (folder.getChildFile (id + "_phrase_library.json").loadFileAsString().toStdString() == std::string (source.phraseLibrary));
+
+        const auto* entry = catalog.find (id);
+        REQUIRE (entry != nullptr);
+        CHECK (entry->phraseError.empty());
+        REQUIRE (entry->phraseSpec.has_value());
+        CHECK (entry->phraseSpec->kitId == id);
+        CHECK (entry->phraseSpec->bpm == entry->info.bpm);
+        CHECK (entry->phraseRows.size() == 64);
+        // The odd 16ths are late by the kit's swing: (swing_pm - 500) thousandths of an 8th, 480 ticks at 960 PPQ.
+        CHECK (entry->phraseSpec->swing == (int) std::floor ((entry->info.swingPm - 500) * 480 / 1000.0 + 0.5));
+
+        // The kit line's chords.
+        juce::StringArray chords;
+        for (const auto& chord : entry->phraseSpec->chords)
+            chords.add (juce::String (chord.name));
+        CHECK (entry->card.phraseChords == chords);
+    }
+    CHECK (catalog.find ("FUT01")->card.phraseChords == juce::StringArray { "F#m9", "Bm9" });
+    CHECK (catalog.find ("FUT02")->card.phraseChords == juce::StringArray { "Dm9" });
+
+    // A spec that doesn't parse leaves the kit without phrases, and says why; the kit itself still loads.
+    std::vector<KitSource> broken (EmbeddedContent::sources().begin(), EmbeddedContent::sources().end());
+    broken.front().phraseSpec = "{ \"format\": 1 }";
+    const KitCatalog brokenCatalog (broken);
+    const auto* fut01 = brokenCatalog.find ("FUT01");
+    REQUIRE (fut01 != nullptr);
+    CHECK (fut01->ok());
+    CHECK_FALSE (fut01->phraseSpec.has_value());
+    CHECK (fut01->phraseRows.empty());
+    CHECK_FALSE (fut01->phraseError.empty());
 }
 
 TEST_CASE ("the embedded files are the checkout's, byte for byte: manifests and every kit-prefixed MIDI file, no region files", "[content][embedded]")

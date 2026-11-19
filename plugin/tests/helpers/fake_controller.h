@@ -38,6 +38,7 @@ namespace wubansia::test
             fut01.phraseLanes = engine::laneBit (engine::Lane::lead) | engine::laneBit (engine::Lane::vox);
             fut01.abA = { "Kick Split", "Warp Clean", "Organ Stab" };
             fut01.abB = { "Kick Garage", "Warp Warm", "E Piano Stab" };
+            fut01.phraseChords = { "F#m9", "Bm9" }; // the kit line's "over F#m9 – Bm9"
             fut01.content.state = ContentState::ready;
 
             KitCard fut02;
@@ -90,7 +91,42 @@ namespace wubansia::test
             soundLists["FUT02"] = { fakeSound ("FUT02/glass_ping", "Glass Ping", C::accents, layered (109, "Glass Ping", 2, 2, 2.5, 2), 2),
                 fakeSound ("FUT02/kick_split", "Kick Split", C::drums, layered (0, "Kick Split", 5, 2, 0.408, 1), 8), orbitLine };
             samplesFolderChosen = fakeSamplesFolder();
-            phraseList = ownPhrases ("FUT01");
+            phraseList = fakePhrases();
+        }
+
+        // A library phrase as the Controller lists it: 8 bars, a roll of a few notes, on the lead.
+        static PhraseInfo libraryPhrase (const char* id, const char* name, const char* kind, std::uint64_t seed, juce::StringArray tags)
+        {
+            PhraseInfo p;
+            p.id = id;
+            p.name = name;
+            p.kind = kind;
+            p.origin = PhraseOrigin::library;
+            p.bars = 8;
+            p.seed = seed;
+            p.tags = std::move (tags);
+            p.roll = { { 0, 66, 2 }, { 4, 69, 2 }, { 8, 73, 4 }, { 64, 71, 8 }, { 120, 66, 8 } };
+            p.sound = "Lead";
+            p.lanes = engine::laneBit (engine::Lane::lead);
+            return p;
+        }
+
+        // FUT01's list in the fake: five library phrases (two hooks, a call and answer, a period, an arp), then its own six.
+        static std::vector<PhraseInfo> fakePhrases()
+        {
+            std::vector<PhraseInfo> list { libraryPhrase ("hook-0", "Night Bus", "hook", 0, { "steady", "mid" }),
+                libraryPhrase ("hook-3", "Glass Hour", "hook", 3, { "busy", "high" }),
+                libraryPhrase ("answer-1", "Low Signal", "answer", 1, { "steady", "mid" }),
+                libraryPhrase ("period-0", "Cold Harbour", "period", 0, { "sparse", "mid", "breath" }),
+                libraryPhrase ("arp-2", "Neon Stair", "arp", 2, { "busy", "high" }) };
+            for (auto own : ownPhrases ("FUT01"))
+            {
+                own.sound = own.name.startsWith ("Warp") ? "Bass" : "Lead";
+                own.lanes = engine::laneBit (own.name.startsWith ("Warp") ? engine::Lane::bass : engine::Lane::lead);
+                own.roll = { { 0, 66, 1 }, { 2, 69, 1 } };
+                list.push_back (own);
+            }
+            return list;
         }
 
         // Each kit's own phrases as the Controller lists them (ADR 0031): its phrase files by name, then its lead line.
@@ -159,6 +195,10 @@ namespace wubansia::test
         // whose ticket it gives. Tests may set drumKitState directly (ready, failed...).
         DrumKitStatus drumKitState;
         std::function<DrumKitStatus (int request)> drumKitOutcome;
+        // What phraseAuditionState () gives. auditionPhrase () sets it as a playing host would: the next ticket, sounding at
+        // once from bar 1; stopPhraseAudition () clears sounding, waiting and startedTransport. Tests may set it directly.
+        PhraseAuditionState phraseAudition;
+        bool moreBusy = false; // morePhrases () says no, as while a press is in flight
 
         // What the editor asked for. Tests read these.
         juce::StringArray selectedKits;
@@ -177,6 +217,10 @@ namespace wubansia::test
         int stops = 0; // stopAudition () calls
         mutable int phrasesCalls = 0; // phrases (): the Phrases drawer should ask once per generation, not every tick
         int drumKitRequests = 0; // exportDrumKit () calls
+        juce::StringArray moreRequests; // morePhrases () calls, in order ("" for all kinds)
+        juce::StringArray phraseAuditions; // auditionPhrase () ids, in order
+        int phraseStops = 0; // stopPhraseAudition () calls
+        std::vector<std::pair<juce::String, bool>> keptRequests; // setPhraseKept () calls, in order
 
         std::vector<KitCard> kits() const override { return kitCards; }
         juce::String currentKit() const override { return current; }
@@ -283,6 +327,7 @@ namespace wubansia::test
                 case DragWhat::song: name << "Song" << part << ".mid"; break;
                 case DragWhat::lane: name << juce::String (std::string (engine::laneId (request.lane))) << ".mid"; break;
                 case DragWhat::phrase: name = request.phraseFile; break;
+                case DragWhat::generatedPhrase: name << "Phrase " << request.phraseFile << ".mid"; break;
             }
             static constexpr unsigned char smf[] = { 'M', 'T', 'h', 'd', 0, 0, 0, 6, 0, 1, 0, 1, 0x03, 0xC0,
                 'M', 'T', 'r', 'k', 0, 0, 0, 4, 0, 0xFF, 0x2F, 0 };
@@ -403,6 +448,43 @@ namespace wubansia::test
         }
 
         DrumKitStatus drumKitStatus() const override { return drumKitState; }
+
+        bool morePhrases (const juce::String& kind) override
+        {
+            moreRequests.add (kind);
+            return ! moreBusy;
+        }
+
+        std::uint32_t auditionPhrase (const juce::String& id) override
+        {
+            phraseAuditions.add (id);
+            const auto ticket = phraseAudition.latest + 1;
+            phraseAudition = {};
+            phraseAudition.latest = ticket;
+            phraseAudition.sounding = ticket;
+            phraseAudition.id = id;
+            phraseAudition.startsAtBar = 1;
+            return ticket;
+        }
+
+        void stopPhraseAudition() override
+        {
+            ++phraseStops;
+            phraseAudition.sounding = 0;
+            phraseAudition.waiting = false;
+            phraseAudition.startedTransport = false;
+        }
+
+        PhraseAuditionState phraseAuditionState() const override { return phraseAudition; }
+
+        void setPhraseKept (const juce::String& id, bool kept) override
+        {
+            keptRequests.emplace_back (id, kept);
+            for (auto& p : phraseList)
+                if (p.id == id)
+                    p.kept = kept;
+            ++phraseGeneration;
+        }
 
     private:
         static SoundInfo fakeSound (const char* id, const char* name, SoundCategory category, std::vector<SoundFile> files, int defaultFile = 0)

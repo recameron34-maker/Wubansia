@@ -481,6 +481,7 @@ namespace wubansia::dragout
             case DragWhat::song: return state.part == DragPart::all ? wholeDrag (kit, files, state, true) : partDrag (kit, files, state, true);
             case DragWhat::lane: return laneDrag (kit, files, state, request.lane);
             case DragWhat::phrase: return phraseDrag (kit, files, state, request.phraseFile);
+            case DragWhat::generatedPhrase: return DragResult::failure ("a generated phrase's bytes come from the phrase service (makeGeneratedPhraseFile)");
         }
         return DragResult::failure ("an unknown kind of drag");
     }
@@ -515,6 +516,18 @@ namespace wubansia::dragout
 
         trimCache (folder, kKeepFiles, file);
         return R::success (file);
+    }
+
+    util::Result<DragFile> makeGeneratedPhraseFile (const engine::KitInfo&, std::string_view, std::string_view, std::span<const std::uint8_t>,
+        const DragState&)
+    {
+        return DragResult::failure ("not built yet"); // step `phrases`, part B, commit 1
+    }
+
+    util::Result<juce::File> writeGeneratedPhrase (const engine::KitInfo&, std::string_view, std::string_view, std::span<const std::uint8_t>,
+        const DragState&, const juce::File&)
+    {
+        return util::Result<juce::File>::failure ("not built yet");
     }
 
     void trimCache (const juce::File& folder, int keep, const juce::File& keepFile)

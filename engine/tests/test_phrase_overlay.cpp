@@ -132,7 +132,12 @@ TEST_CASE ("phrase overlay 1: bar 1 lands on the next chord line", "[phrase-over
         renderTo (h, host, 5.3, out, c);
         auto clip = clipOf (1, 2 * kBarTicks);
         REQUIRE (h.phrases.offer (clip.get()) == nullptr);
+        host.render (h, c, 512, out); // taken: it waits for its line, at 8.0
+        CHECK (h.telemetry.phraseTicks.load() < 0);
+        CHECK (h.telemetry.phraseTicks.load() > -7680 + 5 * 960);
         renderTo (h, host, 20.0, out, c);
+        CHECK (h.telemetry.phraseTicks.load() >= 12 * 960); // 12 quarters past its bar 1, give or take the last block
+        CHECK (h.telemetry.phraseTicks.load() < 12 * 960 + 512);
         const auto ons = auditionOns (h.loop.voices().log);
         REQUIRE (!ons.empty());
         CHECK (ons.front().sample == sampleOfQuarter (8.0));

@@ -135,4 +135,10 @@ namespace wubansia
         samples = chosen;
         return saveLocked (samplesFolderAttribute, chosen.getFullPathName());
     }
+
+    // Stubs (step `phrases`, part B, commit 1).
+    std::uint64_t UserSettings::phrasesNextSeed (const juce::String&) const { return 0; }
+    bool UserSettings::setPhrasesNextSeed (const juce::String&, std::uint64_t) { return false; }
+    juce::StringArray UserSettings::keptPhrases (const juce::String&) const { return {}; }
+    bool UserSettings::setPhraseKept (const juce::String&, const juce::String&, bool) { return false; }
 }

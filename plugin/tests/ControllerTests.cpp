@@ -15,6 +15,7 @@
 
 #include "midi/for_synths.h"
 #include "midi/reader.h"
+#include "util/sha256.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -26,6 +27,7 @@
 
 using Catch::Matchers::WithinAbs;
 using namespace wubansia;
+using namespace std::chrono_literals;
 using test::SyntheticContent;
 using test::SyntheticPlugin;
 
@@ -311,7 +313,41 @@ TEST_CASE ("drag-out: the kit's own MIDI, cut to the request, into the drag fold
     CHECK (controller.writeDragFile (phrase) == juce::File());
 }
 
-TEST_CASE ("phrases () lists the current kit's own phrases and follows the kit", "[controller][phrases]")
+namespace
+{
+    // What the drawer compares of a kit's own phrase: id, name, kind, origin and bars.
+    struct Own
+    {
+        juce::String id, name, kind;
+        PhraseOrigin origin;
+        int bars;
+        friend bool operator== (const Own&, const Own&) = default;
+    };
+
+    std::vector<Own> ownOf (const std::vector<PhraseInfo>& list)
+    {
+        std::vector<Own> out;
+        for (const auto& p : list)
+            if (p.origin == PhraseOrigin::kit)
+                out.push_back ({ p.id, p.name, p.kind, p.origin, p.bars });
+        return out;
+    }
+
+    // The drawer's way: phrases () asks the phrase thread, and once the generation moves on it gives the kit's list.
+    std::vector<PhraseInfo> listedPhrases (Controller& controller, const juce::String& kit)
+    {
+        (void) controller.phrases();
+        std::vector<PhraseInfo> list;
+        const auto ready = [&] {
+            list = controller.phrases();
+            return ! list.empty() && controller.currentKit() == kit;
+        };
+        REQUIRE (test::waitFor (ready, 10s));
+        return list;
+    }
+}
+
+TEST_CASE ("phrases () lists the current kit's library and own phrases and follows the kit", "[controller][phrases]")
 {
     // The four embedded kits, with no samples anywhere and a settings file of the test's own.
     UserSettings settings (juce::File::getSpecialLocation (juce::File::tempDirectory)
@@ -323,23 +359,31 @@ TEST_CASE ("phrases () lists the current kit's own phrases and follows the kit",
         controller.setUserSettingsForTesting (settings);
         REQUIRE (controller.currentKit() == "FUT01");
 
-        // FUT01's five phrase files by name, then its lead line: what the editor's fake lists too.
+        // FUT01's 64 library phrases, then its five phrase files by name and its lead line: what the editor's fake lists too.
         const auto first = controller.phrasesGeneration();
         CHECK (controller.phrasesGeneration() == first); // nothing changed, nothing moves on
-        const auto fut01 = controller.phrases();
-        REQUIRE (fut01.size() == 6);
-        CHECK (fut01.front() == PhraseInfo { "FUT01_Phrase_EPianoStabRhythm_2bars.mid", "E Piano Stab Rhythm", "kit", PhraseOrigin::kit, 2 });
-        CHECK (fut01[1] == PhraseInfo { "FUT01_Phrase_OrganRiff_4bars.mid", "Organ Riff", "kit", PhraseOrigin::kit, 4 });
-        CHECK (fut01.back() == PhraseInfo { "FUT01_Lead_ChromePluck_2bars.mid", "Lead Chrome Pluck", "kit", PhraseOrigin::kit, 2 });
-        CHECK (fut01 == test::FakeController::ownPhrases ("FUT01"));
+        const auto fut01 = listedPhrases (controller, "FUT01");
+        CHECK (controller.phrasesGeneration() > first); // the list came
+        REQUIRE (fut01.size() == 70);
+        CHECK (fut01.front().id == "hook-0");
+        CHECK (fut01.front().name == "Night Bus");
+        CHECK (fut01.front().origin == PhraseOrigin::library);
+        const auto own = ownOf (fut01);
+        REQUIRE (own.size() == 6);
+        CHECK (own.front() == Own { "FUT01_Phrase_EPianoStabRhythm_2bars.mid", "E Piano Stab Rhythm", "kit", PhraseOrigin::kit, 2 });
+        CHECK (own[1] == Own { "FUT01_Phrase_OrganRiff_4bars.mid", "Organ Riff", "kit", PhraseOrigin::kit, 4 });
+        CHECK (own.back() == Own { "FUT01_Lead_ChromePluck_2bars.mid", "Lead Chrome Pluck", "kit", PhraseOrigin::kit, 2 });
+        CHECK (own == ownOf (test::FakeController::ownPhrases ("FUT01")));
 
-        // Another kit: the generation moves on, and the list is the new kit's.
+        // Another kit: the generation moves on, and the list is the new kit's (nothing of FUT01's meanwhile).
         controller.selectKit ("FUT02");
         const auto second = controller.phrasesGeneration();
-        CHECK (second > first);
-        const auto fut02 = controller.phrases();
-        CHECK (fut02.size() == 5);
-        CHECK (fut02 == test::FakeController::ownPhrases ("FUT02"));
+        CHECK (second > controller.phrasesGeneration() - 1);
+        for (const auto& p : controller.phrases())
+            CHECK_FALSE (p.id.startsWith ("FUT01_"));
+        const auto fut02 = listedPhrases (controller, "FUT02");
+        CHECK (fut02.size() == 69);
+        CHECK (ownOf (fut02) == ownOf (test::FakeController::ownPhrases ("FUT02")));
 
         // Every kit, and back to one seen before.
         for (const auto* kit : { "FUT03", "FUT04", "FUT01" })
@@ -348,14 +392,123 @@ TEST_CASE ("phrases () lists the current kit's own phrases and follows the kit",
             const auto before = controller.phrasesGeneration();
             controller.selectKit (kit);
             CHECK (controller.phrasesGeneration() > before);
-            CHECK (controller.phrases() == test::FakeController::ownPhrases (kit));
+            CHECK (ownOf (listedPhrases (controller, kit)) == ownOf (test::FakeController::ownPhrases (kit)));
         }
 
         // An unknown kit changes nothing.
         const auto last = controller.phrasesGeneration();
         controller.selectKit ("NOPE");
         CHECK (controller.phrasesGeneration() == last);
-        CHECK (controller.phrases().size() == 6);
+        CHECK (controller.phrases().size() == 70);
+
+        // Keep: the star is kept in the person's settings, and the list says so.
+        const auto g = controller.phrasesGeneration();
+        controller.setPhraseKept ("hook-0", true);
+        REQUIRE (test::waitFor ([&] { return controller.phrasesGeneration() > g && controller.phrases().front().kept; }, 5s));
+        CHECK (settings.keptPhrases ("FUT01") == juce::StringArray { "hook-0" });
+    }
+    settings.file().deleteFile();
+}
+
+TEST_CASE ("auditionPhrase starts Preview when nothing plays, and stopPhraseAudition stops it", "[controller][phrases]")
+{
+    SyntheticPlugin plugin (twoKits ("PHC01", "PHC02"));
+    test::TestPlayHead head; // a host, stopped
+    plugin->setPlayHead (&head);
+    test::prepareWithKit (*plugin);
+    auto& controller = plugin->controller();
+    test::process (*plugin, 512);
+    REQUIRE_FALSE (controller.preview());
+
+    const auto ticket = controller.auditionPhrase ("PHC01_Phrase_Lead_2bars.mid");
+    REQUIRE (ticket > 0u);
+    CHECK (controller.preview());
+    CHECK (controller.phraseAuditionState().startedTransport);
+    REQUIRE (test::waitFor ([&] { test::process (*plugin, 512); return controller.phraseAuditionState().sounding == ticket; }, 10s));
+    CHECK (controller.transport().playing); // Preview plays the kit for it
+    CHECK (controller.phraseAuditionState().startedTransport);
+
+    controller.stopPhraseAudition();
+    CHECK_FALSE (controller.preview()); // the audition started it: Stop ends both
+    CHECK_FALSE (controller.phraseAuditionState().startedTransport);
+    CHECK (controller.phraseAuditionState().sounding == 0u);
+
+    // Preview the person turned on stays on.
+    controller.setPreview (true);
+    test::process (*plugin, 512);
+    REQUIRE (controller.auditionPhrase ("PHC01_Phrase_Lead_2bars.mid") > ticket);
+    CHECK_FALSE (controller.phraseAuditionState().startedTransport);
+    controller.stopPhraseAudition();
+    CHECK (controller.preview());
+
+    // A host that plays: no Preview.
+    controller.setPreview (false);
+    head.play (120.0);
+    test::process (*plugin, 512);
+    REQUIRE (controller.auditionPhrase ("PHC01_Phrase_Lead_2bars.mid") > 0u);
+    CHECK_FALSE (controller.preview());
+    CHECK_FALSE (controller.phraseAuditionState().startedTransport);
+    controller.stopPhraseAudition();
+    plugin->setPlayHead (nullptr);
+}
+
+TEST_CASE ("in the Standalone (no play head), the audition starts on the next chord line's bar", "[controller][phrases]")
+{
+    SyntheticPlugin plugin (twoKits ("PHS01", "PHS02"));
+    test::prepareWithKit (*plugin);
+    auto& controller = plugin->controller();
+    controller.setTransport (true, 120.0); // the Standalone plays, from bar 1
+    const int fiveQuarters = (int) std::lround (5.3 * 24000.0); // 5.3 quarters at 120 BPM, 48 kHz
+    test::render (*plugin, fiveQuarters, 512);
+
+    // The synthetic kit has no phrase spec: its chord line is one bar, so a phrase asked for in bar 2 starts at bar 3.
+    const auto ticket = controller.auditionPhrase ("PHS01_Phrase_Lead_2bars.mid");
+    REQUIRE (ticket > 0u);
+    CHECK_FALSE (controller.phraseAuditionState().startedTransport); // it was playing
+    REQUIRE (test::waitFor ([&] { test::process (*plugin, 512); return controller.phraseAuditionState().startsAtBar != 0; }, 10s));
+    auto state = controller.phraseAuditionState();
+    CHECK (state.startsAtBar == 3);
+    CHECK (state.waiting);
+    CHECK (state.sounding == 0u);
+
+    // At bar 3 it plays.
+    test::render (*plugin, 4 * 24000, 512);
+    state = controller.phraseAuditionState();
+    CHECK (state.sounding == ticket);
+    CHECK_FALSE (state.waiting);
+    CHECK (state.startsAtBar == 3);
+    controller.stopPhraseAudition();
+}
+
+TEST_CASE ("writeDragFile writes a generated phrase", "[controller][phrases][dragout]")
+{
+    UserSettings settings (juce::File::getSpecialLocation (juce::File::tempDirectory)
+                               .getNonexistentChildFile ("WubansiaTestSettings " + juce::Uuid().toString(), ".xml", false));
+    {
+        DragFolder drag;
+        PluginProcessor processor;
+        processor.setContentForTesting (std::make_unique<InstalledContent> (ContentLocator::Places {}, settings), "FUT01");
+        auto& controller = static_cast<ControllerImpl&> (processor.controller());
+        controller.setUserSettingsForTesting (settings);
+        controller.setDragFolderForTesting (drag.folder);
+
+        controller.setDragForSynths (false);
+        const auto plain = controller.writeDragFile ({ DragWhat::generatedPhrase, engine::Lane::kick, "hook-0" });
+        REQUIRE (plain.existsAsFile());
+        CHECK (plain.getFileName() == "FUT01 Alloy Signal 134 F#m 11A - Phrase Night Bus Hook 8 bars.mid");
+        juce::MemoryBlock bytes;
+        REQUIRE (plain.loadFileAsData (bytes));
+        const auto* entry = processor.kitService().catalog().find ("FUT01");
+        REQUIRE (entry != nullptr);
+        CHECK (util::sha256Hex (std::span<const std::uint8_t> (static_cast<const std::uint8_t*> (bytes.getData()), bytes.getSize()))
+               == entry->phraseRows.front().sha256);
+
+        controller.setDragForSynths (true);
+        const auto synths = controller.writeDragFile ({ DragWhat::generatedPhrase, engine::Lane::kick, "hook-0" });
+        CHECK (synths.getFileName() == "FUT01 Alloy Signal 134 F#m 11A - Phrase Night Bus Hook 8 bars (synths).mid");
+
+        CHECK (controller.writeDragFile ({ DragWhat::generatedPhrase, engine::Lane::kick, "hook-99999" }) == juce::File());
+        CHECK_FALSE (processor.phraseService().started()); // a drag needs no thread
     }
     settings.file().deleteFile();
 }

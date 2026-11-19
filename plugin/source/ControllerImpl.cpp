@@ -473,6 +473,25 @@ namespace wubansia
         return list;
     }
 
+    bool ControllerImpl::morePhrases (const juce::String&)
+    {
+        return false;
+    }
+
+    std::uint32_t ControllerImpl::auditionPhrase (const juce::String&)
+    {
+        return 0;
+    }
+
+    void ControllerImpl::stopPhraseAudition() {}
+
+    PhraseAuditionState ControllerImpl::phraseAuditionState() const
+    {
+        return {};
+    }
+
+    void ControllerImpl::setPhraseKept (const juce::String&, bool) {}
+
     std::uint64_t ControllerImpl::phrasesGeneration() const
     {
         // phrases () is the current kit's own: it moves on when the kit does, a project's included.

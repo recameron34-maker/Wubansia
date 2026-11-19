@@ -75,6 +75,18 @@ namespace wubansia
         // still holds until the process ends.
         bool setDragForSynths (bool on);
 
+        // The Phrases drawer (ADR 0031), per kit: phrases_next_<kit> (More's next seed, decimal; 1,000,000 when absent) and
+        // phrases_kept_<kit> (the starred phrase ids, separated by spaces). Unlike the other settings these read the file
+        // every time, under the lock, and each setter re-reads the attribute it changes before it writes: two processes
+        // (the Standalone and a DAW) then keep both people's stars, and the next seed never goes back.
+        std::uint64_t phrasesNextSeed (const juce::String& kit) const;
+        // Writes max (the file's, seed). False when the file couldn't be written.
+        bool setPhrasesNextSeed (const juce::String& kit, std::uint64_t seed);
+        juce::StringArray keptPhrases (const juce::String& kit) const;
+        // Adds id to the kit's kept phrases, or takes it out, as the file has them now. False when the file couldn't be
+        // written.
+        bool setPhraseKept (const juce::String& kit, const juce::String& id, bool kept);
+
     private:
         void loadLocked() const;
 

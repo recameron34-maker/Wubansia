@@ -1643,4 +1643,6 @@ namespace wubansia::editor
             g.drawFittedText (status, statusArea, juce::Justification::centredLeft, 2, 0.9f);
         }
     }
+
+    juce::String noSoundLine (bool, bool) { return {}; } // stub (step `phrases`, part B, commit 1)
 }

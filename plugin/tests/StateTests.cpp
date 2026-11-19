@@ -541,3 +541,82 @@ TEST_CASE ("instances are independent", "[state]")
     CHECK_THAT (masterGainDb (*b), WithinAbs (0.0, 1.0e-6));
     CHECK (b->settings().phrases == engine::PhraseMode::automatic);
 }
+
+// The Phrases drawer's settings (ADR 0031): More's next seed and the kept phrases, per kit, in the person's settings.xml,
+// never in a project's state.
+namespace
+{
+    juce::File phraseSettingsFile()
+    {
+        return juce::File::getSpecialLocation (juce::File::tempDirectory)
+            .getNonexistentChildFile ("WubansiaPhraseSettings " + juce::Uuid().toString(), ".xml", false);
+    }
+}
+
+TEST_CASE ("phrases_next_ and phrases_kept_ round trip and keep the other attributes", "[state][phrases]")
+{
+    const auto file = phraseSettingsFile();
+    {
+        juce::XmlElement root ("WubansiaSettings");
+        root.setAttribute ("future_option", "kept");
+        root.setAttribute ("drag_for_synths", "0");
+        REQUIRE (root.writeTo (file));
+    }
+    {
+        UserSettings s (file);
+        CHECK (s.phrasesNextSeed ("FUT01") == 1000000u); // absent: More's first seed
+        CHECK (s.keptPhrases ("FUT01").isEmpty());
+        CHECK (s.setPhrasesNextSeed ("FUT01", 1000123));
+        CHECK (s.setPhraseKept ("FUT01", "hook-5", true));
+        CHECK (s.setPhraseKept ("FUT01", "arp-1000007", true));
+        CHECK (s.setPhraseKept ("FUT01", "hook-5", true)); // once only
+        CHECK (s.setPhraseKept ("FUT02", "FUT02_Phrase_GlassMelody_4bars.mid", true));
+    }
+    const auto xml = juce::XmlDocument::parse (file);
+    REQUIRE (xml != nullptr);
+    CHECK (xml->getStringAttribute ("phrases_next_fut01") == "1000123");
+    CHECK (xml->getStringAttribute ("phrases_kept_fut01") == "hook-5 arp-1000007");
+    CHECK (xml->getStringAttribute ("phrases_kept_fut02") == "FUT02_Phrase_GlassMelody_4bars.mid");
+    CHECK (xml->getStringAttribute ("future_option") == "kept");
+    CHECK (xml->getStringAttribute ("drag_for_synths") == "0");
+
+    UserSettings again (file);
+    CHECK (again.phrasesNextSeed ("FUT01") == 1000123u);
+    CHECK (again.phrasesNextSeed ("FUT02") == 1000000u);
+    CHECK (again.keptPhrases ("FUT01") == juce::StringArray { "hook-5", "arp-1000007" });
+    CHECK_FALSE (again.dragForSynths());
+    CHECK (again.setPhraseKept ("FUT01", "hook-5", false));
+    CHECK (again.keptPhrases ("FUT01") == juce::StringArray { "arp-1000007" });
+    CHECK (again.setPhraseKept ("FUT01", "arp-1000007", false));
+    CHECK_FALSE (juce::XmlDocument::parse (file)->hasAttribute ("phrases_kept_fut01")); // none kept: the attribute goes
+    file.deleteFile();
+}
+
+TEST_CASE ("two UserSettings on one file keep both kept phrases, and the next seed never goes back", "[state][phrases]")
+{
+    // The Standalone and a DAW open at once: each reads the file once for its other settings, but the phrase settings
+    // are read again under the lock before each write.
+    const auto file = phraseSettingsFile();
+    UserSettings standalone (file), daw (file);
+    CHECK_FALSE (standalone.dragForSynths() != daw.dragForSynths()); // both have read the file
+    CHECK (standalone.setPhraseKept ("FUT01", "hook-1", true));
+    CHECK (daw.setPhraseKept ("FUT01", "stabs-4", true));
+    CHECK (standalone.keptPhrases ("FUT01") == juce::StringArray { "hook-1", "stabs-4" });
+    CHECK (daw.keptPhrases ("FUT01") == juce::StringArray { "hook-1", "stabs-4" });
+    CHECK (standalone.setPhraseKept ("FUT01", "hook-1", false));
+    CHECK (daw.keptPhrases ("FUT01") == juce::StringArray { "stabs-4" });
+
+    CHECK (standalone.setPhrasesNextSeed ("FUT01", 1000400));
+    CHECK (daw.setPhrasesNextSeed ("FUT01", 1000200)); // a press that started earlier ends later
+    CHECK (standalone.phrasesNextSeed ("FUT01") == 1000400u);
+    CHECK (daw.phrasesNextSeed ("FUT01") == 1000400u);
+
+    // And the other settings each wrote are still in the file.
+    CHECK (daw.setDragForSynths (false));
+    CHECK (standalone.setPhraseKept ("FUT03", "arp-2", true));
+    UserSettings third (file);
+    CHECK_FALSE (third.dragForSynths());
+    CHECK (third.keptPhrases ("FUT01") == juce::StringArray { "stabs-4" });
+    CHECK (third.keptPhrases ("FUT03") == juce::StringArray { "arp-2" });
+    file.deleteFile();
+}

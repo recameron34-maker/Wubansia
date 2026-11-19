@@ -66,7 +66,10 @@ namespace wubansia::editor
         int index() const noexcept { return tile; }
         bool isSelected() const noexcept { return selected; }
         bool hasFailed() const noexcept { return failed; }
-        juce::String detailText() const; // "From the kit · 2 bars"
+        juce::String detailText() const; // "Hook · 8 bars · steady, mid"; the kit's own "From the kit · 2 bars"
+        bool isPlaying() const noexcept { return playing; }
+        bool isWaiting() const noexcept { return waiting; }
+        juce::String badgeText() const; // "New" on More's phrases until played or dragged
 
         void paint (juce::Graphics&) override;
         void mouseEnter (const juce::MouseEvent&) override;
@@ -81,6 +84,7 @@ namespace wubansia::editor
         const int tile;
         PhraseInfo shownPhrase;
         bool selected = false, failed = false, hover = false, pressed = false, dragging = false;
+        bool playing = false, waiting = false;
     };
 
     // The tiles, in the drawer's scrolling grid: one stop for Tab. It takes the arrows (between tiles, each naming the tile
@@ -125,7 +129,8 @@ namespace wubansia::editor
         // What it shows, for tests.
         int numTiles() const noexcept { return tiles.size(); }
         int selectedTile() const noexcept { return selected; }
-        juce::String kitLine() const; // "FUT01 Alloy Signal · 134 BPM · F#m 11A"
+        juce::String kitLine() const; // "FUT01 Alloy Signal · over F#m9 – Bm9 · 134 BPM · F#m 11A"
+        juce::String shownFilter() const; // "all", a kind id, "kit" or "kept"
         juce::String statusText() const; // the footer's status line
         juce::String synthsText() const; // "For my synths: on", the drag strip's switch
 

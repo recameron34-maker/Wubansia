@@ -535,4 +535,8 @@ namespace wubansia::editor
         g.setColour (forSynths ? colours::text.withAlpha (0.85f) : colours::textDim);
         g.drawText (synthsText(), synthsArea.toFloat(), juce::Justification::centredRight, false);
     }
+
+    // Stubs (step `phrases`, part B, commit 1).
+    juce::String PhraseTile::badgeText() const { return {}; }
+    juce::String PhrasesPanel::shownFilter() const { return "kit"; }
 }

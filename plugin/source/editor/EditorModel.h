@@ -48,6 +48,7 @@ namespace wubansia::editor
         AuditionState audition; // the Samples drawer's last audition (ADR 0024)
         DrumKitStatus drumKit; // the Drum kit button's (ADR 0030)
         std::uint64_t phrasesGeneration = 0; // the Phrases drawer's list (ADR 0031): asked again only when this moves on
+        PhraseAuditionState phraseAudition; // the Phrases drawer's audition
 
         // From the parameters.
         engine::PlayMode playMode = engine::PlayMode::loop;

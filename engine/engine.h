@@ -125,6 +125,7 @@ namespace wubansia::engine
         std::atomic<std::int32_t> kitIndex { -1 }; // the adopted Kit's KitInfo::index; -1 with no Kit
         std::atomic<std::uint32_t> phraseSounding { 0 }; // the ticket of the phrase clip in hand (waiting or sounding); 0: none
         std::atomic<std::int64_t> phraseStartTicks { -1 }; // 960-PPQ ticks of the host timeline where its bar 1 plays; -1: none
+        std::atomic<std::int64_t> phraseTicks { 0 }; // 960-PPQ ticks from that bar 1 to the block's end: negative while it waits; 0 with no clip
 
         static_assert (std::atomic<double>::is_always_lock_free && std::atomic<float>::is_always_lock_free);
     };
@@ -180,6 +181,8 @@ namespace wubansia::engine
         }
         // Any thread: clips with a ticket <= this fade out (10 ms) or never play.
         void stopPhrasesUpTo (std::uint32_t ticket) noexcept { phrases_.stopUpTo (ticket); }
+        // Any thread: an offer waits for the audio thread to take it.
+        bool phraseOffered() const noexcept { return phrases_.pending.pending(); }
         // Audio thread, the plugin's processBlockBypassed: the offer goes back unplayed.
         void dropPhraseOffer() noexcept;
         // Any thread: blocks process () has run. The phrase thread watches it to tell a host that runs no audio.
