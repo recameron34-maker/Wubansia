@@ -155,6 +155,12 @@ namespace wubansia::engine
         std::int64_t sampleIndex() const noexcept { return absolute_; }
         int fadingKits() const noexcept { return fadingCount_; }
 
+        // The Phrases drawer's overlay (ADR 0031): the hand-off it takes clips from (the Engine's; nullptr: none).
+        void setPhrases (PhraseHandoff* phrases) noexcept { phrases_ = phrases; }
+        // Audio thread, a bypassed block: the offer goes back unplayed.
+        void dropPhraseOffer() noexcept {}
+        const Scheduler& overlay() const noexcept { return overlay_; }
+
     private:
         // The scheduler's Sink: sequenced notes, controllers, duck keys, stops.
         struct SequencerSink
@@ -501,6 +507,8 @@ namespace wubansia::engine
         Voices voices_;
         Mixer mixer_;
         Scheduler scheduler_;
+        Scheduler overlay_; // the phrase clip's
+        PhraseHandoff* phrases_ = nullptr;
         MidiRouter router_;
 
         double rate_ = 48000.0;

@@ -73,7 +73,8 @@ namespace wubansia::engine
     // Who started a note: the timeline or MIDI in. noteOff (), releaseAll () and fadeOut () act on one.
     enum class Source : std::uint8_t {
         sequencer,
-        live
+        live,
+        audition // the Phrases drawer's overlay (ADR 0031): a sequenced note of its own, stopped on its own
     };
 
     // One note-on, resolved by the engine down to an instrument.

@@ -21,6 +21,9 @@ namespace wubansia::cli
     // groovecore metrics [args]: the generator metrics on MIDI files (cli/metrics_cmd.cpp).
     int runMetrics (std::span<const std::string_view> args, std::ostream& out, std::ostream& err);
 
+    // groovecore phrases [args]: a kit's phrase library, written, checked or as MIDI files (cli/phrases_cmd.cpp).
+    int runPhrases (std::span<const std::string_view> args, std::ostream& out, std::ostream& err);
+
     // groovecore render [args]: a kit through the engine into a WAV (cli/render.cpp).
     int runRender (std::span<const std::string_view> args, std::ostream& out, std::ostream& err);
 }

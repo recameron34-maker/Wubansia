@@ -47,6 +47,22 @@ if(WUBANSIA_BUILD_TESTS)
     _groovecore_test("gen writes 16 bars of FUT01 as one region" 0 stdout "bar 1    01_intro_16bars\\.mid\nwrote 6 files under "
         gen --kit FUT01 --seed 1 --bars 16 --content "${_content}" --out "${_gen_out}/16bars")
 
+    # groovecore phrases: its options and refusals, the committed libraries' check, and the files it writes.
+    set(_phrases_out "${CMAKE_CURRENT_BINARY_DIR}/phrases-test")
+    _groovecore_test("phrases --help" 0 stdout "^Usage: groovecore phrases --kit <ID>" phrases --help)
+    _groovecore_test("phrases without --kit is a usage error" 2 stderr "--kit is required" phrases --check)
+    _groovecore_test("phrases: an unknown kind is a usage error" 2 stderr "unknown kind \"chords\""
+        phrases --kit FUT01 --kind chords --content "${_content}" --out "${_phrases_out}/refused")
+    foreach(_kit FUT01 FUT02 FUT03 FUT04)
+        _groovecore_test("phrases --check passes on ${_kit}" 0 stdout "${_kit}_phrase_library\\.json is up to date"
+            phrases --kit ${_kit} --check --content "${_content}")
+    endforeach()
+    add_test(NAME "groovecore: phrases --out writes 64 files"
+        COMMAND ${CMAKE_COMMAND} -DCOUNT=64 "-DDIR=${_phrases_out}/library/FUT01" "-DCLEAN=${_phrases_out}/library"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/count.cmake" -- $<TARGET_FILE:groovecore> phrases --kit FUT01 --content "${_content}"
+            --out "${_phrases_out}/library")
+    set_tests_properties("groovecore: phrases --out writes 64 files" PROPERTIES LABELS cli)
+
     # The generator snapshots through groovecore itself: every file gen writes for the manifest's kits
     # and seeds, with its SHA-256 (cli/tests/snapshots.cmake). The in-memory check, and how to update
     # the manifest, is core/tests/test_gen_snapshots.cpp.

@@ -56,6 +56,9 @@ namespace wubansia::engine
         // > 0: the file is a loop of this many 960-PPQ ticks (15360: the 4-bar loops); positions
         // wrap and notes cross the end. 0: a song, as long as the file (its tracks' last end).
         std::int64_t loopTicks = 0;
+        // false skips steps 8 and 10 (annotatePhrases, buildSliceThrough): no note is a phrase's, so a file whose
+        // notes land on a stem's cells plays the multisample, as MIDI in does (the Phrases drawer's clips, ADR 0031).
+        bool phrases = true;
     };
 
     // The file's ticks must be 960 per quarter, the content's PPQ. The error names what is wrong:

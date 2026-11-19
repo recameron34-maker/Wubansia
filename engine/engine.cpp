@@ -14,7 +14,10 @@ namespace wubansia::engine
         BlockLoop<Sampler> loop;
     };
 
-    Engine::Engine() : impl (std::make_unique<Impl>()) {}
+    Engine::Engine() : impl (std::make_unique<Impl>())
+    {
+        impl->loop.setPhrases (&phrases_);
+    }
 
     Engine::~Engine() = default;
 
@@ -32,6 +35,11 @@ namespace wubansia::engine
         const MidiEvent* midi, int numMidi) noexcept
     {
         impl->loop.process (out, numOutputs, numSamples, transport, controls, midi, numMidi, pending, retired, telemetry_);
+    }
+
+    void Engine::dropPhraseOffer() noexcept
+    {
+        impl->loop.dropPhraseOffer();
     }
 
     int Engine::latencySamples() const noexcept
