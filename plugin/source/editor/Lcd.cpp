@@ -282,4 +282,8 @@ namespace wubansia::editor
             g.drawFittedText ("Plays the kit while\nthe host is stopped", area.toNearestInt(), juce::Justification::centredLeft, 3, 0.9f);
         }
     }
+
+    Lcd::GridView Lcd::grid() const { return {}; }
+    std::vector<Lcd::Satellite> Lcd::satellites() const { return {}; }
+    juce::StringArray Lcd::orbitLines() const { return {}; }
 }

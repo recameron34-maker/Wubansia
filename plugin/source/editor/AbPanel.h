@@ -19,6 +19,13 @@ namespace wubansia::editor
 
         AbSwitch& abSwitch (int index) noexcept { return *switches[(std::size_t) index]; }
 
+        // What a switch's row shows (ADR 0032), as drawn: its title (or row label) and its two sides.
+        struct Display
+        {
+            juce::String title, a, b;
+        };
+        Display display (int index) const;
+
     private:
         std::array<std::unique_ptr<AbSwitch>, engine::kAbSwitches> switches;
         std::array<juce::Rectangle<int>, engine::kAbSwitches> rows;

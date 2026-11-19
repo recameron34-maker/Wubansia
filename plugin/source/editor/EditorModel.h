@@ -8,6 +8,7 @@
 #include <juce_graphics/juce_graphics.h>
 
 #include <cmath>
+#include <memory>
 #include <vector>
 
 namespace wubansia::editor
@@ -16,6 +17,9 @@ namespace wubansia::editor
     // manifests' default tolerance). The engine's own answer, Snapshot::phraseRecorded, wins while
     // it plays; this predicts what the next play does while stopped.
     inline constexpr double kPhraseTolerance = 0.02;
+
+    // A 16th of a step grid (ADR 0032): nothing, a note held from before, an onset (velocity under 100), an accent.
+    enum class StepCell : std::uint8_t { off, held, hit, accent };
 
     inline constexpr std::array<const char*, engine::kLanes> kLaneNames {
         "Kick", "Snare", "Hats", "Perc", "Bass", "Lead", "Chords", "Vox", "Accents", "FX"
@@ -56,6 +60,11 @@ namespace wubansia::editor
         std::uint32_t mutedLanes = 0; // bit per lane whose mute is on
 
         juce::Colour accent;
+
+        // The looks (ADR 0032): the play mode's notes, the 16th playing in them (-1 stopped) and the chord there.
+        std::shared_ptr<const PatternView> pattern;
+        int patternStep = -1;
+        juce::String chord;
 
         bool hasKit() const noexcept { return currentIndex >= 0; }
 

@@ -7,9 +7,11 @@
 // files in $WUBANSIA_SCREENSHOTS.
 
 #include "PluginEditor.h"
+#include "editor/DrawnText.h"
 #include "content/EmbeddedContent.h"
 #include "dragout/DragFiles.h"
 #include "editor/ExternalDrag.h"
+#include "helpers/editor_test_helpers.h"
 #include "helpers/fake_controller.h"
 #include "helpers/test_processor.h"
 #include "services/KitCatalog.h"
@@ -48,156 +50,10 @@ namespace editor = wubansia::editor;
 namespace engine = wubansia::engine;
 namespace ids = wubansia::ParameterIds;
 
+using namespace wubansia::test::ui;
+
 namespace
 {
-    // A processor whose editor talks to a FakeController.
-    struct Rig
-    {
-        FakeController controller;
-        TestProcessor processor { [this] (TestProcessor& p) { return new PluginEditor (p, controller); } };
-    };
-
-    // Creates the editor as a host does (no native window), runs the code, then deletes it, however the code
-    // ends: a failed REQUIRE throws, and an editor left behind would go on ticking against a controller that's gone.
-    void withEditor (TestProcessor& processor, const std::function<void (PluginEditor&)>& code)
-    {
-        auto* created = processor.createEditorAndMakeActive();
-        REQUIRE (created != nullptr);
-        struct Closer
-        {
-            TestProcessor& owner;
-            juce::AudioProcessorEditor* opened;
-
-            ~Closer()
-            {
-                owner.editorBeingDeleted (opened);
-                delete opened;
-            }
-        } closer { processor, created };
-        auto* editorComponent = dynamic_cast<PluginEditor*> (created);
-        REQUIRE (editorComponent != nullptr);
-        code (*editorComponent);
-    }
-
-    void withEditor (Rig& rig, const std::function<void (PluginEditor&)>& code) { withEditor (rig.processor, code); }
-
-    void collectById (juce::Component& root, const juce::String& id, std::vector<juce::Component*>& found)
-    {
-        for (auto* child : root.getChildren())
-        {
-            if (child->getComponentID() == id)
-                found.push_back (child);
-            collectById (*child, id, found);
-        }
-    }
-
-    std::vector<juce::Component*> findAll (juce::Component& root, const juce::String& id)
-    {
-        std::vector<juce::Component*> found;
-        collectById (root, id, found);
-        return found;
-    }
-
-    template <class T>
-    T& get (juce::Component& root, const juce::String& id)
-    {
-        const auto found = findAll (root, id);
-        INFO ("component " << id);
-        REQUIRE (found.size() == 1);
-        auto* typed = dynamic_cast<T*> (found.front());
-        REQUIRE (typed != nullptr);
-        return *typed;
-    }
-
-    // A mouse event at a point in the component, as the left button reports it.
-    juce::MouseEvent mouseAt (juce::Component& component, juce::Point<float> position, juce::Point<float> downAt, bool dragged = false)
-    {
-        const auto now = juce::Time::getCurrentTime();
-        return { juce::Desktop::getInstance().getMainMouseSource(), position, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier),
-            juce::MouseInputSource::defaultPressure, juce::MouseInputSource::defaultOrientation, juce::MouseInputSource::defaultRotation,
-            juce::MouseInputSource::defaultTiltX, juce::MouseInputSource::defaultTiltY, &component, &component, now, downAt, now, 1, dragged };
-    }
-
-    // A click: down and up at one point.
-    void click (juce::Component& component, juce::Point<float> at)
-    {
-        component.mouseDown (mouseAt (component, at, at));
-        component.mouseUp (mouseAt (component, at, at));
-    }
-
-    void click (juce::Component& component) { click (component, component.getLocalBounds().toFloat().getCentre()); }
-
-    // A vertical drag on a knob or fader: down at its centre, up by `pixels`, release.
-    void dragUp (juce::Component& component, float pixels)
-    {
-        const auto start = component.getLocalBounds().toFloat().getCentre();
-        component.mouseDown (mouseAt (component, start, start));
-        for (int step = 1; step <= 4; ++step)
-            component.mouseDrag (mouseAt (component, start.translated (0.0f, -pixels * (float) step / 4.0f), start, true));
-        component.mouseUp (mouseAt (component, start.translated (0.0f, -pixels), start, true));
-    }
-
-    // What the host hears: gestures and values, in order.
-    struct GestureLog : juce::AudioProcessorListener
-    {
-        struct Event
-        {
-            char type; // 'b' begin, 'v' value, 'e' end
-            int index;
-            float value;
-        };
-        std::vector<Event> events;
-
-        void audioProcessorParameterChanged (juce::AudioProcessor*, int index, float value) override { events.push_back ({ 'v', index, value }); }
-        void audioProcessorChanged (juce::AudioProcessor*, const ChangeDetails&) override {}
-        void audioProcessorParameterChangeGestureBegin (juce::AudioProcessor*, int index) override { events.push_back ({ 'b', index, 0.0f }); }
-        void audioProcessorParameterChangeGestureEnd (juce::AudioProcessor*, int index) override { events.push_back ({ 'e', index, 0.0f }); }
-
-        // Every value change of the parameter came between a begin and an end, and there was one.
-        bool changedOnlyInsideGestures (int index) const
-        {
-            auto open = false, changed = false;
-            for (const auto& e : events)
-            {
-                if (e.index != index)
-                    continue;
-                if (e.type == 'b')
-                    open = true;
-                else if (e.type == 'e')
-                    open = false;
-                else if (! open)
-                    return false;
-                else
-                    changed = true;
-            }
-            return changed && ! open;
-        }
-    };
-
-    // The plain value a parameter shows on its control.
-    float shownValue (juce::Component& control, juce::RangedAudioParameter& parameter)
-    {
-        if (auto* slider = dynamic_cast<juce::Slider*> (&control))
-            return (float) slider->getValue();
-        if (auto* button = dynamic_cast<juce::Button*> (&control))
-            return button->getToggleState() ? 1.0f : 0.0f;
-        if (auto* box = dynamic_cast<juce::ComboBox*> (&control))
-            return parameter.getNormalisableRange().start + (float) box->getSelectedItemIndex();
-        return std::nanf ("");
-    }
-
-    // A value other than the parameter's default: for the "set from the current value" checks.
-    float otherValue (juce::RangedAudioParameter& parameter)
-    {
-        const auto id = parameter.getParameterID();
-        const auto def = parameter.convertFrom0to1 (parameter.getDefaultValue());
-        if (id.endsWith ("_level") || id == ids::masterGain)
-            return -12.5f;
-        if (id == ids::space || id == ids::echo || id == ids::pump)
-            return 150.0f;
-        return std::fmod (def + 1.0f, (float) parameter.getNumSteps());
-    }
-
     editor::LaneStrip& lane (juce::Component& root, engine::Lane l)
     {
         return get<editor::LaneStrip> (root, "lane_" + juce::String (std::string (engine::laneId (l))));
@@ -345,6 +201,15 @@ TEST_CASE ("every parameter has exactly one control whose component ID is its ID
 {
     Rig rig;
 
+    // In every look (ADR 0032): deep glass's macros are bars and machine room's faders lie flat.
+    rig.controller.kitCards[1].content.state = wubansia::ContentState::ready;
+    addKit (rig.controller, "FUT03", "Glass Current", "garage-house / deep tech house", "G minor", "6A", 128, {}, 0, { "", "Rubber Clean", "" },
+        { "", "Rubber Warm", "" });
+    addKit (rig.controller, "FUT04", "Furnace Code", "dark industrial / techno", "E minor", "9A", 136, {}, 0, { "", "Acid Clean", "" },
+        { "", "Acid Warm", "" });
+
+    for (const juce::String kit : { "FUT01", "FUT02", "FUT03", "FUT04" })
+    {
     // Move every parameter off its default first, so the controls must show the current value.
     for (auto* base : rig.processor.getParameters())
     {
@@ -352,9 +217,11 @@ TEST_CASE ("every parameter has exactly one control whose component ID is its ID
         REQUIRE (parameter != nullptr);
         parameter->setValueNotifyingHost (parameter->convertTo0to1 (otherValue (*parameter)));
     }
-
     withEditor (rig, [&] (PluginEditor& editor)
         {
+            INFO (kit);
+            rig.controller.selectKit (kit);
+            editor.tick();
             REQUIRE (rig.processor.getParameters().size() == 30);
             for (auto* base : rig.processor.getParameters())
             {
@@ -365,6 +232,13 @@ TEST_CASE ("every parameter has exactly one control whose component ID is its ID
                 const auto controls = findAll (editor, id);
                 REQUIRE (controls.size() == 1);
                 auto& control = *controls.front();
+                if (kit != "FUT01" && (id == ids::kickAb || id == ids::stabAb))
+                {
+                    // A switch the kit lacks is out of sight and disabled; its parameter is still there for the host.
+                    CHECK_FALSE (control.isVisible());
+                    CHECK_FALSE (control.isEnabled());
+                    continue;
+                }
                 CHECK (control.isEnabled());
                 CHECK_THAT (shownValue (control, *parameter), WithinAbs (otherValue (*parameter), 1.0e-3));
 
@@ -373,7 +247,7 @@ TEST_CASE ("every parameter has exactly one control whose component ID is its ID
                 rig.processor.addListener (&log);
                 const auto before = parameter->getValue();
                 if (auto* slider = dynamic_cast<juce::Slider*> (&control))
-                    dragUp (*slider, 40.0f);
+                    dragAlong (*slider, 40.0f);
                 else if (auto* ab = dynamic_cast<editor::AbSwitch*> (&control))
                     click (*ab, { ab->getToggleState() ? 4.0f : (float) ab->getWidth() - 4.0f, (float) ab->getHeight() * 0.5f });
                 else if (auto* box = dynamic_cast<juce::ComboBox*> (&control))
@@ -390,6 +264,7 @@ TEST_CASE ("every parameter has exactly one control whose component ID is its ID
                 CHECK_THAT (shownValue (control, *parameter), WithinAbs (parameter->convertFrom0to1 (parameter->getValue()), 1.0e-3));
             }
         });
+    }
 }
 
 TEST_CASE ("a right-click opens the parameter's menu and never moves or toggles the control", "[editor]")
@@ -535,18 +410,20 @@ TEST_CASE ("kit cards select kits, and A/B switches follow the kit", "[editor]")
             CHECK (fut02.isSelected());
             CHECK_FALSE (fut01.isSelected());
 
-            // FUT02 has only a bass alternative.
+            // FUT02 has only a bass alternative: the other two switches leave the panel (ADR 0032).
             CHECK_FALSE (get<editor::AbSwitch> (editor, ids::kickAb).isEnabled());
+            CHECK_FALSE (get<editor::AbSwitch> (editor, ids::kickAb).isVisible());
             CHECK (get<editor::AbSwitch> (editor, ids::bassAb).isEnabled());
+            CHECK (get<editor::AbSwitch> (editor, ids::bassAb).isVisible());
             CHECK_FALSE (get<editor::AbSwitch> (editor, ids::stabAb).isEnabled());
+            CHECK_FALSE (get<editor::AbSwitch> (editor, ids::stabAb).isVisible());
             CHECK (get<editor::AbSwitch> (editor, ids::bassAb).labelA() == "Roll Bass Clean");
             CHECK (get<editor::AbSwitch> (editor, ids::bassAb).labelB() == "Roll Bass Warm");
-            CHECK (editor.model().accent == editor::accentForKit ("FUT02"));
-            CHECK (editor.model().accent != editor::accentForKit ("FUT01"));
+            CHECK (editor.skin().id == editor::SkinId::missionHud); // and its look
         });
 }
 
-TEST_CASE ("every kit card reads its direction in full at 100 %", "[editor]")
+TEST_CASE ("the logo reads the kit's direction in full in every look", "[editor]")
 {
     Rig rig;
     addKit (rig.controller, "FUT03", "Glass Current", "garage-house / deep tech house", "G minor", "6A", 128, {}, 0, {}, {});
@@ -558,10 +435,20 @@ TEST_CASE ("every kit card reads its direction in full at 100 %", "[editor]")
             for (const auto* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
             {
                 INFO (id);
-                auto& card = get<editor::KitPanel::Card> (editor, "kit_" + juce::String (id));
-                const auto font = card.directionFont();
-                CHECK (juce::GlyphArrangement::getStringWidth (font, card.card().direction) <= card.directionArea().getWidth());
-                CHECK (font.getHeight() >= 8.0f);
+                rig.controller.selectKit (id);
+                editor.tick();
+                auto& logo = dynamic_cast<editor::DrawnTextSource&> (get<juce::Component> (editor, "backdrop"));
+                const auto& style = editor.skin().type.subtitle;
+                auto found = false;
+                for (const auto& t : logo.drawnText())
+                    if (t.text == style.apply (editor.model().kit.direction))
+                    {
+                        found = true;
+                        CHECK_FALSE (t.cut);
+                        CHECK (juce::GlyphArrangement::getStringWidth (t.font, t.text) <= t.area.getWidth() + 0.5f);
+                        CHECK (t.font.getHeightInPoints() >= style.minPx - 0.01f);
+                    }
+                CHECK (found);
             }
         });
 }

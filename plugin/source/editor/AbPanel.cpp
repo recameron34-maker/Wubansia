@@ -52,4 +52,6 @@ namespace wubansia::editor
             draw::engraved (g, rowNames[i], rows[i].toFloat().withWidth (42.0f), juce::Justification::centredLeft, 9.5f,
                 switches[i]->isEnabled() ? colours::engraved : colours::textFaint);
     }
+
+    AbPanel::Display AbPanel::display (int) const { return {}; }
 }

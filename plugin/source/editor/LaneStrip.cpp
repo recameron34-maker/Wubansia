@@ -162,4 +162,8 @@ namespace wubansia::editor
         g.setColour (muted ? colours::textFaint : colours::textDim);
         g.drawText (valueText, valueArea.toFloat(), juce::Justification::centred, false);
     }
+
+    juce::String LaneStrip::secondLine() const { return {}; }
+    std::array<StepCell, 16> LaneStrip::stepCells() const { return {}; }
+    int LaneStrip::playingCell() const { return -2; }
 }

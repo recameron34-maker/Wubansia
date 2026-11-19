@@ -29,8 +29,43 @@ namespace wubansia::editor
         };
         const Lines& lines() const noexcept { return shown; }
 
+        // The looks' displays (ADR 0032), what each draws, for the tests.
+        struct GridView // night bus: the kick, snare and bass lanes' two-bar page holding the playhead
+        {
+            int page = 0; // its first 16th
+            int playing = -1; // the 16th playing; -1 stopped
+            std::array<std::array<StepCell, 32>, 3> rows {};
+        };
+        GridView grid() const;
+
+        struct Satellite // mission HUD: a lead note of the playing bar
+        {
+            enum class State { played, sounding, upcoming };
+            int step = 0; // its 16th in the bar
+            int ring = 0; // 0 inner
+            int key = 0;
+            State state = State::upcoming;
+        };
+        std::vector<Satellite> satellites() const;
+        juce::StringArray orbitLines() const;
+
+        struct LevelHistory // deep glass: the drums' and the music's level, in dB, oldest first, one per tick
+        {
+            std::vector<float> drums, music;
+            std::vector<bool> kicks;
+        };
+        const LevelHistory& history() const noexcept { return levels; }
+
+        struct ScopeTrace // machine room: 556 columns each of the output and its low band, in px from the centre line
+        {
+            std::vector<float> out, sub;
+        };
+        const ScopeTrace& scopeTrace() const noexcept { return trace; }
+
     private:
         Lines shown;
+        LevelHistory levels;
+        ScopeTrace trace;
     };
 
     class TransportPanel : public juce::Component

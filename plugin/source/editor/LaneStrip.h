@@ -26,6 +26,12 @@ namespace wubansia::editor
         float ledLevel() const noexcept { return led; }
         float meterDb() const noexcept { return peakDb; }
 
+        // The looks (ADR 0032): what the second line under the name says ("B · REC", "CH 2 · REC"), and machine room's
+        // 16 cells of the playing bar with the one playing (-1 stopped).
+        juce::String secondLine() const;
+        std::array<StepCell, 16> stepCells() const;
+        int playingCell() const;
+
         Fader level; // <lane>_level
         PadButton mute; // <lane>_mute
         DragChip chip;

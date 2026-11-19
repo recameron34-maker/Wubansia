@@ -466,4 +466,10 @@ namespace wubansia
         draw::engraved (g, "Groovebox" + editor::middleDot() + "v" + juce::String (WUBANSIA_VERSION), logoArea.withTrimmedTop (3.0f),
             juce::Justification::topLeft, 8.5f);
     }
+
+    const editor::Skin& PluginEditor::skin() const noexcept { return editor::skinFor (editor::SkinId::nightBus); }
+
+    int PluginEditor::backdropRenders() const noexcept { return 0; }
+
+    void PluginEditor::setFocusOverrideForTesting (juce::Component*) {}
 }

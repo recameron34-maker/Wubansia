@@ -20,6 +20,7 @@
 #include "editor/PollingAttachment.h"
 #include "editor/SamplesPanel.h"
 #include "editor/SectionStrip.h"
+#include "editor/skin/Skin.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -53,6 +54,12 @@ namespace wubansia
         static constexpr std::array<int, 5> zoomPercents { 100, 125, 150, 175, 200 };
 
         const editor::EditorModel& model() const noexcept { return state; }
+
+        // The looks (ADR 0032): the one the editor wears now, how many times its backdrop has been drawn, and, for
+        // tests, a control to ring as if it had the keyboard focus (nullptr: the real focus).
+        const editor::Skin& skin() const noexcept;
+        int backdropRenders() const noexcept;
+        void setFocusOverrideForTesting (juce::Component*);
 
         // For tests: whether the editor runs in Logic Pro (juce::PluginHostType, asked once when it opens).
         void setLogicHostForTesting (bool isLogic) noexcept { logicHost = isLogic; }
