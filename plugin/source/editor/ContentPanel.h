@@ -11,9 +11,10 @@
 
 namespace wubansia::editor
 {
-    class ContentPanel : public juce::Component
+    class ContentPanel : public juce::Component, public DrawnTextSource
     {
     public:
+        std::vector<DrawnText> drawnText() const override; // ADR 0032
         enum class Platform { macOS, windowsOS, linuxOS };
 
         explicit ContentPanel (Controller&);

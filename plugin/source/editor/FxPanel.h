@@ -5,10 +5,11 @@
 
 #include "Controls.h"
 #include "EditorModel.h"
+#include "editor/DrawnText.h"
 
 namespace wubansia::editor
 {
-    class FxPanel : public juce::Component
+    class FxPanel : public juce::Component, public DrawnTextSource
     {
     public:
         FxPanel();
@@ -16,6 +17,8 @@ namespace wubansia::editor
         void update (const EditorModel&);
         void resized() override;
         void paint (juce::Graphics&) override;
+        std::vector<DrawnText> drawnText() const override;
+        void lookAndFeelChanged() override;
 
         Knob space, echo, pump; // space, echo, pump
         LedButton club { "Club master" }; // club_master
@@ -24,16 +27,12 @@ namespace wubansia::editor
         float shownGainReductionDb() const noexcept { return grDb; }
 
     private:
-        struct Column
-        {
-            juce::Rectangle<int> label, value;
-        };
-        std::array<Column, 4> columns; // space, echo, pump, output
-        juce::Rectangle<int> clubArea, grArea, grText;
-        std::array<juce::String, 4> values;
+        juce::Rectangle<float> nameArea (int column) const;
+        juce::Rectangle<float> valueArea (int column) const;
+
+        std::array<juce::String, 5> values; // space, echo, pump, club, output
         float grDb = 0.0f, grHoldDb = 0.0f;
         int grHoldTicks = 0;
         bool clubOn = true;
-        juce::Colour accent;
     };
 }

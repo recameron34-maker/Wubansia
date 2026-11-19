@@ -1,5 +1,7 @@
 #include "LookAndFeel.h"
 
+#include "editor/skin/Paint.h"
+
 #include <cmath>
 
 namespace wubansia::editor
@@ -497,7 +499,7 @@ namespace wubansia::editor
         c.focus = c.accent;
         s.type.body = { FaceId::platform, 13.0f };
         s.type.bodyStrong = { FaceId::platform, 13.0f };
-        s.type.path = { FaceId::platform, 11.5f, 0.0f, false, 0.0f, true };
+        s.type.path.face = FaceId::platform;
         s.display = DisplayKind::lcd;
         s.lane = LaneKind::plate;
         s.texture = Texture::brushed;
@@ -505,41 +507,45 @@ namespace wubansia::editor
     }
 
     LookAndFeel::LookAndFeel()
-        : current (litHardwareSkin ({}))
+        : current (skinFor (SkinId::nightBus))
     {
-        setColour (juce::ResizableWindow::backgroundColourId, current.colours.face);
-        setColour (juce::Label::textColourId, current.colours.text);
-        setColour (juce::ComboBox::textColourId, current.colours.text);
-        setColour (juce::ComboBox::backgroundColourId, current.colours.well);
-        setColour (juce::ComboBox::outlineColourId, juce::Colour (0xff343941));
-        setColour (juce::ComboBox::arrowColourId, current.colours.dim);
-        setColour (juce::PopupMenu::backgroundColourId, current.colours.lane);
-        setColour (juce::PopupMenu::textColourId, current.colours.text);
-        setColour (juce::PopupMenu::highlightedTextColourId, current.colours.text);
-        setColour (juce::TooltipWindow::textColourId, current.colours.text);
-        setColour (juce::TooltipWindow::backgroundColourId, current.colours.lane);
-        setColour (juce::TooltipWindow::outlineColourId, juce::Colour (0xff3a3f48));
-        // Scroll bars (the Samples drawer's list; a Viewport has no colours of its own): a slim grey thumb on no track.
-        setColour (juce::ScrollBar::backgroundColourId, juce::Colours::transparentBlack);
-        setColour (juce::ScrollBar::trackColourId, current.colours.well);
-        setColour (juce::ScrollBar::thumbColourId, juce::Colour (0xff4b515b));
         setSkin (current);
     }
 
     void LookAndFeel::setSkin (const Skin& skin)
     {
         current = skin;
-        const auto colour = current.colours.accent;
-        setColour (juce::PopupMenu::highlightedBackgroundColourId, colour.withAlpha (0.22f));
-        setColour (juce::Slider::thumbColourId, colour);
-        setColour (juce::Slider::rotarySliderFillColourId, colour);
+        const auto& c = current.colours;
+        const auto panel = over (c.panel, c.face);
+        setColour (juce::ResizableWindow::backgroundColourId, c.face);
+        setColour (juce::Label::textColourId, c.text);
+        setColour (juce::ComboBox::textColourId, c.text);
+        setColour (juce::ComboBox::backgroundColourId, over (c.well, c.face));
+        setColour (juce::ComboBox::outlineColourId, c.controlEdge);
+        setColour (juce::ComboBox::arrowColourId, c.dim);
+        setColour (juce::PopupMenu::backgroundColourId, panel);
+        setColour (juce::PopupMenu::textColourId, c.text);
+        setColour (juce::PopupMenu::highlightedTextColourId, c.text);
+        setColour (juce::PopupMenu::highlightedBackgroundColourId, c.accentTint);
+        setColour (juce::TooltipWindow::textColourId, c.text);
+        setColour (juce::TooltipWindow::backgroundColourId, panel);
+        setColour (juce::TooltipWindow::outlineColourId, c.panelEdge);
+        // Scroll bars (the drawers' lists; a Viewport has no colours of its own): a slim thumb on no track.
+        setColour (juce::ScrollBar::backgroundColourId, juce::Colours::transparentBlack);
+        setColour (juce::ScrollBar::trackColourId, over (c.well, c.face));
+        setColour (juce::ScrollBar::thumbColourId, c.controlEdge);
+        setColour (juce::Slider::thumbColourId, c.accent);
+        setColour (juce::Slider::rotarySliderFillColourId, c.accent);
+        setColour (juce::TextEditor::backgroundColourId, over (c.well, c.face));
+        setColour (juce::TextEditor::textColourId, c.text);
+        setColour (juce::TextEditor::outlineColourId, c.controlEdge);
     }
 
     juce::Slider::SliderLayout LookAndFeel::getSliderLayout (juce::Slider& slider)
     {
         juce::Slider::SliderLayout layout;
         const auto bounds = slider.getLocalBounds();
-        if (slider.isRotary())
+        if (slider.isRotary() || slider.getSliderStyle() == juce::Slider::LinearBar)
             layout.sliderBounds = bounds;
         else if (slider.isVertical())
             layout.sliderBounds = bounds.reduced (0, getSliderThumbRadius (slider));
@@ -550,148 +556,49 @@ namespace wubansia::editor
 
     int LookAndFeel::getSliderThumbRadius (juce::Slider& slider)
     {
-        return slider.isRotary() ? 0 : 10;
+        return slider.isRotary() || slider.getSliderStyle() == juce::Slider::LinearBar ? 0 : 9;
     }
 
-    void LookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height, float sliderPos,
-        float rotaryStartAngle, float rotaryEndAngle, juce::Slider& slider)
+    namespace
     {
-        const auto bounds = juce::Rectangle<float> ((float) x, (float) y, (float) width, (float) height).reduced (2.0f);
-        const auto size = juce::jmin (bounds.getWidth(), bounds.getHeight());
-        const auto centre = bounds.getCentre();
-        const auto ringRadius = size * 0.5f - 2.5f;
-        const auto knobRadius = ringRadius * 0.74f;
-        const auto enabled = slider.isEnabled();
-        const auto lit = enabled ? current.colours.accent : current.colours.faint;
-        const auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
-
-        // The ring: a dark groove and the lit arc, with a soft glow.
-        juce::Path groove;
-        groove.addCentredArc (centre.x, centre.y, ringRadius, ringRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
-        g.setColour (juce::Colours::black.withAlpha (0.65f));
-        g.strokePath (groove, juce::PathStrokeType (4.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-        g.setColour (lit.withAlpha (0.10f));
-        g.strokePath (groove, juce::PathStrokeType (2.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-
-        if (sliderPos > 0.001f)
+        // The colour a slider lights in: its "colour" property where a panel set one (a lane's), else the accent.
+        juce::Colour lightOf (const juce::Slider& slider, const Skin& skin)
         {
-            juce::Path arc;
-            arc.addCentredArc (centre.x, centre.y, ringRadius, ringRadius, 0.0f, rotaryStartAngle, angle, true);
-            g.setColour (lit.withAlpha (0.20f));
-            g.strokePath (arc, juce::PathStrokeType (7.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-            g.setColour (lit);
-            g.strokePath (arc, juce::PathStrokeType (2.4f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+            const auto v = slider.getProperties()["colour"];
+            return v.isVoid() ? skin.colours.accent : juce::Colour ((juce::uint32) (juce::int64) v);
         }
-
-        // Scale marks at the ends and the middle.
-        for (const auto mark : { rotaryStartAngle, (rotaryStartAngle + rotaryEndAngle) * 0.5f, rotaryEndAngle })
-        {
-            const auto inner = centre.getPointOnCircumference (ringRadius + 3.5f, mark);
-            const auto outer = centre.getPointOnCircumference (ringRadius + 6.0f, mark);
-            g.setColour (current.colours.faint);
-            g.drawLine ({ inner, outer }, 1.0f);
-        }
-
-        // The knob: a shadow, a dark skirt and a machined cap.
-        const auto circle = [&centre] (float r) { return juce::Rectangle<float> (r * 2.0f, r * 2.0f).withCentre (centre); };
-        g.setColour (juce::Colours::black.withAlpha (0.55f));
-        g.fillEllipse (circle (knobRadius + 1.5f).translated (0.0f, 2.0f));
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colour (0xff30343b), centre.y - knobRadius, juce::Colour (0xff131518), centre.y + knobRadius));
-        g.fillEllipse (circle (knobRadius));
-
-        const auto capRadius = knobRadius * 0.8f;
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff5a606a), centre.x - capRadius * 0.6f, centre.y - capRadius * 0.8f,
-            juce::Colour (0xff23262b), centre.x + capRadius * 0.6f, centre.y + capRadius, false));
-        g.fillEllipse (circle (capRadius));
-        for (auto r = capRadius * 0.3f; r < capRadius; r += capRadius * 0.17f)
-        {
-            g.setColour (juce::Colours::white.withAlpha (0.035f));
-            g.drawEllipse (circle (r), 0.6f);
-        }
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colours::white.withAlpha (0.16f), centre.y - capRadius,
-            juce::Colours::white.withAlpha (0.0f), centre.y));
-        g.drawEllipse (circle (capRadius - 0.5f), 1.0f);
-
-        // The pointer, lit.
-        const auto from = centre.getPointOnCircumference (knobRadius * 0.28f, angle);
-        const auto to = centre.getPointOnCircumference (knobRadius * 0.9f, angle);
-        g.setColour (lit.withAlpha (0.25f));
-        g.drawLine ({ from, to }, 5.0f);
-        g.setColour (enabled ? lit.brighter (0.3f) : current.colours.faint);
-        g.drawLine ({ from, to }, 2.2f);
     }
 
-    void LookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height, float sliderPos,
-        float minSliderPos, float maxSliderPos, juce::Slider::SliderStyle style, juce::Slider& slider)
+    void LookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height, float sliderPos, float, float, juce::Slider& slider)
     {
-        if (! slider.isVertical())
-        {
-            LookAndFeel_V4::drawLinearSlider (g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
-            return;
-        }
+        paint::knob (g, current, juce::Rectangle<float> ((float) x, (float) y, (float) width, (float) height), sliderPos,
+            lightOf (slider, current), slider.isEnabled());
+    }
 
+    void LookAndFeel::drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height, float, float, float,
+        juce::Slider::SliderStyle, juce::Slider& slider)
+    {
         const auto area = juce::Rectangle<float> ((float) x, (float) y, (float) width, (float) height);
-        const auto enabled = slider.isEnabled();
-        const auto lit = enabled ? current.colours.accent : current.colours.faint;
-        const auto cx = area.getCentreX();
-
-        // Scale marks every 6 dB down to -24, then -48; 0 dB marked longer.
-        for (const auto db : { 6.0, 0.0, -6.0, -12.0, -18.0, -24.0, -36.0, -48.0, -60.0 })
-        {
-            if (db < slider.getMinimum() || db > slider.getMaximum())
-                continue;
-            const auto py = (float) slider.getPositionOfValue (db);
-            const auto zero = juce::exactlyEqual (db, 0.0);
-            const auto length = zero ? 9.0f : 5.0f;
-            g.setColour (zero ? current.colours.dim : current.colours.faint);
-            g.fillRect (juce::Rectangle<float> (cx - 9.0f - length, py - 0.5f, length, 1.0f));
-            g.fillRect (juce::Rectangle<float> (cx + 9.0f, py - 0.5f, length, 1.0f));
-        }
-
-        const auto slot = juce::Rectangle<float> (cx - 2.5f, area.getY() - 4.0f, 5.0f, area.getHeight() + 8.0f);
-        paint::recess (g, slot, 2.5f);
-        const auto filled = slot.withTop (sliderPos).reduced (1.2f, 0.0f).withTrimmedBottom (1.0f);
-        g.setColour (lit.withAlpha (enabled ? 0.55f : 0.25f));
-        g.fillRoundedRectangle (filled, 1.5f);
-
-        // The cap: brushed metal with grip lines and a lit centre line.
-        const auto cap = juce::Rectangle<float> (juce::jmin (34.0f, area.getWidth() - 2.0f), 20.0f).withCentre ({ cx, sliderPos });
-        g.setColour (juce::Colours::black.withAlpha (0.55f));
-        g.fillRoundedRectangle (cap.translated (0.0f, 2.0f).expanded (1.0f), 3.5f);
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colour (0xffd6dae0), cap.getY(), juce::Colour (0xff6f757e), cap.getBottom()));
-        g.fillRoundedRectangle (cap, 3.0f);
-        g.setColour (juce::Colours::black.withAlpha (0.45f));
-        g.drawRoundedRectangle (cap, 3.0f, 0.8f);
-        for (const auto dy : { -6.0f, -3.5f, 3.5f, 6.0f })
-        {
-            g.setColour (juce::Colours::black.withAlpha (0.28f));
-            g.fillRect (juce::Rectangle<float> (cap.getWidth() - 10.0f, 0.8f).withCentre ({ cx, sliderPos + dy }));
-        }
-        g.setColour (lit.withAlpha (0.35f));
-        g.fillRect (juce::Rectangle<float> (cap.getWidth() - 4.0f, 4.0f).withCentre ({ cx, sliderPos }));
-        g.setColour (enabled ? lit.brighter (0.25f) : current.colours.faint);
-        g.fillRect (juce::Rectangle<float> (cap.getWidth() - 4.0f, 1.6f).withCentre ({ cx, sliderPos }));
+        const auto value = (float) slider.valueToProportionOfLength (slider.getValue());
+        paint::fader (g, current, area, value, lightOf (slider, current), slider.isVertical(), slider.isEnabled());
     }
 
     void LookAndFeel::drawComboBox (juce::Graphics& g, int width, int height, bool, int, int, int, int, juce::ComboBox& box)
     {
-        const auto area = juce::Rectangle<float> ((float) width, (float) height).reduced (0.5f);
-        paint::recess (g, area, 5.0f);
-        g.setColour (box.hasKeyboardFocus (true) ? current.colours.accent.withAlpha (0.6f) : juce::Colour (0xff30353d));
-        g.drawRoundedRectangle (area, 5.0f, 1.0f);
-
+        const auto area = juce::Rectangle<float> ((float) width, (float) height);
+        paint::box (g, area, current.shape.segment, over (current.colours.well, current.colours.face), current.colours.controlEdge);
         const auto arrowArea = area.withLeft (area.getRight() - (float) height).reduced ((float) height * 0.36f);
         juce::Path chevron;
         chevron.startNewSubPath (arrowArea.getX(), arrowArea.getY() + arrowArea.getHeight() * 0.25f);
         chevron.lineTo (arrowArea.getCentreX(), arrowArea.getBottom() - arrowArea.getHeight() * 0.2f);
         chevron.lineTo (arrowArea.getRight(), arrowArea.getY() + arrowArea.getHeight() * 0.25f);
-        g.setColour ((box.isEnabled() ? current.colours.dim : current.colours.faint));
+        g.setColour (box.isEnabled() ? current.colours.dim : current.colours.faint);
         g.strokePath (chevron, juce::PathStrokeType (1.6f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    juce::Font LookAndFeel::getComboBoxFont (juce::ComboBox& box)
+    juce::Font LookAndFeel::getComboBoxFont (juce::ComboBox&)
     {
-        return uiFont (juce::jmin (13.0f, (float) box.getHeight() * 0.5f), true, 0.04f);
+        return current.type.rowValue.fontAt (std::min (current.type.rowValue.px, 13.0f));
     }
 
     void LookAndFeel::positionComboBoxText (juce::ComboBox& box, juce::Label& label)
@@ -701,8 +608,7 @@ namespace wubansia::editor
             label.setBounds ({}); // SegmentedChoice draws its own items
             return;
         }
-
-        label.setBounds (8, 1, box.getWidth() - box.getHeight() - 6, box.getHeight() - 2);
+        label.setBounds (6, 1, box.getWidth() - box.getHeight() - 4, box.getHeight() - 2);
         label.setFont (getComboBoxFont (box));
         label.setColour (juce::Label::textColourId, box.isEnabled() ? current.colours.text : current.colours.faint);
     }
@@ -710,9 +616,9 @@ namespace wubansia::editor
     void LookAndFeel::drawPopupMenuBackground (juce::Graphics& g, int width, int height)
     {
         const auto area = juce::Rectangle<float> ((float) width, (float) height);
-        g.setGradientFill (juce::ColourGradient::vertical (current.colours.panel, 0.0f, current.colours.lane, (float) height));
+        g.setColour (over (current.colours.panel, current.colours.face));
         g.fillRect (area);
-        g.setColour (current.colours.accent.withAlpha (0.35f));
+        g.setColour (current.colours.panelEdge);
         g.drawRect (area, 1.0f);
     }
 
@@ -726,14 +632,13 @@ namespace wubansia::editor
                 shortcutKeyText, icon, textColour);
             return;
         }
-
         auto r = area.toFloat().reduced (3.0f, 1.0f);
         if (isHighlighted && isActive)
         {
-            g.setColour (current.colours.accent.withAlpha (0.2f));
+            g.setColour (current.colours.accentTint);
             g.fillRoundedRectangle (r, 4.0f);
         }
-        paint::led (g, { r.getX() + 10.0f, r.getCentreY() }, 3.2f, current.colours.accent, isTicked ? 1.0f : 0.0f);
+        paint::dot (g, { r.getX() + 10.0f, r.getCentreY() }, 3.2f, current.colours.accent, isTicked);
         g.setColour (isActive ? (textColour != nullptr ? *textColour : current.colours.text) : current.colours.faint);
         g.setFont (getPopupMenuFont());
         g.drawText (text, r.withTrimmedLeft (22.0f), juce::Justification::centredLeft, true);
@@ -741,7 +646,7 @@ namespace wubansia::editor
 
     juce::Font LookAndFeel::getPopupMenuFont()
     {
-        return uiFont (14.0f);
+        return bodyFont (current, 14.0f); // run-time words: fallback on
     }
 
     namespace
@@ -751,37 +656,25 @@ namespace wubansia::editor
 
     void LookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& button, const juce::Colour&, bool isMouseOverButton, bool isButtonDown)
     {
+        const auto& c = current.colours;
+        const auto area = button.getLocalBounds().toFloat().reduced (1.0f).translated (0.0f, isButtonDown ? 0.5f : 0.0f);
+        auto style = current.shape.headerButton;
+        style.corner = std::min (style.corner, area.getHeight() * 0.5f);
         if (isQuiet (button))
         {
-            const auto area = button.getLocalBounds().toFloat().reduced (1.5f);
-            paint::rubber (g, area, juce::jmin (6.0f, area.getHeight() * 0.5f), isButtonDown, isMouseOverButton && button.isEnabled(), current.colours.accent, 0.0f);
+            paint::box (g, area, style, over (c.panel, c.face).brighter (isMouseOverButton ? 0.08f : 0.0f), c.controlEdge);
             return;
         }
-
-        auto area = button.getLocalBounds().toFloat().reduced (1.5f);
-        if (isButtonDown)
-            area = area.translated (0.0f, 0.6f);
-        const auto corner = area.getHeight() * 0.5f;
-        const auto lit = button.isEnabled() ? current.colours.accent : current.colours.faint;
-
-        g.setColour (juce::Colours::black.withAlpha (0.5f));
-        g.fillRoundedRectangle (area.translated (0.0f, isButtonDown ? 0.6f : 1.5f), corner);
-        g.setColour (lit.withAlpha (isMouseOverButton ? 0.3f : 0.18f));
-        g.fillRoundedRectangle (area.expanded (2.0f), corner + 2.0f);
-        g.setGradientFill (juce::ColourGradient::vertical (lit.brighter (isMouseOverButton ? 0.35f : 0.2f), area.getY(), lit.darker (0.25f), area.getBottom()));
-        g.fillRoundedRectangle (area, corner);
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colours::white.withAlpha (0.45f), area.getY(), juce::Colours::white.withAlpha (0.0f), area.getCentreY()));
-        g.drawRoundedRectangle (area.reduced (0.5f), corner, 1.0f);
+        const auto lit = button.isEnabled() ? c.accent : c.faint;
+        paint::box (g, area, style, isMouseOverButton ? lit.brighter (0.15f) : lit, lit);
     }
 
     void LookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& button, bool, bool isButtonDown)
     {
         const auto font = getTextButtonFont (button, button.getHeight());
         const auto quiet = isQuiet (button);
-        const auto colour = quiet ? (button.isEnabled() ? current.colours.text : current.colours.faint) : juce::Colour (0xff0e1013);
-        auto area = button.getLocalBounds().toFloat().translated (0.0f, isButtonDown ? 0.6f : 0.0f);
-
-        // An icon before the text, the pair centred.
+        const auto colour = quiet ? (button.isEnabled() ? current.colours.text : current.colours.faint) : current.colours.accentInk;
+        auto area = button.getLocalBounds().toFloat().translated (0.0f, isButtonDown ? 0.5f : 0.0f);
         const auto icon = button.getProperties()["icon"].toString();
         if (icon == "play" || icon == "folder")
         {
@@ -794,7 +687,6 @@ namespace wubansia::editor
             g.fillPath (icon == "play" ? paint::playGlyph (box) : paint::folderGlyph (box));
             area = juce::Rectangle<float> (left + size + gap, area.getY(), textWidth + 1.0f, area.getHeight());
         }
-
         g.setFont (font);
         g.setColour (colour);
         g.drawText (button.getButtonText(), area, juce::Justification::centred, true);
@@ -803,21 +695,20 @@ namespace wubansia::editor
     juce::Font LookAndFeel::getTextButtonFont (juce::TextButton& button, int buttonHeight)
     {
         if (isQuiet (button))
-            return uiFont (juce::jmin (12.5f, (float) buttonHeight * 0.5f), true, 0.02f);
-        return uiFont (juce::jmin (13.5f, (float) buttonHeight * 0.45f), true, 0.02f);
+            return bodyFont (current, juce::jmin (12.5f, (float) buttonHeight * 0.5f), true, 0.02f);
+        return bodyFont (current, juce::jmin (13.5f, (float) buttonHeight * 0.45f), true, 0.02f);
     }
 
     void LookAndFeel::drawTooltip (juce::Graphics& g, const juce::String& text, int width, int height)
     {
         const auto area = juce::Rectangle<float> ((float) width, (float) height);
-        g.setColour (current.colours.lane);
+        g.setColour (over (current.colours.panel, current.colours.face));
         g.fillRoundedRectangle (area, 5.0f);
-        g.setColour (current.colours.accent.withAlpha (0.45f));
+        g.setColour (current.colours.panelEdge);
         g.drawRoundedRectangle (area.reduced (0.5f), 5.0f, 1.0f);
-
         juce::AttributedString s;
         s.setJustification (juce::Justification::centredLeft);
-        s.append (text, uiFont (13.0f), current.colours.text);
+        s.append (text, bodyFont (current, 13.0f), current.colours.text);
         juce::TextLayout layout;
         layout.createLayoutWithBalancedLineLengths (s, (float) width - 16.0f);
         layout.draw (g, area.reduced (8.0f, 5.0f));
@@ -826,10 +717,9 @@ namespace wubansia::editor
     juce::Rectangle<int> LookAndFeel::getTooltipBounds (const juce::String& tipText, juce::Point<int> screenPos, juce::Rectangle<int> parentArea)
     {
         juce::AttributedString s;
-        s.append (tipText, uiFont (13.0f), current.colours.text);
+        s.append (tipText, bodyFont (current, 13.0f), current.colours.text);
         juce::TextLayout layout;
         layout.createLayoutWithBalancedLineLengths (s, 300.0f);
-
         const auto w = (int) std::ceil (layout.getWidth()) + 18;
         const auto h = (int) std::ceil (layout.getHeight()) + 12;
         return juce::Rectangle<int> (screenPos.x > parentArea.getCentreX() ? screenPos.x - (w + 12) : screenPos.x + 24,
@@ -842,7 +732,6 @@ namespace wubansia::editor
     {
         if (auto* look = dynamic_cast<const LookAndFeel*> (&component.getLookAndFeel()))
             return look->skin();
-        static const Skin fallback = litHardwareSkin ({});
-        return fallback;
+        return skinFor (SkinId::nightBus);
     }
 }

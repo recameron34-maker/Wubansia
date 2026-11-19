@@ -1,6 +1,7 @@
 #include "ContentPanel.h"
 #include "KitPanel.h"
 #include "LookAndFeel.h"
+#include "editor/skin/Paint.h"
 
 namespace wubansia::editor
 {
@@ -155,15 +156,38 @@ namespace wubansia::editor
         textArea = area;
     }
 
+    std::vector<DrawnText> ContentPanel::drawnText() const
+    {
+        // The headline and the folders searched (the person's paths: the path role, fallback on), as paint () draws them.
+        std::vector<DrawnText> out;
+        const auto& skin = skinOf (*this);
+        auto area = textArea.toFloat();
+        DrawnText headline;
+        headline.text = headlineText;
+        headline.font = bodyFont (skin, 20.0f, true);
+        headline.area = area.removeFromTop (28.0f).withTrimmedLeft (22.0f);
+        headline.styledPx = headline.minPx = headline.font.getHeightInPoints();
+        if (juce::GlyphArrangement::getStringWidth (headline.font, headline.text) > headline.area.getWidth())
+            headline.cut = true;
+        out.push_back (headline);
+        for (const auto& folder : searched)
+        {
+            DrawnText t;
+            t.text = folder;
+            t.font = pathFont (skin, 11.5f);
+            t.area = { area.getX(), area.getY(), 1.0e5f, 16.0f }; // a path may run under the panel's edge, cut by the box
+            t.styledPx = t.minPx = t.font.getHeightInPoints();
+            out.push_back (t);
+        }
+        return out;
+    }
+
     void ContentPanel::paint (juce::Graphics& g)
     {
         const auto bounds = getLocalBounds().toFloat();
 
-        // A frosted panel over the lanes.
-        g.setColour (juce::Colours::black.withAlpha (0.55f));
-        g.fillRoundedRectangle (bounds.translated (0.0f, 3.0f), 12.0f);
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colour (0xfa21242a), bounds.getY(), juce::Colour (0xfc16181c), bounds.getBottom()));
-        g.fillRoundedRectangle (bounds, 12.0f);
+        // The panel's frame in the look (ADR 0032), rimmed in its tone.
+        paint::drawer (g, skinOf (*this), bounds);
         const auto problem = state != ContentState::ready && state != ContentState::loading;
         const auto tone = problem ? skinOf (*this).colours.warning : (state == ContentState::loading ? skinOf (*this).colours.busy : accent);
         g.setColour (tone.withAlpha (0.65f));
@@ -208,9 +232,9 @@ namespace wubansia::editor
 
         // Where it looked.
         auto list = listArea.toFloat();
-        paint::recess (g, list, 8.0f);
+        paint::well (g, skinOf (*this), list, 8.0f);
         list = list.reduced (14.0f, 10.0f);
-        paint::engraved (g, searched.isEmpty() ? "Folders searched" : "Wubansia looked in", list.removeFromTop (14.0f), juce::Justification::centredLeft, 9.5f);
+        paint::label (g, skinOf (*this), searched.isEmpty() ? "Folders searched" : "Wubansia looked in", list.removeFromTop (14.0f), juce::Justification::centredLeft, 9.5f);
         list.removeFromTop (6.0f);
         g.setFont (pathFont (skinOf (*this), 11.5f));
         if (searched.isEmpty())

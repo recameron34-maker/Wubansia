@@ -21,6 +21,8 @@
 #include "EditorModel.h"
 #include "LookAndFeel.h"
 
+#include "editor/DrawnText.h"
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <array>
@@ -190,9 +192,10 @@ namespace wubansia::editor
         bool failed = false, hover = false, pressed = false, dragging = false;
     };
 
-    class SamplesPanel : public juce::Component, public juce::TooltipClient
+    class SamplesPanel : public juce::Component, public juce::TooltipClient, public DrawnTextSource
     {
     public:
+        std::vector<DrawnText> drawnText() const override; // ADR 0032
         explicit SamplesPanel (Controller&);
         ~SamplesPanel() override;
 

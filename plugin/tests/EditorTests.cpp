@@ -471,31 +471,32 @@ TEST_CASE ("the header fits Phrases and Samples beside the zoom with every label
             REQUIRE (face != nullptr);
             CHECK (phrases.getParentComponent() == face);
 
-            // The right block, 278 px: Phrases 91, 7, Samples 91, 7, the zoom 82, ending 20 px in ("SAMPLES" needs 90.1 px of
-            // its button in DejaVu Sans Bold); the kit cards take the rest, 2 px in from each side.
-            CHECK (phrases.getWidth() == 91);
-            CHECK (samples.getWidth() == 91);
-            CHECK (zoom.getWidth() == 82);
-            CHECK (phrases.getRight() + 7 == samples.getX());
-            CHECK (samples.getRight() + 7 == zoom.getX());
+            // The right group, 8 apart, right-aligned at x 1100 (ADR 0032): Phrases and Samples as wide as their words in
+            // the look, the zoom 72; the kit pills from x 250, sized by their words, end before it.
+            CHECK (phrases.getRight() + 8 == samples.getX());
+            CHECK (samples.getRight() + 8 == zoom.getX());
+            CHECK (zoom.getWidth() == 72);
             CHECK (zoom.getRight() == PluginEditor::baseWidth - 20);
-            CHECK (kits.getRight() + 2 == phrases.getX());
+            CHECK (kits.getX() == 250);
+            CHECK (kits.getX() + kits.fitWidth() <= phrases.getX() - 8);
             REQUIRE (kits.numCards() == 4);
             for (int i = 0; i < kits.numCards(); ++i)
             {
                 const auto& card = *kits.card (i);
                 INFO (card.getComponentID());
-                CHECK (card.getWidth() == 146);
-                CHECK_THAT (card.directionArea().getWidth(), WithinAbs (114.0, 1.0e-3));
-                // Its title reads in full beside its ID, at 10 points or more (FUT03's and FUT04's shrink to fit).
-                CHECK (juce::GlyphArrangement::getStringWidth (card.titleFont(), card.card().title) <= card.titleArea().getWidth());
-                CHECK (card.titleFont().getHeight() >= 10.0f);
+                CHECK (card.getWidth() == card.fitWidth());
+                // Its words read in full: "<ID> <Title>" on the selected pill, the ID on the others.
+                for (const auto& t : card.drawnText())
+                {
+                    CHECK_FALSE (t.cut);
+                    CHECK (juce::GlyphArrangement::getStringWidth (t.font, t.text) <= t.area.getWidth() + 0.5f);
+                }
             }
 
             // Each button's label in full, in the font and area its paint code uses.
             for (auto* button : { &phrases, &samples })
             {
-                const auto label = button->getButtonText().toUpperCase();
+                const auto label = editor::skinOf (*button).type.headerButton.apply (button->getButtonText());
                 INFO (label);
                 CHECK (juce::GlyphArrangement::getStringWidth (button->labelFont(), label) <= button->labelArea().getWidth());
                 CHECK (button->labelFont().getHeight() >= 10.0f);
@@ -614,7 +615,7 @@ TEST_CASE ("the content panel says what to do for every status", "[editor]")
             CHECK_THAT (panel.headline().toStdString(), ContainsSubstring ("Loading FUT01") && ContainsSubstring ("42 %"));
             CHECK_FALSE (editor.isContentPanelShown());
             CHECK (card.statusText() == "LOADING 42%");
-            CHECK (get<editor::Lcd> (editor, "lcd").lines().status == "LOADING 42%");
+            CHECK (get<editor::Lcd> (editor, "lcd").lines().right == "LOADING 42 %"); // the display says it too (ADR 0032)
 
             show (wubansia::ContentState::missing, "no folder holds FUT01");
             CHECK (panel.headline() == "FUT01's samples aren't installed");
@@ -1238,7 +1239,7 @@ TEST_CASE ("in a host the transport offers Preview", "[editor]")
             CHECK (rig.controller.previewRequests == std::vector<bool> { true });
             editor.tick();
             CHECK (preview.getToggleState());
-            CHECK (get<editor::Lcd> (editor, "lcd").lines().sync == "PREVIEW");
+            CHECK (get<editor::TransportPanel> (editor, "transport").line().startsWith ("preview"));
             click (preview);
             CHECK (rig.controller.previewRequests == std::vector<bool> { true, false });
         });
@@ -1260,7 +1261,7 @@ TEST_CASE ("in Standalone the transport plays, stops and sets the tempo", "[edit
             CHECK (controller.transportRequests[0] == std::pair { true, 0.0 });
             editor.tick();
             CHECK (get<juce::Button> (editor, "transport_play").getToggleState());
-            CHECK (get<editor::Lcd> (editor, "lcd").lines().sync == "STANDALONE");
+            CHECK (get<editor::TransportPanel> (editor, "transport").line().isEmpty()); // the tempo buttons sit under Play
 
             click (get<juce::Button> (editor, "tempo_up"));
             CHECK (controller.transportRequests.back() == std::pair { true, 135.0 });
@@ -1319,11 +1320,8 @@ TEST_CASE ("the display, lanes and meters follow the snapshot", "[editor]")
             auto& strip = get<editor::SectionStrip> (editor, "sections");
             auto& fx = get<editor::FxPanel> (editor, "fx");
 
-            CHECK (lcd.lines().transport == "STOPPED");
-            CHECK (lcd.lines().position == "---.-");
-            CHECK (lcd.lines().tempo == "134.0");
-            CHECK (lcd.lines().kitTitle == "ALLOY SIGNAL");
-            CHECK (lcd.lines().key == "F# MINOR" + editor::middleDot() + "11A");
+            CHECK (lcd.lines().right == "STOPPED");
+            CHECK (lcd.lines().left == "F#m" + editor::middleDot() + "11A" + editor::middleDot() + "134 BPM");
             CHECK (strip.litBeat() == -1);
 
             auto& snapshot = rig.controller.nextSnapshot;
@@ -1336,9 +1334,7 @@ TEST_CASE ("the display, lanes and meters follow the snapshot", "[editor]")
             snapshot.voices = 17;
             editor.tick();
 
-            CHECK (lcd.lines().transport == "PLAYING");
-            CHECK (lcd.lines().position == "  3.2");
-            CHECK (lcd.lines().status == "VOICES 17");
+            CHECK (lcd.lines().right == "LOOP" + editor::middleDot() + "BAR 3");
             CHECK (strip.litBeat() == 9);
             CHECK (juce::exactlyEqual (lane (editor, engine::Lane::kick).ledLevel(), 1.0f));
             CHECK (juce::exactlyEqual (lane (editor, engine::Lane::bass).ledLevel(), 1.0f));
@@ -1358,8 +1354,7 @@ TEST_CASE ("the display, lanes and meters follow the snapshot", "[editor]")
             snapshot.section = 2;
             editor.tick();
             CHECK (strip.litSection() == 2);
-            CHECK (lcd.lines().position == " 71.1");
-            CHECK_THAT (lcd.lines().mode.toStdString(), ContainsSubstring ("BREAK") && ContainsSubstring ("BAR 7/16"));
+            CHECK (lcd.lines().right == "BREAK" + editor::middleDot() + "BAR 71");
 
             rig.processor.set (ids::laneMute[0], 1.0f);
             editor.tick();

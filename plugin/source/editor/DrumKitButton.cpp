@@ -1,6 +1,7 @@
 #include "DrumKitButton.h"
 #include "ExternalDrag.h"
 #include "LookAndFeel.h"
+#include "editor/skin/Paint.h"
 #include "SamplesPanel.h"
 
 #include "dragout/DragFiles.h"
@@ -17,10 +18,7 @@ namespace wubansia::editor
         // Where the label goes for these bounds: right of the glyph, as a drag chip lays its label out (DragChip.cpp).
         juce::Rectangle<float> labelAreaIn (juce::Rectangle<float> bounds)
         {
-            auto content = bounds.reduced (1.5f).reduced (7.0f, 2.0f);
-            content.removeFromLeft (juce::jmin (14.0f, content.getHeight()));
-            content.removeFromLeft (5.0f);
-            return content;
+            return bounds.reduced (10.0f, 2.0f); // a strip chip's (DragChip.cpp)
         }
 
         juce::String idleSentence (const juce::String& kit)
@@ -147,7 +145,7 @@ namespace wubansia::editor
 
     juce::String DrumKitButton::statusText() const { return sentence; }
 
-    juce::Font DrumKitButton::labelFont() const { return bodyFont (skinOf (*this), 10.5f, true, 0.06f); }
+    juce::Font DrumKitButton::labelFont() const { return skinOf (*this).type.stripChip.font(); }
 
     juce::Rectangle<float> DrumKitButton::labelArea() const { return labelAreaIn (getLocalBounds().toFloat()); }
 
@@ -156,9 +154,10 @@ namespace wubansia::editor
         const juce::Rectangle<float> wide (1000.0f, (float) height);
         const auto around = wide.getWidth() - labelAreaIn (wide).getWidth(); // the border, padding and glyph: 36 px at 28
         float widest = 0.0f;
+        const auto& style = skinOf (*this).type.stripChip; // its widest state in the look's chip style (ADR 0032)
         for (const auto& words : { juce::String ("Drum kit"), saving(), couldntSave })
-            widest = juce::jmax (widest, juce::GlyphArrangement::getStringWidth (labelFont(), words));
-        return (int) std::floor (widest + around) + 1;
+            widest = juce::jmax (widest, juce::GlyphArrangement::getStringWidth (style.font(), style.apply (words)));
+        return (int) std::ceil (widest + around) + 1;
     }
 
     void DrumKitButton::press()
@@ -255,37 +254,22 @@ namespace wubansia::editor
             }));
     }
 
+    std::vector<DrawnText> DrumKitButton::drawnText() const
+    {
+        return { fitText (skinOf (*this).type.stripChip, label, labelArea(), juce::Justification::centred) };
+    }
+
     void DrumKitButton::paint (juce::Graphics& g)
     {
-        const auto accent = skinOf (*this).colours.accent;
+        const auto& skin = skinOf (*this);
+        const auto& c = skin.colours;
         const auto enabled = isEnabled();
         const auto failed = label == couldntSave;
-        auto area = getLocalBounds().toFloat().reduced (1.5f);
-        const auto corner = juce::jmin (6.0f, area.getHeight() * 0.5f);
         const auto active = pressed || dragging;
-
-        g.setColour (juce::Colours::black.withAlpha (0.5f));
-        g.fillRoundedRectangle (area.translated (0.0f, 1.2f), corner);
-        g.setGradientFill (juce::ColourGradient::vertical (active ? accent.withAlpha (0.42f).overlaidWith (juce::Colour (0xff1d2025))
-                                                                  : juce::Colour (hover && enabled ? 0xff2c3138 : 0xff23272d),
-            area.getY(), juce::Colour (0xff15171b), area.getBottom()));
-        g.fillRoundedRectangle (area, corner);
-
-        const auto border = failed ? skinOf (*this).colours.warning : (enabled && (hover || active) ? accent : juce::Colour (0xff383d45));
-        g.setColour (border.withAlpha (enabled ? 0.9f : 0.4f));
-        juce::Path outline;
-        outline.addRoundedRectangle (area.reduced (0.5f), corner);
-        juce::Path dashed;
-        const float dashes[] = { 3.0f, 2.0f };
-        juce::PathStrokeType (1.0f).createDashedStroke (dashed, outline, dashes, 2);
-        g.fillPath (dashed);
-
-        auto content = area.reduced (7.0f, 2.0f);
-        const auto glyph = content.removeFromLeft (juce::jmin (14.0f, content.getHeight())).withSizeKeepingCentre (11.0f, 11.0f);
-        paint::padsGlyph (g, glyph, enabled ? (failed ? skinOf (*this).colours.warning : accent) : skinOf (*this).colours.faint);
-
-        g.setFont (labelFont());
-        g.setColour (! enabled ? skinOf (*this).colours.faint : (failed ? skinOf (*this).colours.warning : skinOf (*this).colours.text.withAlpha (0.9f)));
-        g.drawFittedText (label, labelArea().toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+        const auto area = getLocalBounds().toFloat().reduced (0.5f);
+        const auto fill = active || (hover && enabled) ? over (c.accentTint, c.face).brighter (0.05f) : over (c.accentTint, c.face);
+        paint::box (g, area, skin.shape.stripChip, enabled ? fill : juce::Colours::transparentBlack, failed ? c.warning : enabled ? c.accent : c.controlEdge);
+        for (const auto& t : drawnText())
+            drawText (g, t, ! enabled ? c.faint : failed ? c.warning : c.accentTintText);
     }
 }

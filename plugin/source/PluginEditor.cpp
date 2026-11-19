@@ -1,5 +1,9 @@
 #include "PluginEditor.h"
 #include "ParameterIds.h"
+#include "editor/ChordName.h"
+#include "editor/RepaintLedger.h"
+#include "editor/skin/Paint.h"
+#include "services/PatternView.h"
 
 #include <atomic>
 #include <map>
@@ -51,6 +55,8 @@ namespace wubansia
         phrasesButton.setTooltip ("Browse 8-bar phrases written over this kit's chords, hear them with the groove, and drag them into your DAW as MIDI");
         phrasesButton.setClickingTogglesState (false);
         phrasesButton.onClick = [this] { showPhrasesPanel (! phrasesPanel.isVisible()); };
+        phrasesButton.setRole (editor::LedButton::Role::headerButton);
+        samplesButton.setRole (editor::LedButton::Role::headerButton);
 
         zoomBox.setComponentID ("zoom");
         zoomBox.setTooltip ("Window size");
@@ -76,6 +82,17 @@ namespace wubansia
         content.addChildComponent (contentPanel);
         content.addChildComponent (samplesPanel);
         content.addChildComponent (phrasesPanel);
+        content.addAndMakeVisible (focusRing);
+
+        // Tab's order, the same in every look (ADR 0032): the pills, Phrases, Samples, the zoom, the transport, the mode
+        // panel, each lane's fader and mute, the A/B switches, the FX, then the drag strip; the drawers after.
+        int order = 1;
+        for (auto* component : std::initializer_list<juce::Component*> { &kitPanel, &phrasesButton, &samplesButton, &zoomBox, &transport, &modePanel })
+            component->setExplicitFocusOrder (order++);
+        for (auto& lane : lanes)
+            lane->setExplicitFocusOrder (order++);
+        for (auto* component : std::initializer_list<juce::Component*> { &abPanel, &fxPanel, &dragStrip, &samplesPanel, &phrasesPanel, &contentPanel })
+            component->setExplicitFocusOrder (order++);
         addAndMakeVisible (content);
 
         bindParameters (audioProcessor);
@@ -92,6 +109,7 @@ namespace wubansia
     PluginEditor::~PluginEditor()
     {
         stopTimer();
+        controller.setScopeOn (false); // nobody reads the scope once the window is gone
         if (samplesPanel.isVisible())
             controller.stopAudition(); // the drawer's sound ends with the window it plays from
         if (phrasesPanel.isVisible())
@@ -143,6 +161,8 @@ namespace wubansia
         bind (fxPanel.club, ParameterIds::clubMaster);
 
         playModeParameter = find (ParameterIds::playMode);
+        for (std::size_t i = 0; i < abParameters.size(); ++i)
+            abParameters[i] = find (ParameterIds::ab[i]);
         voxParameter = find (ParameterIds::voxSynth);
     }
 
@@ -171,7 +191,9 @@ namespace wubansia
     {
         content.setBounds (0, 0, baseWidth, baseHeight);
         backdrop.setBounds (content.getLocalBounds());
-        backdrop.plates.clear();
+        focusRing.setBounds (content.getLocalBounds());
+        backdrop.panels.clear();
+        backdrop.lanes.clear();
 
         auto area = content.getLocalBounds().reduced (20, 0);
 
@@ -179,15 +201,18 @@ namespace wubansia
         // button and "SAMPLES" 90.1 in DejaVu Sans Bold, the widest default font: both buttons are 91 px, 7 apart, in a
         // 278 px block, and the cards come 2 px from the logo and the buttons, 146 px each with a 114 px direction line
         // (FUT03's needs 111.42 at 8 px in DejaVu Sans).
+        // The header (ADR 0032): the logo block (icon, wordmark, the kit's direction), the kit pills from x 250, and at the
+        // right Phrases, Samples and the zoom, 8 apart.
         auto header = area.removeFromTop (76).withTrimmedTop (12).withTrimmedBottom (6);
-        backdrop.logo = header.removeFromLeft (190).toFloat();
-        auto right = header.removeFromRight (278);
-        zoomBox.setBounds (right.removeFromRight (82).withSizeKeepingCentre (82, 28));
-        right.removeFromRight (7);
-        samplesButton.setBounds (right.removeFromRight (91).withSizeKeepingCentre (91, 30));
-        right.removeFromRight (7);
-        phrasesButton.setBounds (right.withSizeKeepingCentre (right.getWidth(), 30));
-        kitPanel.setBounds (header.reduced (2, 0));
+        backdrop.logo = header.removeFromLeft (214).toFloat();
+        auto right = header;
+        zoomBox.setBounds (right.removeFromRight (72).withSizeKeepingCentre (72, 30));
+        right.removeFromRight (8);
+        samplesButton.setBounds (right.removeFromRight (samplesButton.fitWidth (44)).withSizeKeepingCentre (samplesButton.fitWidth (44), 44));
+        right.removeFromRight (8);
+        phrasesButton.setBounds (right.removeFromRight (phrasesButton.fitWidth (44)).withSizeKeepingCentre (phrasesButton.fitWidth (44), 44));
+        right.removeFromRight (8);
+        kitPanel.setBounds (juce::Rectangle<int> (250, 19, juce::jmax (0, right.getRight() - 250), 44));
 
         // The display, the transport and the mode switches.
         area.removeFromTop (4);
@@ -195,10 +220,11 @@ namespace wubansia
         lcd.setBounds (row.removeFromLeft (590));
         row.removeFromLeft (10);
         transport.setBounds (row.removeFromLeft (128));
-        backdrop.plates.emplace_back (transport.getBounds().toFloat(), juce::String());
+        backdrop.panels.push_back (transport.getBounds().toFloat());
         row.removeFromLeft (10);
         modePanel.setBounds (row);
-        backdrop.plates.emplace_back (modePanel.getBounds().toFloat(), juce::String());
+        backdrop.panels.push_back (modePanel.getBounds().toFloat());
+        backdrop.well = lcd.getBounds().toFloat();
 
         // Where playback is.
         area.removeFromTop (8);
@@ -232,7 +258,11 @@ namespace wubansia
         // MIDI drag-out.
         area.removeFromTop (8);
         dragStrip.setBounds (area.removeFromTop (38));
-        backdrop.plates.emplace_back (dragStrip.getBounds().toFloat(), juce::String());
+        backdrop.panels.push_back (dragStrip.getBounds().toFloat());
+        backdrop.panels.push_back (abPanel.getBounds().toFloat());
+        backdrop.panels.push_back (fxPanel.getBounds().toFloat());
+        for (auto& lane : lanes)
+            backdrop.lanes.push_back (lane->getBounds().toFloat());
 
         backdrop.repaint();
     }
@@ -298,6 +328,18 @@ namespace wubansia
             m.playMode = m.snapshot.mode;
         m.vox = voxParameter == nullptr || voxParameter->getValue() >= 0.5f;
         m.accent = editor::accentForKit (m.kit.id);
+        for (std::size_t i = 0; i < abParameters.size(); ++i)
+            m.abB[i] = abParameters[i] != nullptr && abParameters[i]->getValue() >= 0.5f;
+
+        // The looks' notes (ADR 0032): the play mode's file for the vox switch, the 16th playing in it and its chord.
+        m.pattern = controller.pattern (m.playMode, m.vox ? engine::Variant::vox : engine::Variant::novox);
+        m.patternStep = -1;
+        if (m.pattern != nullptr && m.pattern->steps > 0 && m.snapshot.playing && m.snapshot.songTicks >= 0.0)
+        {
+            const auto step = (int) std::floor (m.snapshot.songTicks / 240.0);
+            m.patternStep = m.pattern->mode == engine::PlayMode::song ? juce::jlimit (0, m.pattern->steps - 1, step) : step % m.pattern->steps;
+        }
+        m.chord = m.pattern != nullptr && m.patternStep >= 0 ? m.pattern->chordAt (m.patternStep) : juce::String();
     }
 
     void PluginEditor::showContentPanel (bool show)
@@ -388,18 +430,18 @@ namespace wubansia
 
     void PluginEditor::tick()
     {
-        const auto previousAccent = state.accent;
         refreshModel();
-
         for (auto& attachment : attachments)
             attachment->poll();
 
-        if (state.accent != previousAccent)
-        {
-            lookAndFeel.setSkin (editor::litHardwareSkin (state.kit.id));
-            content.repaint(); // the whole face, the cached backdrop included
-            backdrop.repaint();
-        }
+        // The look follows the kit (ADR 0032), on the message thread, on the tick after the kit changed.
+        if (const auto& next = editor::skinForKit (state.kit.id); next.id != lookAndFeel.skin().id || ! skinApplied)
+            applySkin (next);
+        backdrop.setSubtitle (state.kit.direction);
+
+        // Machine room's scope: drained every tick while it shows.
+        if (scopeOn)
+            lcd.pushScope (scopeBuffer.data(), controller.readScope (scopeBuffer.data(), (int) scopeBuffer.size()));
 
         kitPanel.update (state);
         lcd.update (state);
@@ -430,46 +472,125 @@ namespace wubansia
         }
         samplesButton.setToggleState (samplesPanel.isVisible(), juce::dontSendNotification);
         phrasesButton.setToggleState (phrasesPanel.isVisible(), juce::dontSendNotification);
+
+        auto* focused = focusOverride != nullptr ? focusOverride.getComponent() : juce::Component::getCurrentlyFocusedComponent();
+        focusRing.follow (focused != nullptr && content.isParentOf (focused) && focused->getWantsKeyboardFocus() ? focused : nullptr);
+    }
+
+    void PluginEditor::applySkin (const editor::Skin& next)
+    {
+        skinApplied = true;
+        lookAndFeel.setSkin (next);
+        const auto wantScope = next.display == editor::DisplayKind::scope;
+        if (wantScope != scopeOn)
+        {
+            scopeOn = wantScope;
+            controller.setScopeOn (wantScope);
+        }
+        content.sendLookAndFeelChange(); // each panel lays itself out again in the new look
+        layOut(); // the header's widths depend on the look's fonts
+        for (auto* panel : std::initializer_list<juce::Component*> { &kitPanel, &transport, &modePanel, &abPanel, &fxPanel, &dragStrip })
+            panel->resized();
+        for (auto& lane : lanes)
+            lane->resized();
+        content.repaint(); // a new look repaints everything once, the cached backdrop included
+        backdrop.repaint();
+    }
+
+    PluginEditor::Backdrop::Backdrop()
+    {
+        setComponentID ("backdrop");
+    }
+
+    void PluginEditor::Backdrop::setSubtitle (const juce::String& direction)
+    {
+        if (direction != subtitle)
+        {
+            subtitle = direction;
+            repaint();
+        }
+    }
+
+    std::vector<editor::DrawnText> PluginEditor::Backdrop::drawnText() const
+    {
+        const auto& skin = editor::skinOf (*this);
+        const auto text = logo.withTrimmedLeft (50.0f);
+        return { editor::fitText (skin.type.wordmark, skin.words.wordmark, text.withY (logo.getY() + 8.0f).withHeight (22.0f)),
+            editor::fitText (skin.type.subtitle, subtitle, text.withY (logo.getY() + 33.0f).withHeight (14.0f)) };
     }
 
     void PluginEditor::Backdrop::paint (juce::Graphics& g)
     {
-        namespace paint = editor::paint;
+        ++renders;
         const auto& skin = editor::skinOf (*this);
-        const auto accent = skin.colours.accent;
+        const auto& c = skin.colours;
+        namespace paint = editor::paint;
+        g.fillAll (c.face);
 
-        paint::faceplate (g, getLocalBounds().toFloat());
-        for (const auto& [area, title] : plates)
-            paint::plate (g, area, title);
+        for (const auto& panel : panels)
+            paint::box (g, panel, skin.shape.panel, c.panel, c.panelEdge);
+        for (const auto& lane : lanes)
+            paint::box (g, lane, skin.shape.lane, c.lane, c.laneEdge);
+        paint::box (g, well, skin.shape.well, c.well, c.wellEdge);
 
-        // The emblem: three lit bars on a dark tile, then the wordmark.
-        auto logoArea = logo;
-        const auto tile = logoArea.removeFromLeft (40.0f).withSizeKeepingCentre (38.0f, 38.0f);
-        paint::recess (g, tile, 8.0f);
-        const float heights[] = { 0.45f, 0.85f, 0.62f };
-        for (int i = 0; i < 3; ++i)
-        {
-            const auto bar = juce::Rectangle<float> (5.0f, 24.0f * heights[i]).withPosition (tile.getX() + 9.0f + (float) i * 8.0f, tile.getBottom() - 7.0f - 24.0f * heights[i]);
-            g.setColour (accent.withAlpha (0.3f));
-            g.fillRoundedRectangle (bar.expanded (2.0f), 3.0f);
-            g.setGradientFill (juce::ColourGradient::vertical (accent.brighter (0.4f), bar.getY(), accent.darker (0.2f), bar.getBottom()));
-            g.fillRoundedRectangle (bar, 2.0f);
-        }
+        // The emblem: a tile with the look's mark, then the wordmark and the kit's direction.
+        const auto tile = juce::Rectangle<float> (logo.getX(), logo.getY() + 10.0f, 38.0f, 38.0f);
+        paint::box (g, tile, skin.shape.headerButton, c.panel, c.controlEdge);
+        juce::Path mark;
+        const auto m = tile.reduced (10.0f, 13.0f);
+        mark.startNewSubPath (m.getX(), m.getBottom());
+        mark.lineTo (m.getX() + m.getWidth() * 0.3f, m.getY());
+        mark.lineTo (m.getCentreX(), m.getBottom() - m.getHeight() * 0.35f);
+        mark.lineTo (m.getRight() - m.getWidth() * 0.3f, m.getY());
+        mark.lineTo (m.getRight(), m.getBottom());
+        g.setColour (c.accent);
+        g.strokePath (mark, juce::PathStrokeType (2.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
-        logoArea.removeFromLeft (12.0f);
-        auto wordmark = logoArea.removeFromTop (logoArea.getHeight() * 0.62f);
-        g.setFont (editor::bodyFont (skin, 19.5f, true, 0.15f));
-        g.setColour (juce::Colours::black.withAlpha (0.5f));
-        g.drawText ("WUBANSIA", wordmark.translated (0.0f, 1.0f), juce::Justification::bottomLeft, false);
-        g.setColour (skin.colours.text);
-        g.drawText ("WUBANSIA", wordmark, juce::Justification::bottomLeft, false);
-        paint::engraved (g, "Groovebox" + editor::middleDot() + "v" + juce::String (WUBANSIA_VERSION), logoArea.withTrimmedTop (3.0f),
-            juce::Justification::topLeft, 8.5f);
+        const auto texts = drawnText();
+        editor::drawText (g, texts[0], c.text);
+        editor::drawText (g, texts[1], c.dim);
+    }
+
+    PluginEditor::FocusRing::FocusRing()
+    {
+        setInterceptsMouseClicks (false, false);
+    }
+
+    juce::Rectangle<float> PluginEditor::FocusRing::ringArea() const
+    {
+        if (shown == nullptr || getParentComponent() == nullptr)
+            return {};
+        const auto& skin = editor::skinOf (*this);
+        return getParentComponent()->getLocalArea (shown, shown->getLocalBounds()).toFloat().expanded (skin.shape.focusGap + skin.shape.focusWidth + 1.0f);
+    }
+
+    void PluginEditor::FocusRing::follow (juce::Component* target)
+    {
+        if (target == shown.getComponent())
+            return;
+        if (const auto old = ringArea(); ! old.isEmpty())
+            editor::repaintArea (*this, old.getSmallestIntegerContainer());
+        shown = target;
+        if (const auto now = ringArea(); ! now.isEmpty())
+            editor::repaintArea (*this, now.getSmallestIntegerContainer());
+    }
+
+    void PluginEditor::FocusRing::paint (juce::Graphics& g)
+    {
+        if (shown == nullptr || ! shown->isVisible())
+            return;
+        const auto& skin = editor::skinOf (*this);
+        const auto box = getLocalArea (shown, shown->getLocalBounds()).toFloat();
+        editor::paint::focusRing (g, skin, box, std::min (skin.shape.segment.corner, box.getHeight() * 0.5f));
     }
 
     const editor::Skin& PluginEditor::skin() const noexcept { return lookAndFeel.skin(); }
 
-    int PluginEditor::backdropRenders() const noexcept { return 0; }
+    int PluginEditor::backdropRenders() const noexcept { return backdrop.renders; }
 
-    void PluginEditor::setFocusOverrideForTesting (juce::Component*) {}
+    void PluginEditor::setFocusOverrideForTesting (juce::Component* c)
+    {
+        focusOverride = c;
+        focusRing.follow (c);
+    }
 }

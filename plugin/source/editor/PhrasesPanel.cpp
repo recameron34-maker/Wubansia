@@ -1,6 +1,7 @@
 #include "PhrasesPanel.h"
 
 #include "ExternalDrag.h"
+#include "editor/skin/Paint.h"
 #include "SamplesPanel.h" // announceToScreenReader, noSoundLine
 
 #include "gen/phrase.h"
@@ -846,18 +847,34 @@ namespace wubansia::editor
             tiles[i]->setBounds ((i % columns) * (PhraseTile::width + gap), (i / columns) * (PhraseTile::height + gap), PhraseTile::width, PhraseTile::height);
     }
 
+    std::vector<DrawnText> PhrasesPanel::drawnText() const
+    {
+        // The status line (run-time words: the body face, fallback on) and the For my synths note, as paint () draws them.
+        std::vector<DrawnText> out { fitText (skinOf (*this).type.rowLabel, getTitle(), headerArea.withTrimmedLeft (margin).withWidth (84).toFloat()) };
+        const auto font = bodyFont (skinOf (*this), 11.5f, true);
+        for (const auto& [text, area] : { std::pair { statusText(), statusArea.toFloat() }, std::pair { synthsText(), synthsArea.toFloat() } })
+        {
+            if (text.isEmpty())
+                continue;
+            DrawnText t;
+            t.text = text;
+            t.font = font;
+            t.area = area;
+            t.styledPx = t.minPx = font.getHeightInPoints() * 0.9f; // the status line may squeeze to 0.9 on its two lines
+            if (juce::GlyphArrangement::getStringWidth (font, text) > area.getWidth())
+                t.area = area.withWidth (area.getWidth() * 2.0f); // its two lines
+            out.push_back (t);
+        }
+        return out;
+    }
+
     void PhrasesPanel::paint (juce::Graphics& g)
     {
         const auto bounds = getLocalBounds().toFloat();
         const auto accent = skinOf (*this).colours.accent;
 
-        // A frosted panel over the lanes, as the Samples drawer is, rimmed in the kit's colour.
-        g.setColour (juce::Colours::black.withAlpha (0.55f));
-        g.fillRoundedRectangle (bounds.translated (0.0f, 3.0f), 12.0f);
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colour (0xfb21242a), bounds.getY(), juce::Colour (0xfd16181c), bounds.getBottom()));
-        g.fillRoundedRectangle (bounds, 12.0f);
-        g.setColour (accent.withAlpha (0.5f));
-        g.drawRoundedRectangle (bounds.reduced (0.5f), 12.0f, 1.2f);
+        // The drawer's frame in the look (ADR 0032).
+        paint::drawer (g, skinOf (*this), bounds);
 
         // Hairlines under the header and over the footer.
         g.setColour (juce::Colours::white.withAlpha (0.07f));
@@ -865,7 +882,7 @@ namespace wubansia::editor
         g.fillRect (juce::Rectangle<float> (bounds.getX() + 12.0f, (float) footerArea.getY() - 1.0f, bounds.getWidth() - 24.0f, 1.0f));
 
         // The header: PHRASES, then the kit line.
-        paint::engraved (g, getTitle(), headerArea.withTrimmedLeft (margin).withWidth (84).toFloat(), juce::Justification::centredLeft, 11.0f, skinOf (*this).colours.dim);
+        paint::label (g, skinOf (*this), getTitle(), headerArea.withTrimmedLeft (margin).withWidth (84).toFloat(), juce::Justification::centredLeft, 11.0f, skinOf (*this).colours.dim);
         if (kit.id.isNotEmpty())
         {
             juce::AttributedString title;

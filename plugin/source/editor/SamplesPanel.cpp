@@ -1,5 +1,6 @@
 #include "SamplesPanel.h"
 #include "ExternalDrag.h"
+#include "editor/skin/Paint.h"
 
 #include "dragout/DragFiles.h"
 #include "sounds/SampleExport.h"
@@ -245,7 +246,9 @@ namespace wubansia::editor
         const auto accent = accentForKit (kitId);
         auto area = getLocalBounds().toFloat().reduced (1.5f);
         const auto corner = area.getHeight() * 0.5f;
-        paint::rubber (g, area, corner, isButtonDown, isMouseOver, accent, 0.0f);
+        paint::box (g, area, skinOf (*this).shape.pill, over (skinOf (*this).colours.pillOff, skinOf (*this).colours.face).brighter (isMouseOver ? 0.06f : 0.0f),
+            skinOf (*this).colours.pillOffEdge);
+        juce::ignoreUnused (corner);
         if (isButtonDown)
             area = area.translated (0.0f, 0.6f);
 
@@ -547,7 +550,7 @@ namespace wubansia::editor
         const auto lit = failed ? skinOf (*this).colours.warning : (enabled ? accent : skinOf (*this).colours.faint);
         paint::grip (g, content.removeFromLeft (20.0f).withSizeKeepingCentre (10.0f, 17.0f), lit);
         content.removeFromLeft (14.0f);
-        paint::engraved (g, failed ? "Couldn't save it" : "Drag into your DAW", content.removeFromTop (13.0f), juce::Justification::centredLeft, 9.5f,
+        paint::label (g, skinOf (*this), failed ? "Couldn't save it" : "Drag into your DAW", content.removeFromTop (13.0f), juce::Justification::centredLeft, 9.5f,
             failed ? skinOf (*this).colours.warning : (enabled ? lit.interpolatedWith (skinOf (*this).colours.text, 0.25f) : skinOf (*this).colours.faint));
         content.removeFromTop (6.0f);
         g.setFont (bodyFont (skinOf (*this), 13.5f, true));
@@ -1507,7 +1510,7 @@ namespace wubansia::editor
         auto footer = footerArea.reduced (14, 0);
         contentButton.setBounds (footer.removeFromRight (100).withSizeKeepingCentre (100, 22));
         footer.removeFromRight (16);
-        const auto textWidth = juce::GlyphArrangement::getStringWidth (bodyFont (skinOf (*this), 11.5f), folderText());
+        const auto textWidth = juce::GlyphArrangement::getStringWidth (pathFont (skinOf (*this), 11.5f), folderText()); // as paint () draws it
         folderArea = footer.removeFromLeft (juce::jmin (330, static_cast<int> (std::ceil (textWidth)) + 2));
         footer.removeFromLeft (8);
         folderButton.setBounds (footer.removeFromLeft (80).withSizeKeepingCentre (80, 22));
@@ -1515,18 +1518,41 @@ namespace wubansia::editor
         statusArea = footer;
     }
 
+    std::vector<DrawnText> SamplesPanel::drawnText() const
+    {
+        // The fixed boxes' texts (ADR 0032): the detail pane's lines and the footer's folder, as paint () draws them.
+        std::vector<DrawnText> out;
+        const auto& skin = skinOf (*this);
+        const auto add = [&out] (const juce::String& text, const juce::Font& font, juce::Rectangle<float> area)
+        {
+            if (text.isEmpty())
+                return;
+            DrawnText t;
+            t.text = text;
+            t.font = font;
+            t.area = area;
+            t.styledPx = t.minPx = font.getHeightInPoints();
+            out.push_back (t);
+        };
+        if (const auto detail = juce::StringArray::fromLines (detailText()); detail.size() >= 3)
+        {
+            add (detail[1], bodyFont (skin, 12.0f), subArea.toFloat());
+            add (detail[2], bodyFont (skin, 12.0f), formatArea.toFloat());
+        }
+        // The person's folder may end in "…" past 330 px (its tooltip has it whole): its box is its own width.
+        const auto pathFontNow = pathFont (skin, 11.5f);
+        add (skin.type.rowLabel.apply ("Samples"), skin.type.rowLabel.font(), headerArea.withTrimmedLeft (16).withWidth (84).toFloat());
+        add (folderText(), pathFontNow, folderArea.toFloat().withWidth (std::max ((float) folderArea.getWidth(), juce::GlyphArrangement::getStringWidth (pathFontNow, folderText()))));
+        return out;
+    }
+
     void SamplesPanel::paint (juce::Graphics& g)
     {
         const auto bounds = getLocalBounds().toFloat();
         const auto accent = look.skin().colours.accent;
 
-        // A frosted panel over the lanes, as the install panel is, rimmed in the browsed kit's colour.
-        g.setColour (juce::Colours::black.withAlpha (0.55f));
-        g.fillRoundedRectangle (bounds.translated (0.0f, 3.0f), 12.0f);
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colour (0xfb21242a), bounds.getY(), juce::Colour (0xfd16181c), bounds.getBottom()));
-        g.fillRoundedRectangle (bounds, 12.0f);
-        g.setColour (accent.withAlpha (0.5f));
-        g.drawRoundedRectangle (bounds.reduced (0.5f), 12.0f, 1.2f);
+        // The drawer's frame in the look (ADR 0032).
+        paint::drawer (g, skinOf (*this), bounds);
 
         // Hairlines between the header, rail, list, detail and footer.
         g.setColour (juce::Colours::white.withAlpha (0.07f));
@@ -1536,7 +1562,7 @@ namespace wubansia::editor
             g.fillRect (juce::Rectangle<float> ((float) x, (float) railArea.getY() + 10.0f, 1.0f, (float) railArea.getHeight() - 20.0f));
 
         // The header: SAMPLES, and the browsed kit.
-        paint::engraved (g, "Samples", headerArea.withTrimmedLeft (16).withWidth (84).toFloat(), juce::Justification::centredLeft, 11.0f, skinOf (*this).colours.dim);
+        paint::label (g, skinOf (*this), "Samples", headerArea.withTrimmedLeft (16).withWidth (84).toFloat(), juce::Justification::centredLeft, 11.0f, skinOf (*this).colours.dim);
         if (const auto* card = cardOf (browsed))
         {
             juce::AttributedString title;
@@ -1556,12 +1582,12 @@ namespace wubansia::editor
             for (const auto& s : *sounds)
                 for (const auto& f : s.files)
                     files.insert (f.file);
-            paint::engraved (g, juce::String (sounds->size()) + " sounds" + middleDot() + juce::String ((int) files.size()) + " files",
+            paint::label (g, skinOf (*this), juce::String (sounds->size()) + " sounds" + middleDot() + juce::String ((int) files.size()) + " files",
                 railArea.reduced (16, 12).removeFromBottom (14).toFloat(), juce::Justification::centredLeft, 8.5f, skinOf (*this).colours.faint);
         }
 
         // The list's well, its rim lit while it has the keyboard.
-        paint::recess (g, wellArea.toFloat(), 8.0f);
+        paint::well (g, skinOf (*this), wellArea.toFloat(), 8.0f);
         if (list.hasKeyboardFocus (true))
         {
             g.setColour (accent.withAlpha (0.5f));
@@ -1607,7 +1633,7 @@ namespace wubansia::editor
             g.setFont (bodyFont (skinOf (*this), 12.0f));
             g.setColour (skinOf (*this).colours.dim);
             g.drawText (detail[1], subArea.toFloat(), juce::Justification::centredLeft, true);
-            paint::engraved (g, "File", fileLabelArea.toFloat(), juce::Justification::centredLeft, 9.5f);
+            paint::label (g, skinOf (*this), "File", fileLabelArea.toFloat(), juce::Justification::centredLeft, 9.5f);
             g.setFont (bodyFont (skinOf (*this), 12.0f));
             g.setColour (skinOf (*this).colours.dim);
             g.drawText (detail[2], formatArea.toFloat(), juce::Justification::centredLeft, true);
@@ -1628,8 +1654,8 @@ namespace wubansia::editor
             g.drawText ("Pick a sound in the list", nameArea.toFloat(), juce::Justification::centredLeft, true);
         }
 
-        // The footer: where drags go, and the status line.
-        g.setFont (bodyFont (skinOf (*this), 11.5f));
+        // The footer: where drags go (the person's folder: the path role, fallback on), and the status line.
+        g.setFont (pathFont (skinOf (*this), 11.5f));
         g.setColour (skinOf (*this).colours.dim);
         g.drawText (folderText(), folderArea.toFloat(), juce::Justification::centredLeft, true);
         if (const auto status = statusText(); status.isNotEmpty())

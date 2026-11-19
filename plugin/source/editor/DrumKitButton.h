@@ -9,6 +9,7 @@
 
 #include "Controller.h"
 #include "EditorModel.h"
+#include "editor/DrawnText.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -16,7 +17,7 @@
 
 namespace wubansia::editor
 {
-    class DrumKitButton : public juce::Component, public juce::SettableTooltipClient
+    class DrumKitButton : public juce::Component, public juce::SettableTooltipClient, public DrawnTextSource
     {
     public:
         explicit DrumKitButton (Controller&);
@@ -38,6 +39,7 @@ namespace wubansia::editor
         std::function<void (const juce::String&)> announce;
 
         void paint (juce::Graphics&) override;
+        std::vector<DrawnText> drawnText() const override;
         void mouseEnter (const juce::MouseEvent&) override;
         void mouseExit (const juce::MouseEvent&) override;
         void mouseDown (const juce::MouseEvent&) override; // exportDrumKit ()

@@ -1,11 +1,41 @@
 #include "Controls.h"
+
 #include "LookAndFeel.h"
+#include "editor/skin/Paint.h"
 
 #include <cmath>
 #include <vector>
 
 namespace wubansia::editor
 {
+    bool sliderKey (juce::Slider& slider, const juce::KeyPress& key, double step, double fine)
+    {
+        const auto code = key.getKeyCode();
+        double target = 0.0;
+        if (code == juce::KeyPress::homeKey)
+            target = slider.getDoubleClickReturnValue();
+        else
+        {
+            const auto up = code == juce::KeyPress::upKey || code == juce::KeyPress::rightKey;
+            const auto down = code == juce::KeyPress::downKey || code == juce::KeyPress::leftKey;
+            if (! up && ! down)
+                return false;
+            const auto by = key.getModifiers().isShiftDown() ? fine : step;
+            target = slider.getValue() + (up ? by : -by);
+        }
+        if (! slider.isEnabled())
+            return true;
+        target = juce::jlimit (slider.getMinimum(), slider.getMaximum(), target);
+        // One gesture per key, as one drag is: the attachment begins it, writes the value inside it and ends it.
+        if (slider.onDragStart != nullptr)
+            slider.onDragStart();
+        slider.setValue (target, juce::sendNotificationSync);
+        if (slider.onDragEnd != nullptr)
+            slider.onDragEnd();
+        return true;
+    }
+
+    //==============================================================================================================
     Knob::Knob()
         : juce::Slider (juce::Slider::RotaryVerticalDrag, juce::Slider::NoTextBox)
     {
@@ -13,7 +43,22 @@ namespace wubansia::editor
         setMouseDragSensitivity (220);
         setPopupMenuEnabled (false);
         setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+        setWantsKeyboardFocus (true);
+        setMouseClickGrabsKeyboardFocus (false);
     }
+
+    void Knob::applySkin (const Skin& skin)
+    {
+        const auto style = skin.fx == FxKind::bars ? juce::Slider::LinearBar : juce::Slider::RotaryVerticalDrag;
+        if (getSliderStyle() != style)
+        {
+            setSliderStyle (style);
+            setSliderSnapsToMousePosition (style != juce::Slider::LinearBar);
+            setMouseCursor (style == juce::Slider::LinearBar ? juce::MouseCursor::LeftRightResizeCursor : juce::MouseCursor::UpDownResizeCursor);
+        }
+    }
+
+    bool Knob::keyPressed (const juce::KeyPress& key) { return sliderKey (*this, key, 5.0, 1.0); }
 
     void Knob::mouseDown (const juce::MouseEvent& e)
     {
@@ -33,12 +78,24 @@ namespace wubansia::editor
             juce::Slider::mouseUp (e);
     }
 
+    //==============================================================================================================
     Fader::Fader()
         : juce::Slider (juce::Slider::LinearVertical, juce::Slider::NoTextBox)
     {
         setSliderSnapsToMousePosition (false); // grab the cap anywhere and move it relative
         setPopupMenuEnabled (false);
+        setWantsKeyboardFocus (true);
+        setMouseClickGrabsKeyboardFocus (false);
     }
+
+    void Fader::applySkin (const Skin& skin)
+    {
+        const auto style = skin.lane == LaneKind::stepsAndSlide ? juce::Slider::LinearHorizontal : juce::Slider::LinearVertical;
+        if (getSliderStyle() != style)
+            setSliderStyle (style);
+    }
+
+    bool Fader::keyPressed (const juce::KeyPress& key) { return sliderKey (*this, key, 1.0, 0.1); }
 
     void Fader::mouseDown (const juce::MouseEvent& e)
     {
@@ -58,22 +115,30 @@ namespace wubansia::editor
             juce::Slider::mouseUp (e);
     }
 
+    //==============================================================================================================
     PadButton::PadButton (const juce::String& name, const juce::String& letterToShow)
-        : juce::Button (name), letter (letterToShow)
+        : juce::Button (name)
     {
+        juce::ignoreUnused (letterToShow);
         setClickingTogglesState (true);
+    }
+
+    std::vector<DrawnText> PadButton::drawnText() const
+    {
+        const auto& skin = skinOf (*this);
+        return { fitText (skin.type.laneButton, skin.words.mute, getLocalBounds().toFloat().reduced (4.0f, 2.0f), juce::Justification::centred) };
     }
 
     void PadButton::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
+        const auto& skin = skinOf (*this);
+        const auto& c = skin.colours;
         const auto on = getToggleState();
-        const auto light = skinOf (*this).colours.accent2;
-        const auto area = getLocalBounds().toFloat().reduced (2.5f);
-        paint::rubber (g, area, 5.0f, isButtonDown, isMouseOver && isEnabled(), light, on ? 1.0f : 0.0f);
-
-        g.setFont (bodyFont (skinOf (*this), juce::jmin (13.0f, area.getHeight() * 0.55f), true, 0.06f));
-        g.setColour (on ? juce::Colour (0xff1d1606) : (isEnabled() ? skinOf (*this).colours.dim : skinOf (*this).colours.faint));
-        g.drawText (letter, area.translated (0.0f, isButtonDown ? 0.6f : 0.0f), juce::Justification::centred, false);
+        const auto area = getLocalBounds().toFloat().reduced (0.5f).translated (0.0f, isButtonDown ? 0.5f : 0.0f);
+        const auto fill = on ? c.text : (isMouseOver && isEnabled() ? over (c.lane, c.face).brighter (0.1f) : over (c.lane, c.face));
+        paint::box (g, area, skin.shape.laneButton, fill, on ? c.text : c.controlEdge);
+        for (const auto& t : drawnText())
+            drawText (g, t, on ? over (c.lane, c.face) : (isEnabled() ? c.text : c.faint));
     }
 
     void PadButton::mouseDown (const juce::MouseEvent& e)
@@ -88,6 +153,176 @@ namespace wubansia::editor
             juce::Button::mouseUp (e);
     }
 
+    //==============================================================================================================
+    LedButton::LedButton (const juce::String& label)
+        : juce::Button (label)
+    {
+        setClickingTogglesState (true);
+    }
+
+    void LedButton::setRole (Role r)
+    {
+        if (kind != r)
+        {
+            kind = r;
+            repaint();
+        }
+    }
+
+    void LedButton::setRing (float amount)
+    {
+        amount = juce::jlimit (0.0f, 1.0f, amount);
+        if (std::abs (amount - ring) > 0.002f)
+        {
+            ring = amount;
+            repaint();
+        }
+    }
+
+    namespace
+    {
+        const TextStyle& labelStyle (const Skin& skin, LedButton::Role role, bool on)
+        {
+            switch (role)
+            {
+                case LedButton::Role::headerButton: return skin.type.headerButton;
+                case LedButton::Role::modeRow: return skin.type.rowLabel;
+                case LedButton::Role::club: return skin.type.fxName;
+                case LedButton::Role::transport: return skin.type.transportLine;
+                case LedButton::Role::stripSwitch: break;
+            }
+            return on ? skin.type.stripChip : skin.type.stripChipOff;
+        }
+    }
+
+    juce::Font LedButton::labelFont() const
+    {
+        const auto& skin = skinOf (*this);
+        const auto& style = labelStyle (skin, kind, true); // the wider of on and off
+        return fitText (style, getButtonText(), labelArea()).font;
+    }
+
+    juce::Rectangle<float> LedButton::labelArea() const
+    {
+        const auto area = getLocalBounds().toFloat();
+        switch (kind)
+        {
+            case Role::headerButton: return area.reduced (12.0f, 2.0f);
+            case Role::modeRow: return area.reduced (8.0f, 0.0f).withTrimmedRight (area.getWidth() * 0.3f);
+            case Role::club: return area.withSizeKeepingCentre (area.getHeight() - 14.0f, 14.0f);
+            case Role::stripSwitch: return area.reduced (8.0f, 2.0f);
+            case Role::transport: return {};
+        }
+        return area;
+    }
+
+    int LedButton::fitWidth (int height) const
+    {
+        juce::ignoreUnused (height);
+        const auto& skin = skinOf (*this);
+        const auto& style = labelStyle (skin, kind, true);
+        const auto pad = kind == Role::headerButton ? 24.0f : 16.0f;
+        return (int) std::ceil (juce::GlyphArrangement::getStringWidth (style.font(), style.apply (getButtonText())) + pad + 2.0f);
+    }
+
+    std::vector<DrawnText> LedButton::drawnText() const
+    {
+        const auto& skin = skinOf (*this);
+        const auto on = getToggleState() && isEnabled();
+        std::vector<DrawnText> out;
+        switch (kind)
+        {
+            case Role::transport:
+                break;
+            case Role::modeRow:
+            {
+                const auto area = getLocalBounds().toFloat().reduced (8.0f, 0.0f);
+                out.push_back (fitText (skin.type.rowLabel, getButtonText(), area.withTrimmedRight (area.getWidth() * 0.32f)));
+                out.push_back (fitText (skin.type.rowValue, on ? skin.words.on : skin.words.off, area.withTrimmedLeft (area.getWidth() * 0.68f),
+                    juce::Justification::centredRight));
+                break;
+            }
+            case Role::club:
+                out.push_back (fitText (skin.type.fxName, on ? skin.words.on : skin.words.off, labelArea(), juce::Justification::centred));
+                break;
+            case Role::headerButton:
+            case Role::stripSwitch:
+                out.push_back (fitText (labelStyle (skin, kind, on), getButtonText(), labelArea(), juce::Justification::centred));
+                break;
+        }
+        return out;
+    }
+
+    void LedButton::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
+    {
+        const auto& skin = skinOf (*this);
+        const auto& c = skin.colours;
+        const auto on = getToggleState() && isEnabled();
+        const auto bounds = getLocalBounds().toFloat().reduced (0.5f).translated (0.0f, isButtonDown ? 0.5f : 0.0f);
+        const auto hover = isMouseOver && isEnabled();
+        switch (kind)
+        {
+            case Role::headerButton:
+            {
+                const auto fill = on ? over (c.accent2Tint, c.face) : over (c.panel, c.face).brighter (hover ? 0.06f : 0.0f);
+                paint::box (g, bounds, skin.shape.headerButton, fill, on ? c.accent2 : c.controlEdge);
+                for (const auto& t : drawnText())
+                    drawText (g, t, on ? c.accent2TintText : c.text);
+                return;
+            }
+            case Role::stripSwitch:
+            {
+                const auto fill = on ? over (c.accent2Tint, c.face) : juce::Colours::transparentBlack;
+                paint::box (g, bounds, skin.shape.stripSwitch, fill, on ? c.accent2 : c.controlEdge);
+                for (const auto& t : drawnText())
+                    drawText (g, t, ! isEnabled() ? c.faint : on ? c.accent2TintText : c.dim);
+                return;
+            }
+            case Role::modeRow:
+            {
+                if (hover)
+                {
+                    g.setColour (juce::Colours::white.withAlpha (0.04f));
+                    g.fillRoundedRectangle (bounds, 4.0f);
+                }
+                const auto texts = drawnText();
+                drawText (g, texts[0], c.dim);
+                drawText (g, texts[1], on ? c.accent2 : c.faint);
+                return;
+            }
+            case Role::club:
+            {
+                const auto size = std::min (bounds.getWidth(), bounds.getHeight());
+                const auto circle = bounds.withSizeKeepingCentre (size, size).reduced (3.0f);
+                const auto centre = circle.getCentre();
+                const auto radius = circle.getWidth() * 0.5f;
+                constexpr auto pi = juce::MathConstants<float>::pi;
+                juce::Path track;
+                track.addCentredArc (centre.x, centre.y, radius, radius, 0.0f, pi * 1.25f, pi * 2.75f, true);
+                g.setColour (c.controlEdge);
+                g.strokePath (track, juce::PathStrokeType (3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+                if (on && ring > 0.0f)
+                {
+                    juce::Path arc;
+                    arc.addCentredArc (centre.x, centre.y, radius, radius, 0.0f, pi * 1.25f, pi * 1.25f + pi * 1.5f * ring, true);
+                    g.setColour (c.accent);
+                    g.strokePath (arc, juce::PathStrokeType (3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+                }
+                const auto body = circle.reduced (size * 0.17f);
+                g.setColour (on ? over (c.accentTint, c.face) : over (c.well, c.face));
+                g.fillEllipse (body);
+                g.setColour (on ? c.accent : c.controlEdge);
+                g.drawEllipse (body, 1.0f);
+                for (const auto& t : drawnText())
+                    drawText (g, t, on ? c.accentTintText : c.dim);
+                return;
+            }
+            case Role::transport:
+                paintRoundButton (g, skin, bounds, on, on, hover, isEnabled());
+                return;
+        }
+    }
+
     void LedButton::mouseDown (const juce::MouseEvent& e)
     {
         if (! takeContextClick (e))
@@ -100,57 +335,14 @@ namespace wubansia::editor
             juce::Button::mouseUp (e);
     }
 
-    LedButton::LedButton (const juce::String& label)
-        : juce::Button (label)
-    {
-        setClickingTogglesState (true);
-    }
-
-    void LedButton::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
-    {
-        const auto on = getToggleState() && isEnabled();
-        const auto accent = skinOf (*this).colours.accent;
-        auto area = getLocalBounds().toFloat().reduced (2.0f);
-        const auto corner = area.getHeight() * 0.5f;
-        paint::rubber (g, area, corner, isButtonDown, isMouseOver && isEnabled(), accent, 0.0f);
-        if (isButtonDown)
-            area = area.translated (0.0f, 0.6f);
-
-        // On: a lit rim and a tint, so the state reads from across the room.
-        if (on)
-        {
-            g.setGradientFill (juce::ColourGradient::vertical (accent.withAlpha (0.24f), area.getY(), accent.withAlpha (0.08f), area.getBottom()));
-            g.fillRoundedRectangle (area, corner);
-            g.setColour (accent.withAlpha (0.75f));
-            g.drawRoundedRectangle (area.reduced (0.5f), corner, 1.0f);
-        }
-
-        const auto ledRadius = juce::jmin (4.6f, area.getHeight() * 0.19f);
-        paint::led (g, { area.getX() + area.getHeight() * 0.5f + 1.0f, area.getCentreY() }, ledRadius, accent, on ? 1.0f : 0.0f);
-
-        g.setFont (labelFont());
-        g.setColour (! isEnabled() ? skinOf (*this).colours.faint : (on ? skinOf (*this).colours.text : skinOf (*this).colours.dim));
-        g.drawText (getButtonText().toUpperCase(), labelArea().translated (0.0f, isButtonDown ? 0.6f : 0.0f), juce::Justification::centred, true);
-    }
-
-    juce::Font LedButton::labelFont() const
-    {
-        return bodyFont (skinOf (*this), juce::jmin (12.0f, getLocalBounds().toFloat().reduced (2.0f).getHeight() * 0.42f), true, 0.08f);
-    }
-
-    juce::Rectangle<float> LedButton::labelArea() const
-    {
-        // Right of the LED, as paintButton () draws it.
-        const auto area = getLocalBounds().toFloat().reduced (2.0f);
-        const auto ledRadius = juce::jmin (4.6f, area.getHeight() * 0.19f);
-        return area.withTrimmedLeft (area.getHeight() * 0.5f + ledRadius + 7.0f).withTrimmedRight (6.0f);
-    }
-
+    //==============================================================================================================
     AbSwitch::AbSwitch (const juce::String& name)
         : juce::Button (name)
     {
         setClickingTogglesState (false); // clicked () picks the side that was clicked
         setToggleable (true); // accessibility can still flip it
+        setWantsKeyboardFocus (true);
+        setMouseClickGrabsKeyboardFocus (false);
     }
 
     void AbSwitch::setLabels (const juce::String& newA, const juce::String& newB)
@@ -161,6 +353,74 @@ namespace wubansia::editor
         b = newB;
         setTooltip (a.isNotEmpty() && b.isNotEmpty() ? "A: " + a + "   B: " + b : "This kit has no alternative here");
         repaint();
+    }
+
+    void AbSwitch::setDisplay (const juce::String& sideA, const juce::String& sideB, bool row)
+    {
+        if (sideA == shownA && sideB == shownB && row == asRow)
+            return;
+        shownA = sideA;
+        shownB = sideB;
+        asRow = row;
+        repaint();
+    }
+
+    juce::Rectangle<float> AbSwitch::sideArea (int side) const
+    {
+        const auto area = getLocalBounds().toFloat();
+        const auto half = (area.getWidth() - 6.0f) * 0.5f;
+        return side == 0 ? area.withWidth (half) : area.withLeft (area.getRight() - half);
+    }
+
+    std::vector<DrawnText> AbSwitch::drawnText() const
+    {
+        const auto& skin = skinOf (*this);
+        const auto selected = getToggleState() ? 1 : 0;
+        std::vector<DrawnText> out;
+        for (int side = 0; side < 2; ++side)
+        {
+            const auto& style = asRow ? skin.type.abRow : (side == selected ? skin.type.abSideOn : skin.type.abSide);
+            out.push_back (fitText (style, side == 0 ? shownA : shownB, sideArea (side).reduced (8.0f, 0.0f), juce::Justification::centred));
+        }
+        return out;
+    }
+
+    void AbSwitch::paintButton (juce::Graphics& g, bool isMouseOver, bool)
+    {
+        const auto& skin = skinOf (*this);
+        const auto& c = skin.colours;
+        const auto selected = getToggleState() ? 1 : 0;
+        const auto texts = drawnText();
+        for (int side = 0; side < 2; ++side)
+        {
+            const auto area = sideArea (side).reduced (0.5f);
+            const auto on = side == selected && isEnabled();
+            const auto fill = on ? over (c.accent2Tint, c.face) : over (c.panel, c.face).brighter (isMouseOver ? 0.04f : 0.0f);
+            paint::box (g, area, skin.shape.abSide, fill, on ? c.accent2 : c.controlEdge);
+            drawText (g, texts[(std::size_t) side], ! isEnabled() ? c.faint : on ? c.accent2TintText : c.dim);
+        }
+    }
+
+    void AbSwitch::pick (int side)
+    {
+        if (! isEnabled())
+            return;
+        setToggleState (side == 1, juce::dontSendNotification);
+        if (onClick != nullptr)
+            onClick(); // the attachment writes it as a gesture
+    }
+
+    bool AbSwitch::keyPressed (const juce::KeyPress& key)
+    {
+        if (key == juce::KeyPress::returnKey)
+            pick (getToggleState() ? 0 : 1);
+        else if (key == juce::KeyPress::leftKey)
+            pick (0);
+        else if (key == juce::KeyPress::rightKey)
+            pick (1);
+        else
+            return false; // Space and the rest are the host's
+        return true;
     }
 
     void AbSwitch::mouseDown (const juce::MouseEvent& e)
@@ -179,62 +439,12 @@ namespace wubansia::editor
 
     void AbSwitch::clicked()
     {
-        // A mouse click picks the side it landed on; anything else (keyboard, accessibility,
-        // setToggleState with a notification) keeps the toggle as it was given.
         if (pressedSide >= 0)
             setToggleState (pressedSide == 1, juce::dontSendNotification);
         pressedSide = -1;
     }
 
-    void AbSwitch::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
-    {
-        juce::ignoreUnused (isButtonDown);
-        const auto accent = skinOf (*this).colours.accent;
-        const auto area = getLocalBounds().toFloat().reduced (1.5f);
-        paint::recess (g, area, 6.0f);
-
-        if (! isEnabled() || a.isEmpty() || b.isEmpty())
-        {
-            g.setFont (bodyFont (skinOf (*this), 11.0f, true, 0.06f));
-            g.setColour (skinOf (*this).colours.faint);
-            g.drawText (a.isNotEmpty() ? a + juce::String (juce::CharPointer_UTF8 ("  \xc2\xb7  one sound")) : juce::String ("one sound in this kit"),
-                area, juce::Justification::centred, true);
-            return;
-        }
-
-        const auto selected = getToggleState() ? 1 : 0;
-        for (int side = 0; side < 2; ++side)
-        {
-            auto half = (side == 0 ? area.withWidth (area.getWidth() * 0.5f) : area.withLeft (area.getCentreX())).reduced (2.5f);
-            const auto on = side == selected;
-            if (on)
-            {
-                g.setColour (accent.withAlpha (0.16f));
-                g.fillRoundedRectangle (half.expanded (1.5f), 6.0f);
-                g.setGradientFill (juce::ColourGradient::vertical (accent.withAlpha (0.34f), half.getY(), accent.withAlpha (0.14f), half.getBottom()));
-                g.fillRoundedRectangle (half, 4.5f);
-                g.setColour (accent.withAlpha (0.85f));
-                g.drawRoundedRectangle (half, 4.5f, 1.0f);
-            }
-            else if (isMouseOver)
-            {
-                g.setColour (juce::Colours::white.withAlpha (0.04f));
-                g.fillRoundedRectangle (half, 4.5f);
-            }
-
-            auto badge = half.removeFromLeft (18.0f).withSizeKeepingCentre (14.0f, 14.0f).translated (4.0f, 0.0f);
-            g.setColour (on ? accent : skinOf (*this).colours.faint.withAlpha (0.5f));
-            g.drawRoundedRectangle (badge, 3.0f, 1.0f);
-            g.setFont (bodyFont (skinOf (*this), 9.5f, true));
-            g.drawText (side == 0 ? "A" : "B", badge, juce::Justification::centred, false);
-
-            g.setFont (bodyFont (skinOf (*this), 11.5f, true, 0.02f));
-            g.setColour (on ? skinOf (*this).colours.text : skinOf (*this).colours.dim);
-            g.drawFittedText (side == 0 ? a : b, half.withTrimmedLeft (6.0f).withTrimmedRight (3.0f).toNearestInt(),
-                juce::Justification::centredLeft, 1, 0.8f);
-        }
-    }
-
+    //==============================================================================================================
     SegmentedChoice::SegmentedChoice (const juce::String& name, const juce::StringArray& items)
         : juce::ComboBox (name)
     {
@@ -242,47 +452,62 @@ namespace wubansia::editor
         addItemList (items, 1);
     }
 
+    void SegmentedChoice::setRole (Role r)
+    {
+        if (kind != r)
+        {
+            kind = r;
+            repaint();
+        }
+    }
+
+    const TextStyle& SegmentedChoice::styleFor (bool on) const
+    {
+        const auto& t = skinOf (*this).type;
+        switch (kind)
+        {
+            case Role::playMode: return on ? t.playMode : t.playModeOff;
+            case Role::strip: return on ? t.stripSegmentOn : t.stripSegment;
+            case Role::row: break;
+        }
+        return on ? t.rowValue : t.rowLabel;
+    }
+
+    std::vector<DrawnText> SegmentedChoice::drawnText() const
+    {
+        std::vector<DrawnText> out;
+        const auto selected = getSelectedItemIndex();
+        for (int i = 0; i < getNumItems(); ++i)
+            out.push_back (fitText (styleFor (i == selected), getItemText (i), segmentArea (i).reduced (4.0f, 0.0f), juce::Justification::centred));
+        return out;
+    }
+
     void SegmentedChoice::paint (juce::Graphics& g)
     {
-        const auto accent = skinOf (*this).colours.accent;
+        const auto& skin = skinOf (*this);
+        const auto& c = skin.colours;
         const auto area = getLocalBounds().toFloat().reduced (0.5f);
-        paint::recess (g, area, 6.0f);
-
         const auto count = getNumItems();
-        if (count <= 0)
-            return;
-
+        const auto separate = kind == Role::playMode && skin.shape.segmentTrack.border <= 0.0f;
+        if (! separate)
+            paint::box (g, area, skin.shape.segmentTrack, over (c.well, c.face), c.controlEdge);
         const auto selected = getSelectedItemIndex();
-        const auto font = labelFont();
+        const auto texts = drawnText();
         for (int i = 0; i < count; ++i)
         {
-            const auto cell = segmentArea (i).reduced (2.5f);
             const auto on = i == selected && isEnabled();
+            auto cell = segmentArea (i);
+            if (separate)
+                cell = cell.reduced (3.0f, 0.0f);
+            else
+                cell = cell.reduced (2.0f);
             if (on)
-            {
-                g.setColour (accent.withAlpha (0.16f));
-                g.fillRoundedRectangle (cell.expanded (1.5f), 6.0f);
-                g.setGradientFill (juce::ColourGradient::vertical (accent.withAlpha (0.36f), cell.getY(), accent.withAlpha (0.14f), cell.getBottom()));
-                g.fillRoundedRectangle (cell, 4.5f);
-                g.setColour (accent.withAlpha (0.9f));
-                g.drawRoundedRectangle (cell, 4.5f, 1.0f);
-            }
-            else if (i > 0 && i != selected + 1)
-            {
-                g.setColour (juce::Colours::white.withAlpha (0.06f));
-                g.fillRect (juce::Rectangle<float> (1.0f, cell.getHeight() * 0.5f).withCentre ({ cell.getX() - 2.5f, cell.getCentreY() }));
-            }
-
-            g.setFont (font);
-            g.setColour (! isEnabled() ? skinOf (*this).colours.faint : (on ? skinOf (*this).colours.text : skinOf (*this).colours.dim));
-            g.drawFittedText (getItemText (i).toUpperCase(), cell.toNearestInt(), juce::Justification::centred, 1, 0.75f);
-        }
-
-        // Keyboard focus: the outline LookAndFeel draws round a focused combo box.
-        if (hasKeyboardFocus (false))
-        {
-            g.setColour (accent.withAlpha (0.6f));
-            g.drawRoundedRectangle (area, 6.0f, 1.0f);
+                paint::box (g, cell, skin.shape.segment, kind == Role::playMode ? c.accent : over (c.accent2Tint, c.face),
+                    kind == Role::playMode ? c.accent : c.accent2);
+            else if (separate)
+                paint::box (g, cell, skin.shape.segment, over (c.pillOff, c.face), c.controlEdge);
+            const auto ink = ! isEnabled() ? c.faint : on ? (kind == Role::playMode ? c.accentInk : c.accent2TintText) : c.dim;
+            drawText (g, texts[(std::size_t) i], ink);
         }
     }
 
@@ -303,9 +528,7 @@ namespace wubansia::editor
 
     void SegmentedChoice::showPopup()
     {
-        // No menu: the keyboard's "open" (Return) steps to the next segment. ComboBox marks its popup active before it
-        // asks for it and only hidePopup clears that, so without it Return would work once and a screen reader would
-        // hear "expanded" from then on.
+        // The accessibility "press" action and a keyboard Return land here: step to the next item.
         if (const auto count = getNumItems(); count > 0)
             setSelectedItemIndex ((getSelectedItemIndex() + 1) % count, juce::sendNotificationSync);
         hidePopup();
@@ -313,9 +536,6 @@ namespace wubansia::editor
 
     bool SegmentedChoice::keyPressed (const juce::KeyPress& key)
     {
-        // The arrows tell onChange at once: ComboBox's own would tell it later, and a tick showing the caller's value in
-        // between would take the key back. Return goes ComboBox's way, to showPopup; every other key, Space included,
-        // goes on to the host.
         const auto step = key == juce::KeyPress::upKey || key == juce::KeyPress::leftKey ? -1
                           : key == juce::KeyPress::downKey || key == juce::KeyPress::rightKey ? 1
                                                                                                 : 0;
@@ -341,22 +561,25 @@ namespace wubansia::editor
 
     namespace
     {
-        // The widths a segment's label needs at this font, kLabelPad each side.
-        std::vector<float> labelWidths (const SegmentedChoice& choice, const juce::Font& font)
+        // Each label's width in the wider of the selected and unselected styles, plus the pad each side.
+        std::vector<float> labelWidths (const SegmentedChoice& choice, const TextStyle& on, const TextStyle& offStyle)
         {
             std::vector<float> widths;
             for (int i = 0; i < choice.getNumItems(); ++i)
-                widths.push_back (juce::GlyphArrangement::getStringWidth (font, choice.getItemText (i).toUpperCase())
-                                  + 2.0f * SegmentedChoice::kLabelPad);
+            {
+                const auto text = choice.getItemText (i);
+                widths.push_back (std::max (juce::GlyphArrangement::getStringWidth (on.font(), on.apply (text)),
+                                      juce::GlyphArrangement::getStringWidth (offStyle.font(), offStyle.apply (text)))
+                                  + 2.0f * SegmentedChoice::kLabelPad + 8.0f);
+            }
             return widths;
         }
     }
 
-    int SegmentedChoice::fitWidth (int height) const
+    int SegmentedChoice::fitWidth (int) const
     {
-        const auto font = bodyFont (skinOf (*this), juce::jmin (11.5f, ((float) height - 6.0f) * 0.5f), true, 0.1f);
-        float total = 1.0f; // the 0.5 px border on each side
-        for (const auto w : labelWidths (*this, font))
+        float total = 1.0f;
+        for (const auto w : labelWidths (*this, styleFor (true), styleFor (false)))
             total += w;
         return (int) std::ceil (total);
     }
@@ -372,9 +595,7 @@ namespace wubansia::editor
             const auto width = area.getWidth() / (float) count;
             return { area.getX() + width * (float) index, area.getY(), width, area.getHeight() };
         }
-
-        // Each label's need, then the room left over shared equally, or every segment squeezed alike when short.
-        const auto widths = labelWidths (*this, labelFont());
+        const auto widths = labelWidths (*this, styleFor (true), styleFor (false));
         float need = 0.0f;
         for (const auto w : widths)
             need += w;
@@ -390,9 +611,10 @@ namespace wubansia::editor
 
     juce::Font SegmentedChoice::labelFont() const
     {
-        return bodyFont (skinOf (*this), juce::jmin (11.5f, ((float) getHeight() - 6.0f) * 0.5f), true, 0.1f);
+        return styleFor (true).font();
     }
 
+    //==============================================================================================================
     IconButton::IconButton (const juce::String& name, Icon iconToShow)
         : juce::Button (name), icon (iconToShow)
     {
@@ -407,19 +629,40 @@ namespace wubansia::editor
         }
     }
 
+    void paintRoundButton (juce::Graphics& g, const Skin& skin, juce::Rectangle<float> area, bool on, bool showStop, bool over, bool enabled)
+    {
+        const auto& c = skin.colours;
+        const auto size = std::min (area.getWidth(), area.getHeight());
+        const auto circle = area.withSizeKeepingCentre (size, size).reduced (1.5f);
+        if (on)
+            paint::glow (g, circle, size * 0.5f, c.accent, 5.0f);
+        g.setColour (wubansia::editor::over (c.well, c.face).brighter (over ? 0.08f : 0.0f));
+        g.fillEllipse (circle);
+        g.setColour (enabled ? c.accent : c.controlEdge);
+        g.drawEllipse (circle, 2.0f);
+        const auto glyphSize = size * 0.3f;
+        const auto glyphBox = circle.withSizeKeepingCentre (glyphSize, glyphSize);
+        g.setColour (enabled ? c.accent : c.faint);
+        g.fillPath (showStop ? paint::stopGlyph (glyphBox) : paint::playGlyph (glyphBox.translated (glyphSize * 0.08f, 0.0f)));
+    }
+
     void IconButton::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
-        const auto accent = skinOf (*this).colours.accent;
+        const auto& skin = skinOf (*this);
+        const auto& c = skin.colours;
         const auto on = getToggleState();
-        auto area = getLocalBounds().toFloat().reduced (2.0f);
-        paint::rubber (g, area, 5.0f, isButtonDown, isMouseOver && isEnabled(), accent, on ? 0.85f : 0.0f);
-        if (isButtonDown)
-            area = area.translated (0.0f, 0.6f);
+        auto area = getLocalBounds().toFloat().reduced (1.0f).translated (0.0f, isButtonDown ? 0.5f : 0.0f);
+        if (roundButton)
+        {
+            paintRoundButton (g, skin, area, on, icon == Icon::stop, isMouseOver, isEnabled());
+            return;
+        }
+        paint::box (g, area, skin.shape.laneButton, on ? c.accent : over (c.panel, c.face).brighter (isMouseOver && isEnabled() ? 0.06f : 0.0f),
+            on ? c.accent : c.controlEdge);
 
         const auto size = juce::jmin (area.getWidth(), area.getHeight()) * 0.42f;
         const auto box = area.withSizeKeepingCentre (size, size);
-        const auto colour = ! isEnabled() ? skinOf (*this).colours.faint : (on ? juce::Colour (0xff10141a) : skinOf (*this).colours.text);
-
+        const auto colour = ! isEnabled() ? c.faint : (on ? c.accentInk : c.text);
         juce::Path p;
         switch (icon)
         {

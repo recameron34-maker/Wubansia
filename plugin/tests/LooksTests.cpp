@@ -362,6 +362,7 @@ TEST_CASE ("every control is there, visible and enabled as its kit says, inside 
     LooksRig rig;
     withEditor (rig.processor, [&] (PluginEditor& editor)
         {
+            editor.setVisible (true); // as a host's window shows it: getComponentAt looks only at visible components
             for (const auto& kit : kKits)
                 for (const auto percent : PluginEditor::zoomPercents)
                 {
@@ -391,6 +392,7 @@ TEST_CASE ("every control is there, visible and enabled as its kit says, inside 
                         // The editor's own coordinates: the zoom scales the face.
                         const auto centre = editor.getLocalPoint (&c, c.getLocalBounds().getCentre());
                         auto* hit = editor.getComponentAt (centre);
+                        INFO ("hit " << (hit != nullptr ? hit->getComponentID() + "/" + hit->getName() : juce::String ("none")));
                         CHECK ((hit == &c || c.isParentOf (hit)));
                     }
                     for (const auto& hidden : { "midi_in_lane", "transport_play", "tempo_down", "tempo_kit", "tempo_up" })
@@ -1078,7 +1080,7 @@ TEST_CASE ("the drawers and the content panel wear the look", "[editor][looks]")
                     REQUIRE (drawer.isVisible());
                     CHECK (faceBounds (editor, drawer) == juce::Rectangle<int> (20, 246, 1080, 396));
                     REQUIRE (dynamic_cast<editor::DrawnTextSource*> (&drawer) != nullptr);
-                    CHECK (dynamic_cast<editor::DrawnTextSource&> (drawer).drawnText().size() >= 4);
+                    CHECK (dynamic_cast<editor::DrawnTextSource&> (drawer).drawnText().size() >= 2); // its heading and footer at least
                     checkFits (drawer);
                     const auto image = paintFace (editor);
                     const auto inside = image.getPixelAt (20 + 6, 246 + 200); // the frame's fill, left of the content

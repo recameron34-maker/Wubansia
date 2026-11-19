@@ -1,5 +1,9 @@
 #include "KitPanel.h"
 #include "LookAndFeel.h"
+#include "editor/RepaintLedger.h"
+#include "editor/skin/Paint.h"
+
+#include <cmath>
 
 namespace wubansia::editor
 {
@@ -37,7 +41,7 @@ namespace wubansia::editor
             setTitle (card.id + " " + card.title);
             setTooltip (card.title + " (" + card.id + "): " + card.direction + ", " + juce::String (card.bpm) + " BPM, "
                         + card.key + " (" + card.camelot + "). Samples: " + statusText().toLowerCase() + ".");
-            repaint();
+            repaintArea (*this);
         }
         return changed;
     }
@@ -49,120 +53,63 @@ namespace wubansia::editor
 
     namespace
     {
-        // The card's three text lines, inside its stripe and padding.
-        juce::Rectangle<float> linesOf (juce::Rectangle<float> bounds)
+        constexpr float dotSize = 8.0f, dotGap = 8.0f;
+
+        juce::String pillWords (const KitCard& card, bool selected) { return selected ? card.id + " " + card.title : card.id; }
+
+        const TextStyle& pillStyle (const Skin& skin, bool selected) { return selected ? skin.type.pillSelected : skin.type.pill; }
+
+        float pad (bool selected) { return selected ? 16.0f : 14.0f; }
+    }
+
+    int KitPanel::Card::fitWidth() const
+    {
+        const auto& skin = skinOf (*this);
+        const auto& style = pillStyle (skin, selected);
+        const auto words = style.apply (pillWords (data, selected));
+        return (int) std::ceil (pad (selected) * 2.0f + dotSize + dotGap + juce::GlyphArrangement::getStringWidth (style.font(), words) + 2.0f);
+    }
+
+    juce::Colour KitPanel::Card::dotColour (const Skin& skin) const
+    {
+        switch (status.state)
         {
-            return bounds.reduced (1.5f).withTrimmedLeft (19.0f).withTrimmedRight (10.0f).reduced (0.0f, 6.0f);
+            case ContentState::ready: return selected ? skin.colours.accent : skin.colours.faint;
+            case ContentState::loading: return skin.colours.busy;
+            case ContentState::missing:
+            case ContentState::lfsPointers:
+            case ContentState::mismatch:
+            case ContentState::failed: break;
         }
-
-        // The largest font from `from` down to `floor` points, a quarter point at a time, that fits the text into the width.
-        juce::Font fitted (const Skin& skin, const juce::String& text, float width, float from = 11.0f, float floor = 8.0f, bool bold = false)
-        {
-            auto height = from;
-            auto font = bodyFont (skin, height, bold);
-            while (height > floor && juce::GlyphArrangement::getStringWidth (font, text) > width)
-            {
-                height -= 0.25f;
-                font = bodyFont (skin, height, bold);
-            }
-            return font;
-        }
-
-        juce::Font idFont (const Skin& skin) { return bodyFont (skin, 10.5f, true, 0.1f); }
+        return skin.colours.warning;
     }
 
-    juce::Rectangle<float> KitPanel::Card::titleArea() const
+    std::vector<DrawnText> KitPanel::Card::drawnText() const
     {
-        const auto lines = linesOf (getLocalBounds().toFloat());
-        const auto idWidth = juce::GlyphArrangement::getStringWidth (idFont (skinOf (*this)), data.id) + 7.0f;
-        return lines.withHeight (lines.getHeight() / 3.0f).withTrimmedLeft (idWidth);
-    }
-
-    juce::Font KitPanel::Card::titleFont() const
-    {
-        // 14 points where the title fits; 146 px cards fit FUT03's and FUT04's from 12.25 (Liberation Sans) or 10.5 (DejaVu
-        // Sans), so the floor is 10.
-        return fitted (skinOf (*this), data.title, titleArea().getWidth(), 14.0f, 10.0f, true);
-    }
-
-    juce::Rectangle<float> KitPanel::Card::directionArea() const
-    {
-        const auto lines = linesOf (getLocalBounds().toFloat());
-        const auto lineHeight = lines.getHeight() / 3.0f;
-        return lines.withTrimmedTop (lineHeight).withHeight (lineHeight);
-    }
-
-    juce::Font KitPanel::Card::directionFont() const
-    {
-        return fitted (skinOf (*this), data.direction, directionArea().getWidth());
+        const auto& skin = skinOf (*this);
+        const auto area = getLocalBounds().toFloat().withTrimmedLeft (pad (selected) + dotSize + dotGap).withTrimmedRight (pad (selected) - 2.0f);
+        return { fitText (pillStyle (skin, selected), pillWords (data, selected), area) };
     }
 
     void KitPanel::Card::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
-        const auto accent = accentForKit (data.id);
-        auto area = getLocalBounds().toFloat().reduced (1.5f);
-        if (isButtonDown)
-            area = area.translated (0.0f, 0.6f);
+        const auto& skin = skinOf (*this);
+        const auto& c = skin.colours;
+        const auto area = getLocalBounds().toFloat().reduced (0.5f).translated (0.0f, isButtonDown ? 0.5f : 0.0f);
+        const auto fill = selected ? over (c.pillOn, c.face) : over (c.pillOff, c.face).brighter (isMouseOver ? 0.06f : 0.0f);
+        paint::box (g, area, selected ? skin.shape.pillSelected : skin.shape.pill, fill, selected ? c.pillOnEdge : c.pillOffEdge);
+        const auto lit = status.state != ContentState::loading || blinkOn;
+        paint::dot (g, { area.getX() + pad (selected) + dotSize * 0.5f, area.getCentreY() }, dotSize * 0.5f, dotColour (skin), lit);
+        for (const auto& t : drawnText())
+            drawText (g, t, selected ? c.pillOnText : c.pillOffText);
+    }
 
-        // The card: a dark glass tile, lit in its kit's colour when selected.
-        if (selected)
-        {
-            g.setColour (accent.withAlpha (0.18f));
-            g.fillRoundedRectangle (area.expanded (2.5f), 9.0f);
-        }
-        g.setGradientFill (juce::ColourGradient::vertical (selected ? accent.withAlpha (0.20f).overlaidWith (juce::Colour (0xff1c1f25)) : juce::Colour (isMouseOver ? 0xff22262c : 0xff1b1e23),
-            area.getY(), juce::Colour (0xff121417), area.getBottom()));
-        g.fillRoundedRectangle (area, 7.0f);
-        g.setColour (selected ? accent.withAlpha (0.9f) : juce::Colour (isMouseOver ? 0xff3b4049 : 0xff2b2f36));
-        g.drawRoundedRectangle (area, 7.0f, selected ? 1.4f : 1.0f);
-
-        // The accent stripe.
-        const auto stripe = area.withWidth (3.5f).reduced (0.0f, 9.0f).translated (7.0f, 0.0f);
-        g.setColour (selected ? accent : accent.withAlpha (0.45f));
-        g.fillRoundedRectangle (stripe, 1.75f);
-        if (selected)
-        {
-            g.setColour (accent.withAlpha (0.3f));
-            g.fillRoundedRectangle (stripe.expanded (2.0f), 3.0f);
-        }
-
-        auto lines = linesOf (getLocalBounds().toFloat()).translated (0.0f, isButtonDown ? 0.6f : 0.0f);
-        const auto lineHeight = lines.getHeight() / 3.0f;
-        const auto ready = status.state == ContentState::ready;
-        const auto loading = status.state == ContentState::loading;
-
-        // The ID and title.
-        auto line1 = lines.removeFromTop (lineHeight);
-        const auto title = titleArea().translated (0.0f, isButtonDown ? 0.6f : 0.0f);
-        g.setFont (idFont (skinOf (*this)));
-        g.setColour (selected ? accent : accent.withAlpha (0.75f));
-        g.drawText (data.id, line1.withRight (title.getX()), juce::Justification::centredLeft, false);
-        g.setFont (titleFont());
-        g.setColour (selected ? skinOf (*this).colours.text : skinOf (*this).colours.text.withAlpha (0.82f));
-        g.drawText (data.title, title, juce::Justification::centredLeft, true);
-
-        // The direction, or what stands in the way of playing.
-        const auto line2 = lines.removeFromTop (lineHeight);
-        if (ready)
-        {
-            g.setFont (directionFont());
-            g.setColour (skinOf (*this).colours.dim.withAlpha (selected ? 1.0f : 0.8f));
-            g.drawText (data.direction, line2, juce::Justification::centredLeft, true);
-        }
-        else
-        {
-            g.setFont (bodyFont (skinOf (*this), 10.0f, true, 0.1f));
-            g.setColour (loading ? skinOf (*this).colours.busy : skinOf (*this).colours.warning.brighter (0.25f));
-            g.drawText (statusText(), line2, juce::Justification::centredLeft, true);
-        }
-
-        // Tempo, key and Camelot code, and a status light: the kit's colour when its samples are ready.
-        paint::led (g, { lines.getRight() - 3.0f, lines.getCentreY() }, 3.0f, ready ? accent : (loading ? skinOf (*this).colours.busy : skinOf (*this).colours.warning),
-            ready ? (selected ? 1.0f : 0.55f) : 1.0f);
-        g.setFont (bodyFont (skinOf (*this), 11.0f, true));
-        g.setColour (skinOf (*this).colours.text.withAlpha (selected ? 0.9f : 0.7f));
-        g.drawText (juce::String (data.bpm) + " BPM" + middleDot() + shortKey (data.key) + middleDot() + data.camelot,
-            lines.withTrimmedRight (12.0f), juce::Justification::centredLeft, true);
+    int KitPanel::fitWidth() const
+    {
+        int width = 0;
+        for (auto* card : cards)
+            width += card->fitWidth() + (width > 0 ? 8 : 0);
+        return width;
     }
 
     KitPanel::KitPanel (Controller& c)
@@ -184,33 +131,43 @@ namespace wubansia::editor
             for (int i = 0; i < ids.size(); ++i)
             {
                 auto* card = cards.add (new Card());
+                card->setExplicitFocusOrder (i + 1);
                 card->onClick = [this, card] { controller.selectKit (card->card().id); };
                 addAndMakeVisible (card);
             }
             resized();
         }
 
+        auto relayout = false;
+        const auto blink = (++ticks / 8) % 2 == 0; // 2 Hz at the editor's 30 Hz
         for (int i = 0; i < cards.size(); ++i)
         {
             const auto& card = model.kits[(std::size_t) i];
             const auto selected = i == model.currentIndex;
+            const auto wasSelected = cards[i]->isSelected();
             cards[i]->show (card, selected ? model.content : card.content, selected);
+            relayout = relayout || wasSelected != selected;
+            const auto loading = cards[i]->status.state == ContentState::loading;
+            if (loading && cards[i]->blinkOn != blink)
+            {
+                cards[i]->blinkOn = blink;
+                repaintArea (*cards[i]);
+            }
+            else if (! loading)
+                cards[i]->blinkOn = true;
         }
+        if (relayout)
+            resized();
     }
 
     void KitPanel::resized()
     {
-        if (cards.isEmpty())
-            return;
-
-        constexpr auto gap = 8;
-        const auto count = cards.size();
-        const auto width = (getWidth() - gap * (count - 1)) / count;
+        // Each pill as wide as its words in the look (ADR 0032), 8 apart, in the catalog's order.
         auto area = getLocalBounds();
         for (auto* card : cards)
         {
-            card->setBounds (area.removeFromLeft (width));
-            area.removeFromLeft (gap);
+            card->setBounds (area.removeFromLeft (std::min (card->fitWidth(), area.getWidth())));
+            area.removeFromLeft (8);
         }
     }
 }

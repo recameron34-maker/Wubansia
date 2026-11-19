@@ -1,7 +1,9 @@
 #include "FxPanel.h"
+
 #include "LookAndFeel.h"
 #include "ParameterIds.h"
 #include "Parameters.h"
+#include "editor/RepaintLedger.h"
 
 #include <cmath>
 
@@ -9,9 +11,9 @@ namespace wubansia::editor
 {
     namespace
     {
-        constexpr float grScaleDb = 8.0f; // the meter's full scale
-        constexpr int grSegments = 16;
-        constexpr std::array<const char*, 4> columnNames { "Space", "Echo", "Pump", "Output" };
+        constexpr float grScaleDb = 8.0f; // the club ring's full scale, as the meter's was
+        constexpr std::array<const char*, 5> columnNames { "Space", "Echo", "Pump", "Club", "Output" };
+        constexpr float column = 146.0f;
     }
 
     FxPanel::FxPanel()
@@ -26,38 +28,31 @@ namespace wubansia::editor
         club.setComponentID (ParameterIds::clubMaster);
         club.setTooltip ("Club master: the kit's glue, drive, clip and true-peak limiter, as on the club loops. "
                          "Off plays the mix unmastered, with the same latency.");
+        club.setRole (LedButton::Role::club);
         output.setComponentID (ParameterIds::masterGain);
         output.setTooltip ("Output gain, after the club master");
-
+        int order = 1;
         for (auto* component : std::initializer_list<juce::Component*> { &space, &echo, &pump, &club, &output })
+        {
+            component->setExplicitFocusOrder (order++);
             addAndMakeVisible (component);
+        }
+    }
+
+    void FxPanel::lookAndFeelChanged()
+    {
+        const auto& skin = skinOf (*this);
+        for (auto* knob : { &space, &echo, &pump, &output })
+            knob->applySkin (skin);
+        resized();
+        repaint();
     }
 
     void FxPanel::update (const EditorModel& model)
     {
-        const std::array<juce::String, 4> next {
-            space.getTextFromValue (space.getValue()) + " %",
-            echo.getTextFromValue (echo.getValue()) + " %",
-            pump.getTextFromValue (pump.getValue()) + " %",
-            Parameters::levelText ((float) output.getValue()) + " dB"
-        };
-        for (std::size_t i = 0; i < next.size(); ++i)
-            if (next[i] != values[i])
-            {
-                values[i] = next[i];
-                repaint (columns[i].value);
-            }
-
-        if (model.accent != accent || club.getToggleState() != clubOn)
-        {
-            accent = model.accent;
-            clubOn = club.getToggleState();
-            repaint();
-        }
-
-        // The gain reduction falls back at 12 dB/s, and its peak holds for a second.
+        clubOn = club.getToggleState();
         const auto incoming = clubOn ? juce::jmax (0.0f, model.snapshot.gainReductionDb) : 0.0f;
-        const auto shown = juce::jmax (incoming, grDb - 0.4f);
+        const auto shownDb = juce::jmax (incoming, grDb - 0.4f);
         auto hold = grHoldDb;
         if (incoming >= grHoldDb)
         {
@@ -68,69 +63,61 @@ namespace wubansia::editor
             --grHoldTicks;
         else
             hold = juce::jmax (0.0f, grHoldDb - 0.6f);
-
-        if (std::abs (shown - grDb) > 0.02f || std::abs (hold - grHoldDb) > 0.02f)
+        if (std::abs (shownDb - grDb) > 0.02f || std::abs (hold - grHoldDb) > 0.02f)
         {
-            grDb = shown;
+            grDb = shownDb;
             grHoldDb = hold;
-            repaint (grArea.getUnion (grText).expanded (3));
+            club.setRing (grDb / grScaleDb);
         }
+
+        const std::array<juce::String, 5> next {
+            space.getTextFromValue (space.getValue()) + " %",
+            echo.getTextFromValue (echo.getValue()) + " %",
+            pump.getTextFromValue (pump.getValue()) + " %",
+            clubOn ? (grDb > 0.05f ? "-" + juce::String (grDb, 1) + " dB" : juce::String ("0.0 dB")) : juce::String ("BYPASS"),
+            Parameters::levelText ((float) output.getValue()) + " dB"
+        };
+        for (std::size_t i = 0; i < next.size(); ++i)
+            if (next[i] != values[i])
+            {
+                values[i] = next[i];
+                repaintArea (*this, valueArea ((int) i).toNearestInt().expanded (2));
+            }
     }
+
+    juce::Rectangle<float> FxPanel::nameArea (int i) const { return { 4.0f + column * (float) i, 74.0f, column - 8.0f, 14.0f }; }
+    juce::Rectangle<float> FxPanel::valueArea (int i) const { return { 4.0f + column * (float) i, 90.0f, column - 8.0f, 13.0f }; }
 
     void FxPanel::resized()
     {
-        auto area = getLocalBounds().reduced (12, 8);
-        area.removeFromTop (16);
-
-        const auto column = [] (juce::Rectangle<int> c, juce::Slider& knob, Column& out)
+        const auto& skin = skinOf (*this);
+        const auto size = (int) skin.shape.knob;
+        int i = 0;
+        for (juce::Component* c : std::initializer_list<juce::Component*> { &space, &echo, &pump, &club, &output })
         {
-            out.label = c.removeFromTop (12);
-            out.value = c.removeFromBottom (14);
-            knob.setBounds (c.withSizeKeepingCentre (juce::jmin (c.getWidth(), c.getHeight()), juce::jmin (c.getWidth(), c.getHeight())));
-        };
+            const auto centreX = (int) (column * ((float) i + 0.5f)) + 4;
+            c->setBounds (juce::Rectangle<int> (size, size).withCentre ({ centreX, 12 + size / 2 }));
+            ++i;
+        }
+    }
 
-        column (area.removeFromLeft (88), space, columns[0]);
-        column (area.removeFromLeft (88), echo, columns[1]);
-        column (area.removeFromLeft (88), pump, columns[2]);
-        column (area.removeFromRight (104), output, columns[3]);
-
-        area.reduce (18, 0);
-        clubArea = area;
-        auto c = area.withTrimmedTop (6);
-        club.setBounds (c.removeFromTop (30).withWidth (juce::jmin (176, c.getWidth())));
-        c.removeFromTop (12);
-        auto meterRow = c.removeFromTop (14);
-        grText = meterRow.removeFromRight (64);
-        grArea = meterRow.withTrimmedLeft (26).withTrimmedRight (6);
+    std::vector<DrawnText> FxPanel::drawnText() const
+    {
+        const auto& skin = skinOf (*this);
+        std::vector<DrawnText> out;
+        for (int i = 0; i < 5; ++i)
+        {
+            out.push_back (fitText (skin.type.fxName, columnNames[(std::size_t) i], nameArea (i), juce::Justification::centred));
+            out.push_back (fitText (skin.type.fxValue, values[(std::size_t) i], valueArea (i), juce::Justification::centred));
+        }
+        return out;
     }
 
     void FxPanel::paint (juce::Graphics& g)
     {
-        paint::plate (g, getLocalBounds().toFloat().reduced (0.5f), "FX" + middleDot() + "Master");
-
-        for (std::size_t i = 0; i < columns.size(); ++i)
-        {
-            paint::engraved (g, columnNames[i], columns[i].label.toFloat(), juce::Justification::centred, 9.5f);
-            g.setFont (bodyFont (skinOf (*this), 11.0f, true, 0.03f));
-            g.setColour (skinOf (*this).colours.dim);
-            g.drawText (values[i], columns[i].value.toFloat(), juce::Justification::centred, false);
-        }
-
-        // A hairline between the macros and the master section.
-        const auto x = (float) clubArea.getX() - 9.0f;
-        g.setColour (juce::Colours::black.withAlpha (0.4f));
-        g.fillRect (juce::Rectangle<float> (x, (float) clubArea.getY() + 2.0f, 1.0f, (float) clubArea.getHeight() - 4.0f));
-        g.setColour (juce::Colours::white.withAlpha (0.05f));
-        g.fillRect (juce::Rectangle<float> (x + 1.0f, (float) clubArea.getY() + 2.0f, 1.0f, (float) clubArea.getHeight() - 4.0f));
-
-        // The club master's gain reduction.
-        paint::engraved (g, "GR", grArea.toFloat().withX ((float) grArea.getX() - 26.0f).withWidth (22.0f), juce::Justification::centredLeft, 9.5f);
-        paint::recess (g, grArea.toFloat().expanded (3.0f, 2.5f), 3.0f);
-        paint::meter (g, grArea.toFloat(), grSegments, clubOn ? grDb / grScaleDb : 0.0f, clubOn && grHoldDb > 0.05f ? grHoldDb / grScaleDb : -1.0f,
-            accent, false);
-        g.setFont (bodyFont (skinOf (*this), 11.0f, true, 0.03f));
-        g.setColour (clubOn ? skinOf (*this).colours.dim : skinOf (*this).colours.faint);
-        const auto reduction = grDb >= 0.05f ? "-" + juce::String (grDb, 1) + " dB" : juce::String ("0.0 dB");
-        g.drawText (clubOn ? reduction : juce::String ("BYPASS"), grText.toFloat(), juce::Justification::centredRight, false);
+        const auto& c = skinOf (*this).colours;
+        const auto texts = drawnText();
+        for (std::size_t i = 0; i < texts.size(); ++i)
+            drawText (g, texts[i], i % 2 == 0 ? c.text : c.dim);
     }
 }

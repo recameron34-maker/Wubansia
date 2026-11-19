@@ -1,6 +1,11 @@
 #include "Lcd.h"
+
 #include "KitPanel.h"
 #include "LookAndFeel.h"
+#include "editor/ChordName.h"
+#include "editor/RepaintLedger.h"
+#include "editor/skin/Paint.h"
+#include "services/PatternView.h"
 
 #include <cmath>
 
@@ -11,195 +16,232 @@ namespace wubansia::editor
         constexpr double ticksPerBeat = 960.0;
         constexpr double ticksPerBar = ticksPerBeat * 4.0;
 
-        // Lit text with a soft bloom, as on a backlit display.
-        void lcdText (juce::Graphics& g, const juce::String& text, juce::Rectangle<float> area, const juce::Font& font,
-            juce::Justification justification, juce::Colour colour)
+        // The kit's status words while its samples aren't in: the display's header says them at the right.
+        juce::String statusWords (const ContentStatus& content)
         {
-            g.setFont (font);
-            g.setColour (colour.withAlpha (colour.getFloatAlpha() * 0.22f));
-            for (const auto offset : { juce::Point<float> (-0.7f, 0.0f), juce::Point<float> (0.7f, 0.0f), juce::Point<float> (0.0f, 0.7f) })
-                g.drawText (text, area.translated (offset.x, offset.y), justification, true);
-            g.setColour (colour);
-            g.drawText (text, area, justification, true);
+            switch (content.state)
+            {
+                case ContentState::ready: return {};
+                case ContentState::loading: return "LOADING " + juce::String (juce::jlimit (0, 100, content.percent)) + " %";
+                case ContentState::missing: return "NO SAMPLES";
+                case ContentState::lfsPointers: return "LFS POINTERS";
+                case ContentState::mismatch: return "WRONG FILES";
+                case ContentState::failed: return "LOAD ERROR";
+            }
+            return {};
         }
 
-        juce::String positionOf (const Snapshot& snapshot)
-        {
-            if (! snapshot.playing || snapshot.songTicks < 0.0)
-                return "---.-";
-            const auto bar = (int) std::floor (snapshot.songTicks / ticksPerBar) + 1;
-            const auto beat = (int) std::floor (std::fmod (snapshot.songTicks, ticksPerBar) / ticksPerBeat) + 1;
-            // Leading zeros stay unlit, as on a real display: "  3.2".
-            return juce::String::formatted ("%3d.%d", juce::jlimit (0, 999, bar), juce::jlimit (1, 9, beat));
-        }
-
-        juce::String modeOf (const EditorModel& model)
+        // Where playback is, for the header's right side: the section and song bar, the loop's bar, or neither.
+        juce::String whereWords (const EditorModel& model)
         {
             const auto dot = middleDot();
-            switch (model.playMode)
-            {
-                case engine::PlayMode::off:
-                    return "PLAYER OFF" + dot + "MIDI IN PLAYS";
-                case engine::PlayMode::loop:
-                    return "LOOP" + dot + "4 BARS" + dot + (model.vox ? "VOX SYNTH" : "NO VOX");
-                case engine::PlayMode::song:
-                    break;
-            }
-
+            if (model.playMode == engine::PlayMode::off)
+                return "PLAYER OFF" + dot + "MIDI IN";
             const auto& s = model.snapshot;
-            const auto index = s.section;
-            if (s.playing && index >= 0 && index < (int) model.sections.size())
-            {
-                const auto& section = model.sections[(std::size_t) index];
-                const auto bar = (int) std::floor (s.songTicks / ticksPerBar) + 1 - (section.startBar - 1);
-                return "SONG" + dot + section.name.toUpperCase() + dot + "BAR " + juce::String (juce::jlimit (1, juce::jmax (1, section.bars), bar))
-                       + "/" + juce::String (section.bars);
-            }
+            if (! s.playing || s.songTicks < 0.0)
+                return "STOPPED";
+            const auto bar = (int) std::floor (s.songTicks / ticksPerBar);
+            if (model.playMode == engine::PlayMode::loop)
+                return "LOOP" + dot + "BAR " + juce::String (bar % 4 + 1);
+            if (s.section >= 0 && s.section < (int) model.sections.size())
+                return model.sections[(std::size_t) s.section].name.toUpperCase() + dot + "BAR " + juce::String (bar + 1);
+            return "SONG" + dot + "BAR " + juce::String (bar + 1);
+        }
 
-            auto bars = 0;
-            for (const auto& section : model.sections)
-                bars = juce::jmax (bars, section.startBar - 1 + section.bars);
-            return "SONG" + dot + (bars > 0 ? juce::String (bars) + " BARS" : juce::String ("EXTENDED MIX"));
+        juce::String headerLeft (const EditorModel& model)
+        {
+            const auto dot = middleDot();
+            if (! model.hasKit())
+                return "NO KIT";
+            const auto chord = model.chord.isNotEmpty() ? model.chord : shortKey (model.kit.key);
+            const auto bpm = model.tempo();
+            return chord + dot + model.kit.camelot + dot + (bpm > 0.0 ? shortTempo (bpm) : juce::String ("---")) + " BPM";
+        }
+
+        const std::array<engine::Lane, 3> gridLanes { engine::Lane::kick, engine::Lane::snare, engine::Lane::bass };
+
+        juce::Colour cellColour (const Skin& skin, StepCell cell, juce::Colour lane)
+        {
+            switch (cell)
+            {
+                case StepCell::off: return over (skin.colours.cellOff, skin.colours.face);
+                case StepCell::held: return lane.withAlpha (0.3f);
+                case StepCell::hit: return lane.withAlpha (0.8f);
+                case StepCell::accent: return lane;
+            }
+            return lane;
         }
     }
 
     Lcd::Lcd()
     {
         setComponentID ("lcd");
-        setInterceptsMouseClicks (false, false);
+        setInterceptsMouseClicks (false, false); // a picture: clicks go through to nothing
     }
 
     void Lcd::update (const EditorModel& model)
     {
-        const auto& s = model.snapshot;
+        const auto& skin = skinOf (*this);
         Lines next;
-        next.playing = s.playing;
-        next.accent = model.accent;
-        next.transport = s.playing ? "PLAYING" : "STOPPED";
-        next.sync = model.standalone ? "STANDALONE" : (model.transport.internal || model.preview ? "PREVIEW" : "HOST SYNC");
-
-        const auto bpm = model.tempo();
-        next.tempo = bpm > 0.0 ? juce::String (bpm, 1) : juce::String ("---.-");
-        next.position = positionOf (s);
-
-        next.kitId = model.hasKit() ? model.kit.id : juce::String ("-----");
-        next.kitTitle = model.hasKit() ? model.kit.title.toUpperCase() : juce::String ("NO KIT");
-        next.key = model.hasKit() ? model.kit.key.toUpperCase() + middleDot() + model.kit.camelot : juce::String();
-        next.direction = model.kit.direction.toUpperCase();
-        next.mode = modeOf (model);
-        next.status = model.content.state == ContentState::ready ? "VOICES " + juce::String (s.voices) : contentBadge (model.content);
-
+        next.left = headerLeft (model);
+        next.ready = model.content.state == ContentState::ready;
+        next.right = next.ready ? whereWords (model) : statusWords (model.content);
         if (next != shown)
         {
             shown = next;
-            repaint();
+            repaintArea (*this, headerArea().expanded (2));
         }
+        const auto wasOff = playerOff;
+        playerOff = model.playMode == engine::PlayMode::off;
+        if (kind != skin.display || wasOff != playerOff)
+        {
+            kind = skin.display;
+            repaintArea (*this, viewArea().expanded (4));
+        }
+        switch (kind)
+        {
+            case DisplayKind::stepGrid: updateGrid (model); break;
+            case DisplayKind::orbit: updateOrbit (model); break;
+            case DisplayKind::current: updateLevels (model); break;
+            case DisplayKind::scope: updateScope (model); break;
+            case DisplayKind::lcd: break;
+        }
+    }
+
+    void Lcd::updateGrid (const EditorModel& model)
+    {
+        juce::StringArray labels;
+        for (const auto lane : gridLanes)
+            labels.add (model.laneLabel (lane).toUpperCase());
+        GridView next;
+        next.playing = model.patternStep;
+        next.page = model.patternStep >= 0 ? model.patternStep / 32 * 32 : 0;
+        if (const auto& p = model.pattern; p != nullptr && p->steps > 0)
+            for (std::size_t row = 0; row < gridLanes.size(); ++row)
+                for (const auto& n : p->notesIn (gridLanes[row], next.page, next.page + 32))
+                    for (auto step = std::max (n.step, next.page); step < std::min (n.end(), next.page + 32); ++step)
+                    {
+                        auto& cell = next.rows[row][(std::size_t) (step - next.page)];
+                        const auto value = step == n.step ? (n.velocity >= 100 ? StepCell::accent : StepCell::hit) : StepCell::held;
+                        cell = std::max (cell, value);
+                    }
+        if (! (next == gridView) || labels != gridLabels)
+        {
+            gridView = next;
+            gridLabels = labels;
+            repaintArea (*this, viewArea().expanded (2));
+        }
+    }
+
+    void Lcd::updateOrbit (const EditorModel&) {}
+    void Lcd::updateLevels (const EditorModel&) {}
+    void Lcd::updateScope (const EditorModel&) {}
+    void Lcd::pushScope (const float*, int) {}
+    void Lcd::paintOrbit (juce::Graphics&, const Skin&) const {}
+    void Lcd::paintLevels (juce::Graphics&, const Skin&) const {}
+    void Lcd::paintScope (juce::Graphics&, const Skin&) const {}
+
+    std::vector<DrawnText> Lcd::drawnText() const
+    {
+        const auto& skin = skinOf (*this);
+        const auto header = headerArea().toFloat();
+        const auto rightStyle = skin.type.displayLineStrong;
+        auto right = fitText (rightStyle, shown.right, header.withTrimmedLeft (header.getWidth() * 0.55f), juce::Justification::centredRight);
+        const auto rightWidth = juce::GlyphArrangement::getStringWidth (right.font, right.text);
+        std::vector<DrawnText> out { fitText (skin.type.displayLine, shown.left, header.withTrimmedRight (rightWidth + 16.0f)), right };
+        if (kind == DisplayKind::stepGrid)
+        {
+            const auto view = viewArea().toFloat();
+            for (int row = 0; row < gridLabels.size(); ++row)
+                out.push_back (fitText (skin.type.displayLabel, gridLabels[row], { view.getX(), view.getY() + 2.0f + 25.0f * (float) row, 60.0f, 20.0f }));
+        }
+        else if (kind == DisplayKind::orbit)
+        {
+            const auto view = viewArea().toFloat();
+            for (int i = 0; i < orbitText.size(); ++i)
+                out.push_back (fitText (skin.type.displayLine, orbitText[i], { view.getX() + 313.0f, view.getY() + 2.0f + 18.0f * (float) i, 243.0f, 16.0f }));
+        }
+        return out;
     }
 
     void Lcd::paint (juce::Graphics& g)
     {
-        const auto bounds = getLocalBounds().toFloat();
-        const auto lit = shown.accent;
-        const auto dim = lit.withAlpha (0.55f);
+        const auto& skin = skinOf (*this);
+        const auto& c = skin.colours;
+        const auto texts = drawnText();
+        drawText (g, texts[0], c.dim);
+        drawText (g, texts[1], shown.ready ? c.accent2 : (shown.right.startsWith ("LOADING") ? c.busy : c.warning));
 
-        // Bezel and glass.
-        g.setColour (juce::Colours::black.withAlpha (0.6f));
-        g.fillRoundedRectangle (bounds.translated (0.0f, 1.5f), 11.0f);
-        const auto bezel = bounds.reduced (0.5f);
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colour (0xff30343b), bezel.getY(), juce::Colour (0xff121417), bezel.getBottom()));
-        g.fillRoundedRectangle (bezel, 10.0f);
-        g.setColour (juce::Colours::black.withAlpha (0.7f));
-        g.drawRoundedRectangle (bezel, 10.0f, 1.0f);
-
-        const auto glass = bezel.reduced (6.0f);
-        g.setGradientFill (juce::ColourGradient::vertical (lit.withAlpha (0.13f).overlaidWith (juce::Colour (0xff050709)), glass.getY(),
-            lit.withAlpha (0.05f).overlaidWith (juce::Colour (0xff020304)), glass.getBottom()));
-        g.fillRoundedRectangle (glass, 6.0f);
-
-        juce::Path glassShape;
-        glassShape.addRoundedRectangle (glass, 6.0f);
+        juce::Graphics::ScopedSaveState state (g);
+        if (playerOff)
+            g.beginTransparencyLayer (0.4f); // the player is off: the Loop's notes, faint
+        switch (kind)
         {
-            juce::Graphics::ScopedSaveState state (g);
-            g.reduceClipRegion (glassShape);
-
-            // Pixel rows and an inner shadow.
-            g.setColour (juce::Colours::black.withAlpha (0.22f));
-            for (auto y = glass.getY(); y < glass.getBottom(); y += 2.0f)
-                g.fillRect (glass.getX(), y, glass.getWidth(), 0.7f);
-            g.setGradientFill (juce::ColourGradient::vertical (juce::Colours::black.withAlpha (0.65f), glass.getY(),
-                juce::Colours::transparentBlack, glass.getY() + 10.0f));
-            g.fillRect (glass);
-
-            auto inner = glass.reduced (14.0f, 9.0f);
-            auto left = inner.removeFromLeft (inner.getWidth() * 0.58f);
-            auto right = inner.withTrimmedLeft (18.0f);
-
-            // Transport row.
-            auto top = left.removeFromTop (14.0f);
-            const auto icon = top.removeFromLeft (10.0f).withSizeKeepingCentre (8.0f, 8.0f);
-            juce::Path mark;
-            if (shown.playing)
-                mark.addTriangle (icon.getX(), icon.getY(), icon.getX(), icon.getBottom(), icon.getRight(), icon.getCentreY());
-            else
-                mark.addRectangle (icon.reduced (0.5f));
-            g.setColour (lit);
-            g.fillPath (mark);
-            top.removeFromLeft (6.0f);
-            lcdText (g, shown.transport, top, bodyFont (skinOf (*this), 11.0f, true, 0.14f), juce::Justification::centredLeft, lit);
-            lcdText (g, shown.sync, top, bodyFont (skinOf (*this), 10.0f, true, 0.14f), juce::Justification::centredRight, dim);
-
-            // The digits.
-            left.removeFromTop (8.0f);
-            auto labels = left.removeFromBottom (12.0f);
-            auto digits = left;
-            const auto half = digits.getWidth() * 0.5f;
-            auto tempoArea = digits.removeFromLeft (half).withTrimmedRight (16.0f);
-            auto positionArea = digits.withTrimmedRight (2.0f);
-            paint::sevenSegment (g, shown.tempo, tempoArea, lit, 0.075f);
-            paint::sevenSegment (g, shown.position, positionArea, lit, 0.075f);
-            g.setColour (lit.withAlpha (0.12f));
-            g.fillRect (juce::Rectangle<float> (1.0f, digits.getHeight() * 0.7f).withCentre ({ tempoArea.getRight() + 9.0f, digits.getCentreY() }));
-            lcdText (g, "BPM", labels.removeFromLeft (half).withTrimmedRight (16.0f), bodyFont (skinOf (*this), 9.5f, true, 0.2f), juce::Justification::centredRight, dim);
-            lcdText (g, "BAR" + middleDot() + "BEAT", labels.withTrimmedRight (2.0f), bodyFont (skinOf (*this), 9.5f, true, 0.2f), juce::Justification::centredRight, dim);
-
-            // The divider and the kit block.
-            g.setColour (lit.withAlpha (0.16f));
-            g.fillRect (juce::Rectangle<float> (1.0f, inner.getHeight() - 6.0f).withCentre ({ right.getX() - 9.0f, inner.getCentreY() }));
-
-            const auto line = right.getHeight() / 5.0f;
-            auto row1 = right.removeFromTop (line);
-            lcdText (g, shown.kitId, row1, bodyFont (skinOf (*this), 10.5f, true, 0.16f), juce::Justification::centredLeft, dim);
-            lcdText (g, shown.status, row1, bodyFont (skinOf (*this), 9.5f, true, 0.14f), juce::Justification::centredRight, dim);
-            lcdText (g, shown.kitTitle, right.removeFromTop (line * 1.25f), bodyFont (skinOf (*this), 17.0f, true, 0.06f), juce::Justification::centredLeft, lit);
-            lcdText (g, shown.key, right.removeFromTop (line), bodyFont (skinOf (*this), 11.5f, true, 0.1f), juce::Justification::centredLeft, lit);
-            lcdText (g, shown.direction, right.removeFromTop (line * 0.85f), bodyFont (skinOf (*this), 9.5f, true, 0.12f), juce::Justification::centredLeft, dim);
-            lcdText (g, shown.mode, right, bodyFont (skinOf (*this), 11.0f, true, 0.1f), juce::Justification::centredLeft, lit);
-
-            // The glass's sheen.
-            g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.075f), glass.getX(), glass.getY(),
-                juce::Colours::white.withAlpha (0.0f), glass.getX() + glass.getWidth() * 0.35f, glass.getBottom(), false));
-            juce::Path sheen;
-            sheen.startNewSubPath (glass.getX(), glass.getY());
-            sheen.lineTo (glass.getX() + glass.getWidth() * 0.55f, glass.getY());
-            sheen.lineTo (glass.getX() + glass.getWidth() * 0.32f, glass.getBottom());
-            sheen.lineTo (glass.getX(), glass.getBottom());
-            sheen.closeSubPath();
-            g.fillPath (sheen);
+            case DisplayKind::stepGrid: paintGrid (g, skin); break;
+            case DisplayKind::orbit: paintOrbit (g, skin); break;
+            case DisplayKind::current: paintLevels (g, skin); break;
+            case DisplayKind::scope: paintScope (g, skin); break;
+            case DisplayKind::lcd: break;
         }
+        if (playerOff)
+            g.endTransparencyLayer();
+    }
 
-        g.setColour (juce::Colours::black.withAlpha (0.8f));
-        g.drawRoundedRectangle (glass, 6.0f, 1.0f);
+    void Lcd::paintGrid (juce::Graphics& g, const Skin& skin) const
+    {
+        const auto& c = skin.colours;
+        const auto view = viewArea().toFloat();
+        const auto texts = drawnText();
+        for (std::size_t i = 2; i < texts.size(); ++i)
+            drawText (g, texts[i], c.label);
+
+        constexpr float cell = 13.0f, gap = 2.0f, beatGap = 4.0f, rowPitch = 25.0f, cellHeight = 15.0f;
+        for (std::size_t row = 0; row < gridView.rows.size(); ++row)
+        {
+            const auto colour = row < 2 ? c.drums : c.music;
+            auto x = view.getX() + 64.0f;
+            const auto y = view.getY() + 4.0f + rowPitch * (float) row;
+            for (int i = 0; i < 32; ++i)
+            {
+                const juce::Rectangle<float> box { x, y, cell, cellHeight };
+                g.setColour (cellColour (skin, gridView.rows[row][(std::size_t) i], colour));
+                g.fillRoundedRectangle (box, skin.shape.cell.corner);
+                if (gridView.page + i == gridView.playing)
+                {
+                    g.setColour (c.text);
+                    g.drawRoundedRectangle (box.expanded (0.5f), skin.shape.cell.corner, 1.0f);
+                }
+                x += cell + ((i + 1) % 4 == 0 ? beatGap : gap);
+            }
+        }
+    }
+
+    //==============================================================================================================
+    juce::String syncWords (const Skin& skin, const EditorModel& model)
+    {
+        juce::ignoreUnused (skin);
+        if (model.standalone)
+            return {};
+        const auto tempo = shortTempo (model.tempo());
+        const auto dot = middleDot();
+        const auto previewing = model.preview || model.transport.internal;
+        const auto hostPlaying = model.snapshot.playing && ! previewing;
+        if (hostPlaying)
+            return "synced" + dot + tempo;
+        if (previewing)
+            return "previewing" + dot + tempo;
+        return "preview";
     }
 
     TransportPanel::TransportPanel (Controller& c, bool isStandalone)
         : controller (c), standalone (isStandalone)
     {
         setComponentID ("transport");
-
         if (standalone)
         {
             play.setComponentID ("transport_play");
             play.setTooltip ("Play or stop the kit on Wubansia's own clock");
+            play.setRound (true);
             play.onClick = [this] { controller.setTransport (! transport.playing, transport.standaloneBpm); };
             slower.setComponentID ("tempo_down");
             slower.setTooltip ("Slower: 1 BPM, or 0.1 with shift");
@@ -210,14 +252,20 @@ namespace wubansia::editor
             kitTempo.setComponentID ("tempo_kit");
             kitTempo.setTooltip ("Back to the kit's own tempo");
             kitTempo.onClick = [this] { controller.setTransport (transport.playing, 0.0); };
-            for (auto* b : { &play, &slower, &faster, &kitTempo })
+            int order = 1;
+            for (auto* b : { &play, &slower, &kitTempo, &faster })
+            {
+                b->setExplicitFocusOrder (order++);
                 addAndMakeVisible (b);
+            }
         }
         else
         {
             preview.setComponentID ("preview");
             preview.setTooltip ("Preview plays the kit on Wubansia's own clock while your host is stopped");
             preview.setClickingTogglesState (false);
+            preview.setRole (LedButton::Role::transport);
+            preview.setExplicitFocusOrder (1);
             preview.onClick = [this] { controller.setPreview (! controller.preview()); };
             addAndMakeVisible (preview);
         }
@@ -234,7 +282,6 @@ namespace wubansia::editor
     {
         transport = model.transport;
         kitBpm = model.kit.bpm;
-
         if (standalone)
         {
             const auto playing = transport.playing;
@@ -243,47 +290,44 @@ namespace wubansia::editor
             kitTempo.setEnabled (transport.standaloneBpm > 0.0);
         }
         else
-        {
             preview.setToggleState (model.preview, juce::dontSendNotification);
+
+        const auto next = syncWords (skinOf (*this), model);
+        const auto lit = model.snapshot.playing || model.preview;
+        if (next != syncLine || lit != lineLit)
+        {
+            syncLine = next;
+            lineLit = lit;
+            repaintArea (*this, { 0, 74, getWidth(), 24 });
         }
     }
 
     void TransportPanel::resized()
     {
-        auto area = getLocalBounds().reduced (10, 8);
-        area.removeFromTop (16); // the engraved title
-
+        const auto size = (int) skinOf (*this).shape.playButton;
+        const auto button = juce::Rectangle<int> (size, size).withCentre ({ getWidth() / 2, 10 + size / 2 });
         if (standalone)
         {
-            play.setBounds (area.removeFromTop (48).withSizeKeepingCentre (64, 48));
-            area.removeFromTop (8);
-            auto row = area.removeFromTop (30);
-            const auto w = row.getWidth() / 3;
-            slower.setBounds (row.removeFromLeft (w).reduced (2, 0));
-            kitTempo.setBounds (row.removeFromLeft (w).reduced (2, 0));
-            faster.setBounds (row.reduced (2, 0));
+            play.setBounds (button);
+            slower.setBounds (10, 84, 32, 24);
+            kitTempo.setBounds (48, 84, 32, 24);
+            faster.setBounds (86, 84, 32, 24);
         }
         else
-        {
-            preview.setBounds (area.removeFromTop (30));
-        }
+            preview.setBounds (button);
+    }
+
+    std::vector<DrawnText> TransportPanel::drawnText() const
+    {
+        if (standalone)
+            return {};
+        return { fitText (skinOf (*this).type.transportLine, syncLine, { 6.0f, 78.0f, (float) getWidth() - 12.0f, 16.0f }, juce::Justification::centred) };
     }
 
     void TransportPanel::paint (juce::Graphics& g)
     {
-        auto area = getLocalBounds().toFloat().reduced (10.0f, 8.0f);
-        paint::engraved (g, "Transport", area.removeFromTop (12.0f), juce::Justification::centredLeft, 9.5f);
-
-        if (! standalone)
-        {
-            area.removeFromTop (38.0f);
-            g.setFont (bodyFont (skinOf (*this), 10.5f));
-            g.setColour (skinOf (*this).colours.faint);
-            g.drawFittedText ("Plays the kit while\nthe host is stopped", area.toNearestInt(), juce::Justification::centredLeft, 3, 0.9f);
-        }
+        const auto& c = skinOf (*this).colours;
+        for (const auto& t : drawnText())
+            drawText (g, t, lineLit ? c.text : c.dim);
     }
-
-    Lcd::GridView Lcd::grid() const { return {}; }
-    std::vector<Lcd::Satellite> Lcd::satellites() const { return {}; }
-    juce::StringArray Lcd::orbitLines() const { return {}; }
 }

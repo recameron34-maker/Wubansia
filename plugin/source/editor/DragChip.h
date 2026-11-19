@@ -8,6 +8,7 @@
 #include "Controls.h"
 #include "DrumKitButton.h"
 #include "EditorModel.h"
+#include "editor/DrawnText.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -15,7 +16,7 @@
 
 namespace wubansia::editor
 {
-    class DragChip : public juce::Component, public juce::SettableTooltipClient
+    class DragChip : public juce::Component, public juce::SettableTooltipClient, public DrawnTextSource
     {
     public:
         DragChip (Controller&, const DragRequest& request, const juce::String& label);
@@ -49,6 +50,9 @@ namespace wubansia::editor
         std::function<void (const juce::File&)> revealFile;
 
         void paint (juce::Graphics&) override;
+        std::vector<DrawnText> drawnText() const override;
+        // A lane chip's colour: the lane's in the look (ADR 0032). Strip chips use the look's chip colours.
+        void setTint (juce::Colour colour);
         void mouseEnter (const juce::MouseEvent&) override;
         void mouseExit (const juce::MouseEvent&) override;
         void mouseDown (const juce::MouseEvent&) override;
@@ -61,6 +65,7 @@ namespace wubansia::editor
         DragRequest dragRequest;
         juce::String text;
         bool hover = false, pressed = false, dragging = false, failed = false, compact = false;
+        juce::Colour tint;
     };
 
     // The strip of song-wide chips, the loop and the song, and two switches, the person's settings kept by the Controller:
@@ -70,7 +75,7 @@ namespace wubansia::editor
     // of the chip's files, or All with every lane holding notes in the vox switch's file muted (ADR 0029).
     juce::String whyNoDrag (const EditorModel& model, bool song);
 
-    class DragStrip : public juce::Component
+    class DragStrip : public juce::Component, public DrawnTextSource
     {
     public:
         explicit DragStrip (Controller&);
@@ -91,6 +96,8 @@ namespace wubansia::editor
         // Where the engraved "Drag MIDI" and "Part" are drawn, so tests can check they fit.
         juce::Rectangle<float> labelArea() const;
         juce::Rectangle<float> partLabelArea() const;
+        std::vector<DrawnText> drawnText() const override;
+        void lookAndFeelChanged() override { resized(); repaint(); }
 
     private:
         Controller& controller;

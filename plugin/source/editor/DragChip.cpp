@@ -1,6 +1,7 @@
 #include "DragChip.h"
 #include "ExternalDrag.h"
 #include "LookAndFeel.h"
+#include "editor/skin/Paint.h"
 
 #include "dragout/DragFiles.h"
 
@@ -28,11 +29,10 @@ namespace wubansia::editor
         // Where a chip with these bounds writes its label: right of the MIDI glyph, as paint () lays the chip out.
         juce::Rectangle<float> labelAreaIn (juce::Rectangle<float> bounds, bool compact)
         {
-            auto content = bounds.reduced (1.5f).reduced (compact ? 5.0f : 7.0f, 2.0f);
-            content.removeFromLeft (juce::jmin (compact ? 12.0f : 14.0f, content.getHeight()));
-            content.removeFromLeft (compact ? 4.0f : 5.0f);
-            return content;
+            return bounds.reduced (compact ? 4.0f : 10.0f, 2.0f);
         }
+
+        const TextStyle& chipStyle (const Skin& skin, bool compact) { return compact ? skin.type.laneChip : skin.type.stripChip; }
     }
 
     DragChip::DragChip (Controller& c, const DragRequest& request, const juce::String& label)
@@ -116,38 +116,35 @@ namespace wubansia::editor
         }
     }
 
+    void DragChip::setTint (juce::Colour colour)
+    {
+        if (colour != tint)
+        {
+            tint = colour;
+            repaint();
+        }
+    }
+
+    std::vector<DrawnText> DragChip::drawnText() const
+    {
+        return { fitText (chipStyle (skinOf (*this), compact), shownLabel(), labelArea(), juce::Justification::centred) };
+    }
+
     void DragChip::paint (juce::Graphics& g)
     {
-        const auto accent = skinOf (*this).colours.accent;
+        const auto& skin = skinOf (*this);
+        const auto& c = skin.colours;
         const auto enabled = isEnabled();
-        auto area = getLocalBounds().toFloat().reduced (1.5f);
-        const auto corner = juce::jmin (6.0f, area.getHeight() * 0.5f);
         const auto active = pressed || dragging;
-
-        g.setColour (juce::Colours::black.withAlpha (0.5f));
-        g.fillRoundedRectangle (area.translated (0.0f, 1.2f), corner);
-        g.setGradientFill (juce::ColourGradient::vertical (active ? accent.withAlpha (0.42f).overlaidWith (juce::Colour (0xff1d2025))
-                                                                  : juce::Colour (hover && enabled ? 0xff2c3138 : 0xff23272d),
-            area.getY(), juce::Colour (0xff15171b), area.getBottom()));
-        g.fillRoundedRectangle (area, corner);
-
-        const auto border = failed ? skinOf (*this).colours.warning : (enabled && (hover || active) ? accent : juce::Colour (0xff383d45));
-        g.setColour (border.withAlpha (enabled ? 0.9f : 0.4f));
-        // A dashed border says "drag me".
-        juce::Path outline;
-        outline.addRoundedRectangle (area.reduced (0.5f), corner);
-        juce::Path dashed;
-        const float dashes[] = { 3.0f, 2.0f };
-        juce::PathStrokeType (1.0f).createDashedStroke (dashed, outline, dashes, 2);
-        g.fillPath (dashed);
-
-        auto content = area.reduced (compact ? 5.0f : 7.0f, 2.0f);
-        const auto glyph = content.removeFromLeft (juce::jmin (compact ? 12.0f : 14.0f, content.getHeight())).withSizeKeepingCentre (11.0f, 11.0f);
-        paint::midiGlyph (g, glyph, enabled ? (failed ? skinOf (*this).colours.warning : accent) : skinOf (*this).colours.faint);
-
-        g.setFont (labelFont());
-        g.setColour (! enabled ? skinOf (*this).colours.faint : (failed ? skinOf (*this).colours.warning : skinOf (*this).colours.text.withAlpha (0.9f)));
-        g.drawFittedText (shownLabel(), labelArea().toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
+        const auto area = getLocalBounds().toFloat().reduced (0.5f);
+        const auto colour = compact && ! tint.isTransparent() ? tint : c.accent;
+        const auto edge = failed ? c.warning : ! enabled ? c.controlEdge : compact ? colour : c.accent;
+        const auto fill = active ? over (compact ? colour.withAlpha (0.25f) : c.accentTint, c.face)
+                                 : (hover && enabled ? over (compact ? colour.withAlpha (0.12f) : c.accentTint, c.face) : (compact ? juce::Colours::transparentBlack : over (c.accentTint, c.face)));
+        paint::box (g, area, compact ? skin.shape.laneChip : skin.shape.stripChip, fill, edge);
+        const auto ink = ! enabled ? c.faint : failed ? c.warning : compact ? colour : c.accentTintText;
+        for (const auto& t : drawnText())
+            drawText (g, t, ink);
     }
 
     juce::String DragChip::shownLabel() const
@@ -159,14 +156,14 @@ namespace wubansia::editor
         // A title that doesn't fit even squeezed to 0.8 (drawFittedText's own test) would be cut short: a phrase title
         // drops its bar count instead, which the tooltip's file name still gives. The platform's font decides: Verdana
         // and DejaVu Sans run 8 and 12 % wider than Liberation Sans.
-        if (juce::GlyphArrangement::getStringWidth (labelFont(), text) * 0.8f < (float) labelArea().toNearestInt().getWidth())
+        if (juce::GlyphArrangement::getStringWidth (labelFont(), chipStyle (skinOf (*this), compact).apply (text)) <= labelArea().getWidth())
             return text;
         return withoutBarCount (text);
     }
 
     juce::Font DragChip::labelFont() const
     {
-        return bodyFont (skinOf (*this), compact ? 9.5f : 10.5f, true, 0.06f);
+        return chipStyle (skinOf (*this), compact).font();
     }
 
     juce::Rectangle<float> DragChip::labelArea() const
@@ -178,8 +175,9 @@ namespace wubansia::editor
     {
         const juce::Rectangle<float> wide (1000.0f, (float) height);
         const auto around = wide.getWidth() - labelAreaIn (wide, compact).getWidth(); // the border, padding and glyph
-        const auto title = juce::GlyphArrangement::getStringWidth (labelFont(), withoutBarCount (text)) * 0.8f;
-        return (int) std::floor (title + around) + 1;
+        const auto& style = chipStyle (skinOf (*this), compact);
+        const auto title = juce::GlyphArrangement::getStringWidth (style.font(), style.apply (withoutBarCount (text)));
+        return (int) std::ceil (title + around) + 1;
     }
 
     namespace
@@ -254,6 +252,13 @@ namespace wubansia::editor
         for (const auto word : kDragPartNames)
             part.addItem (juce::String (std::string (word)), part.getNumItems() + 1);
         part.setSegmentsFitLabels (true);
+        part.setRole (SegmentedChoice::Role::strip);
+        drums.setRole (LedButton::Role::stripSwitch);
+        synths.setRole (LedButton::Role::stripSwitch);
+        part.setExplicitFocusOrder (1);
+        drumKit.setExplicitFocusOrder (2);
+        drums.setExplicitFocusOrder (3);
+        synths.setExplicitFocusOrder (4);
         part.setSelectedItemIndex (0, juce::dontSendNotification);
         part.onChange = [this] { controller.setDragPart (static_cast<DragPart> (juce::jlimit (0, kDragParts - 1, part.getSelectedItemIndex()))); };
         addAndMakeVisible (synths);
@@ -320,36 +325,48 @@ namespace wubansia::editor
 
     void DragStrip::resized()
     {
-        // Right of 1 drum track, 164 px in DejaVu Sans: a 6 px gap and the Drum kit at its labels' width (ADR 0030).
+        // The look's label, then For my synths, Loop, Song, the Part label and Part, 1 drum track and Drum kit, each as
+        // wide as its words in the look (ADR 0032; commit 11 puts them in the boards' order).
+        const auto& skin = skinOf (*this);
         auto area = getLocalBounds().reduced (8, 5);
-        area.removeFromLeft (68); // the engraved label (labelArea ())
-        synths.setBounds (area.removeFromLeft (126)); // "FOR MY SYNTHS" needs 90.5 of its 92.4 px in DejaVu Sans, the widest
+        const auto h = area.getHeight();
+        const auto labelWidth = [&] (const TextStyle& style, const juce::String& words)
+        { return (int) std::ceil (juce::GlyphArrangement::getStringWidth (style.font(), style.apply (words))) + 2; };
+        area.removeFromLeft (labelWidth (skin.type.stripLabel, skin.words.stripLabel) + 10);
+        synths.setBounds (area.removeFromLeft (synths.fitWidth (h)));
         area.removeFromLeft (6);
-        loop.setBounds (area.removeFromLeft (80));
+        loop.setBounds (area.removeFromLeft (loop.fitWidth (h)));
         area.removeFromLeft (6);
-        song.setBounds (area.removeFromLeft (80));
+        song.setBounds (area.removeFromLeft (song.fitWidth (h)));
+        area.removeFromLeft (10);
+        area.removeFromLeft (labelWidth (skin.type.stripLabel, skin.words.partLabel) + 8);
+        part.setBounds (area.removeFromLeft (part.fitWidth (h)));
         area.removeFromLeft (8);
-        area.removeFromLeft (34); // the engraved "Part" (partLabelArea ())
-        part.setBounds (area.removeFromLeft (part.fitWidth (area.getHeight()))); // 364 px in DejaVu Sans, the widest
-        area.removeFromLeft (8);
-        drums.setBounds (area.removeFromLeft (120));
+        drums.setBounds (area.removeFromLeft (drums.fitWidth (h)));
         area.removeFromLeft (6);
-        drumKit.setBounds (area.removeFromLeft (juce::jmin (area.getWidth(), drumKit.fitWidth (area.getHeight()))));
+        drumKit.setBounds (area.removeFromLeft (juce::jmin (area.getWidth(), drumKit.fitWidth (h))));
     }
 
     juce::Rectangle<float> DragStrip::labelArea() const
     {
-        return getLocalBounds().toFloat().reduced (10.0f, 5.0f).withWidth (64.0f);
+        return { 10.0f, 5.0f, (float) synths.getX() - 12.0f, (float) getHeight() - 10.0f };
     }
 
     juce::Rectangle<float> DragStrip::partLabelArea() const
     {
-        return { (float) song.getRight() + 8.0f, (float) part.getY(), (float) part.getX() - (float) song.getRight() - 8.0f, (float) part.getHeight() };
+        return { (float) song.getRight() + 10.0f, (float) part.getY(), (float) part.getX() - (float) song.getRight() - 12.0f, (float) part.getHeight() };
+    }
+
+    std::vector<DrawnText> DragStrip::drawnText() const
+    {
+        const auto& skin = skinOf (*this);
+        return { fitText (skin.type.stripLabel, skin.words.stripLabel, labelArea()), fitText (skin.type.stripLabel, skin.words.partLabel, partLabelArea()) };
     }
 
     void DragStrip::paint (juce::Graphics& g)
     {
-        paint::engraved (g, "Drag MIDI", labelArea(), juce::Justification::centredLeft, 9.5f);
-        paint::engraved (g, "Part", partLabelArea(), juce::Justification::centredLeft, 9.5f);
+        const auto& c = skinOf (*this).colours;
+        for (const auto& t : drawnText())
+            drawText (g, t, c.label);
     }
 }

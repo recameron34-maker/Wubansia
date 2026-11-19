@@ -58,6 +58,7 @@ namespace wubansia::editor
         engine::PlayMode playMode = engine::PlayMode::loop;
         bool vox = true;
         std::uint32_t mutedLanes = 0; // bit per lane whose mute is on
+        std::array<bool, engine::kAbSwitches> abB {}; // each A/B switch on its B side
 
         juce::Colour accent;
 

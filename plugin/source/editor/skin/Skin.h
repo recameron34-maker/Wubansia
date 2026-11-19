@@ -27,12 +27,13 @@ namespace wubansia::editor
         float px = 12.0f; // the em size in logical px (FontOptions::withPointHeight): CSS's px
         float letterSpacingPx = 0.0f; // after every character, as CSS letter-spacing
         bool upper = false; // drawn in capitals; titles, tooltips and chord names keep their case
+        bool lower = false; // drawn in small letters (deep glass's second lines)
         float minPx = 0.0f; // fitText shrinks to this, in 0.5 px steps, before it cuts; 0: px
         bool fallback = false; // strings the run time builds (paths, messages): the platform's fonts may fill in
 
         juce::Font font() const; // fontFor (face, px, letterSpacingPx, fallback)
         juce::Font fontAt (float size) const; // the same at another size, the spacing kept in px
-        juce::String apply (const juce::String& text) const { return upper ? text.toUpperCase() : text; }
+        juce::String apply (const juce::String& text) const { return upper ? text.toUpperCase() : lower ? text.toLowerCase() : text; }
     };
 
     struct BoxStyle
