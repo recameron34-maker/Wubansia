@@ -16,6 +16,7 @@ namespace wubansia
           content (std::make_unique<InstalledContent>()),
           service (std::make_unique<KitService> (player, *content)),
           sounds (std::make_unique<SoundService> (*content, auditions)),
+          drumKits (std::make_unique<DrumKitService> (*content)),
           controllerImpl (*this)
     {
         // Nothing else: no file is read and no thread starts until the first prepareToPlay or
@@ -26,19 +27,23 @@ namespace wubansia
     PluginProcessor::~PluginProcessor()
     {
         // The services first: they stop their threads and drop their Kits and clips while the engine and the audition
-        // player still exist. ~AuditionPlayer then deletes the clips it still holds.
+        // player still exist. ~AuditionPlayer then deletes the clips it still holds. The drum kit thread first of all: it
+        // reads the content.
+        drumKits.reset();
         sounds.reset();
         service.reset();
     }
 
     void PluginProcessor::setContentForTesting (std::unique_ptr<ContentSourceFactory> replacement, const juce::String& kit)
     {
-        jassert (replacement != nullptr && ! service->started() && ! sounds->started());
+        jassert (replacement != nullptr && ! service->started() && ! sounds->started() && ! drumKits->started());
+        drumKits.reset();
         sounds.reset();
         service.reset();
         content = std::move (replacement);
         service = std::make_unique<KitService> (player, *content);
         sounds = std::make_unique<SoundService> (*content, auditions);
+        drumKits = std::make_unique<DrumKitService> (*content);
         if (kit.isNotEmpty())
         {
             const std::lock_guard lock (stateMutex);

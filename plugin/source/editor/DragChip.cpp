@@ -227,6 +227,7 @@ namespace wubansia::editor
     DragStrip::DragStrip (Controller& c)
         : loop (c, { DragWhat::loop, engine::Lane::kick, {} }, "Loop"),
           song (c, { DragWhat::song, engine::Lane::kick, {} }, "Song"),
+          drumKit (c),
           controller (c)
     {
         setComponentID ("drag");

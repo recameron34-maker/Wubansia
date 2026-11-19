@@ -154,6 +154,11 @@ namespace wubansia::test
         // changes the list bumps the generation, as a kit change does in the real one; selectKit () changes neither.
         std::vector<PhraseInfo> phraseList;
         std::uint64_t phraseGeneration = 1;
+        // Drum kits (ADR 0030): what drumKitStatus () gives. exportDrumKit () counts the request and gives the next ticket,
+        // saving for the current kit; with drumKitOutcome set, the status it returns for that request (by count, from 1),
+        // whose ticket it gives. Tests may set drumKitState directly (ready, failed...).
+        DrumKitStatus drumKitState;
+        std::function<DrumKitStatus (int request)> drumKitOutcome;
 
         // What the editor asked for. Tests read these.
         juce::StringArray selectedKits;
@@ -171,6 +176,7 @@ namespace wubansia::test
         std::vector<SoundRef> auditions; // audition () requests, in order
         int stops = 0; // stopAudition () calls
         mutable int phrasesCalls = 0; // phrases (): the Phrases drawer should ask once per generation, not every tick
+        int drumKitRequests = 0; // exportDrumKit () calls
 
         std::vector<KitCard> kits() const override { return kitCards; }
         juce::String currentKit() const override { return current; }
@@ -380,6 +386,23 @@ namespace wubansia::test
         }
 
         std::uint64_t phrasesGeneration() const override { return phraseGeneration; }
+
+        std::uint32_t exportDrumKit() override
+        {
+            ++drumKitRequests;
+            if (drumKitOutcome != nullptr)
+                drumKitState = drumKitOutcome (drumKitRequests);
+            else
+            {
+                drumKitState = {};
+                drumKitState.ticket = (std::uint32_t) drumKitRequests;
+                drumKitState.stage = DrumKitStage::saving;
+                drumKitState.kit = current;
+            }
+            return drumKitState.ticket;
+        }
+
+        DrumKitStatus drumKitStatus() const override { return drumKitState; }
 
     private:
         static SoundInfo fakeSound (const char* id, const char* name, SoundCategory category, std::vector<SoundFile> files, int defaultFile = 0)

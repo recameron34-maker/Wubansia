@@ -374,6 +374,16 @@ namespace wubansia
         return sounds::soundExportOf (sounds::exportCopy (*processor.content, source.found, source.entry->info, file, samplesFolder()));
     }
 
+    std::uint32_t ControllerImpl::exportDrumKit()
+    {
+        return 0;
+    }
+
+    DrumKitStatus ControllerImpl::drumKitStatus() const
+    {
+        return {};
+    }
+
     juce::File ControllerImpl::samplesFolder() const
     {
         if (samplesFolderOverride != juce::File())

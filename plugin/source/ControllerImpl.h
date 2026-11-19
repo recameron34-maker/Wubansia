@@ -57,6 +57,8 @@ namespace wubansia
         SoundExport exportSound (const SoundRef& sound) override;
         juce::File samplesFolder() const override;
         bool setSamplesFolder (const juce::File& folder) override;
+        std::uint32_t exportDrumKit() override;
+        DrumKitStatus drumKitStatus() const override;
 
         std::vector<PhraseInfo> phrases() const override;
         std::uint64_t phrasesGeneration() const override;

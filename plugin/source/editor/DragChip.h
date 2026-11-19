@@ -6,6 +6,7 @@
 // plug-in windows. The kit's own phrases are in the Phrases drawer (PhrasesPanel.h, ADR 0031).
 
 #include "Controls.h"
+#include "DrumKitButton.h"
 #include "EditorModel.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -84,6 +85,8 @@ namespace wubansia::editor
 
         // What Loop and Song bring (ADR 0029): All, or one part.
         SegmentedChoice part { "Part" };
+        // Saves the kit's drums as a folder and hands its SFZ on (ADR 0030), right of 1 drum track.
+        DrumKitButton drumKit;
 
         // Where the engraved "Drag MIDI" and "Part" are drawn, so tests can check they fit.
         juce::Rectangle<float> labelArea() const;
