@@ -2,6 +2,8 @@
 
 #include "content/ContentLocator.h"
 
+#include <algorithm>
+
 namespace wubansia
 {
     namespace
@@ -136,9 +138,58 @@ namespace wubansia
         return saveLocked (samplesFolderAttribute, chosen.getFullPathName());
     }
 
-    // Stubs (step `phrases`, part B, commit 1).
-    std::uint64_t UserSettings::phrasesNextSeed (const juce::String&) const { return 0; }
-    bool UserSettings::setPhrasesNextSeed (const juce::String&, std::uint64_t) { return false; }
-    juce::StringArray UserSettings::keptPhrases (const juce::String&) const { return {}; }
-    bool UserSettings::setPhraseKept (const juce::String&, const juce::String&, bool) { return false; }
+    // The Phrases drawer's (ADR 0031): read from the file each time, under the lock, so another process's writes count.
+    namespace
+    {
+        juce::String phraseAttribute (const char* what, const juce::String& kit) { return juce::String ("phrases_") + what + "_" + kit.toLowerCase(); }
+    }
+
+    juce::String UserSettings::fileAttributeLocked (const juce::String& attribute) const
+    {
+        if (! settingsFile.existsAsFile())
+            return {};
+        const auto xml = juce::XmlDocument::parse (settingsFile);
+        return xml != nullptr && xml->hasTagName (rootTag) ? xml->getStringAttribute (attribute) : juce::String();
+    }
+
+    std::uint64_t UserSettings::phrasesNextSeed (const juce::String& kit) const
+    {
+        const std::lock_guard lock (mutex);
+        const auto value = fileAttributeLocked (phraseAttribute ("next", kit)).trim();
+        if (value.isEmpty() || ! value.containsOnly ("0123456789"))
+            return firstMoreSeed;
+        return std::max<std::uint64_t> (firstMoreSeed, static_cast<std::uint64_t> (value.getLargeIntValue()));
+    }
+
+    bool UserSettings::setPhrasesNextSeed (const juce::String& kit, std::uint64_t seed)
+    {
+        const std::lock_guard lock (mutex);
+        const auto attribute = phraseAttribute ("next", kit);
+        const auto inFile = fileAttributeLocked (attribute).trim();
+        auto next = seed;
+        if (inFile.isNotEmpty() && inFile.containsOnly ("0123456789"))
+            next = std::max (next, static_cast<std::uint64_t> (inFile.getLargeIntValue())); // never back
+        return saveLocked (attribute.toRawUTF8(), juce::String (static_cast<juce::int64> (next)));
+    }
+
+    juce::StringArray UserSettings::keptPhrases (const juce::String& kit) const
+    {
+        const std::lock_guard lock (mutex);
+        return juce::StringArray::fromTokens (fileAttributeLocked (phraseAttribute ("kept", kit)), " ", "");
+    }
+
+    bool UserSettings::setPhraseKept (const juce::String& kit, const juce::String& id, bool kept)
+    {
+        if (id.isEmpty() || id.containsAnyOf (" \t\r\n"))
+            return false;
+        const std::lock_guard lock (mutex);
+        const auto attribute = phraseAttribute ("kept", kit);
+        auto ids = juce::StringArray::fromTokens (fileAttributeLocked (attribute), " ", ""); // as the file has them now
+        ids.removeEmptyStrings();
+        if (kept)
+            ids.addIfNotAlreadyThere (id);
+        else
+            ids.removeString (id);
+        return saveLocked (attribute.toRawUTF8(), ids.joinIntoString (" "));
+    }
 }

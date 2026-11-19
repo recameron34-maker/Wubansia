@@ -5,7 +5,8 @@
 // track (ADR 0025) and For my synths (ADR 0027) switches. They live in one file per user,
 // <app data>/Wubansia Audio/Wubansia/settings.xml next to the default content folder
 // (ContentLocator::appDataFolder), as the root's attributes content_folder, samples_folder,
-// drag_drums_one_track ("1" while that switch is lit) and drag_for_synths ("0" while that one is off),
+// drag_drums_one_track ("1" while that switch is lit), drag_for_synths ("0" while that one is off) and the
+// Phrases drawer's phrases_next_<kit> and phrases_kept_<kit> (ADR 0031),
 // never in a project's state, and every plugin instance in the process shares them: instance () is one
 // object, and generation () tells the others that the content folder changed.
 //
@@ -93,6 +94,9 @@ namespace wubansia
         // Writes the file with attribute set to value, keeping whatever else it holds. An empty value removes the
         // attribute: a forgotten folder (juce::File ()'s path), the drum option off or For my synths on.
         bool saveLocked (const char* attribute, const juce::String& value) const;
+        // The attribute as the file has it now ("" when absent).
+        juce::String fileAttributeLocked (const juce::String& attribute) const;
+        static constexpr std::uint64_t firstMoreSeed = 1000000; // gen::firstMoreSeed
 
         const juce::File settingsFile;
         mutable std::mutex mutex;
