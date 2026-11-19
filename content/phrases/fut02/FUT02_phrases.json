@@ -1,0 +1,42 @@
+{
+  "format": 1,
+  "kit": "FUT02",
+  "tonic": 2,
+  "bpm": 130,
+  "about": "8-bar phrases over the app's chord loop, Dm9 held: chrome arp riffs over the D5-A4 pedal, call and answer, glass periods on Glass Ping, sparse accents, rolling arps, laser stabs, counter-lines and trance-eighth bounces.",
+  "range": [67, 86],
+  "swing": 10,
+  "chords": [
+    {"name": "Dm9", "degree": 0, "keys": [50, 57, 60, 65, 69, 76]}
+  ],
+  "material": {
+    "register": {"center": 79, "span": 14, "floor": 72},
+    "contours": [{"shape": "late", "w": 2}, {"shape": "twin", "w": 2}, {"shape": "early", "w": 1}],
+    "cells": [{"on": [0, 3, 6, 8, 11, 14], "len": [2, 2, 2, 2, 2, 2], "acc": [0, 3, 6, 8, 11, 14], "w": 30}, {"on": [0, 3, 6, 10, 14], "len": [2, 2, 3, 3, 2], "acc": [0, 6, 10], "w": 25}, {"on": [0, 3, 6, 10, 12], "len": [3, 3, 3, 2, 3], "acc": [0, 6, 10], "w": 20}, {"on": [0, 3, 6, 9, 12], "len": [2, 2, 2, 2, 3], "acc": [0, 6, 12], "w": 12}],
+    "mutate": {"drop": 25, "add": 25, "extra": [2, 8, 12, 13]},
+    "answer": {"same": 4, "move": 3, "add": 2, "drop": 1, "headDiffers": 0},
+    "pitch": {"pool": [0, 1, 2, 3, 4, 6], "start": [20, 0, 40, 0, 30, 0, 0], "end": [4, 30, 20, 0, 30, 0, 20], "moves": [10, 45, 27, 9, 9, 0, 0, 0], "leap": 9, "strong": "beats", "peak": [18, 28], "early": [4, 12], "tones": [0, 2, 4, 6, 8], "clash": [0, 2, 4, 6]},
+    "vel": {"beat": 127, "accent": 112, "other": 100, "peak": 6, "shape": 4},
+    "guard": {"second": 76},
+    "period": {"idiom": "glass", "register": [76, 89], "halves": [{"on": [10, 14], "w": 1}], "octave": 1},
+    "pedal": {"degrees": [0, -3], "vel": [80, 66], "in": ["full", "answer", "fragment", "new"], "max": 2}
+  },
+  "ending": [40, 0, 25, 0, 35, 0, 0],
+  "nearDuplicate": 700,
+  "kinds": {
+    "hook": {"quota": 10, "forms": [30, 25, 25, 20]},
+    "answer": {"quota": 8, "forms": [40, 35, 25]},
+    "period": {"quota": 8, "forms": [60, 40], "channel": 13, "track": "Glass Ping", "center": 82, "span": 11},
+    "sparse": {"quota": 6, "forms": [50, 50]},
+    "arp": {"quota": 12, "forms": [50, 50], "center": 76, "cells": [{"on": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], "len": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], "acc": [0, 3, 6, 8, 11, 14], "w": 2}, {"on": [0, 2, 3, 4, 6, 8, 10, 11, 12, 14], "len": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], "acc": [0, 6, 8, 14], "w": 2}, {"on": [0, 3, 6, 8, 11, 14], "len": [2, 2, 2, 2, 2, 2], "acc": [0, 8], "w": 1}], "ladders": [[0, 1, 2, 3, 4], [0, 1, 2], [0, 2, 4, 1, 3], [4, 3, 2, 1, 0], [0, 1, 2, 3]]},
+    "stabs": {"quota": 6, "forms": [50, 50], "center": 80, "cells": [{"on": [0, 3, 6, 10, 12], "len": [1, 1, 2, 1, 2], "acc": [0, 6, 10], "w": 3}, {"on": [0, 3, 6, 10, 13], "len": [1, 1, 2, 1, 2], "acc": [0, 6], "w": 1}]},
+    "counter": {"quota": 8, "forms": [60, 40], "center": 78, "span": 10, "leap": 7, "vel": -14, "moves": [10, 60, 22, 8, 0, 0, 0, 0], "cells": [{"on": [0, 8], "len": [6, 6], "acc": [0, 8], "w": 2}, {"on": [0, 6, 12], "len": [5, 5, 4], "acc": [0, 12], "w": 2}, {"on": [2, 8], "len": [5, 7], "acc": [8], "w": 1}, {"on": [0, 10], "len": [8, 5], "acc": [0], "w": 2}, {"on": [4, 12], "len": [6, 4], "acc": [4, 12], "w": 1}]},
+    "bounce": {"quota": 6, "forms": [50, 30, 20], "center": 79, "span": 15, "leap": 12, "pool": [0, 4], "moves": [10, 0, 0, 10, 20, 0, 0, 50], "cells": [{"on": [0, 2, 4, 6, 8, 10, 12, 14], "len": [1, 1, 1, 1, 1, 1, 1, 1], "acc": [0, 4, 8, 12], "w": 2}, {"on": [0, 3, 6, 8, 11, 14], "len": [2, 2, 2, 2, 2, 2], "acc": [0, 8], "w": 1}]}
+  },
+  "names": {
+    "first": ["Low", "Ion", "Far", "Dock", "Star", "Pale", "Deep", "Night", "Solar", "Quiet", "Blue", "Relay", "Polar", "Silent", "Outer", "Nova", "Lunar", "Prism", "Ember", "Cold", "Distant", "Static", "Vector", "Zero"],
+    "second": ["Orbit", "Trail", "Beacon", "Lights", "Chart", "Drift", "Ping", "Array", "Bloom", "Gate", "Signal", "Lens", "Corridor", "Horizon", "Module", "Satellite", "Pulse", "Wake", "Field", "Station", "Uplink", "Glow", "Arc", "Spiral"]
+  },
+  "rename": {},
+  "cut": {}
+}

@@ -1548,30 +1548,11 @@ namespace wubansia::gen
                            + "\" all through (no entry or rest), whose menu draws no OUT for its first playing line (a groove's \"first\") or for any line (a build's)");
         }
 
-        // The hook block (hook.h; content.h's HookSpec has the keys), read after the lanes, the form
-        // and the harmony, which it names. makeBundle checks it against the carrier's kit range.
-        std::optional<HookSpec> hookBlock (const Node& h, const Style& style)
+        // The material keys of a hook block ("register" to "pedal"): the style's hook block and a phrase spec's
+        // "material" (gen/phrase.h) alike.
+        void hookMaterial (const Node& h, HookSpec& hook)
         {
-            if (!h.exists())
-                return std::nullopt;
-            h.only ({ "lane", "register", "contours", "cells", "mutate", "answer", "pitch", "vel", "guard", "period", "pedal", "withhold", "plan" });
-            HookSpec hook;
             const bool pedal = h.optional ("pedal").exists();
-
-            // the carrier: one lead lane of the style
-            const Node lane = h.optional ("lane");
-            if (!lane.exists()) // a missing key has no line of its own: the block's
-                h.errors().add (lane.path(), "line " + std::to_string (h.value()->line) + ": missing \"lane\": the hook needs its carrier, a lead lane of the style");
-            else
-            {
-                hook.lane = lane.string (1, 32);
-                const auto li = style.laneIndex (hook.lane);
-                if (!li)
-                    lane.fail ("unknown lane \"" + hook.lane + "\"");
-                else if (style.lanes[*li].kind != LaneKind::lead)
-                    lane.fail ("the hook plays on a lead lane, and \"" + hook.lane + "\" is a " + std::string (laneKindName (style.lanes[*li].kind)) + " lane");
-            }
-
             const Node reg = h["register"];
             reg.only ({ "center", "span", "floor" });
             hook.reg.center = reg["center"].int32 (0, 127);
@@ -1775,6 +1756,33 @@ namespace wubansia::gen
                 pd.max = ped["max"].int32 (1, 2);
                 hook.pedal = std::move (pd);
             }
+        }
+
+        // The hook block (hook.h; content.h's HookSpec has the keys), read after the lanes, the form
+        // and the harmony, which it names. makeBundle checks it against the carrier's kit range.
+        std::optional<HookSpec> hookBlock (const Node& h, const Style& style)
+        {
+            if (!h.exists())
+                return std::nullopt;
+            h.only ({ "lane", "register", "contours", "cells", "mutate", "answer", "pitch", "vel", "guard", "period", "pedal", "withhold", "plan" });
+            HookSpec hook;
+
+            // the carrier: one lead lane of the style
+            const Node lane = h.optional ("lane");
+            if (!lane.exists()) // a missing key has no line of its own: the block's
+                h.errors().add (lane.path(), "line " + std::to_string (h.value()->line) + ": missing \"lane\": the hook needs its carrier, a lead lane of the style");
+            else
+            {
+                hook.lane = lane.string (1, 32);
+                const auto li = style.laneIndex (hook.lane);
+                if (!li)
+                    lane.fail ("unknown lane \"" + hook.lane + "\"");
+                else if (style.lanes[*li].kind != LaneKind::lead)
+                    lane.fail ("the hook plays on a lead lane, and \"" + hook.lane + "\" is a " + std::string (laneKindName (style.lanes[*li].kind)) + " lane");
+            }
+
+            hookMaterial (h, hook);
+
 
             const Node withhold = h["withhold"];
             hook.withhold = withhold.strings (0, 7);
@@ -2013,6 +2021,11 @@ namespace wubansia::gen
     }
 
     // ------------------------------------------------------------------ parsers
+
+    void readHookMaterial (const json::Node& h, HookSpec& hook)
+    {
+        hookMaterial (h, hook);
+    }
 
     util::Result<Kit> parseKit (std::string_view text, std::string_view source)
     {

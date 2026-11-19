@@ -23,6 +23,11 @@
 #include <string_view>
 #include <vector>
 
+namespace wubansia::gen::json
+{
+    class Node;
+}
+
 namespace wubansia::gen
 {
     inline constexpr std::size_t gridSteps = 32; // 2 bars of 16ths
@@ -784,6 +789,11 @@ namespace wubansia::gen
     // every drum voice has a note in 35-59, every lane active in the form has a grid for that
     // section kind, the feel names only lanes and voices the style has, and so on.
     [[nodiscard]] util::Result<Bundle> makeBundle (Kit kit, Style style, Feel feel);
+
+    // The material keys of a hook block ("register", "contours", "cells", "mutate", "answer", "pitch", "vel", "guard",
+    // "period", "pedal") into hook, refusing as the style loader does; the caller checks the keys it allows. The
+    // phrase specs' "material" (gen/phrase.h) reads this way.
+    void readHookMaterial (const json::Node& h, HookSpec& hook);
 
     // Reads <content>/kits/<kitId lowercased>.json and the style and feel it names.
     [[nodiscard]] util::Result<Bundle> loadBundle (const std::filesystem::path& contentDir, std::string_view kitId);
