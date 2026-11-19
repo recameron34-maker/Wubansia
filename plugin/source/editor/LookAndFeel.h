@@ -5,28 +5,12 @@
 // stays sharp at every zoom and display scale. One accent colour per kit lights the LEDs, the LCD,
 // the knob rings and the fader caps.
 
+#include "editor/skin/Skin.h"
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace wubansia::editor
 {
-    namespace colours
-    {
-        inline const juce::Colour background { 0xff0d0e11 };
-        inline const juce::Colour panelTop { 0xff1d2025 };
-        inline const juce::Colour panelBottom { 0xff131519 };
-        inline const juce::Colour plateTop { 0xff252930 };
-        inline const juce::Colour plateBottom { 0xff1b1e23 };
-        inline const juce::Colour recess { 0xff08090b };
-        inline const juce::Colour text { 0xffeceef2 };
-        inline const juce::Colour textDim { 0xffa6acb7 };
-        inline const juce::Colour textFaint { 0xff686e79 };
-        inline const juce::Colour engraved { 0xff7d838e };
-        inline const juce::Colour mute { 0xffeef1f6 }; // the mute pads' light: white, apart from every kit's accent
-        inline const juce::Colour busy { 0xffffc23d }; // loading
-        inline const juce::Colour warning { 0xffff6a4d }; // problems
-        inline const juce::Colour hot { 0xfffff5ec }; // a meter's top segment: white-hot whatever the accent
-    }
-
     // The kit's accent: FUT01 UK garage violet, FUT02 sci-fi club cyan, FUT03 deep tech house amber,
     // FUT04 dark techno red. Other kits get a stable colour from their ID.
     juce::Colour accentForKit (const juce::String& kitId);
@@ -36,7 +20,7 @@ namespace wubansia::editor
     juce::Font monoFont (float height, bool bold = false);
 
     // Drawing primitives shared by the panels.
-    namespace draw
+    namespace paint
     {
         // The brushed panel behind everything, with corner screws.
         void faceplate (juce::Graphics&, juce::Rectangle<float> area);
@@ -51,7 +35,7 @@ namespace wubansia::editor
 
         // Small upper-case label text, letter-spaced, as if engraved.
         void engraved (juce::Graphics&, const juce::String& text, juce::Rectangle<float> area,
-            juce::Justification justification, float height = 10.0f, juce::Colour colour = colours::engraved);
+            juce::Justification justification, float height = 10.0f, juce::Colour colour = juce::Colour (0xff7d838e));
 
         // A round LED: level 0 is off (a dark lens), 1 fully lit with its glow.
         void led (juce::Graphics&, juce::Point<float> centre, float radius, juce::Colour colour, float level);
@@ -91,8 +75,10 @@ namespace wubansia::editor
     public:
         LookAndFeel();
 
-        void setAccent (juce::Colour colour);
-        juce::Colour accent() const noexcept { return accentColour; }
+        // The look it draws in (ADR 0032), held by value: set on the message thread when the kit changes, with JUCE's
+        // colour IDs for popups, tooltips, scroll bars and combo boxes.
+        void setSkin (const Skin& skin);
+        const Skin& skin() const noexcept { return current; }
 
         // Sliders: rotary knobs with an LED ring, and vertical faders. Their values are drawn by the
         // panels, so they have no text boxes.
@@ -127,9 +113,10 @@ namespace wubansia::editor
             juce::Rectangle<int> parentArea) override;
 
     private:
-        juce::Colour accentColour;
+        Skin current;
     };
 
-    // The accent of the LookAndFeel a component draws with (the editor's), or the default.
-    juce::Colour accentOf (const juce::Component&);
+    // Lit hardware (ADR 0017's one look, until the looks replace it): the kit's accent on a fixed dark palette, in the
+    // platform's fonts.
+    Skin litHardwareSkin (const juce::String& kitId);
 }

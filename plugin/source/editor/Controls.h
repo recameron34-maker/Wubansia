@@ -53,7 +53,7 @@ namespace wubansia::editor
     class PadButton : public juce::Button, public ContextMenuHook
     {
     public:
-        PadButton (const juce::String& name, const juce::String& letter, juce::Colour light);
+        PadButton (const juce::String& name, const juce::String& letter);
 
         void paintButton (juce::Graphics&, bool isMouseOver, bool isButtonDown) override;
         void mouseDown (const juce::MouseEvent& e) override;
@@ -61,7 +61,6 @@ namespace wubansia::editor
 
     private:
         juce::String letter;
-        juce::Colour light;
     };
 
     // A pill with an LED and a label: the LED lights in the accent while it's on.

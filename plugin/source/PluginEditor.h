@@ -73,7 +73,6 @@ namespace wubansia
         public:
             void paint (juce::Graphics&) override;
 
-            juce::Colour accent;
             juce::Rectangle<float> logo;
             std::vector<std::pair<juce::Rectangle<float>, juce::String>> plates;
         };

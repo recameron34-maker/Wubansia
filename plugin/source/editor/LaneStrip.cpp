@@ -15,7 +15,7 @@ namespace wubansia::editor
     }
 
     LaneStrip::LaneStrip (engine::Lane lane, Controller& controller)
-        : mute ("Mute", "M", colours::mute),
+        : mute ("Mute", "M"),
           chip (controller, { DragWhat::lane, lane, {} }, laneName (lane)),
           laneId (lane)
     {
@@ -120,21 +120,21 @@ namespace wubansia::editor
     void LaneStrip::paint (juce::Graphics& g)
     {
         const auto bounds = getLocalBounds().toFloat();
-        draw::plate (g, bounds.reduced (0.5f));
+        paint::plate (g, bounds.reduced (0.5f));
 
         // The name and its hit light.
-        draw::led (g, ledArea.toFloat().getCentre(), 4.2f, accent, muted ? led * 0.35f : led);
+        paint::led (g, ledArea.toFloat().getCentre(), 4.2f, accent, muted ? led * 0.35f : led);
         auto text = labelArea.toFloat().withTrimmedLeft (18.0f);
         if (midiTarget)
         {
             const auto badge = text.removeFromRight (30.0f).reduced (0.0f, 3.0f);
             g.setColour (accent.withAlpha (0.85f));
             g.drawRoundedRectangle (badge, 3.0f, 1.0f);
-            g.setFont (uiFont (8.5f, true, 0.06f));
+            g.setFont (bodyFont (skinOf (*this), 8.5f, true, 0.06f));
             g.drawText ("MIDI", badge, juce::Justification::centred, false);
         }
-        g.setFont (uiFont (12.5f, true, 0.07f));
-        g.setColour (muted ? colours::textFaint : colours::text);
+        g.setFont (bodyFont (skinOf (*this), 12.5f, true, 0.07f));
+        g.setColour (muted ? skinOf (*this).colours.faint : skinOf (*this).colours.text);
         g.drawFittedText (label, text.toNearestInt(), juce::Justification::centredLeft, 1, 0.75f);
 
         // The phrase tag.
@@ -144,22 +144,22 @@ namespace wubansia::editor
             const auto pill = tagArea.toFloat();
             g.setColour (recorded ? accent.withAlpha (0.22f) : juce::Colours::white.withAlpha (0.05f));
             g.fillRoundedRectangle (pill, pill.getHeight() * 0.5f);
-            g.setColour (recorded ? accent.withAlpha (0.9f) : colours::textFaint);
+            g.setColour (recorded ? accent.withAlpha (0.9f) : skinOf (*this).colours.faint);
             g.drawRoundedRectangle (pill.reduced (0.5f), pill.getHeight() * 0.5f, 1.0f);
-            g.setFont (uiFont (9.0f, true, 0.12f));
-            g.setColour (recorded ? accent.brighter (0.3f) : colours::textDim);
+            g.setFont (bodyFont (skinOf (*this), 9.0f, true, 0.12f));
+            g.setColour (recorded ? accent.brighter (0.3f) : skinOf (*this).colours.dim);
             g.drawText (tag.toUpperCase(), pill, juce::Justification::centred, false);
         }
 
         // The meter, in a recess beside the fader.
-        draw::recess (g, meterArea.toFloat().expanded (2.5f), 3.0f);
+        paint::recess (g, meterArea.toFloat().expanded (2.5f), 3.0f);
         const auto fill = (peakDb - meterFloorDb) / -meterFloorDb;
         const auto hold = holdDb > meterFloorDb + 0.5f ? (holdDb - meterFloorDb) / -meterFloorDb : -1.0f;
-        draw::meter (g, meterArea.toFloat(), meterSegments, muted ? 0.0f : fill, muted ? -1.0f : hold, accent, true, 16, 17);
+        paint::meter (g, meterArea.toFloat(), meterSegments, muted ? 0.0f : fill, muted ? -1.0f : hold, accent, true, 16, 17);
 
         // The fader's value.
-        g.setFont (uiFont (11.0f, true, 0.03f));
-        g.setColour (muted ? colours::textFaint : colours::textDim);
+        g.setFont (bodyFont (skinOf (*this), 11.0f, true, 0.03f));
+        g.setColour (muted ? skinOf (*this).colours.faint : skinOf (*this).colours.dim);
         g.drawText (valueText, valueArea.toFloat(), juce::Justification::centred, false);
     }
 

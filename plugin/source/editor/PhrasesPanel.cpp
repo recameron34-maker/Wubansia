@@ -60,8 +60,8 @@ namespace wubansia::editor
         }
 
         juce::String barsText (int bars) { return juce::String (bars) + (bars == 1 ? " bar" : " bars"); }
-        juce::Font filterFont() { return uiFont (12.5f, true, 0.02f); }
-        juce::Font countFont() { return uiFont (11.5f, true); }
+        juce::Font filterFont (const Skin& skin) { return bodyFont (skin, 12.5f, true, 0.02f); }
+        juce::Font countFont (const Skin& skin) { return bodyFont (skin, 11.5f, true); }
 
         const juce::String idleLine ("Click a phrase to hear it with the groove; drag it into your DAW as MIDI.");
         const juce::String ellipsis (juce::CharPointer_UTF8 ("\xe2\x80\xa6"));
@@ -100,8 +100,8 @@ namespace wubansia::editor
     int PhraseFilter::fitWidth() const
     {
         // As paintButton () lays it out: 1 px of rim and the padding each side, the name, 7 px, the count.
-        const auto name = juce::GlyphArrangement::getStringWidth (filterFont(), getButtonText());
-        const auto count = juce::GlyphArrangement::getStringWidth (countFont(), juce::String (phrases));
+        const auto name = juce::GlyphArrangement::getStringWidth (filterFont (skinOf (*this)), getButtonText());
+        const auto count = juce::GlyphArrangement::getStringWidth (countFont (skinOf (*this)), juce::String (phrases));
         return (int) std::ceil (1.0f + (float) padding + name + 7.0f + count + (float) padding + 1.0f) + 1;
     }
 
@@ -112,7 +112,7 @@ namespace wubansia::editor
 
     void PhraseFilter::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto area = getLocalBounds().toFloat().reduced (1.0f);
         const auto corner = area.getHeight() * 0.5f;
         if (shown)
@@ -129,13 +129,13 @@ namespace wubansia::editor
         }
 
         auto line = area.withTrimmedLeft ((float) padding).withTrimmedRight ((float) padding).translated (0.0f, isButtonDown ? 0.6f : 0.0f);
-        g.setFont (filterFont());
-        g.setColour (shown ? colours::text : colours::textDim);
+        g.setFont (filterFont (skinOf (*this)));
+        g.setColour (shown ? skinOf (*this).colours.text : skinOf (*this).colours.dim);
         const auto name = getButtonText();
         g.drawText (name, line, juce::Justification::centredLeft, false);
-        line.removeFromLeft (juce::GlyphArrangement::getStringWidth (filterFont(), name) + 7.0f);
-        g.setFont (countFont());
-        g.setColour (shown ? accent.brighter (0.3f) : colours::textFaint);
+        line.removeFromLeft (juce::GlyphArrangement::getStringWidth (filterFont (skinOf (*this)), name) + 7.0f);
+        g.setFont (countFont (skinOf (*this)));
+        g.setColour (shown ? accent.brighter (0.3f) : skinOf (*this).colours.faint);
         g.drawText (juce::String (phrases), line, juce::Justification::centredLeft, false);
     }
 
@@ -150,7 +150,7 @@ namespace wubansia::editor
 
     void PhraseStar::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto area = getLocalBounds().toFloat().reduced (2.0f);
         juce::Path star;
         star.addStar (area.getCentre(), 5, area.getWidth() * 0.22f, area.getWidth() * 0.5f, 0.0f);
@@ -159,7 +159,7 @@ namespace wubansia::editor
             g.setColour (accent.brighter (isMouseOver ? 0.4f : 0.15f));
             g.fillPath (star);
         }
-        g.setColour (getToggleState() ? accent : colours::textFaint.brighter (isMouseOver || hasKeyboardFocus (false) ? 0.6f : 0.0f));
+        g.setColour (getToggleState() ? accent : skinOf (*this).colours.faint.brighter (isMouseOver || hasKeyboardFocus (false) ? 0.6f : 0.0f));
         g.strokePath (star, juce::PathStrokeType (isButtonDown ? 1.6f : 1.1f));
     }
 
@@ -239,7 +239,7 @@ namespace wubansia::editor
 
     void PhraseTile::paint (juce::Graphics& g)
     {
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto active = pressed || dragging || playing;
         const auto focused = selected && getParentComponent() != nullptr && getParentComponent()->hasKeyboardFocus (false);
         const auto area = getLocalBounds().toFloat().reduced (1.5f);
@@ -252,7 +252,7 @@ namespace wubansia::editor
                                                                   : juce::Colour (hover || selected ? 0xff262a31 : 0xff1d2025),
             area.getY(), juce::Colour (0xff131518), area.getBottom()));
         g.fillRoundedRectangle (area, corner);
-        const auto rim = failed ? colours::warning : accent.withAlpha (selected || hover || active || waiting ? 0.85f : 0.3f);
+        const auto rim = failed ? skinOf (*this).colours.warning : accent.withAlpha (selected || hover || active || waiting ? 0.85f : 0.3f);
         g.setColour (rim);
         g.drawRoundedRectangle (area.reduced (0.5f), corner, selected || failed || playing ? 1.4f : 1.0f);
         if (focused)
@@ -265,7 +265,7 @@ namespace wubansia::editor
         auto content = area.reduced (12.0f, 8.0f);
         content.removeFromRight (22.0f); // the star
         auto top = content.removeFromTop (19.0f);
-        draw::midiGlyph (g, top.removeFromLeft (14.0f).withSizeKeepingCentre (12.0f, 12.0f), failed ? colours::warning : accent);
+        paint::midiGlyph (g, top.removeFromLeft (14.0f).withSizeKeepingCentre (12.0f, 12.0f), failed ? skinOf (*this).colours.warning : accent);
         top.removeFromLeft (8.0f);
         const auto badge = badgeText();
         if (badge.isNotEmpty())
@@ -274,15 +274,15 @@ namespace wubansia::editor
             g.setColour (accent.withAlpha (0.85f));
             g.fillRoundedRectangle (pill, 7.5f);
             g.setColour (juce::Colour (0xff101215));
-            g.setFont (uiFont (10.0f, true, 0.04f));
+            g.setFont (bodyFont (skinOf (*this), 10.0f, true, 0.04f));
             g.drawText (badge, pill, juce::Justification::centred, false);
             top.removeFromRight (4.0f);
         }
-        g.setFont (uiFont (14.5f, true));
-        g.setColour (failed ? colours::warning : colours::text);
+        g.setFont (bodyFont (skinOf (*this), 14.5f, true));
+        g.setColour (failed ? skinOf (*this).colours.warning : skinOf (*this).colours.text);
         g.drawFittedText (shownPhrase.name, top.toNearestInt(), juce::Justification::centredLeft, 1, 0.85f);
-        g.setFont (uiFont (11.0f));
-        g.setColour (colours::textDim);
+        g.setFont (bodyFont (skinOf (*this), 11.0f));
+        g.setColour (skinOf (*this).colours.dim);
         g.drawText (detailText(), content.removeFromTop (15.0f), juce::Justification::centredLeft, true);
 
         // The roll: each note a bar in the kit's colour, its 16ths across, its keys from low to high.
@@ -773,7 +773,7 @@ namespace wubansia::editor
         }
 
         // What paint () draws of the text; repainted only when it changes.
-        const auto shown = kitLine() + "|" + status + "|" + synthsText() + "|" + juce::String (tiles.size()) + "|" + juce::String (accentOf (*this).getARGB());
+        const auto shown = kitLine() + "|" + status + "|" + synthsText() + "|" + juce::String (tiles.size()) + "|" + juce::String (skinOf (*this).colours.accent.getARGB());
         if (shown != painted)
         {
             painted = shown;
@@ -849,7 +849,7 @@ namespace wubansia::editor
     void PhrasesPanel::paint (juce::Graphics& g)
     {
         const auto bounds = getLocalBounds().toFloat();
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
 
         // A frosted panel over the lanes, as the Samples drawer is, rimmed in the kit's colour.
         g.setColour (juce::Colours::black.withAlpha (0.55f));
@@ -865,26 +865,26 @@ namespace wubansia::editor
         g.fillRect (juce::Rectangle<float> (bounds.getX() + 12.0f, (float) footerArea.getY() - 1.0f, bounds.getWidth() - 24.0f, 1.0f));
 
         // The header: PHRASES, then the kit line.
-        draw::engraved (g, getTitle(), headerArea.withTrimmedLeft (margin).withWidth (84).toFloat(), juce::Justification::centredLeft, 11.0f, colours::textDim);
+        paint::engraved (g, getTitle(), headerArea.withTrimmedLeft (margin).withWidth (84).toFloat(), juce::Justification::centredLeft, 11.0f, skinOf (*this).colours.dim);
         if (kit.id.isNotEmpty())
         {
             juce::AttributedString title;
             title.setWordWrap (juce::AttributedString::none);
             title.setJustification (juce::Justification::centredLeft);
-            title.append (kit.id + " ", uiFont (12.5f, true, 0.08f), accent);
-            title.append (kit.title, uiFont (14.0f, true), colours::text);
+            title.append (kit.id + " ", bodyFont (skinOf (*this), 12.5f, true, 0.08f), accent);
+            title.append (kit.title, bodyFont (skinOf (*this), 14.0f, true), skinOf (*this).colours.text);
             auto rest = juce::String();
             if (! kit.phraseChords.isEmpty())
                 rest << middleDot() << "over " << kit.phraseChords.joinIntoString (" " + enDash + " ");
             rest << middleDot() << juce::String (kit.bpm) << " BPM" << middleDot() << shortKey (kit.key) << " " << kit.camelot;
-            title.append (rest, uiFont (12.5f), colours::textDim);
+            title.append (rest, bodyFont (skinOf (*this), 12.5f), skinOf (*this).colours.dim);
             title.draw (g, titleArea.toFloat());
         }
 
         if (tiles.isEmpty())
         {
-            g.setFont (uiFont (13.0f));
-            g.setColour (colours::textFaint);
+            g.setFont (bodyFont (skinOf (*this), 13.0f));
+            g.setColour (skinOf (*this).colours.faint);
             const auto empty = filter == "kept" ? juce::String ("Star a phrase to keep it here, in every project")
                                : list.empty()   ? kit.id + " has no phrases in this build"
                                                 : juce::String ("None of this kind here yet: More writes 8");
@@ -892,11 +892,11 @@ namespace wubansia::editor
         }
 
         // The footer: the status line, a failure in the warning colour, and For my synths.
-        g.setFont (uiFont (11.5f, true));
-        g.setColour (failure.isNotEmpty() ? colours::warning : colours::textDim);
+        g.setFont (bodyFont (skinOf (*this), 11.5f, true));
+        g.setColour (failure.isNotEmpty() ? skinOf (*this).colours.warning : skinOf (*this).colours.dim);
         g.drawFittedText (statusText(), statusArea, juce::Justification::centredLeft, 2, 0.9f);
-        g.setFont (uiFont (11.5f, true));
-        g.setColour (forSynths ? colours::text.withAlpha (0.85f) : colours::textDim);
+        g.setFont (bodyFont (skinOf (*this), 11.5f, true));
+        g.setColour (forSynths ? skinOf (*this).colours.text.withAlpha (0.85f) : skinOf (*this).colours.dim);
         g.drawText (synthsText(), synthsArea.toFloat(), juce::Justification::centredRight, false);
     }
 }

@@ -145,8 +145,8 @@ namespace wubansia::editor
             g.setColour (lit);
             g.fillPath (mark);
             top.removeFromLeft (6.0f);
-            lcdText (g, shown.transport, top, uiFont (11.0f, true, 0.14f), juce::Justification::centredLeft, lit);
-            lcdText (g, shown.sync, top, uiFont (10.0f, true, 0.14f), juce::Justification::centredRight, dim);
+            lcdText (g, shown.transport, top, bodyFont (skinOf (*this), 11.0f, true, 0.14f), juce::Justification::centredLeft, lit);
+            lcdText (g, shown.sync, top, bodyFont (skinOf (*this), 10.0f, true, 0.14f), juce::Justification::centredRight, dim);
 
             // The digits.
             left.removeFromTop (8.0f);
@@ -155,12 +155,12 @@ namespace wubansia::editor
             const auto half = digits.getWidth() * 0.5f;
             auto tempoArea = digits.removeFromLeft (half).withTrimmedRight (16.0f);
             auto positionArea = digits.withTrimmedRight (2.0f);
-            draw::sevenSegment (g, shown.tempo, tempoArea, lit, 0.075f);
-            draw::sevenSegment (g, shown.position, positionArea, lit, 0.075f);
+            paint::sevenSegment (g, shown.tempo, tempoArea, lit, 0.075f);
+            paint::sevenSegment (g, shown.position, positionArea, lit, 0.075f);
             g.setColour (lit.withAlpha (0.12f));
             g.fillRect (juce::Rectangle<float> (1.0f, digits.getHeight() * 0.7f).withCentre ({ tempoArea.getRight() + 9.0f, digits.getCentreY() }));
-            lcdText (g, "BPM", labels.removeFromLeft (half).withTrimmedRight (16.0f), uiFont (9.5f, true, 0.2f), juce::Justification::centredRight, dim);
-            lcdText (g, "BAR" + middleDot() + "BEAT", labels.withTrimmedRight (2.0f), uiFont (9.5f, true, 0.2f), juce::Justification::centredRight, dim);
+            lcdText (g, "BPM", labels.removeFromLeft (half).withTrimmedRight (16.0f), bodyFont (skinOf (*this), 9.5f, true, 0.2f), juce::Justification::centredRight, dim);
+            lcdText (g, "BAR" + middleDot() + "BEAT", labels.withTrimmedRight (2.0f), bodyFont (skinOf (*this), 9.5f, true, 0.2f), juce::Justification::centredRight, dim);
 
             // The divider and the kit block.
             g.setColour (lit.withAlpha (0.16f));
@@ -168,12 +168,12 @@ namespace wubansia::editor
 
             const auto line = right.getHeight() / 5.0f;
             auto row1 = right.removeFromTop (line);
-            lcdText (g, shown.kitId, row1, uiFont (10.5f, true, 0.16f), juce::Justification::centredLeft, dim);
-            lcdText (g, shown.status, row1, uiFont (9.5f, true, 0.14f), juce::Justification::centredRight, dim);
-            lcdText (g, shown.kitTitle, right.removeFromTop (line * 1.25f), uiFont (17.0f, true, 0.06f), juce::Justification::centredLeft, lit);
-            lcdText (g, shown.key, right.removeFromTop (line), uiFont (11.5f, true, 0.1f), juce::Justification::centredLeft, lit);
-            lcdText (g, shown.direction, right.removeFromTop (line * 0.85f), uiFont (9.5f, true, 0.12f), juce::Justification::centredLeft, dim);
-            lcdText (g, shown.mode, right, uiFont (11.0f, true, 0.1f), juce::Justification::centredLeft, lit);
+            lcdText (g, shown.kitId, row1, bodyFont (skinOf (*this), 10.5f, true, 0.16f), juce::Justification::centredLeft, dim);
+            lcdText (g, shown.status, row1, bodyFont (skinOf (*this), 9.5f, true, 0.14f), juce::Justification::centredRight, dim);
+            lcdText (g, shown.kitTitle, right.removeFromTop (line * 1.25f), bodyFont (skinOf (*this), 17.0f, true, 0.06f), juce::Justification::centredLeft, lit);
+            lcdText (g, shown.key, right.removeFromTop (line), bodyFont (skinOf (*this), 11.5f, true, 0.1f), juce::Justification::centredLeft, lit);
+            lcdText (g, shown.direction, right.removeFromTop (line * 0.85f), bodyFont (skinOf (*this), 9.5f, true, 0.12f), juce::Justification::centredLeft, dim);
+            lcdText (g, shown.mode, right, bodyFont (skinOf (*this), 11.0f, true, 0.1f), juce::Justification::centredLeft, lit);
 
             // The glass's sheen.
             g.setGradientFill (juce::ColourGradient (juce::Colours::white.withAlpha (0.075f), glass.getX(), glass.getY(),
@@ -272,13 +272,13 @@ namespace wubansia::editor
     void TransportPanel::paint (juce::Graphics& g)
     {
         auto area = getLocalBounds().toFloat().reduced (10.0f, 8.0f);
-        draw::engraved (g, "Transport", area.removeFromTop (12.0f), juce::Justification::centredLeft, 9.5f);
+        paint::engraved (g, "Transport", area.removeFromTop (12.0f), juce::Justification::centredLeft, 9.5f);
 
         if (! standalone)
         {
             area.removeFromTop (38.0f);
-            g.setFont (uiFont (10.5f));
-            g.setColour (colours::textFaint);
+            g.setFont (bodyFont (skinOf (*this), 10.5f));
+            g.setColour (skinOf (*this).colours.faint);
             g.drawFittedText ("Plays the kit while\nthe host is stopped", area.toNearestInt(), juce::Justification::centredLeft, 3, 0.9f);
         }
     }

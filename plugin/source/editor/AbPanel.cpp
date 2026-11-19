@@ -47,10 +47,10 @@ namespace wubansia::editor
 
     void AbPanel::paint (juce::Graphics& g)
     {
-        draw::plate (g, getLocalBounds().toFloat().reduced (0.5f), "A / B sounds");
+        paint::plate (g, getLocalBounds().toFloat().reduced (0.5f), "A / B sounds");
         for (std::size_t i = 0; i < rows.size(); ++i)
-            draw::engraved (g, rowNames[i], rows[i].toFloat().withWidth (42.0f), juce::Justification::centredLeft, 9.5f,
-                switches[i]->isEnabled() ? colours::engraved : colours::textFaint);
+            paint::engraved (g, rowNames[i], rows[i].toFloat().withWidth (42.0f), juce::Justification::centredLeft, 9.5f,
+                switches[i]->isEnabled() ? skinOf (*this).colours.label : skinOf (*this).colours.faint);
     }
 
     AbPanel::Display AbPanel::display (int) const { return {}; }

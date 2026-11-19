@@ -147,7 +147,7 @@ namespace wubansia::editor
 
     juce::String DrumKitButton::statusText() const { return sentence; }
 
-    juce::Font DrumKitButton::labelFont() const { return uiFont (10.5f, true, 0.06f); }
+    juce::Font DrumKitButton::labelFont() const { return bodyFont (skinOf (*this), 10.5f, true, 0.06f); }
 
     juce::Rectangle<float> DrumKitButton::labelArea() const { return labelAreaIn (getLocalBounds().toFloat()); }
 
@@ -257,7 +257,7 @@ namespace wubansia::editor
 
     void DrumKitButton::paint (juce::Graphics& g)
     {
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto enabled = isEnabled();
         const auto failed = label == couldntSave;
         auto area = getLocalBounds().toFloat().reduced (1.5f);
@@ -271,7 +271,7 @@ namespace wubansia::editor
             area.getY(), juce::Colour (0xff15171b), area.getBottom()));
         g.fillRoundedRectangle (area, corner);
 
-        const auto border = failed ? colours::warning : (enabled && (hover || active) ? accent : juce::Colour (0xff383d45));
+        const auto border = failed ? skinOf (*this).colours.warning : (enabled && (hover || active) ? accent : juce::Colour (0xff383d45));
         g.setColour (border.withAlpha (enabled ? 0.9f : 0.4f));
         juce::Path outline;
         outline.addRoundedRectangle (area.reduced (0.5f), corner);
@@ -282,10 +282,10 @@ namespace wubansia::editor
 
         auto content = area.reduced (7.0f, 2.0f);
         const auto glyph = content.removeFromLeft (juce::jmin (14.0f, content.getHeight())).withSizeKeepingCentre (11.0f, 11.0f);
-        draw::padsGlyph (g, glyph, enabled ? (failed ? colours::warning : accent) : colours::textFaint);
+        paint::padsGlyph (g, glyph, enabled ? (failed ? skinOf (*this).colours.warning : accent) : skinOf (*this).colours.faint);
 
         g.setFont (labelFont());
-        g.setColour (! enabled ? colours::textFaint : (failed ? colours::warning : colours::text.withAlpha (0.9f)));
+        g.setColour (! enabled ? skinOf (*this).colours.faint : (failed ? skinOf (*this).colours.warning : skinOf (*this).colours.text.withAlpha (0.9f)));
         g.drawFittedText (label, labelArea().toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
     }
 }

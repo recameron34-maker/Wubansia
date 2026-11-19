@@ -106,13 +106,13 @@ namespace wubansia::editor
 
     void FxPanel::paint (juce::Graphics& g)
     {
-        draw::plate (g, getLocalBounds().toFloat().reduced (0.5f), "FX" + middleDot() + "Master");
+        paint::plate (g, getLocalBounds().toFloat().reduced (0.5f), "FX" + middleDot() + "Master");
 
         for (std::size_t i = 0; i < columns.size(); ++i)
         {
-            draw::engraved (g, columnNames[i], columns[i].label.toFloat(), juce::Justification::centred, 9.5f);
-            g.setFont (uiFont (11.0f, true, 0.03f));
-            g.setColour (colours::textDim);
+            paint::engraved (g, columnNames[i], columns[i].label.toFloat(), juce::Justification::centred, 9.5f);
+            g.setFont (bodyFont (skinOf (*this), 11.0f, true, 0.03f));
+            g.setColour (skinOf (*this).colours.dim);
             g.drawText (values[i], columns[i].value.toFloat(), juce::Justification::centred, false);
         }
 
@@ -124,12 +124,12 @@ namespace wubansia::editor
         g.fillRect (juce::Rectangle<float> (x + 1.0f, (float) clubArea.getY() + 2.0f, 1.0f, (float) clubArea.getHeight() - 4.0f));
 
         // The club master's gain reduction.
-        draw::engraved (g, "GR", grArea.toFloat().withX ((float) grArea.getX() - 26.0f).withWidth (22.0f), juce::Justification::centredLeft, 9.5f);
-        draw::recess (g, grArea.toFloat().expanded (3.0f, 2.5f), 3.0f);
-        draw::meter (g, grArea.toFloat(), grSegments, clubOn ? grDb / grScaleDb : 0.0f, clubOn && grHoldDb > 0.05f ? grHoldDb / grScaleDb : -1.0f,
+        paint::engraved (g, "GR", grArea.toFloat().withX ((float) grArea.getX() - 26.0f).withWidth (22.0f), juce::Justification::centredLeft, 9.5f);
+        paint::recess (g, grArea.toFloat().expanded (3.0f, 2.5f), 3.0f);
+        paint::meter (g, grArea.toFloat(), grSegments, clubOn ? grDb / grScaleDb : 0.0f, clubOn && grHoldDb > 0.05f ? grHoldDb / grScaleDb : -1.0f,
             accent, false);
-        g.setFont (uiFont (11.0f, true, 0.03f));
-        g.setColour (clubOn ? colours::textDim : colours::textFaint);
+        g.setFont (bodyFont (skinOf (*this), 11.0f, true, 0.03f));
+        g.setColour (clubOn ? skinOf (*this).colours.dim : skinOf (*this).colours.faint);
         const auto reduction = grDb >= 0.05f ? "-" + juce::String (grDb, 1) + " dB" : juce::String ("0.0 dB");
         g.drawText (clubOn ? reduction : juce::String ("BYPASS"), grText.toFloat(), juce::Justification::centredRight, false);
     }

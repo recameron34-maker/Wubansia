@@ -58,8 +58,8 @@ namespace wubansia::editor
             juce::Slider::mouseUp (e);
     }
 
-    PadButton::PadButton (const juce::String& name, const juce::String& letterToShow, juce::Colour lightColour)
-        : juce::Button (name), letter (letterToShow), light (lightColour)
+    PadButton::PadButton (const juce::String& name, const juce::String& letterToShow)
+        : juce::Button (name), letter (letterToShow)
     {
         setClickingTogglesState (true);
     }
@@ -67,11 +67,12 @@ namespace wubansia::editor
     void PadButton::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
         const auto on = getToggleState();
+        const auto light = skinOf (*this).colours.accent2;
         const auto area = getLocalBounds().toFloat().reduced (2.5f);
-        draw::rubber (g, area, 5.0f, isButtonDown, isMouseOver && isEnabled(), light, on ? 1.0f : 0.0f);
+        paint::rubber (g, area, 5.0f, isButtonDown, isMouseOver && isEnabled(), light, on ? 1.0f : 0.0f);
 
-        g.setFont (uiFont (juce::jmin (13.0f, area.getHeight() * 0.55f), true, 0.06f));
-        g.setColour (on ? juce::Colour (0xff1d1606) : (isEnabled() ? colours::textDim : colours::textFaint));
+        g.setFont (bodyFont (skinOf (*this), juce::jmin (13.0f, area.getHeight() * 0.55f), true, 0.06f));
+        g.setColour (on ? juce::Colour (0xff1d1606) : (isEnabled() ? skinOf (*this).colours.dim : skinOf (*this).colours.faint));
         g.drawText (letter, area.translated (0.0f, isButtonDown ? 0.6f : 0.0f), juce::Justification::centred, false);
     }
 
@@ -108,10 +109,10 @@ namespace wubansia::editor
     void LedButton::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
         const auto on = getToggleState() && isEnabled();
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         auto area = getLocalBounds().toFloat().reduced (2.0f);
         const auto corner = area.getHeight() * 0.5f;
-        draw::rubber (g, area, corner, isButtonDown, isMouseOver && isEnabled(), accent, 0.0f);
+        paint::rubber (g, area, corner, isButtonDown, isMouseOver && isEnabled(), accent, 0.0f);
         if (isButtonDown)
             area = area.translated (0.0f, 0.6f);
 
@@ -125,16 +126,16 @@ namespace wubansia::editor
         }
 
         const auto ledRadius = juce::jmin (4.6f, area.getHeight() * 0.19f);
-        draw::led (g, { area.getX() + area.getHeight() * 0.5f + 1.0f, area.getCentreY() }, ledRadius, accent, on ? 1.0f : 0.0f);
+        paint::led (g, { area.getX() + area.getHeight() * 0.5f + 1.0f, area.getCentreY() }, ledRadius, accent, on ? 1.0f : 0.0f);
 
         g.setFont (labelFont());
-        g.setColour (! isEnabled() ? colours::textFaint : (on ? colours::text : colours::textDim));
+        g.setColour (! isEnabled() ? skinOf (*this).colours.faint : (on ? skinOf (*this).colours.text : skinOf (*this).colours.dim));
         g.drawText (getButtonText().toUpperCase(), labelArea().translated (0.0f, isButtonDown ? 0.6f : 0.0f), juce::Justification::centred, true);
     }
 
     juce::Font LedButton::labelFont() const
     {
-        return uiFont (juce::jmin (12.0f, getLocalBounds().toFloat().reduced (2.0f).getHeight() * 0.42f), true, 0.08f);
+        return bodyFont (skinOf (*this), juce::jmin (12.0f, getLocalBounds().toFloat().reduced (2.0f).getHeight() * 0.42f), true, 0.08f);
     }
 
     juce::Rectangle<float> LedButton::labelArea() const
@@ -188,14 +189,14 @@ namespace wubansia::editor
     void AbSwitch::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
         juce::ignoreUnused (isButtonDown);
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto area = getLocalBounds().toFloat().reduced (1.5f);
-        draw::recess (g, area, 6.0f);
+        paint::recess (g, area, 6.0f);
 
         if (! isEnabled() || a.isEmpty() || b.isEmpty())
         {
-            g.setFont (uiFont (11.0f, true, 0.06f));
-            g.setColour (colours::textFaint);
+            g.setFont (bodyFont (skinOf (*this), 11.0f, true, 0.06f));
+            g.setColour (skinOf (*this).colours.faint);
             g.drawText (a.isNotEmpty() ? a + juce::String (juce::CharPointer_UTF8 ("  \xc2\xb7  one sound")) : juce::String ("one sound in this kit"),
                 area, juce::Justification::centred, true);
             return;
@@ -222,13 +223,13 @@ namespace wubansia::editor
             }
 
             auto badge = half.removeFromLeft (18.0f).withSizeKeepingCentre (14.0f, 14.0f).translated (4.0f, 0.0f);
-            g.setColour (on ? accent : colours::textFaint.withAlpha (0.5f));
+            g.setColour (on ? accent : skinOf (*this).colours.faint.withAlpha (0.5f));
             g.drawRoundedRectangle (badge, 3.0f, 1.0f);
-            g.setFont (uiFont (9.5f, true));
+            g.setFont (bodyFont (skinOf (*this), 9.5f, true));
             g.drawText (side == 0 ? "A" : "B", badge, juce::Justification::centred, false);
 
-            g.setFont (uiFont (11.5f, true, 0.02f));
-            g.setColour (on ? colours::text : colours::textDim);
+            g.setFont (bodyFont (skinOf (*this), 11.5f, true, 0.02f));
+            g.setColour (on ? skinOf (*this).colours.text : skinOf (*this).colours.dim);
             g.drawFittedText (side == 0 ? a : b, half.withTrimmedLeft (6.0f).withTrimmedRight (3.0f).toNearestInt(),
                 juce::Justification::centredLeft, 1, 0.8f);
         }
@@ -243,9 +244,9 @@ namespace wubansia::editor
 
     void SegmentedChoice::paint (juce::Graphics& g)
     {
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto area = getLocalBounds().toFloat().reduced (0.5f);
-        draw::recess (g, area, 6.0f);
+        paint::recess (g, area, 6.0f);
 
         const auto count = getNumItems();
         if (count <= 0)
@@ -273,7 +274,7 @@ namespace wubansia::editor
             }
 
             g.setFont (font);
-            g.setColour (! isEnabled() ? colours::textFaint : (on ? colours::text : colours::textDim));
+            g.setColour (! isEnabled() ? skinOf (*this).colours.faint : (on ? skinOf (*this).colours.text : skinOf (*this).colours.dim));
             g.drawFittedText (getItemText (i).toUpperCase(), cell.toNearestInt(), juce::Justification::centred, 1, 0.75f);
         }
 
@@ -353,7 +354,7 @@ namespace wubansia::editor
 
     int SegmentedChoice::fitWidth (int height) const
     {
-        const auto font = uiFont (juce::jmin (11.5f, ((float) height - 6.0f) * 0.5f), true, 0.1f);
+        const auto font = bodyFont (skinOf (*this), juce::jmin (11.5f, ((float) height - 6.0f) * 0.5f), true, 0.1f);
         float total = 1.0f; // the 0.5 px border on each side
         for (const auto w : labelWidths (*this, font))
             total += w;
@@ -389,7 +390,7 @@ namespace wubansia::editor
 
     juce::Font SegmentedChoice::labelFont() const
     {
-        return uiFont (juce::jmin (11.5f, ((float) getHeight() - 6.0f) * 0.5f), true, 0.1f);
+        return bodyFont (skinOf (*this), juce::jmin (11.5f, ((float) getHeight() - 6.0f) * 0.5f), true, 0.1f);
     }
 
     IconButton::IconButton (const juce::String& name, Icon iconToShow)
@@ -408,28 +409,28 @@ namespace wubansia::editor
 
     void IconButton::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto on = getToggleState();
         auto area = getLocalBounds().toFloat().reduced (2.0f);
-        draw::rubber (g, area, 5.0f, isButtonDown, isMouseOver && isEnabled(), accent, on ? 0.85f : 0.0f);
+        paint::rubber (g, area, 5.0f, isButtonDown, isMouseOver && isEnabled(), accent, on ? 0.85f : 0.0f);
         if (isButtonDown)
             area = area.translated (0.0f, 0.6f);
 
         const auto size = juce::jmin (area.getWidth(), area.getHeight()) * 0.42f;
         const auto box = area.withSizeKeepingCentre (size, size);
-        const auto colour = ! isEnabled() ? colours::textFaint : (on ? juce::Colour (0xff10141a) : colours::text);
+        const auto colour = ! isEnabled() ? skinOf (*this).colours.faint : (on ? juce::Colour (0xff10141a) : skinOf (*this).colours.text);
 
         juce::Path p;
         switch (icon)
         {
             case Icon::play:
-                p = draw::playGlyph (box);
+                p = paint::playGlyph (box);
                 break;
             case Icon::stop:
-                p = draw::stopGlyph (box);
+                p = paint::stopGlyph (box);
                 break;
             case Icon::folder:
-                p = draw::folderGlyph (box);
+                p = paint::folderGlyph (box);
                 break;
             case Icon::close:
             case Icon::plus:

@@ -56,25 +56,25 @@ namespace wubansia::editor
         }
 
         // The largest font from `from` down to `floor` points, a quarter point at a time, that fits the text into the width.
-        juce::Font fitted (const juce::String& text, float width, float from = 11.0f, float floor = 8.0f, bool bold = false)
+        juce::Font fitted (const Skin& skin, const juce::String& text, float width, float from = 11.0f, float floor = 8.0f, bool bold = false)
         {
             auto height = from;
-            auto font = uiFont (height, bold);
+            auto font = bodyFont (skin, height, bold);
             while (height > floor && juce::GlyphArrangement::getStringWidth (font, text) > width)
             {
                 height -= 0.25f;
-                font = uiFont (height, bold);
+                font = bodyFont (skin, height, bold);
             }
             return font;
         }
 
-        juce::Font idFont() { return uiFont (10.5f, true, 0.1f); }
+        juce::Font idFont (const Skin& skin) { return bodyFont (skin, 10.5f, true, 0.1f); }
     }
 
     juce::Rectangle<float> KitPanel::Card::titleArea() const
     {
         const auto lines = linesOf (getLocalBounds().toFloat());
-        const auto idWidth = juce::GlyphArrangement::getStringWidth (idFont(), data.id) + 7.0f;
+        const auto idWidth = juce::GlyphArrangement::getStringWidth (idFont (skinOf (*this)), data.id) + 7.0f;
         return lines.withHeight (lines.getHeight() / 3.0f).withTrimmedLeft (idWidth);
     }
 
@@ -82,7 +82,7 @@ namespace wubansia::editor
     {
         // 14 points where the title fits; 146 px cards fit FUT03's and FUT04's from 12.25 (Liberation Sans) or 10.5 (DejaVu
         // Sans), so the floor is 10.
-        return fitted (data.title, titleArea().getWidth(), 14.0f, 10.0f, true);
+        return fitted (skinOf (*this), data.title, titleArea().getWidth(), 14.0f, 10.0f, true);
     }
 
     juce::Rectangle<float> KitPanel::Card::directionArea() const
@@ -94,7 +94,7 @@ namespace wubansia::editor
 
     juce::Font KitPanel::Card::directionFont() const
     {
-        return fitted (data.direction, directionArea().getWidth());
+        return fitted (skinOf (*this), data.direction, directionArea().getWidth());
     }
 
     void KitPanel::Card::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
@@ -134,11 +134,11 @@ namespace wubansia::editor
         // The ID and title.
         auto line1 = lines.removeFromTop (lineHeight);
         const auto title = titleArea().translated (0.0f, isButtonDown ? 0.6f : 0.0f);
-        g.setFont (idFont());
+        g.setFont (idFont (skinOf (*this)));
         g.setColour (selected ? accent : accent.withAlpha (0.75f));
         g.drawText (data.id, line1.withRight (title.getX()), juce::Justification::centredLeft, false);
         g.setFont (titleFont());
-        g.setColour (selected ? colours::text : colours::text.withAlpha (0.82f));
+        g.setColour (selected ? skinOf (*this).colours.text : skinOf (*this).colours.text.withAlpha (0.82f));
         g.drawText (data.title, title, juce::Justification::centredLeft, true);
 
         // The direction, or what stands in the way of playing.
@@ -146,21 +146,21 @@ namespace wubansia::editor
         if (ready)
         {
             g.setFont (directionFont());
-            g.setColour (colours::textDim.withAlpha (selected ? 1.0f : 0.8f));
+            g.setColour (skinOf (*this).colours.dim.withAlpha (selected ? 1.0f : 0.8f));
             g.drawText (data.direction, line2, juce::Justification::centredLeft, true);
         }
         else
         {
-            g.setFont (uiFont (10.0f, true, 0.1f));
-            g.setColour (loading ? colours::busy : colours::warning.brighter (0.25f));
+            g.setFont (bodyFont (skinOf (*this), 10.0f, true, 0.1f));
+            g.setColour (loading ? skinOf (*this).colours.busy : skinOf (*this).colours.warning.brighter (0.25f));
             g.drawText (statusText(), line2, juce::Justification::centredLeft, true);
         }
 
         // Tempo, key and Camelot code, and a status light: the kit's colour when its samples are ready.
-        draw::led (g, { lines.getRight() - 3.0f, lines.getCentreY() }, 3.0f, ready ? accent : (loading ? colours::busy : colours::warning),
+        paint::led (g, { lines.getRight() - 3.0f, lines.getCentreY() }, 3.0f, ready ? accent : (loading ? skinOf (*this).colours.busy : skinOf (*this).colours.warning),
             ready ? (selected ? 1.0f : 0.55f) : 1.0f);
-        g.setFont (uiFont (11.0f, true));
-        g.setColour (colours::text.withAlpha (selected ? 0.9f : 0.7f));
+        g.setFont (bodyFont (skinOf (*this), 11.0f, true));
+        g.setColour (skinOf (*this).colours.text.withAlpha (selected ? 0.9f : 0.7f));
         g.drawText (juce::String (data.bpm) + " BPM" + middleDot() + shortKey (data.key) + middleDot() + data.camelot,
             lines.withTrimmedRight (12.0f), juce::Justification::centredLeft, true);
     }

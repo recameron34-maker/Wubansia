@@ -239,7 +239,7 @@ namespace wubansia
 
     void PluginEditor::paint (juce::Graphics& g)
     {
-        g.fillAll (editor::colours::background);
+        g.fillAll (lookAndFeel.skin().colours.face);
     }
 
     void PluginEditor::resized()
@@ -396,8 +396,7 @@ namespace wubansia
 
         if (state.accent != previousAccent)
         {
-            lookAndFeel.setAccent (state.accent);
-            backdrop.accent = state.accent;
+            lookAndFeel.setSkin (editor::litHardwareSkin (state.kit.id));
             content.repaint(); // the whole face, the cached backdrop included
             backdrop.repaint();
         }
@@ -435,17 +434,18 @@ namespace wubansia
 
     void PluginEditor::Backdrop::paint (juce::Graphics& g)
     {
-        namespace draw = editor::draw;
-        namespace colours = editor::colours;
+        namespace paint = editor::paint;
+        const auto& skin = editor::skinOf (*this);
+        const auto accent = skin.colours.accent;
 
-        draw::faceplate (g, getLocalBounds().toFloat());
+        paint::faceplate (g, getLocalBounds().toFloat());
         for (const auto& [area, title] : plates)
-            draw::plate (g, area, title);
+            paint::plate (g, area, title);
 
         // The emblem: three lit bars on a dark tile, then the wordmark.
         auto logoArea = logo;
         const auto tile = logoArea.removeFromLeft (40.0f).withSizeKeepingCentre (38.0f, 38.0f);
-        draw::recess (g, tile, 8.0f);
+        paint::recess (g, tile, 8.0f);
         const float heights[] = { 0.45f, 0.85f, 0.62f };
         for (int i = 0; i < 3; ++i)
         {
@@ -458,16 +458,16 @@ namespace wubansia
 
         logoArea.removeFromLeft (12.0f);
         auto wordmark = logoArea.removeFromTop (logoArea.getHeight() * 0.62f);
-        g.setFont (editor::uiFont (19.5f, true, 0.15f));
+        g.setFont (editor::bodyFont (skin, 19.5f, true, 0.15f));
         g.setColour (juce::Colours::black.withAlpha (0.5f));
         g.drawText ("WUBANSIA", wordmark.translated (0.0f, 1.0f), juce::Justification::bottomLeft, false);
-        g.setColour (colours::text);
+        g.setColour (skin.colours.text);
         g.drawText ("WUBANSIA", wordmark, juce::Justification::bottomLeft, false);
-        draw::engraved (g, "Groovebox" + editor::middleDot() + "v" + juce::String (WUBANSIA_VERSION), logoArea.withTrimmedTop (3.0f),
+        paint::engraved (g, "Groovebox" + editor::middleDot() + "v" + juce::String (WUBANSIA_VERSION), logoArea.withTrimmedTop (3.0f),
             juce::Justification::topLeft, 8.5f);
     }
 
-    const editor::Skin& PluginEditor::skin() const noexcept { return editor::skinFor (editor::SkinId::nightBus); }
+    const editor::Skin& PluginEditor::skin() const noexcept { return lookAndFeel.skin(); }
 
     int PluginEditor::backdropRenders() const noexcept { return 0; }
 

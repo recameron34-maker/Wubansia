@@ -118,7 +118,7 @@ namespace wubansia::editor
 
     void DragChip::paint (juce::Graphics& g)
     {
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto enabled = isEnabled();
         auto area = getLocalBounds().toFloat().reduced (1.5f);
         const auto corner = juce::jmin (6.0f, area.getHeight() * 0.5f);
@@ -131,7 +131,7 @@ namespace wubansia::editor
             area.getY(), juce::Colour (0xff15171b), area.getBottom()));
         g.fillRoundedRectangle (area, corner);
 
-        const auto border = failed ? colours::warning : (enabled && (hover || active) ? accent : juce::Colour (0xff383d45));
+        const auto border = failed ? skinOf (*this).colours.warning : (enabled && (hover || active) ? accent : juce::Colour (0xff383d45));
         g.setColour (border.withAlpha (enabled ? 0.9f : 0.4f));
         // A dashed border says "drag me".
         juce::Path outline;
@@ -143,10 +143,10 @@ namespace wubansia::editor
 
         auto content = area.reduced (compact ? 5.0f : 7.0f, 2.0f);
         const auto glyph = content.removeFromLeft (juce::jmin (compact ? 12.0f : 14.0f, content.getHeight())).withSizeKeepingCentre (11.0f, 11.0f);
-        draw::midiGlyph (g, glyph, enabled ? (failed ? colours::warning : accent) : colours::textFaint);
+        paint::midiGlyph (g, glyph, enabled ? (failed ? skinOf (*this).colours.warning : accent) : skinOf (*this).colours.faint);
 
         g.setFont (labelFont());
-        g.setColour (! enabled ? colours::textFaint : (failed ? colours::warning : colours::text.withAlpha (0.9f)));
+        g.setColour (! enabled ? skinOf (*this).colours.faint : (failed ? skinOf (*this).colours.warning : skinOf (*this).colours.text.withAlpha (0.9f)));
         g.drawFittedText (shownLabel(), labelArea().toNearestInt(), juce::Justification::centredLeft, 1, 0.8f);
     }
 
@@ -166,7 +166,7 @@ namespace wubansia::editor
 
     juce::Font DragChip::labelFont() const
     {
-        return uiFont (compact ? 9.5f : 10.5f, true, 0.06f);
+        return bodyFont (skinOf (*this), compact ? 9.5f : 10.5f, true, 0.06f);
     }
 
     juce::Rectangle<float> DragChip::labelArea() const
@@ -349,7 +349,7 @@ namespace wubansia::editor
 
     void DragStrip::paint (juce::Graphics& g)
     {
-        draw::engraved (g, "Drag MIDI", labelArea(), juce::Justification::centredLeft, 9.5f);
-        draw::engraved (g, "Part", partLabelArea(), juce::Justification::centredLeft, 9.5f);
+        paint::engraved (g, "Drag MIDI", labelArea(), juce::Justification::centredLeft, 9.5f);
+        paint::engraved (g, "Part", partLabelArea(), juce::Justification::centredLeft, 9.5f);
     }
 }

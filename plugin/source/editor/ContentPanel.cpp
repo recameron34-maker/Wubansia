@@ -165,16 +165,16 @@ namespace wubansia::editor
         g.setGradientFill (juce::ColourGradient::vertical (juce::Colour (0xfa21242a), bounds.getY(), juce::Colour (0xfc16181c), bounds.getBottom()));
         g.fillRoundedRectangle (bounds, 12.0f);
         const auto problem = state != ContentState::ready && state != ContentState::loading;
-        const auto tone = problem ? colours::warning : (state == ContentState::loading ? colours::busy : accent);
+        const auto tone = problem ? skinOf (*this).colours.warning : (state == ContentState::loading ? skinOf (*this).colours.busy : accent);
         g.setColour (tone.withAlpha (0.65f));
         g.drawRoundedRectangle (bounds.reduced (0.5f), 12.0f, 1.2f);
 
         // The headline.
         auto area = textArea.toFloat();
         auto top = area.removeFromTop (28.0f);
-        draw::led (g, { top.getX() + 7.0f, top.getCentreY() }, 5.0f, tone, 1.0f);
-        g.setFont (uiFont (20.0f, true));
-        g.setColour (colours::text);
+        paint::led (g, { top.getX() + 7.0f, top.getCentreY() }, 5.0f, tone, 1.0f);
+        g.setFont (bodyFont (skinOf (*this), 20.0f, true));
+        g.setColour (skinOf (*this).colours.text);
         g.drawText (headlineText, top.withTrimmedLeft (22.0f), juce::Justification::centredLeft, true);
         area.removeFromTop (8.0f);
 
@@ -192,13 +192,13 @@ namespace wubansia::editor
                 g.fillEllipse (badge);
                 g.setColour (tone);
                 g.drawEllipse (badge.reduced (0.5f), 1.0f);
-                g.setFont (uiFont (11.0f, true));
+                g.setFont (bodyFont (skinOf (*this), 11.0f, true));
                 g.drawText (paragraph.substring (0, 1), badge, juce::Justification::centred, false);
                 row.removeFromLeft (28.0f);
             }
 
             juce::AttributedString text;
-            text.append (step ? paragraph.substring (3) : paragraph, uiFont (14.0f), step ? colours::text.withAlpha (0.92f) : colours::textDim.brighter (0.2f));
+            text.append (step ? paragraph.substring (3) : paragraph, bodyFont (skinOf (*this), 14.0f), step ? skinOf (*this).colours.text.withAlpha (0.92f) : skinOf (*this).colours.dim.brighter (0.2f));
             text.setLineSpacing (2.0f);
             juce::TextLayout layout;
             layout.createLayout (text, row.getWidth());
@@ -208,22 +208,22 @@ namespace wubansia::editor
 
         // Where it looked.
         auto list = listArea.toFloat();
-        draw::recess (g, list, 8.0f);
+        paint::recess (g, list, 8.0f);
         list = list.reduced (14.0f, 10.0f);
-        draw::engraved (g, searched.isEmpty() ? "Folders searched" : "Wubansia looked in", list.removeFromTop (14.0f), juce::Justification::centredLeft, 9.5f);
+        paint::engraved (g, searched.isEmpty() ? "Folders searched" : "Wubansia looked in", list.removeFromTop (14.0f), juce::Justification::centredLeft, 9.5f);
         list.removeFromTop (6.0f);
-        g.setFont (monoFont (11.5f));
+        g.setFont (pathFont (skinOf (*this), 11.5f));
         if (searched.isEmpty())
         {
-            g.setColour (colours::textFaint);
+            g.setColour (skinOf (*this).colours.faint);
             g.drawText ("none yet", list.removeFromTop (16.0f), juce::Justification::centredLeft, true);
         }
         for (int i = 0; i < searched.size() && list.getHeight() >= 15.0f; ++i)
         {
             auto row = list.removeFromTop (17.0f);
-            g.setColour (colours::textFaint);
+            g.setColour (skinOf (*this).colours.faint);
             g.drawText (juce::String (i + 1) + ".", row.removeFromLeft (20.0f), juce::Justification::centredLeft, false);
-            g.setColour (colours::textDim);
+            g.setColour (skinOf (*this).colours.dim);
             g.drawText (tidy (searched[i]), row, juce::Justification::centredLeft, true);
         }
     }

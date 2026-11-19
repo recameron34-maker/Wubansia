@@ -104,23 +104,23 @@ namespace wubansia::editor
         const auto bounds = getLocalBounds().toFloat();
         const auto lit = shown.accent;
         auto label = bounds.withWidth (labelWidth - 8.0f);
-        draw::recess (g, trackOf (bounds), 6.0f);
+        paint::recess (g, trackOf (bounds), 6.0f);
         const auto track = innerTrackOf (bounds);
 
         switch (shown.mode)
         {
             case engine::PlayMode::off:
             {
-                draw::engraved (g, "Player off", label, juce::Justification::centredLeft, 9.5f);
-                g.setFont (uiFont (11.0f, true, 0.1f));
-                g.setColour (colours::textFaint);
+                paint::engraved (g, "Player off", label, juce::Justification::centredLeft, 9.5f);
+                g.setFont (bodyFont (skinOf (*this), 11.0f, true, 0.1f));
+                g.setColour (skinOf (*this).colours.faint);
                 g.drawText ("ONLY MIDI IN PLAYS THE KIT" + middleDot() + "CHOOSE LOOP OR SONG TO PLAY ITS PARTS", track, juce::Justification::centred, true);
                 return;
             }
 
             case engine::PlayMode::loop:
             {
-                draw::engraved (g, "Loop" + middleDot() + "4 bars", label, juce::Justification::centredLeft, 9.5f);
+                paint::engraved (g, "Loop" + middleDot() + "4 bars", label, juce::Justification::centredLeft, 9.5f);
                 constexpr auto barGap = 10.0f, beatGap = 4.0f;
                 const auto cell = (track.getWidth() - barGap * 3.0f - beatGap * 12.0f) / 16.0f;
                 auto x = track.getX();
@@ -141,7 +141,7 @@ namespace wubansia::editor
 
                     if (downbeat)
                     {
-                        g.setFont (uiFont (9.0f, true));
+                        g.setFont (bodyFont (skinOf (*this), 9.0f, true));
                         g.setColour (on ? juce::Colour (0xff0b0d10) : lit.withAlpha (0.55f));
                         g.drawText (juce::String (beat / 4 + 1), rect.reduced (5.0f, 0.0f), juce::Justification::centredLeft, false);
                     }
@@ -155,7 +155,7 @@ namespace wubansia::editor
         }
 
         const auto bars = totalBars (shown.sections);
-        draw::engraved (g, "Song" + middleDot() + juce::String (bars) + " bars", label, juce::Justification::centredLeft, 9.5f);
+        paint::engraved (g, "Song" + middleDot() + juce::String (bars) + " bars", label, juce::Justification::centredLeft, 9.5f);
         if (bars <= 0)
             return;
 
@@ -180,11 +180,11 @@ namespace wubansia::editor
             g.fillRoundedRectangle (block, 2.5f);
 
             const auto name = section.name.toUpperCase();
-            g.setFont (uiFont (9.5f, true, 0.08f));
+            g.setFont (bodyFont (skinOf (*this), 9.5f, true, 0.08f));
             const auto nameWidth = juce::GlyphArrangement::getStringWidth (g.getCurrentFont(), name);
             if (nameWidth + 8.0f <= x1 - x0)
             {
-                g.setColour (on ? juce::Colour (0xff0b0d10) : colours::text.withAlpha (past ? 0.75f : 0.6f));
+                g.setColour (on ? juce::Colour (0xff0b0d10) : skinOf (*this).colours.text.withAlpha (past ? 0.75f : 0.6f));
                 g.drawText (name, juce::Rectangle<float> (x0, track.getY(), x1 - x0, track.getHeight()).withTrimmedTop (track.getHeight() - juce::jmax (height, 12.0f)),
                     juce::Justification::centred, false);
             }

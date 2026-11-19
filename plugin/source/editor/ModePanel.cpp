@@ -100,11 +100,11 @@ namespace wubansia::editor
     {
         const char* labels[] = { "Play", "Vox", "MIDI in", "Phrases" };
         for (std::size_t i = 0; i < rows.size(); ++i)
-            draw::engraved (g, labels[i], rows[i].toFloat().withWidth (62.0f), juce::Justification::centredLeft, 9.5f);
+            paint::engraved (g, labels[i], rows[i].toFloat().withWidth (62.0f), juce::Justification::centredLeft, 9.5f);
 
         // The notes beside the switches.
-        g.setFont (uiFont (10.5f));
-        g.setColour (colours::textFaint);
+        g.setFont (bodyFont (skinOf (*this), 10.5f));
+        g.setColour (skinOf (*this).colours.faint);
         for (std::size_t i = 1; i < rows.size(); ++i)
             g.drawText (hintTexts[(int) i], rows[i].withTrimmedLeft (66 + 132).toFloat(), juce::Justification::centredLeft, true);
     }
