@@ -18,6 +18,7 @@
     { "why": "a cell onset outside 0-15", "from": "{ \"on\": [0, 8], \"len\": [6, 6], \"acc\": [0, 8], \"w\": 2 }", "to": "{ \"on\": [0, 16], \"len\": [6, 6], \"acc\": [0], \"w\": 2 }", "path": "kinds.counter.cells[0].on", "says": "0 to 15" },
     { "why": "an accent that isn't an onset", "from": "{ \"on\": [0, 8], \"len\": [6, 6], \"acc\": [0, 8], \"w\": 2 }", "to": "{ \"on\": [0, 8], \"len\": [6, 6], \"acc\": [0, 9], \"w\": 2 }", "path": "kinds.counter.cells[0].acc", "says": "isn't one of the onsets" },
     { "why": "a channel outside 1-16", "from": "\"period\":  { \"quota\": 8,", "to": "\"period\":  { \"quota\": 8, \"channel\": 17,", "path": "kinds.period.channel", "says": "1 to 16" },
+    { "why": "an empty kind register", "from": "\"period\":  { \"quota\": 8,", "to": "\"period\":  { \"quota\": 8, \"register\": [88, 77],", "path": "kinds.period.register", "says": "empty" },
     { "why": "23 first words", "from": "\"Fading\", \"Open\"]", "to": "\"Fading\"]", "path": "names.first", "says": "24 words" },
     { "why": "a word twice", "from": "\"Fading\", \"Open\"]", "to": "\"Fading\", \"Night\"]", "path": "names.first", "says": "\"Night\" twice" },
     { "why": "a word in both lists", "from": "\"Ticket\", \"Shutter\"]", "to": "\"Ticket\", \"Night\"]", "path": "names.second", "says": "\"Night\" is in both lists" },

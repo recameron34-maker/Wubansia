@@ -74,6 +74,7 @@ namespace wubansia::gen
         std::array<std::int32_t, 7> start {}, end {}; // all 0: the material's
         std::array<std::int32_t, 8> moves {};
         std::int32_t leap = 0, center = 0, span = 0, velShift = 0;
+        std::optional<Range> range; // "register": the kind's own keys, its riff's and its period's alike (FUT02's glass periods)
         std::vector<std::vector<std::int32_t>> ladders; // arp: chord-tone index cells (required there)
         std::vector<std::uint64_t> cut; // library seeds cut later (the second pass refills the quota)
         bool cutAll = false; // "cut": "all": the kind is cut from the library, not refilled
