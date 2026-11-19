@@ -157,8 +157,12 @@ namespace wubansia::engine
 
         // The Phrases drawer's overlay (ADR 0031): the hand-off it takes clips from (the Engine's; nullptr: none).
         void setPhrases (PhraseHandoff* phrases) noexcept { phrases_ = phrases; }
-        // Audio thread, a bypassed block: the offer goes back unplayed.
-        void dropPhraseOffer() noexcept {}
+        // Audio thread, a bypassed block: the offer goes back unplayed (while the retire FIFO has room).
+        void dropPhraseOffer() noexcept
+        {
+            if (phrases_ != nullptr && phrases_->pending.pending() && phrases_->retired.hasSpace())
+                phrases_->retired.push (phrases_->pending.take());
+        }
         const Scheduler& overlay() const noexcept { return overlay_; }
 
     private:
@@ -217,9 +221,27 @@ namespace wubansia::engine
             void liveSoundOff (int offset) noexcept { loop.voices_.fadeOut (Source::live, at (offset), loop.soundOffSamples_); }
         };
 
+        // The overlay's Sink: the phrase clip's notes on Source::audition; no controllers, no duck keys.
+        struct OverlaySink
+        {
+            BlockLoop& loop;
+            const Controls& controls;
+
+            int noteOn (const Note& note, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples, std::int64_t) noexcept
+            {
+                return loop.auditionOn (note, offset, lengthSamples, chaseSamples, controls);
+            }
+            void noteOff (std::uint8_t, std::uint8_t key, int tag, int offset) noexcept { loop.voices_.noteOff (tag, key, offset, Source::audition); }
+            void cc (std::uint8_t, std::uint8_t, std::uint8_t, int, int) noexcept {}
+            void keyHit (std::uint8_t, std::uint8_t, int) noexcept {}
+            void stopSequenced (int offset) noexcept { loop.voices_.fadeOut (Source::audition, offset, loop.stopFadeSamples_); }
+        };
+
         void restart() noexcept
         {
             scheduler_.prepare (rate_);
+            overlay_.prepare (rate_);
+            dropClip();
             router_.reset();
             absolute_ = 0;
             // A Kit already taken for a switch is adopted at once on the next block, so it is never lost.
@@ -304,6 +326,8 @@ namespace wubansia::engine
             if (instrument < 0)
                 return -1;
             const Instrument& in = kit.instruments[static_cast<std::size_t> (instrument)];
+            if ((asideLanes_ & laneBit (in.lane)) != 0)
+                return -1; // the Phrases drawer's clip plays this lane now; notes already sounding end at their own note-offs
 
             // A phrase's notes: its decision for this onset cycle picks the slice note or the multisample.
             const bool phraseNote = note.phrase >= 0 && static_cast<std::size_t> (note.phrase) < kit.phrases.size();
@@ -364,6 +388,129 @@ namespace wubansia::engine
             if (! phraseNote)
                 hits_ |= laneBit (in.lane);
             return instrument;
+        }
+
+        // A phrase clip's note: the instrument its key resolves to, as a sequenced note that isn't a phrase's.
+        int auditionOn (const Note& note, int offset, std::int64_t lengthSamples, std::int64_t chaseSamples, const Controls& controls) noexcept
+        {
+            if (kit_ == nullptr)
+                return -1;
+            const Kit& kit = *kit_;
+            const KeyTarget& target = kit.keys[note.channel & 15u][note.key & 127u];
+            const int instrument = resolve (target, controls);
+            if (instrument < 0)
+                return -1;
+            const Instrument& in = kit.instruments[static_cast<std::size_t> (instrument)];
+            NoteOn on;
+            on.instrument = static_cast<std::int16_t> (instrument);
+            on.key = note.key;
+            on.velocity = note.velocity;
+            on.rr = note.rr;
+            on.panIndex = note.panIndex;
+            on.dip = (note.flags & NoteFlag::dip) != 0;
+            on.continues = (note.flags & NoteFlag::continues) != 0;
+            on.source = Source::audition;
+            on.offset = offset;
+            on.lengthSamples = in.align == Align::end ? std::max<std::int64_t> (1, lengthSamples) : 0;
+            double frames = chaseSamples > 0 ? static_cast<double> (chaseSamples) * kContentSampleRate / rate_ : 0.0;
+            const double own = detail::prerollAt (kit, instrument, note.key);
+            if (own > 0.0 && target.b >= 0)
+                frames += own - std::min (detail::prerollAt (kit, target.a, note.key), detail::prerollAt (kit, target.b, note.key));
+            on.startFrame = static_cast<std::int64_t> (std::floor (frames + 0.5));
+            throws (in.mixChannel, note.throwSpace, note.throwEcho, controls, on);
+            voices_.noteOn (kit, on);
+            hits_ |= laneBit (in.lane);
+            return instrument;
+        }
+
+        // A clip let go: into the retire FIFO, or held silently until there's room.
+        void retireClip (const PhraseClip* clip) noexcept
+        {
+            if (clip == nullptr || phrases_ == nullptr)
+                return;
+            if (phrases_->retired.push (clip))
+                return;
+            for (auto& slot : limbo_)
+                if (slot == nullptr)
+                {
+                    slot = clip;
+                    return;
+                }
+        }
+
+        // The clip in hand goes, unfaded (a reset, a prepare, a kit switch); the overlay forgets it.
+        void dropClip() noexcept
+        {
+            if (clip_ != nullptr)
+                retireClip (clip_);
+            clip_ = nullptr;
+            asideLanes_ = 0;
+            overlay_.reset();
+        }
+
+        // The clip in hand goes; its voices fade over 10 ms.
+        void letGoClip() noexcept
+        {
+            if (clip_ == nullptr)
+                return;
+            voices_.fadeOut (Source::audition, 0, stopFadeSamples_);
+            dropClip();
+        }
+
+        // At a block's start, after the transport: the idle drop, offline renders, a stopped ticket, then a new offer
+        // (anchored on the main scheduler's position: the next chord line while playing, the one at or before it while
+        // stopped); then the overlay follows the main scheduler, shifted by the anchor.
+        void phrasesAtBlockStart (const TransportInfo& transport, const Controls& controls) noexcept
+        {
+            if (phrases_ == nullptr)
+                return;
+            const bool idle = phrases_->countBlock();
+            for (auto& slot : limbo_)
+                if (slot != nullptr && phrases_->retired.push (slot))
+                    slot = nullptr;
+            const bool limboEmpty = limbo_[0] == nullptr && limbo_[1] == nullptr;
+            const std::uint32_t stopped = phrases_->stopTicket();
+            if (clip_ != nullptr && (idle || transport.nonRealtime || clip_->ticket <= stopped))
+                letGoClip();
+            if (kit_ != nullptr && limboEmpty && phrases_->pending.pending() && phrases_->retired.hasSpace())
+            {
+                const PhraseClip* offered = phrases_->pending.take();
+                if (offered != nullptr && (transport.nonRealtime || offered->kitIndex != kit_->info.index || offered->ticket <= stopped))
+                    phrases_->retired.push (offered); // there was room: hasSpace above
+                else if (offered != nullptr)
+                {
+                    letGoClip();
+                    clip_ = offered;
+                    asideLanes_ = offered->lanes;
+                    const auto pos = scheduler_.position();
+                    const double at = pos.ppq * static_cast<double> (kMilliticksPerQuarter) / static_cast<double> (offered->alignH);
+                    anchorH_ = offered->alignH * static_cast<std::int64_t> (pos.playing ? std::ceil (at - 1.0e-9) : std::floor (at + 1.0e-9));
+                }
+            }
+            if (clip_ == nullptr)
+                return;
+            const auto pos = scheduler_.position();
+            const double posH = pos.ppq * static_cast<double> (kMilliticksPerQuarter);
+            if (pos.playing && posH - static_cast<double> (anchorH_) < -static_cast<double> (clip_->alignH))
+            {
+                // the host looped or jumped back before the clip's line: re-anchored at the line at or before it
+                anchorH_ = clip_->alignH * static_cast<std::int64_t> (std::floor (posH / static_cast<double> (clip_->alignH) + 1.0e-9));
+            }
+            const double anchorQ = static_cast<double> (anchorH_) / static_cast<double> (kMilliticksPerQuarter);
+            TransportInfo shifted;
+            shifted.hasPosition = true;
+            shifted.playing = pos.playing;
+            shifted.ppq = pos.ppq - anchorQ;
+            shifted.bpm = pos.bpm;
+            shifted.nonRealtime = transport.nonRealtime;
+            if (transport.hasPosition && transport.looping)
+            {
+                shifted.looping = true;
+                shifted.loopStartPpq = transport.loopStartPpq - anchorQ;
+                shifted.loopEndPpq = transport.loopEndPpq - anchorQ;
+            }
+            OverlaySink sink { *this, controls };
+            overlay_.sync (&clip_->timeline, shifted, kitBpm(), sink);
         }
 
         void liveOn (const LiveNote& note, int offset, const Controls& controls) noexcept
@@ -459,6 +606,8 @@ namespace wubansia::engine
                 voices_.fadeKit (kit_, 0);
                 fading_[static_cast<std::size_t> (fadingCount_++)] = kit_;
             }
+            if (clip_ != nullptr && clip_->kitIndex != next->info.index)
+                dropClip(); // its voices fade with the old Kit
             kit_ = next;
             mixer_.setConfig (&next->mix);
             if (hadKit)
@@ -509,6 +658,10 @@ namespace wubansia::engine
         Scheduler scheduler_;
         Scheduler overlay_; // the phrase clip's
         PhraseHandoff* phrases_ = nullptr;
+        const PhraseClip* clip_ = nullptr; // the clip in hand: waiting for its line, or sounding
+        std::array<const PhraseClip*, 2> limbo_ {}; // let go while the retire FIFO was full
+        std::int64_t anchorH_ = 0; // milliticks of the host position where the clip's bar 1 plays
+        std::uint32_t asideLanes_ = 0; // the clip's lanes: the timeline's notes there sit out
         MidiRouter router_;
 
         double rate_ = 48000.0;
@@ -570,6 +723,7 @@ namespace wubansia::engine
             if (sync == SyncEvent::started)
                 router_.resetRoundRobins();
         }
+        phrasesAtBlockStart (transport, controls);
         voices_.setLaneGains (controls.laneGain);
         const double bpm = scheduler_.bpm();
         voices_.setTempo (bpm); // the same tempo playsSlices decides with
@@ -593,6 +747,11 @@ namespace wubansia::engine
             {
                 SequencerSink seq { *this, controls };
                 scheduler_.advance (timelineFor (controls), piece, seq);
+            }
+            if (clip_ != nullptr)
+            {
+                OverlaySink ov { *this, controls };
+                overlay_.advance (&clip_->timeline, piece, ov);
             }
 
             // The piece's MIDI in (offsets are the block's; anything late plays at the piece's start, and
@@ -636,5 +795,7 @@ namespace wubansia::engine
         telemetry.section.store (position.playing ? position.section : -1, std::memory_order_relaxed);
         telemetry.voices.store (voices_.activeVoices(), std::memory_order_relaxed);
         telemetry.kitIndex.store (kit_ != nullptr ? kit_->info.index : -1, std::memory_order_relaxed);
+        telemetry.phraseSounding.store (clip_ != nullptr ? clip_->ticket : 0u, std::memory_order_relaxed);
+        telemetry.phraseStartTicks.store (clip_ != nullptr ? anchorH_ / kMilliticksPerTick : -1, std::memory_order_relaxed);
     }
 }

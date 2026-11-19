@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -228,7 +229,7 @@ TEST_CASE ("phrase overlay 3: its lanes sit out of the timeline while it sounds"
     renderTo (h, host, 2.0, out, c);
     h.phrases.offer (clip.get());
     const auto adopted = host.samplePosition();
-    renderTo (h, host, 40.0, out, c); // the vox's onsets at 8 and 24 sit out
+    renderTo (h, host, 36.0, out, c); // the vox's onsets at 8 and 24 sit out (each pre-rolled 0.1 quarter early)
     h.phrases.stopUpTo (1);
     const auto stopped = host.samplePosition();
     renderTo (h, host, 60.0, out, c); // and at 40 and 56 play again
@@ -302,8 +303,11 @@ TEST_CASE ("phrase overlay 5: a jump or a host loop chases it; a loop back befor
         host.render (h, c, 2 * 24000, out);
         const auto ons = auditionOns (h.loop.voices().log);
         REQUIRE (ons.size() > count);
-        CHECK (ons[count].note.key == 63); // bar 4 of the phrase: quarter 12
-        CHECK (ons[count].sample == at + sampleOfQuarter (1.75));
+        CHECK (ons[count].note.key == 63); // bar 4 of the phrase: quarter 12, pre-rolled as its timeline places it
+        const auto it = std::find_if (clip->timeline.notes.begin(), clip->timeline.notes.end(), [] (const Note& n) { return n.key == 63; });
+        REQUIRE (it != clip->timeline.notes.end());
+        const double q = static_cast<double> (it->pos) / static_cast<double> (kMilliticksPerQuarter);
+        CHECK (ons[count].sample == at + static_cast<std::int64_t> (std::floor ((q - 10.25) * kQuarter + 0.5)));
     }
 
     SECTION ("a loop back before its chord line re-anchors it at the line at or before the loop's start")
@@ -328,7 +332,7 @@ TEST_CASE ("phrase overlay 5: a jump or a host loop chases it; a loop back befor
         const auto it = std::find_if (ons.begin(), ons.end(), [&] (const Item& i) { return i.sample >= wrap; });
         REQUIRE (it != ons.end());
         CHECK (it->note.key == 60);
-        CHECK (it->sample <= wrap + 1);
+        CHECK (it->sample < wrap + 512); // re-anchored at the next block's start, and chased there
     }
 }
 
@@ -654,7 +658,7 @@ TEST_CASE ("phrase overlay 14: reset lets the clip go and resets the overlay", "
     FakeHost::Output out;
     auto clip = clipOf (1);
     h.phrases.offer (clip.get());
-    host.render (h, c, 48000, out);
+    host.render (h, c, 120000, out); // its line is at quarter 4
     REQUIRE (!auditionOns (h.loop.voices().log).empty());
     REQUIRE (h.loop.overlay().playing());
     h.loop.reset();
