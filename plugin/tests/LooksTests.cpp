@@ -436,6 +436,58 @@ TEST_CASE ("no two controls overlap in any look", "[editor][looks]")
         });
 }
 
+TEST_CASE ("the drag strip reads label, Loop, Song, Part, Drum kit, 1 drum track and For my synths, in that order, every label in full, in every look", "[editor][looks]")
+{
+    LooksRig rig;
+    withEditor (rig.processor, [&] (PluginEditor& editor)
+        {
+            editor.setZoom (1.0f);
+            for (const auto& kit : kKits)
+            {
+                INFO (kit);
+                showKit (rig, editor, kit);
+                auto& strip = get<editor::DragStrip> (editor, "drag");
+                std::vector<juce::Component*> items;
+                for (const auto* id : { "drag_loop", "drag_song", "drag_part", "drag_drumkit", "drag_drums", "drag_synths" })
+                {
+                    const auto found = findAll (editor, id);
+                    REQUIRE (found.size() == 1);
+                    items.push_back (found.front());
+                }
+                // The boards' order (ADR 0032): nothing else on the strip, none overlapping, all inside it.
+                CHECK (strip.getNumChildComponents() == 6);
+                const auto inner = strip.getLocalBounds().reduced (8, 5);
+                CHECK (strip.labelArea().getRight() <= (float) items.front()->getX());
+                for (std::size_t i = 0; i < items.size(); ++i)
+                {
+                    INFO (items[i]->getComponentID());
+                    CHECK (items[i]->getParentComponent() == &strip);
+                    CHECK (inner.contains (items[i]->getBounds()));
+                    CHECK (items[i]->getHeight() == 28);
+                    if (i > 0)
+                        CHECK (items[i]->getX() >= items[i - 1]->getRight() + 6);
+                }
+                // Part's label between Song and Part; For my synths against the right edge, the drums group beside it.
+                CHECK (strip.partLabelArea().getX() >= (float) items[1]->getRight());
+                CHECK (strip.partLabelArea().getRight() <= (float) items[2]->getX());
+                CHECK (items[5]->getRight() == inner.getRight());
+                CHECK (items[3]->getX() >= items[2]->getRight() + 10);
+
+                // Every label on the strip whole: none cut, none shrunk below its style's floor.
+                auto texts = strip.drawnText(); // DRAG MIDI and PART in the look's words
+                for (const auto& t : allText (strip))
+                    texts.push_back (t);
+                CHECK (texts.size() >= 2 + 6 + 1); // and the chips', switches' and every Part segment's
+                for (const auto& t : texts)
+                {
+                    INFO (t.text);
+                    CHECK_FALSE (t.cut);
+                    CHECK (t.font.getHeight() > 0.0f);
+                }
+            }
+        });
+}
+
 TEST_CASE ("every label reads in full in every look", "[editor][looks]")
 {
     LooksRig rig;
@@ -1144,6 +1196,93 @@ TEST_CASE ("while the kit isn't ready, the display and its pill say so in every 
                 rig.controller.contentStatus.state = wubansia::ContentState::ready;
                 editor.tick();
                 CHECK_FALSE (anyTextContains (lcd, "NO SAMPLES"));
+            }
+        });
+}
+
+// The looks' pictures for the hand-over (ADR 0032): each kit in its look playing its Loop at bar 2, from the kit's own
+// patterns (FUT04's scope fed a bass-and-octave test signal), at 1x and 2x; and the Phrases drawer open in one look.
+TEST_CASE ("look screenshots", "[.screenshot]")
+{
+    const auto folderPath = juce::SystemStats::getEnvironmentVariable ("WUBANSIA_SCREENSHOTS", {});
+    if (folderPath.isEmpty())
+        SKIP ("WUBANSIA_SCREENSHOTS names no folder");
+    const juce::File folder (folderPath);
+    REQUIRE (folder.createDirectory());
+
+    const auto save = [&] (PluginEditor& editor, const juce::String& name, int scale)
+    {
+        juce::Image image (juce::Image::ARGB, editor.getWidth() * scale, editor.getHeight() * scale, true, juce::SoftwareImageType());
+        {
+            juce::Graphics g (image);
+            g.addTransform (juce::AffineTransform::scale ((float) scale));
+            editor.paintEntireComponent (g, false);
+        }
+        const auto file = folder.getChildFile (name);
+        file.deleteFile();
+        juce::FileOutputStream out (file);
+        REQUIRE (out.openedOk());
+        juce::PNGImageFormat png;
+        REQUIRE (png.writeImageToStream (image, out));
+        std::cout << "screenshot: " << file.getFullPathName() << std::endl;
+    };
+
+    LooksRig rig;
+    rig.controller.phraseList = wubansia::test::FakeController::fakePhrases();
+    ++rig.controller.phraseGeneration;
+    withEditor (rig.processor, [&] (PluginEditor& editor)
+        {
+            editor.setZoom (1.0f);
+            const float level[] = { 0.86f, 0.58f, 0.33f, 0.3f, 0.72f, 0.46f, 0.4f, 0.52f, 0.28f, 0.2f };
+            for (const auto& kit : kKits)
+            {
+                showKit (rig, editor, kit);
+                rig.processor.set (ids::playMode, 1.0f); // Loop
+                juce::Random random (7);
+                int sample = 0;
+                for (int step = 0; step < 120; ++step) // a 16th per tick round the 2-bar Loop, so the levels' history fills;
+                {                                       // the last tick is at bar 2, beat 3
+                    auto& s = rig.controller.nextSnapshot;
+                    s.playing = true;
+                    s.bpm = editor.model().kit.bpm;
+                    s.mode = engine::PlayMode::loop;
+                    s.songTicks = 240.0 * (double) ((step + 1) % 32);
+                    s.voices = 18 + step % 7;
+                    s.gainReductionDb = 1.6f + 0.4f * std::sin ((float) step);
+                    std::uint32_t hits = 0;
+                    if (step % 4 == 0)
+                        hits |= engine::laneBit (engine::Lane::kick) | engine::laneBit (engine::Lane::chords);
+                    if (step % 2 == 1)
+                        hits |= engine::laneBit (engine::Lane::hats);
+                    if (step % 8 == 4)
+                        hits |= engine::laneBit (engine::Lane::snare);
+                    if (step % 3 == 0)
+                        hits |= engine::laneBit (engine::Lane::bass) | engine::laneBit (engine::Lane::perc);
+                    if (step % 5 == 2)
+                        hits |= engine::laneBit (engine::Lane::lead) | engine::laneBit (engine::Lane::vox);
+                    s.laneHits = hits;
+                    for (int l = 0; l < engine::kLanes; ++l)
+                        s.lanePeak[(std::size_t) l] = ((hits >> l) & 1u) != 0 ? level[l] * (0.85f + 0.15f * random.nextFloat())
+                                                                               : level[l] * 0.25f * random.nextFloat();
+                    if (kit == "FUT04")
+                    {
+                        rig.controller.scopeSamples = scopeSignal (sample, 1600);
+                        sample += 1600;
+                    }
+                    editor.tick();
+                }
+                save (editor, kit + "-look.png", 1);
+                save (editor, kit + "-look@2x.png", 2);
+                if (kit == "FUT02")
+                {
+                    if (! editor.isPhrasesPanelShown())
+                        click (get<juce::Button> (editor, "phrases"));
+                    editor.tick();
+                    REQUIRE (editor.isPhrasesPanelShown());
+                    save (editor, "FUT02-look-phrases@2x.png", 2);
+                    click (get<juce::Button> (editor, "phrases"));
+                    editor.tick();
+                }
             }
         });
 }

@@ -325,8 +325,8 @@ namespace wubansia::editor
 
     void DragStrip::resized()
     {
-        // The look's label, then For my synths, Loop, Song, the Part label and Part, 1 drum track and Drum kit, each as
-        // wide as its words in the look (ADR 0032; commit 11 puts them in the boards' order).
+        // In the boards' order (ADR 0032): the look's label, Loop, Song, the Part label and Part; then, from the right
+        // edge, Drum kit, 1 drum track and For my synths. Each is as wide as its words in the look.
         const auto& skin = skinOf (*this);
         auto area = getLocalBounds().reduced (8, 5);
         area.removeFromLeft (hazardWidth (skin));
@@ -334,24 +334,24 @@ namespace wubansia::editor
         const auto labelWidth = [&] (const TextStyle& style, const juce::String& words)
         { return (int) std::ceil (juce::GlyphArrangement::getStringWidth (style.font(), style.apply (words))) + 2; };
         area.removeFromLeft (labelWidth (skin.type.stripLabel, skin.words.stripLabel) + 10);
-        synths.setBounds (area.removeFromLeft (synths.fitWidth (h)));
-        area.removeFromLeft (6);
         loop.setBounds (area.removeFromLeft (loop.fitWidth (h)));
         area.removeFromLeft (6);
         song.setBounds (area.removeFromLeft (song.fitWidth (h)));
         area.removeFromLeft (10);
         area.removeFromLeft (labelWidth (skin.type.stripLabel, skin.words.partLabel) + 8);
         part.setBounds (area.removeFromLeft (part.fitWidth (h)));
-        area.removeFromLeft (8);
-        drums.setBounds (area.removeFromLeft (drums.fitWidth (h)));
-        area.removeFromLeft (6);
-        drumKit.setBounds (area.removeFromLeft (juce::jmin (area.getWidth(), drumKit.fitWidth (h))));
+        area.removeFromLeft (10);
+        synths.setBounds (area.removeFromRight (synths.fitWidth (h)));
+        area.removeFromRight (6);
+        drums.setBounds (area.removeFromRight (drums.fitWidth (h)));
+        area.removeFromRight (6);
+        drumKit.setBounds (area.removeFromRight (juce::jmin (area.getWidth(), drumKit.fitWidth (h))));
     }
 
     juce::Rectangle<float> DragStrip::labelArea() const
     {
         const auto x = 10.0f + (float) hazardWidth (skinOf (*this));
-        return { x, 5.0f, (float) synths.getX() - x - 2.0f, (float) getHeight() - 10.0f };
+        return { x, 5.0f, (float) loop.getX() - x - 2.0f, (float) getHeight() - 10.0f };
     }
 
     juce::Rectangle<float> DragStrip::partLabelArea() const
