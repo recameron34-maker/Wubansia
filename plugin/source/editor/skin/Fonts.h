@@ -15,12 +15,11 @@ namespace wubansia::editor
         chakraPetchRegular, chakraPetchBold, hudMonoRegular,                     // mission HUD (HUD Mono: IBM Plex Mono, renamed)
         manropeRegular, manropeSemiBold, manropeExtraBold,                       // deep glass
         barlowCondensedSemiBold, barlowCondensedBold, barlowCondensedExtraBold,  // machine room
-        spaceMonoRegular,
-        platform // the platform's own UI face: lit hardware's, until commit 7
+        spaceMonoRegular
     };
     inline constexpr int kFaces = 13; // the embedded ones: FaceId 0-12
 
-    // Made once per process from the binary data, on the message thread; null for FaceId::platform.
+    // Made once per process from the binary data, on the message thread.
     juce::Typeface::Ptr typefaceFor (FaceId);
 
     // "Wubansia Archivo" ... as the subset's name table says.

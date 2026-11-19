@@ -133,13 +133,12 @@ namespace wubansia::editor
                 break;
         }
 
-        if (headline != headlineText || message != messageText || content.searched != searched || content.state != state || model.accent != accent)
+        if (headline != headlineText || message != messageText || content.searched != searched || content.state != state)
         {
             headlineText = headline;
             messageText = message;
             searched = content.searched;
             state = content.state;
-            accent = model.accent;
             repaint();
         }
     }
@@ -189,14 +188,14 @@ namespace wubansia::editor
         // The panel's frame in the look (ADR 0032), rimmed in its tone.
         paint::drawer (g, skinOf (*this), bounds);
         const auto problem = state != ContentState::ready && state != ContentState::loading;
-        const auto tone = problem ? skinOf (*this).colours.warning : (state == ContentState::loading ? skinOf (*this).colours.busy : accent);
+        const auto tone = problem ? skinOf (*this).colours.warning : (state == ContentState::loading ? skinOf (*this).colours.busy : skinOf (*this).colours.accent);
         g.setColour (tone.withAlpha (0.65f));
         g.drawRoundedRectangle (bounds.reduced (0.5f), 12.0f, 1.2f);
 
         // The headline.
         auto area = textArea.toFloat();
         auto top = area.removeFromTop (28.0f);
-        paint::led (g, { top.getX() + 7.0f, top.getCentreY() }, 5.0f, tone, 1.0f);
+        paint::dot (g, { top.getX() + 7.0f, top.getCentreY() }, 5.0f, tone, true);
         g.setFont (bodyFont (skinOf (*this), 20.0f, true));
         g.setColour (skinOf (*this).colours.text);
         g.drawText (headlineText, top.withTrimmedLeft (22.0f), juce::Justification::centredLeft, true);

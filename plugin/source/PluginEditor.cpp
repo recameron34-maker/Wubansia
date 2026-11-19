@@ -327,7 +327,6 @@ namespace wubansia
         else
             m.playMode = m.snapshot.mode;
         m.vox = voxParameter == nullptr || voxParameter->getValue() >= 0.5f;
-        m.accent = editor::accentForKit (m.kit.id);
         for (std::size_t i = 0; i < abParameters.size(); ++i)
             m.abB[i] = abParameters[i] != nullptr && abParameters[i]->getValue() >= 0.5f;
 

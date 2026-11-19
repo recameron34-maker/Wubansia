@@ -60,8 +60,6 @@ namespace wubansia::editor
         std::uint32_t mutedLanes = 0; // bit per lane whose mute is on
         std::array<bool, engine::kAbSwitches> abB {}; // each A/B switch on its B side
 
-        juce::Colour accent;
-
         // The looks (ADR 0032): the play mode's notes, the 16th playing in them (-1 stopped) and the chord there.
         std::shared_ptr<const PatternView> pattern;
         int patternStep = -1;

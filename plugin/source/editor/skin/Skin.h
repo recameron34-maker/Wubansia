@@ -15,11 +15,11 @@
 
 namespace wubansia::editor
 {
-    enum class SkinId : std::uint8_t { nightBus, missionHud, deepGlass, machineRoom, litHardware /* until commit 7 */ };
-    enum class DisplayKind : std::uint8_t { stepGrid, orbit, current, scope, lcd /* lit hardware */ };
-    enum class LaneKind : std::uint8_t { faderAndMeter, telemetryColumn, glassPill, stepsAndSlide, plate /* lit hardware */ };
+    enum class SkinId : std::uint8_t { nightBus, missionHud, deepGlass, machineRoom };
+    enum class DisplayKind : std::uint8_t { stepGrid, orbit, current, scope };
+    enum class LaneKind : std::uint8_t { faderAndMeter, telemetryColumn, glassPill, stepsAndSlide };
     enum class FxKind : std::uint8_t { knobs, bars };
-    enum class Texture : std::uint8_t { plain, grid, water, furnace, brushed /* lit hardware */ };
+    enum class Texture : std::uint8_t { plain, grid, water, furnace };
 
     struct TextStyle
     {

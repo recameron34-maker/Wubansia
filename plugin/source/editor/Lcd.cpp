@@ -104,7 +104,6 @@ namespace wubansia::editor
             case DisplayKind::orbit: updateOrbit (model); break;
             case DisplayKind::current: updateLevels (model); break;
             case DisplayKind::scope: updateScope (model); break;
-            case DisplayKind::lcd: break;
         }
     }
 
@@ -181,7 +180,6 @@ namespace wubansia::editor
             case DisplayKind::orbit: paintOrbit (g, skin); break;
             case DisplayKind::current: paintLevels (g, skin); break;
             case DisplayKind::scope: paintScope (g, skin); break;
-            case DisplayKind::lcd: break;
         }
         if (playerOff)
             g.endTransparencyLayer();

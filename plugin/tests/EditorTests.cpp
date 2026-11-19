@@ -925,7 +925,7 @@ TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every la
 
             // Every label reads in full, in the font and area its paint code uses.
             const auto width = [] (const juce::Font& font, const juce::String& text) { return juce::GlyphArrangement::getStringWidth (font, text); };
-            const auto engraved = editor::uiFont (9.5f, true, 0.12f); // draw::engraved's font, at the strip's 9.5 px
+            const auto engraved = editor::skinOf (strip).type.stripLabel.font(); // the strip label's font px
             CHECK (width (engraved, "DRAG MIDI") <= strip.labelArea().getWidth());
             CHECK (strip.labelArea().getRight() <= (float) synths.getX());
             CHECK (width (drums.labelFont(), "1 DRUM TRACK") <= drums.labelArea().getWidth());
@@ -1167,7 +1167,7 @@ TEST_CASE ("the drag strip fits Part between Song and 1 drum track, every label 
             CHECK (strip.getWidth() - 8 - foundDrums->getRight() >= 160); // the room left for the Drum kit (ADR 0030)
 
             // "PART", engraved, fits its area between Song and Part.
-            const auto engraved = editor::uiFont (9.5f, true, 0.12f); // draw::engraved's font at 9.5 px
+            const auto engraved = editor::skinOf (strip).type.stripLabel.font(); // the strip label's font
             const auto label = strip.partLabelArea();
             CHECK (juce::GlyphArrangement::getStringWidth (engraved, "PART") <= label.getWidth());
             CHECK (label.getX() >= (float) song.getRight());
@@ -2325,7 +2325,7 @@ TEST_CASE ("a failed copy's or audition's line keeps what helps on the footer's 
     constexpr std::array<const char*, wubansia::kSoundCategories> categoryIds { "accents", "fx", "vox", "synths", "bass", "drums", "loops" };
 
     // The glyph drawFittedText ends a cut line with, and dots no narrower than it, to stand in for a line's own.
-    const auto font = editor::uiFont (11.5f, true);
+    const auto font = editor::bodyFont (editor::skinForKit ("FUT01"), 11.5f, true); // the drawer's status font in its look
     const auto ellipsisText = juce::String::charToString ((juce::juce_wchar) 0x2026);
     juce::GlyphArrangement dots;
     dots.addLineOfText (font, ellipsisText, 0.0f, 0.0f);

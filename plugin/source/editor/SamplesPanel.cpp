@@ -243,7 +243,7 @@ namespace wubansia::editor
 
     void KitChip::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
-        const auto accent = accentForKit (kitId);
+        const auto accent = skinForKit (kitId).colours.accent;
         auto area = getLocalBounds().toFloat().reduced (1.5f);
         const auto corner = area.getHeight() * 0.5f;
         paint::box (g, area, skinOf (*this).shape.pill, over (skinOf (*this).colours.pillOff, skinOf (*this).colours.face).brighter (isMouseOver ? 0.06f : 0.0f),
@@ -262,7 +262,7 @@ namespace wubansia::editor
         }
 
         // Its LED lights for the kit that plays.
-        paint::led (g, { area.getX() + 12.0f, area.getCentreY() }, 3.4f, accent, playing ? 1.0f : 0.0f);
+        paint::dot (g, { area.getX() + 12.0f, area.getCentreY() }, 3.4f, accent, playing);
         g.setFont (bodyFont (skinOf (*this), 11.5f, true, 0.08f));
         g.setColour (browsed ? skinOf (*this).colours.text : accent.interpolatedWith (skinOf (*this).colours.dim, 0.35f));
         g.drawText (kitId, area.withTrimmedLeft (20.0f).withTrimmedRight (5.0f), juce::Justification::centred, false);
@@ -861,7 +861,7 @@ namespace wubansia::editor
         if (kit == browsed)
             return;
         browsed = kit;
-        look.setSkin (litHardwareSkin (kit));
+        look.setSkin (skinForKit (kit)); // the browsed kit's look
         message = {};
         auditionDismissed = true;
         tileFailed = false;
@@ -1611,7 +1611,7 @@ namespace wubansia::editor
             auto text = box.reduced (16.0f, 12.0f);
             const auto lines = juce::StringArray::fromLines (bannerText());
             auto top = text.removeFromTop (20.0f);
-            paint::led (g, { top.getX() + 5.0f, top.getCentreY() }, 4.0f, skinOf (*this).colours.warning, 1.0f);
+            paint::dot (g, { top.getX() + 5.0f, top.getCentreY() }, 4.0f, skinOf (*this).colours.warning, true);
             g.setFont (bodyFont (skinOf (*this), 15.0f, true));
             g.setColour (skinOf (*this).colours.text);
             g.drawText (lines[0], top.withTrimmedLeft (17.0f), juce::Justification::centredLeft, true);
@@ -1641,7 +1641,7 @@ namespace wubansia::editor
             if (const auto hint = hintText(); hint.isNotEmpty())
             {
                 auto area = hintArea.toFloat();
-                paint::led (g, { area.getX() + 4.0f, area.getY() + 8.0f }, 2.6f, accent, 0.8f);
+                paint::dot (g, { area.getX() + 4.0f, area.getY() + 8.0f }, 2.6f, accent, true);
                 g.setFont (bodyFont (skinOf (*this), 12.5f));
                 g.setColour (skinOf (*this).colours.text.withAlpha (0.9f));
                 g.drawFittedText (hint, area.withTrimmedLeft (14.0f).toNearestInt(), juce::Justification::topLeft, 2, 0.9f);

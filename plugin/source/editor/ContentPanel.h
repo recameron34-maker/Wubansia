@@ -47,7 +47,6 @@ namespace wubansia::editor
         juce::String headlineText, messageText;
         juce::StringArray searched;
         ContentState state = ContentState::missing;
-        juce::Colour accent;
         juce::Rectangle<int> textArea, listArea;
     };
 }
