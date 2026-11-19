@@ -65,7 +65,7 @@ namespace wubansia::editor
 
     // The strip of song-wide chips, the loop and the song, and two switches, the person's settings kept by the Controller:
     // For my synths (ADR 0027), which every drag follows, and 1 drum track (ADR 0025), which the Loop and Song drags
-    // follow. The kit's own phrases left it for the Phrases drawer (ADR 0031).
+    // follow; then Drum kit (ADR 0030). The kit's own phrases left it for the Phrases drawer (ADR 0031).
     // Why the strip's Loop (song false) or Song chip has nothing to drag, or "": a part with none of its lanes in either
     // of the chip's files, or All with every lane holding notes in the vox switch's file muted (ADR 0029).
     juce::String whyNoDrag (const EditorModel& model, bool song);

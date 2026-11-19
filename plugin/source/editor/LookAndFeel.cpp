@@ -370,6 +370,18 @@ namespace wubansia::editor
             }
         }
 
+        void padsGlyph (juce::Graphics& g, juce::Rectangle<float> area, juce::Colour colour)
+        {
+            const auto size = juce::jmin (area.getWidth(), area.getHeight());
+            const auto square = area.withSizeKeepingCentre (size, size).reduced (size * 0.04f);
+            const auto gap = square.getWidth() * 0.16f;
+            const auto pad = (square.getWidth() - gap) * 0.5f;
+            g.setColour (colour);
+            for (int row = 0; row < 2; ++row)
+                for (int col = 0; col < 2; ++col)
+                    g.fillRoundedRectangle (square.getX() + (float) col * (pad + gap), square.getY() + (float) row * (pad + gap), pad, pad, pad * 0.25f);
+        }
+
         void rubber (juce::Graphics& g, juce::Rectangle<float> area, float corner, bool down, bool over, juce::Colour light, float lit)
         {
             if (down)

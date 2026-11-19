@@ -70,6 +70,9 @@ namespace wubansia::editor
         // A small MIDI-file glyph for the drag chips.
         void midiGlyph (juce::Graphics&, juce::Rectangle<float> area, juce::Colour colour);
 
+        // A 2 x 2 grid of rounded pads, for the Drum kit button (ADR 0030).
+        void padsGlyph (juce::Graphics&, juce::Rectangle<float> area, juce::Colour colour);
+
         // The dark rubber body every button shares; a lit one (lit > 0) glows in its light.
         void rubber (juce::Graphics&, juce::Rectangle<float> area, float corner, bool down, bool over, juce::Colour light, float lit);
 
