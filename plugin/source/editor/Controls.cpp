@@ -1,5 +1,6 @@
 #include "Controls.h"
 
+#include "EditorModel.h"
 #include "LookAndFeel.h"
 #include "editor/skin/Paint.h"
 
@@ -243,7 +244,11 @@ namespace wubansia::editor
                 break;
             }
             case Role::club:
-                out.push_back (fitText (skin.type.fxName, on ? skin.words.on : skin.words.off, labelArea(), juce::Justification::centred));
+                if (skin.fx == FxKind::bars) // deep glass: a pill toggle, "Club · on"
+                    out.push_back (fitText (skin.type.fxName, "Club" + middleDot() + (on ? skin.words.on : skin.words.off),
+                        getLocalBounds().toFloat().reduced (10.0f, 0.0f), juce::Justification::centred));
+                else
+                    out.push_back (fitText (skin.type.fxName, on ? skin.words.on : skin.words.off, labelArea(), juce::Justification::centred));
                 break;
             case Role::headerButton:
             case Role::stripSwitch:
@@ -292,6 +297,13 @@ namespace wubansia::editor
             }
             case Role::club:
             {
+                if (skin.fx == FxKind::bars)
+                {
+                    paint::box (g, bounds, skin.shape.stripSwitch, on ? over (c.accentTint, c.face) : over (c.panel, c.face), on ? c.accent : c.controlEdge);
+                    for (const auto& t : drawnText())
+                        drawText (g, t, on ? c.accentTintText : c.dim);
+                    return;
+                }
                 const auto size = std::min (bounds.getWidth(), bounds.getHeight());
                 const auto circle = bounds.withSizeKeepingCentre (size, size).reduced (3.0f);
                 const auto centre = circle.getCentre();

@@ -535,7 +535,20 @@ namespace wubansia
                 for (auto y = 0.0f; y < bounds.getHeight(); y += 40.0f)
                     g.fillRect (0.0f, y, bounds.getWidth(), 1.0f);
                 break;
-            case editor::Texture::water:
+            case editor::Texture::water: // deep glass: slow water lines under the frosted panels
+            {
+                g.setColour (c.texture);
+                for (int line = 0; line < 9; ++line)
+                {
+                    juce::Path wave;
+                    const auto y0 = 40.0f + 80.0f * (float) line;
+                    wave.startNewSubPath (0.0f, y0);
+                    for (auto x = 0.0f; x <= bounds.getWidth(); x += 16.0f)
+                        wave.lineTo (x, y0 + 10.0f * std::sin (x / 140.0f + (float) line * 1.7f));
+                    g.strokePath (wave, juce::PathStrokeType (2.0f));
+                }
+                break;
+            }
             case editor::Texture::furnace:
             case editor::Texture::plain:
                 break;

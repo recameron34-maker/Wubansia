@@ -292,6 +292,122 @@ namespace wubansia::editor
             return s;
         }
 
+        // FUT03: frosted glass over deep water (GlassCurrent.dc.html). Manrope throughout, in small letters where the
+        // board writes them; translucent panels, capsules; aqua drums, coral music.
+        Skin makeDeepGlass()
+        {
+            Skin s;
+            s.id = SkinId::deepGlass;
+            s.name = "Deep glass";
+            auto& c = s.colours;
+            const auto aqua = hex (0x7fe8d8), coral = hex (0xff9e7a);
+            c.face = hex (0x0a2230);
+            c.faceGlow = juce::Colours::transparentBlack;
+            c.texture = hex (0x123a4a);
+            c.panel = white (0.07f);
+            c.panelEdge = white (0.18f);
+            c.panelHighlight = white (0.18f);
+            c.lane = white (0.06f);
+            c.laneEdge = white (0.16f);
+            c.laneHighlight = white (0.16f);
+            c.well = white (0.07f);
+            c.wellEdge = white (0.18f);
+            c.grid = white (0.08f);
+            c.text = hex (0xeefaf8);
+            c.dim = hex (0xcde6e3);
+            c.faint = hex (0xb6d6d2);
+            c.label = hex (0xcde6e3);
+            c.laneNumber = hex (0xcde6e3);
+            c.accent = aqua;
+            c.accentInk = hex (0x0a2230);
+            c.accentTint = aqua.withAlpha (0.2f);
+            c.accentTintText = hex (0xffffff);
+            c.accent2 = coral;
+            c.accent2Ink = hex (0x0a2230);
+            c.accent2Tint = coral.withAlpha (0.16f);
+            c.accent2TintText = hex (0xffe1d4);
+            c.drums = aqua;
+            c.music = coral;
+            c.hookLane = coral;
+            c.controlEdge = white (0.35f); // the board's 25 % reads 2.22:1; 3.03:1 here
+            c.faderTrack = white (0.35f);
+            c.faderCap = hex (0xffffff);
+            c.cellOff = white (0.06f);
+            c.cellOffEdge = white (0.06f);
+            c.cellHeld = juce::Colours::transparentBlack;
+            c.meterOff = juce::Colours::black.withAlpha (0.25f);
+            c.sectionOff = white (0.05f);
+            c.sectionOffText = hex (0xb6d6d2);
+            c.sectionLit = aqua.withAlpha (0.22f);
+            c.sectionLitText = hex (0xffffff);
+            c.pillOff = white (0.05f);
+            c.pillOffEdge = white (0.16f);
+            c.pillOffText = hex (0xcde6e3);
+            c.pillOn = white (0.16f);
+            c.pillOnEdge = white (0.35f);
+            c.pillOnText = hex (0xffffff);
+            c.busy = hex (0xffd166);
+            c.warning = hex (0xff8a6a);
+            c.focus = hex (0xffffff);
+
+            using F = FaceId;
+            auto& t = s.type;
+            t.wordmark = style (F::manropeExtraBold, 18, 1);
+            t.subtitle = style (F::manropeRegular, 11, 0, false, 9);
+            t.pill = style (F::manropeRegular, 16);
+            t.pillSelected = style (F::manropeExtraBold, 16, 0, false, 13);
+            t.headerButton = style (F::manropeExtraBold, 16);
+            t.displayLine = style (F::manropeRegular, 12);
+            t.displayLineStrong = style (F::manropeExtraBold, 12);
+            t.displayLabel = style (F::manropeRegular, 10, 0, false, 8);
+            t.transportLine = style (F::manropeRegular, 12, 0, false, 10);
+            t.playMode = style (F::manropeExtraBold, 16);
+            t.playModeOff = style (F::manropeSemiBold, 16);
+            t.rowLabel = style (F::manropeRegular, 11);
+            t.rowValue = style (F::manropeExtraBold, 12);
+            t.section = style (F::manropeRegular, 12, 0, false, 9);
+            t.laneName = style (F::manropeExtraBold, 12, 0, false, 10);
+            t.laneSub = style (F::manropeRegular, 10, 0, false, 8);
+            t.laneSub.lower = true;
+            t.laneButton = style (F::manropeExtraBold, 11);
+            t.laneChip = style (F::manropeExtraBold, 10);
+            t.abTitle = style (F::manropeRegular, 12, 0, false, 9);
+            t.abSide = style (F::manropeRegular, 16, 0, false, 12);
+            t.abSideOn = style (F::manropeExtraBold, 16, 0, false, 12);
+            t.abRow = style (F::manropeExtraBold, 13, 0, false, 10);
+            t.fxName = style (F::manropeExtraBold, 12);
+            t.fxValue = style (F::manropeRegular, 12);
+            t.stripLabel = style (F::manropeRegular, 11);
+            t.stripChip = style (F::manropeExtraBold, 12);
+            t.stripChipOff = style (F::manropeRegular, 12);
+            t.stripSegment = style (F::manropeRegular, 12);
+            t.stripSegmentOn = style (F::manropeExtraBold, 12);
+            t.body = style (F::manropeRegular, 13);
+            t.bodyStrong = style (F::manropeExtraBold, 13);
+            t.path = style (F::manropeRegular, 12);
+
+            auto& b = s.shape;
+            b.panel = boxStyle (18);
+            b.lane = boxStyle (18);
+            b.well = boxStyle (18);
+            b.drawer = boxStyle (18);
+            for (auto* box : { &b.pill, &b.pillSelected, &b.headerButton, &b.segmentTrack, &b.segment, &b.abSide, &b.laneButton, &b.laneChip,
+                     &b.stripChip, &b.stripSwitch, &b.section })
+                *box = boxStyle (99);
+            b.laneChip.dashed = true;
+            b.cell = boxStyle (2, 0);
+            b.knob = 56.0f;
+            b.playButton = 60.0f;
+
+            s.words = { "wubansia", "drag midi", "part", "Mute", "on", "off" };
+            s.display = DisplayKind::current;
+            s.lane = LaneKind::glassPill;
+            s.fx = FxKind::bars;
+            s.texture = Texture::water;
+            finish (s);
+            return s;
+        }
+
         float luminance (juce::Colour c) noexcept
         {
             const auto channel = [] (juce::uint8 v)
@@ -321,11 +437,12 @@ namespace wubansia::editor
     {
         static const Skin nightBus = makeNightBus();
         static const Skin missionHud = makeMissionHud();
+        static const Skin deepGlass = makeDeepGlass();
         switch (id)
         {
             case SkinId::missionHud: return missionHud;
+            case SkinId::deepGlass: return deepGlass;
             case SkinId::nightBus:
-            case SkinId::deepGlass:
             case SkinId::machineRoom:
                 break;
         }
@@ -336,6 +453,8 @@ namespace wubansia::editor
     {
         if (kitId == "FUT02")
             return skinFor (SkinId::missionHud);
+        if (kitId == "FUT03")
+            return skinFor (SkinId::deepGlass);
         return skinFor (SkinId::nightBus); // FUT01, and any kit without a look of its own
     }
 

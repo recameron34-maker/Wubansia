@@ -83,6 +83,7 @@ namespace wubansia::editor
         kind = skinOf (*this).lane;
         level.applySkin (skinOf (*this));
         chip.setTint (laneColour (skinOf (*this)));
+        level.getProperties().set ("colour", (juce::int64) laneColour (skinOf (*this)).getARGB());
         resized();
         repaint();
     }
@@ -155,9 +156,17 @@ namespace wubansia::editor
             --holdTicks;
         else
             newHold = juce::jmax (meterFloorDb, holdDb - meterFallDb * 1.5f);
-        repaintIfChanged (std::abs (newPeak - peakDb) > 0.05f || std::abs (newHold - holdDb) > 0.05f, meterRect().expanded (3));
+        const auto meterMoved = std::abs (newPeak - peakDb) > 0.05f || std::abs (newHold - holdDb) > 0.05f;
+        repaintIfChanged (meterMoved, meterRect().expanded (3));
         peakDb = newPeak;
         holdDb = newHold;
+        if (kind == LaneKind::glassPill)
+        {
+            // Deep glass's meter runs inside the fader's pill: the fader draws it.
+            level.getProperties().set ("meter", (peakDb - meterFloorDb) / -meterFloorDb * (muted ? 0.4f : 1.0f));
+            if (meterMoved)
+                repaintArea (level);
+        }
 
         // The playing bar's 16 cells (machine room draws them; the others keep them for when it does).
         std::array<StepCell, 16> nextCells {};
@@ -198,8 +207,8 @@ namespace wubansia::editor
         switch (kind)
         {
             case LaneKind::telemetryColumn: return { x + 8, 48, 84, 148 };
+            case LaneKind::glassPill: return { x + 14, 48, 72, 148 };
             case LaneKind::faderAndMeter:
-            case LaneKind::glassPill:
             case LaneKind::stepsAndSlide: break;
         }
         return { x + 26, 48, 10, 148 };
@@ -219,8 +228,10 @@ namespace wubansia::editor
             case LaneKind::telemetryColumn:
                 level.setBounds (x + 8, 48, 84, 148); // the fader lies over the whole column
                 break;
-            case LaneKind::faderAndMeter:
             case LaneKind::glassPill:
+                level.setBounds (x + 14, 48, 72, 148); // the pill is the fader; the meter runs inside it
+                break;
+            case LaneKind::faderAndMeter:
             case LaneKind::stepsAndSlide:
                 level.setBounds (x + 40, 48, 36, 148);
                 break;
@@ -265,8 +276,11 @@ namespace wubansia::editor
                 // Mission HUD: the column is the meter, 12 cells of 4.5 dB, the fader drawn on it.
                 paint::meter (g, meter, 12, 3.0f, fill, hold, colour.withMultipliedAlpha (meterAlpha), over (c.meterOff, c.face), true);
                 break;
-            case LaneKind::faderAndMeter:
             case LaneKind::glassPill:
+                if (hit) // the hit glows the pill's top
+                    paint::glow (g, meter.withHeight (18.0f).withSizeKeepingCentre (36.0f, 18.0f), 9.0f, colour.withAlpha (0.6f), 6.0f);
+                break;
+            case LaneKind::faderAndMeter:
             case LaneKind::stepsAndSlide:
                 // Night bus: the meter beside the fader, 18 segments of 3 dB, the top two hot.
                 paint::meter (g, meter, 18, 1.0f, fill, hold, colour.withMultipliedAlpha (meterAlpha), over (c.meterOff, c.face), true, 16,

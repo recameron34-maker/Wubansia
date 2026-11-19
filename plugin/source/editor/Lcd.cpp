@@ -208,7 +208,60 @@ namespace wubansia::editor
             repaintArea (*this, viewArea().expanded (4));
         }
     }
-    void Lcd::updateLevels (const EditorModel&) {}
+    void Lcd::updateLevels (const EditorModel& model)
+    {
+        // Deep glass: the drums' and the music's levels over the last two bars at the playing tempo, one sample a tick;
+        // stopped, the curves sink to the floor in place, and once flat they stop asking to be painted.
+        constexpr float floorDb = -48.0f;
+        const auto& s = model.snapshot;
+        const auto bpm = model.tempo();
+        const auto wanted = s.playing && bpm > 0.0 ? juce::jlimit (8, 120, (int) std::lround (8.0 * 60.0 / bpm * 30.0)) : 120;
+        auto& h = levels;
+        const auto resize = [wanted] (auto& v, auto fill)
+        {
+            while ((int) v.size() > wanted)
+                v.erase (v.begin());
+            while ((int) v.size() < wanted)
+                v.insert (v.begin(), fill);
+        };
+        if (s.playing)
+        {
+            resize (h.drums, floorDb);
+            resize (h.music, floorDb);
+            resize (h.kicks, false);
+            const auto dbOf = [floorDb] (float peak) { return peak > 0.0f ? std::max (floorDb, 20.0f * std::log10 (peak)) : floorDb; };
+            float drums = floorDb, music = floorDb;
+            for (int lane = 0; lane < engine::kLanes; ++lane)
+                (lane < static_cast<int> (engine::Lane::bass) ? drums : music)
+                    = std::max (lane < static_cast<int> (engine::Lane::bass) ? drums : music, dbOf (s.lanePeak[(std::size_t) lane]));
+            h.drums.erase (h.drums.begin());
+            h.music.erase (h.music.begin());
+            h.kicks.erase (h.kicks.begin());
+            h.drums.push_back (drums);
+            h.music.push_back (music);
+            h.kicks.push_back ((s.laneHits & engine::laneBit (engine::Lane::kick)) != 0);
+            levelsMoving = true;
+            repaintArea (*this, viewArea());
+            return;
+        }
+        if (h.drums.empty())
+        {
+            resize (h.drums, floorDb);
+            resize (h.music, floorDb);
+            resize (h.kicks, false);
+        }
+        auto moved = false;
+        for (auto* curve : { &h.drums, &h.music })
+            for (auto& v : *curve)
+                if (v > floorDb)
+                {
+                    v = std::max (floorDb, v - 2.0f);
+                    moved = true;
+                }
+        if (moved || levelsMoving)
+            repaintArea (*this, viewArea());
+        levelsMoving = moved;
+    }
     void Lcd::updateScope (const EditorModel&) {}
     void Lcd::pushScope (const float*, int) {}
     void Lcd::paintOrbit (juce::Graphics& g, const Skin& skin) const
@@ -269,7 +322,41 @@ namespace wubansia::editor
         for (std::size_t i = 2; i < texts.size(); ++i)
             drawText (g, texts[i], i == 2 ? c.accentInk : (i == 5 ? c.accent2 : c.dim));
     }
-    void Lcd::paintLevels (juce::Graphics&, const Skin&) const {}
+    void Lcd::paintLevels (juce::Graphics& g, const Skin& skin) const
+    {
+        const auto& c = skin.colours;
+        const auto view = viewArea().toFloat();
+        const auto& h = levels;
+        if (h.drums.size() < 2)
+            return;
+        const auto n = (int) h.drums.size();
+        const auto pointOf = [&] (const std::vector<float>& v, int i)
+        {
+            const auto x = view.getX() + view.getWidth() * (float) i / (float) (n - 1);
+            const auto y = view.getY() + juce::jmap (v[(std::size_t) i], -48.0f, 0.0f, 70.0f, 6.0f);
+            return juce::Point<float> (x, y);
+        };
+        // Catmull-Rom through the samples, the newest at the right.
+        const auto curve = [&] (const std::vector<float>& v)
+        {
+            juce::Path p;
+            p.startNewSubPath (pointOf (v, 0));
+            for (int i = 0; i + 1 < n; ++i)
+            {
+                const auto p0 = pointOf (v, std::max (0, i - 1)), p1 = pointOf (v, i), p2 = pointOf (v, i + 1), p3 = pointOf (v, std::min (n - 1, i + 2));
+                p.cubicTo (p1 + (p2 - p0) / 6.0f, p2 - (p3 - p1) / 6.0f, p2);
+            }
+            return p;
+        };
+        g.setColour (c.music.withAlpha (0.8f));
+        g.strokePath (curve (h.music), juce::PathStrokeType (2.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.setColour (c.drums);
+        g.strokePath (curve (h.drums), juce::PathStrokeType (3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.setColour (juce::Colours::white);
+        for (int i = 0; i < n; ++i)
+            if (h.kicks[(std::size_t) i])
+                g.fillEllipse (juce::Rectangle<float> (6.0f, 6.0f).withCentre (pointOf (h.drums, i)));
+    }
     void Lcd::paintScope (juce::Graphics&, const Skin&) const {}
 
     std::vector<DrawnText> Lcd::drawnText() const

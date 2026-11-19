@@ -695,11 +695,14 @@ TEST_CASE ("each look rings the focused control", "[editor][looks]")
                     const auto outer = box.expanded (6);
                     const auto focus = editor.skin().colours.focus;
                     int ring = 0, elsewhere = 0;
+                    juce::String where; // the first pixels that changed away from the ring
                     for (int y = 0; y < plain.getHeight(); ++y)
                         for (int x = 0; x < plain.getWidth(); ++x)
                             if (plain.getPixelAt (x, y) != ringed.getPixelAt (x, y))
                             {
-                                if (outer.contains (x, y) && ! box.reduced (3).contains (x, y))
+                                // The ring hugs the box's shape: a capsule's ring cuts inside the rectangle's corners.
+                                const auto inner = box.reduced (3 + std::min (box.getWidth(), box.getHeight()) / 3);
+                                if (outer.contains (x, y) && ! inner.contains (x, y))
                                 {
                                     const auto p = ringed.getPixelAt (x, y);
                                     if (std::abs (p.getRed() - focus.getRed()) < 40 && std::abs (p.getGreen() - focus.getGreen()) < 40
@@ -707,9 +710,14 @@ TEST_CASE ("each look rings the focused control", "[editor][looks]")
                                         ++ring;
                                 }
                                 else
+                                {
                                     ++elsewhere;
+                                    if (elsewhere < 4)
+                                        where << "at " << x << "," << y << " " << plain.getPixelAt (x, y).toString() << " -> " << ringed.getPixelAt (x, y).toString() << "; ";
+                                }
                             }
                     CHECK (ring > box.getWidth()); // a 2 px ring around the box
+                    INFO ("box " << box.toString() << ": " << where);
                     CHECK (elsewhere == 0);
                 }
             }

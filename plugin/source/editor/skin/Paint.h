@@ -34,7 +34,11 @@ namespace wubansia::editor::paint
     void knob (juce::Graphics&, const Skin&, juce::Rectangle<float> area, float value, juce::Colour colour, bool enabled);
 
     // A fader: the track and the cap at value (0..1), vertical (bottom up) or horizontal (left to right).
-    void fader (juce::Graphics&, const Skin&, juce::Rectangle<float> area, float value, juce::Colour colour, bool vertical, bool enabled);
+    void fader (juce::Graphics&, const Skin&, juce::Rectangle<float> area, float value, juce::Colour colour, bool vertical, bool enabled,
+        float meter = -1.0f);
+
+    // Deep glass's macro bar: a thin track filled to value, in colour.
+    void bar (juce::Graphics&, const Skin&, juce::Rectangle<float> area, float value, juce::Colour colour, bool enabled);
 
     // A small label in the look's row-label style (the drawers' headings); height is the old engraved size, unused.
     void label (juce::Graphics&, const Skin&, const juce::String& text, juce::Rectangle<float> area, juce::Justification,

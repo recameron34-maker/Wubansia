@@ -176,10 +176,38 @@ namespace wubansia::editor::paint
         g.fillEllipse (cap);
     }
 
-    void fader (juce::Graphics& g, const Skin& skin, juce::Rectangle<float> area, float value, juce::Colour colour, bool vertical, bool enabled)
+    void bar (juce::Graphics& g, const Skin& skin, juce::Rectangle<float> area, float value, juce::Colour colour, bool enabled)
+    {
+        const auto track = area.withSizeKeepingCentre (area.getWidth(), 8.0f);
+        g.setColour (over (skin.colours.meterOff, skin.colours.face));
+        g.fillRoundedRectangle (track, 4.0f);
+        g.setColour (enabled ? colour : skin.colours.faint);
+        g.fillRoundedRectangle (track.withWidth (std::max (8.0f, track.getWidth() * juce::jlimit (0.0f, 1.0f, value))), 4.0f);
+    }
+
+    void fader (juce::Graphics& g, const Skin& skin, juce::Rectangle<float> area, float value, juce::Colour colour, bool vertical, bool enabled,
+        float meter)
     {
         const auto& c = skin.colours;
         value = juce::jlimit (0.0f, 1.0f, value);
+        if (skin.lane == LaneKind::glassPill)
+        {
+            // Deep glass: a 36 px pill filled to the level, the meter a white bar inside it.
+            const auto pill = area.withSizeKeepingCentre (36.0f, area.getHeight());
+            g.setColour (over (c.meterOff, c.face));
+            g.fillRoundedRectangle (pill, 18.0f);
+            const auto filled = pill.withTop (pill.getBottom() - std::max (36.0f, pill.getHeight() * value));
+            g.setGradientFill (juce::ColourGradient::vertical (colour.brighter (0.15f), filled.getY(), colour.darker (0.1f), filled.getBottom()));
+            if (enabled)
+                g.fillRoundedRectangle (filled, 18.0f);
+            if (meter > 0.0f)
+            {
+                const auto m = pill.withSizeKeepingCentre (6.0f, pill.getHeight() - 12.0f);
+                g.setColour (juce::Colours::white.withAlpha (0.55f));
+                g.fillRoundedRectangle (m.withTop (m.getBottom() - m.getHeight() * juce::jlimit (0.0f, 1.0f, meter)), 3.0f);
+            }
+            return;
+        }
         if (skin.lane == LaneKind::telemetryColumn)
         {
             // Mission HUD: the fader is a 2 px line across its lane's column, with 4 px notches outside it.

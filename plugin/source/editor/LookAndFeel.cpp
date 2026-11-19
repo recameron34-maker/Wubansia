@@ -158,7 +158,13 @@ namespace wubansia::editor
     {
         const auto area = juce::Rectangle<float> ((float) x, (float) y, (float) width, (float) height);
         const auto value = (float) slider.valueToProportionOfLength (slider.getValue());
-        paint::fader (g, current, area, value, lightOf (slider, current), slider.isVertical(), slider.isEnabled());
+        if (slider.getSliderStyle() == juce::Slider::LinearBar)
+        {
+            paint::bar (g, current, area, value, lightOf (slider, current), slider.isEnabled());
+            return;
+        }
+        const auto meter = slider.getProperties()["meter"];
+        paint::fader (g, current, area, value, lightOf (slider, current), slider.isVertical(), slider.isEnabled(), meter.isVoid() ? -1.0f : (float) meter);
     }
 
     void LookAndFeel::drawComboBox (juce::Graphics& g, int width, int height, bool, int, int, int, int, juce::ComboBox& box)
