@@ -141,6 +141,19 @@ namespace wubansia::editor::paint
         value = juce::jlimit (0.0f, 1.0f, value);
         const auto lit = enabled ? colour : c.faint;
 
+        if (skin.id == SkinId::missionHud)
+        {
+            // A 4 px ring from 12 o'clock, clockwise; the panel writes the value inside it.
+            const auto r = radius - 1.0f;
+            g.setColour (c.controlEdge);
+            g.drawEllipse (juce::Rectangle<float> (r * 2.0f, r * 2.0f).withCentre (centre), 4.0f);
+            juce::Path arc;
+            arc.addCentredArc (centre.x, centre.y, r, r, 0.0f, 0.0f, juce::MathConstants<float>::twoPi * value, true);
+            g.setColour (lit);
+            g.strokePath (arc, juce::PathStrokeType (4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+            return;
+        }
+
         // A 270 degree arc from 7.5 o'clock.
         const auto start = pi * 1.25f, end = pi * 2.75f;
         juce::Path track;
@@ -167,6 +180,16 @@ namespace wubansia::editor::paint
     {
         const auto& c = skin.colours;
         value = juce::jlimit (0.0f, 1.0f, value);
+        if (skin.lane == LaneKind::telemetryColumn)
+        {
+            // Mission HUD: the fader is a 2 px line across its lane's column, with 4 px notches outside it.
+            const auto y = area.getBottom() - 1.0f - (area.getHeight() - 2.0f) * value;
+            g.setColour (enabled ? c.text : c.faint);
+            g.fillRect (area.getX() + 2.0f, y - 1.0f, area.getWidth() - 4.0f, 2.0f);
+            g.fillRect (area.getX() - 2.0f, y - 2.0f, 4.0f, 4.0f);
+            g.fillRect (area.getRight() - 2.0f, y - 2.0f, 4.0f, 4.0f);
+            return;
+        }
         const auto track = vertical ? area.withSizeKeepingCentre (std::min (24.0f, area.getWidth()), area.getHeight())
                                     : area.withSizeKeepingCentre (area.getWidth(), std::min (10.0f, area.getHeight()));
         g.setColour (c.well);

@@ -525,6 +525,21 @@ namespace wubansia
         const auto& c = skin.colours;
         namespace paint = editor::paint;
         g.fillAll (c.face);
+        const auto bounds = getLocalBounds().toFloat();
+        switch (skin.texture)
+        {
+            case editor::Texture::grid: // mission HUD: a faint plotting grid
+                g.setColour (c.texture.withAlpha (0.35f));
+                for (auto x = 0.0f; x < bounds.getWidth(); x += 40.0f)
+                    g.fillRect (x, 0.0f, 1.0f, bounds.getHeight());
+                for (auto y = 0.0f; y < bounds.getHeight(); y += 40.0f)
+                    g.fillRect (0.0f, y, bounds.getWidth(), 1.0f);
+                break;
+            case editor::Texture::water:
+            case editor::Texture::furnace:
+            case editor::Texture::plain:
+                break;
+        }
 
         for (const auto& panel : panels)
             paint::box (g, panel, skin.shape.panel, c.panel, c.panelEdge);

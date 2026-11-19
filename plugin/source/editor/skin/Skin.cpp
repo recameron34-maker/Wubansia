@@ -180,6 +180,118 @@ namespace wubansia::editor
             return s;
         }
 
+        // FUT02: mission-control HUD (OrbitRelay.dc.html). Chakra Petch and Wubansia HUD Mono (IBM Plex Mono, renamed);
+        // square boxes, the selected pill chamfered; cyan, the lead lane gold.
+        Skin makeMissionHud()
+        {
+            Skin s;
+            s.id = SkinId::missionHud;
+            s.name = "Mission HUD";
+            auto& c = s.colours;
+            c.face = hex (0x050b14);
+            c.faceGlow = juce::Colours::transparentBlack;
+            c.texture = hex (0x123544);
+            c.panel = hex (0x071219);
+            c.panelEdge = hex (0x1f4a5a);
+            c.panelHighlight = hex (0x1f4a5a);
+            c.lane = hex (0x061019);
+            c.laneEdge = hex (0x1f4a5a);
+            c.laneHighlight = hex (0x1f4a5a);
+            c.well = hex (0x03080e);
+            c.wellEdge = hex (0x1f4a5a);
+            c.grid = hex (0x123544);
+            c.text = hex (0xdff8ff);
+            c.dim = hex (0x8fd8e8);
+            c.faint = hex (0x8fd8e8);
+            c.label = hex (0x8fd8e8);
+            c.laneNumber = hex (0x8fd8e8);
+            c.accent = hex (0x5ee7ff);
+            c.accentInk = hex (0x03080e);
+            c.accentTint = hex (0x08202b);
+            c.accentTintText = hex (0xdff8ff);
+            c.accent2 = hex (0xffd166);
+            c.accent2Ink = hex (0x03080e);
+            c.accent2Tint = hex (0x221b08);
+            c.accent2TintText = hex (0xffe7a8);
+            c.drums = hex (0x5ee7ff);
+            c.music = hex (0x5ee7ff);
+            c.hookLane = hex (0xffd166); // the lead carries the hook (ADR 0026)
+            c.controlEdge = hex (0x2f6b80); // the board's #1f4a5a reads 2.05:1; 3.32:1 here
+            c.faderTrack = hex (0x2f6b80);
+            c.faderCap = hex (0xdff8ff);
+            c.cellOff = hex (0x0c2230);
+            c.cellOffEdge = hex (0x0c2230);
+            c.cellHeld = juce::Colours::transparentBlack;
+            c.meterOff = hex (0x0c2230);
+            c.sectionOff = hex (0x03080e);
+            c.sectionOffText = hex (0x8fd8e8);
+            c.sectionLit = hex (0x08202b);
+            c.sectionLitText = hex (0xdff8ff);
+            c.pillOff = hex (0x071219);
+            c.pillOffEdge = hex (0x2f6b80);
+            c.pillOffText = hex (0x8fd8e8);
+            c.pillOn = hex (0x08202b);
+            c.pillOnEdge = hex (0x5ee7ff);
+            c.pillOnText = hex (0xdff8ff);
+            c.busy = hex (0xffd166);
+            c.warning = hex (0xff6a4d);
+            c.focus = hex (0xffd166);
+
+            using F = FaceId;
+            auto& t = s.type;
+            t.wordmark = style (F::chakraPetchBold, 17, 4, true);
+            t.subtitle = style (F::hudMonoRegular, 10, 1, true, 8);
+            t.pill = style (F::chakraPetchRegular, 16);
+            t.pillSelected = style (F::chakraPetchBold, 16, 0, true, 13);
+            t.headerButton = style (F::chakraPetchBold, 16, 0, true);
+            t.displayLine = style (F::hudMonoRegular, 11);
+            t.displayLineStrong = style (F::hudMonoRegular, 11);
+            t.displayLabel = style (F::hudMonoRegular, 10, 0, false, 8);
+            t.transportLine = style (F::hudMonoRegular, 11, 0, false, 9);
+            t.playMode = style (F::chakraPetchBold, 16, 0, true);
+            t.playModeOff = style (F::chakraPetchBold, 16, 0, true);
+            t.rowLabel = style (F::hudMonoRegular, 10, 0, true);
+            t.rowValue = style (F::hudMonoRegular, 11, 0, true);
+            t.section = style (F::hudMonoRegular, 11, 0, true, 9);
+            t.laneName = style (F::chakraPetchBold, 12, 1, true, 9.5f);
+            t.laneSub = style (F::hudMonoRegular, 10, 0, false, 8);
+            t.laneButton = style (F::chakraPetchBold, 11, 0, true);
+            t.laneChip = style (F::chakraPetchBold, 10);
+            t.abTitle = style (F::hudMonoRegular, 11, 0, true, 9);
+            t.abSide = style (F::chakraPetchRegular, 16, 0, true, 12);
+            t.abSideOn = style (F::chakraPetchBold, 16, 0, true, 12);
+            t.abRow = style (F::chakraPetchBold, 13, 0, true, 10);
+            t.fxName = style (F::hudMonoRegular, 10, 1, true);
+            t.fxValue = style (F::hudMonoRegular, 11);
+            t.stripLabel = style (F::hudMonoRegular, 10, 0, true);
+            t.stripChip = style (F::chakraPetchBold, 12);
+            t.stripChipOff = style (F::chakraPetchRegular, 12);
+            t.stripSegment = style (F::chakraPetchRegular, 12, 0, true);
+            t.stripSegmentOn = style (F::chakraPetchBold, 12, 0, true);
+            t.body = style (F::chakraPetchRegular, 13);
+            t.bodyStrong = style (F::chakraPetchBold, 13);
+            t.path = style (F::hudMonoRegular, 11);
+
+            auto& b = s.shape;
+            for (auto* box : { &b.panel, &b.lane, &b.well, &b.pill, &b.pillSelected, &b.headerButton, &b.segment, &b.abSide, &b.laneButton,
+                     &b.laneChip, &b.stripChip, &b.stripSwitch, &b.section, &b.drawer })
+                *box = boxStyle (0);
+            b.segmentTrack = boxStyle (0, 0);
+            b.cell = boxStyle (0, 0);
+            b.pillSelected.chamfer = 10;
+            b.laneChip.dashed = true;
+            b.knob = 56.0f;
+            b.playButton = 56.0f;
+
+            s.words = { "WUBANSIA", "Uplink MIDI", "PART", "MUTE", "ONLINE", "OFFLINE" };
+            s.display = DisplayKind::orbit;
+            s.lane = LaneKind::telemetryColumn;
+            s.fx = FxKind::knobs;
+            s.texture = Texture::grid;
+            finish (s);
+            return s;
+        }
+
         float luminance (juce::Colour c) noexcept
         {
             const auto channel = [] (juce::uint8 v)
@@ -208,10 +320,11 @@ namespace wubansia::editor
     const Skin& skinFor (SkinId id) noexcept
     {
         static const Skin nightBus = makeNightBus();
+        static const Skin missionHud = makeMissionHud();
         switch (id)
         {
+            case SkinId::missionHud: return missionHud;
             case SkinId::nightBus:
-            case SkinId::missionHud:
             case SkinId::deepGlass:
             case SkinId::machineRoom:
                 break;
@@ -219,9 +332,11 @@ namespace wubansia::editor
         return nightBus;
     }
 
-    const Skin& skinForKit (const juce::String&) noexcept
+    const Skin& skinForKit (const juce::String& kitId) noexcept
     {
-        return skinFor (SkinId::nightBus); // every kit wears night bus until its own look lands
+        if (kitId == "FUT02")
+            return skinFor (SkinId::missionHud);
+        return skinFor (SkinId::nightBus); // FUT01, and any kit without a look of its own
     }
 
     float contrastRatio (juce::Colour a, juce::Colour b) noexcept

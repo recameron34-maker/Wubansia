@@ -195,6 +195,13 @@ namespace wubansia::editor
     juce::Rectangle<int> LaneStrip::meterRect() const
     {
         const auto x = (getWidth() - 100) / 2;
+        switch (kind)
+        {
+            case LaneKind::telemetryColumn: return { x + 8, 48, 84, 148 };
+            case LaneKind::faderAndMeter:
+            case LaneKind::glassPill:
+            case LaneKind::stepsAndSlide: break;
+        }
         return { x + 26, 48, 10, 148 };
     }
 
@@ -207,7 +214,17 @@ namespace wubansia::editor
     void LaneStrip::resized()
     {
         const auto x = (getWidth() - 100) / 2;
-        level.setBounds (x + 40, 48, 36, 148);
+        switch (kind)
+        {
+            case LaneKind::telemetryColumn:
+                level.setBounds (x + 8, 48, 84, 148); // the fader lies over the whole column
+                break;
+            case LaneKind::faderAndMeter:
+            case LaneKind::glassPill:
+            case LaneKind::stepsAndSlide:
+                level.setBounds (x + 40, 48, 36, 148);
+                break;
+        }
         mute.setBounds (x + 8, 204, 84, 30);
         chip.setBounds (x + 8, 242, 84, 26);
     }
@@ -235,13 +252,26 @@ namespace wubansia::editor
         const auto dotX = name.area.getCentreX() - nameWidth * 0.5f - 7.0f;
         paint::dot (g, { dotX, name.area.getCentreY() }, 3.0f, colour, led > 0.05f);
         drawText (g, name, c.text);
-        drawText (g, texts[1], showValue ? c.text : (midiTarget ? c.accent2 : c.label));
+        const auto hit = led > 0.05f;
+        drawText (g, texts[1], showValue ? c.text : (midiTarget ? c.accent2 : (kind == LaneKind::telemetryColumn && hit ? colour : c.label)));
 
-        // The meter beside the fader: 18 segments of 3 dB, the top two hot.
         const auto meter = meterRect().toFloat();
         const auto fill = (peakDb - meterFloorDb) / -meterFloorDb;
         const auto hold = holdDb > meterFloorDb + 0.5f ? (holdDb - meterFloorDb) / -meterFloorDb : -1.0f;
         const auto meterAlpha = muted ? 0.4f : 1.0f;
-        paint::meter (g, meter, 18, 1.0f, fill, hold, colour.withMultipliedAlpha (meterAlpha), over (c.meterOff, c.face), true, 16, c.text.withMultipliedAlpha (meterAlpha));
+        switch (kind)
+        {
+            case LaneKind::telemetryColumn:
+                // Mission HUD: the column is the meter, 12 cells of 4.5 dB, the fader drawn on it.
+                paint::meter (g, meter, 12, 3.0f, fill, hold, colour.withMultipliedAlpha (meterAlpha), over (c.meterOff, c.face), true);
+                break;
+            case LaneKind::faderAndMeter:
+            case LaneKind::glassPill:
+            case LaneKind::stepsAndSlide:
+                // Night bus: the meter beside the fader, 18 segments of 3 dB, the top two hot.
+                paint::meter (g, meter, 18, 1.0f, fill, hold, colour.withMultipliedAlpha (meterAlpha), over (c.meterOff, c.face), true, 16,
+                    c.text.withMultipliedAlpha (meterAlpha));
+                break;
+        }
     }
 }

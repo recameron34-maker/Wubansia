@@ -7,6 +7,7 @@
 #include "editor/skin/Paint.h"
 #include "services/PatternView.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace wubansia::editor
@@ -73,6 +74,19 @@ namespace wubansia::editor
         }
     }
 
+    namespace
+    {
+        constexpr std::array<juce::Point<float>, 3> orbitRadii { { { 54.0f, 20.0f }, { 92.0f, 34.0f }, { 130.0f, 48.0f } } };
+        const juce::Point<float> orbitCentre { 160.0f, 66.0f };
+
+        juce::Rectangle<float> discArea (const Skin& skin, const juce::String& chord)
+        {
+            const auto w = juce::GlyphArrangement::getStringWidth (skin.type.displayLabel.font(), chord);
+            const auto r = std::max (11.0f, w * 0.5f + 4.0f);
+            return juce::Rectangle<float> (r * 2.0f, r * 2.0f).withCentre (orbitCentre);
+        }
+    }
+
     Lcd::Lcd()
     {
         setComponentID ("lcd");
@@ -132,11 +146,129 @@ namespace wubansia::editor
         }
     }
 
-    void Lcd::updateOrbit (const EditorModel&) {}
+    void Lcd::updateOrbit (const EditorModel& model)
+    {
+        // Mission HUD: the lead's notes of the playing bar around the chord, each on its octave's ring (ADR 0032).
+        const auto dot = middleDot();
+        const auto cur = model.patternStep;
+        const auto bar = cur >= 0 ? cur / 16 * 16 : 0;
+        const auto flats = model.pattern != nullptr ? model.pattern->flats : keyUsesFlats (model.kit.key);
+        std::vector<Satellite> next;
+        int lowestOctave = 99, low = 999;
+        std::vector<int> keys;
+        if (const auto& p = model.pattern; p != nullptr && p->steps > 0)
+        {
+            for (const auto& n : p->lanes[(std::size_t) engine::Lane::lead])
+                lowestOctave = std::min (lowestOctave, n.key / 12 - 1);
+            for (const auto& n : p->notesIn (engine::Lane::lead, bar, bar + 16))
+            {
+                if (n.step < bar)
+                    continue; // held in from the bar before: not this bar's
+                Satellite sat;
+                sat.step = n.step - bar;
+                sat.key = n.key;
+                sat.ring = juce::jlimit (0, 2, n.key / 12 - 1 - lowestOctave);
+                sat.state = cur < 0 || n.step > cur ? Satellite::State::upcoming
+                            : (cur < n.end() ? Satellite::State::sounding : Satellite::State::played);
+                next.push_back (sat);
+                low = std::min (low, (int) n.key);
+                if (std::find (keys.begin(), keys.end(), (int) n.key) == keys.end())
+                    keys.push_back (n.key);
+            }
+        }
+        std::sort (keys.begin(), keys.end());
+        juce::StringArray top;
+        for (auto i = std::max<std::size_t> (0, keys.size() >= 4 ? keys.size() - 4 : 0); i < keys.size(); ++i)
+            top.add (noteName (keys[i], flats));
+
+        juce::String where;
+        if (model.playMode == engine::PlayMode::off)
+            where = "PLAYER OFF" + dot + "MIDI IN";
+        else if (cur < 0)
+            where = "STANDBY" + dot + (model.playMode == engine::PlayMode::song ? "SONG" : "LOOP");
+        else if (model.playMode == engine::PlayMode::loop)
+            where = "LOOP" + dot + "BAR " + juce::String (cur / 16 % 4 + 1) + " OF 4";
+        else if (const auto s = model.snapshot.section; s >= 0 && s < (int) model.sections.size())
+        {
+            const auto& section = model.sections[(std::size_t) s];
+            where = section.name.toUpperCase() + dot + "BAR " + juce::String (cur / 16 + 2 - section.startBar) + " OF " + juce::String (section.bars);
+        }
+        else
+            where = "SONG" + dot + "BAR " + juce::String (cur / 16 + 1);
+        const auto bpm = model.tempo();
+        const juce::StringArray lines { model.laneLabel (engine::Lane::lead).toUpperCase() + dot + "LOW " + (low < 999 ? noteName (low, flats) : juce::String ("-")),
+            "TOP " + (top.isEmpty() ? juce::String ("-") : top.joinIntoString (dot)), where,
+            shortKey (model.kit.key) + dot + model.kit.camelot + dot + (bpm > 0.0 ? shortTempo (bpm) : juce::String ("---")) + " BPM" };
+        const auto chord = model.chord.isNotEmpty() ? model.chord : shortKey (model.kit.key);
+        if (next != orbit || lines != orbitText || chord != orbitChord)
+        {
+            orbit = std::move (next);
+            orbitText = lines;
+            orbitChord = chord;
+            repaintArea (*this, viewArea().expanded (4));
+        }
+    }
     void Lcd::updateLevels (const EditorModel&) {}
     void Lcd::updateScope (const EditorModel&) {}
     void Lcd::pushScope (const float*, int) {}
-    void Lcd::paintOrbit (juce::Graphics&, const Skin&) const {}
+    void Lcd::paintOrbit (juce::Graphics& g, const Skin& skin) const
+    {
+        const auto& c = skin.colours;
+        const auto view = viewArea().toFloat();
+
+        // The HUD's grid and corner brackets.
+        g.setColour (c.grid);
+        for (const auto x : { 148.0f, 295.0f, 442.0f })
+            g.fillRect (x, view.getY(), 1.0f, view.getHeight());
+        for (const auto y : { 30.0f, 60.0f, 90.0f })
+            g.fillRect (view.getX(), y, view.getWidth(), 1.0f);
+        g.setColour (c.accent);
+        const auto bracket = [&g] (float x, float y, float dx, float dy)
+        {
+            g.fillRect (dx > 0 ? x : x - 12.0f, y, 12.0f, 2.0f);
+            g.fillRect (x, dy > 0 ? y : y - 12.0f, 2.0f, 12.0f);
+        };
+        bracket (6.0f, 6.0f, 1.0f, 1.0f);
+        bracket (582.0f, 112.0f, -1.0f, -1.0f);
+
+        // Three rings, the playing 16th's tick on the outer one, the satellites, the chord in the middle.
+        const float alphas[] = { 0.9f, 0.55f, 0.3f };
+        for (std::size_t i = 0; i < orbitRadii.size(); ++i)
+        {
+            const auto r = orbitRadii[i];
+            g.setColour (c.accent.withAlpha (alphas[i]));
+            g.drawEllipse (juce::Rectangle<float> (r.x * 2.0f, r.y * 2.0f).withCentre (orbitCentre), 1.2f);
+        }
+        const auto at = [] (int step, int ring)
+        {
+            const auto a = -juce::MathConstants<float>::halfPi + juce::MathConstants<float>::twoPi * (float) (step % 16) / 16.0f;
+            const auto r = orbitRadii[(std::size_t) juce::jlimit (0, 2, ring)];
+            return juce::Point<float> (orbitCentre.x + r.x * std::cos (a), orbitCentre.y + r.y * std::sin (a));
+        };
+        for (const auto& sat : orbit)
+        {
+            const auto p = at (sat.step, sat.ring);
+            if (sat.state == Satellite::State::sounding)
+            {
+                g.setColour (c.accent2.withAlpha (0.25f));
+                g.fillEllipse (juce::Rectangle<float> (16.0f, 16.0f).withCentre (p));
+                g.setColour (c.accent2);
+                g.fillEllipse (juce::Rectangle<float> (8.0f, 8.0f).withCentre (p));
+            }
+            else
+            {
+                const auto played = sat.state == Satellite::State::played;
+                g.setColour (c.text.withAlpha (played ? 0.4f : 0.7f));
+                const auto d = played ? 5.0f : 6.0f;
+                g.fillEllipse (juce::Rectangle<float> (d, d).withCentre (p));
+            }
+        }
+        g.setColour (c.accent);
+        g.fillEllipse (discArea (skin, orbitChord));
+        const auto texts = drawnText();
+        for (std::size_t i = 2; i < texts.size(); ++i)
+            drawText (g, texts[i], i == 2 ? c.accentInk : (i == 5 ? c.accent2 : c.dim));
+    }
     void Lcd::paintLevels (juce::Graphics&, const Skin&) const {}
     void Lcd::paintScope (juce::Graphics&, const Skin&) const {}
 
@@ -156,6 +288,7 @@ namespace wubansia::editor
         }
         else if (kind == DisplayKind::orbit)
         {
+            out.push_back (fitText (skin.type.displayLabel, orbitChord, discArea (skin, orbitChord), juce::Justification::centred));
             const auto view = viewArea().toFloat();
             for (int i = 0; i < orbitText.size(); ++i)
                 out.push_back (fitText (skin.type.displayLine, orbitText[i], { view.getX() + 313.0f, view.getY() + 2.0f + 18.0f * (float) i, 243.0f, 16.0f }));
@@ -217,13 +350,26 @@ namespace wubansia::editor
     //==============================================================================================================
     juce::String syncWords (const Skin& skin, const EditorModel& model)
     {
-        juce::ignoreUnused (skin);
         if (model.standalone)
             return {};
         const auto tempo = shortTempo (model.tempo());
         const auto dot = middleDot();
         const auto previewing = model.preview || model.transport.internal;
         const auto hostPlaying = model.snapshot.playing && ! previewing;
+        const auto ticks = model.snapshot.songTicks;
+        const auto position = ticks >= 0.0 ? juce::String ((int) (ticks / ticksPerBar) + 1) + "." + juce::String ((int) std::fmod (ticks / ticksPerBeat, 4.0) + 1)
+                                           : juce::String ("-.-");
+        switch (skin.id)
+        {
+            case SkinId::missionHud:
+                return hostPlaying ? "POS " + position : previewing ? "PREVIEW" + dot + "POS " + position : juce::String ("STANDBY");
+            case SkinId::deepGlass:
+                return hostPlaying ? "in sync" + dot + tempo : previewing ? "previewing" + dot + tempo : juce::String ("preview");
+            case SkinId::machineRoom:
+                return hostPlaying ? juce::String ("HOST SYNC") : juce::String ("PREVIEW");
+            case SkinId::nightBus:
+                break;
+        }
         if (hostPlaying)
             return "synced" + dot + tempo;
         if (previewing)

@@ -77,16 +77,29 @@ namespace wubansia::editor
             clubOn ? (grDb > 0.05f ? "-" + juce::String (grDb, 1) + " dB" : juce::String ("0.0 dB")) : juce::String ("BYPASS"),
             Parameters::levelText ((float) output.getValue()) + " dB"
         };
+        auto shownValues = next;
+        if (skinOf (*this).id == SkinId::missionHud) // inside the ring: the number alone
+            for (const auto i : { 0, 1, 2 })
+                shownValues[(std::size_t) i] = space.getTextFromValue (i == 0 ? space.getValue() : i == 1 ? echo.getValue() : pump.getValue());
         for (std::size_t i = 0; i < next.size(); ++i)
-            if (next[i] != values[i])
+            if (shownValues[i] != values[i])
             {
-                values[i] = next[i];
+                values[i] = shownValues[i];
                 repaintArea (*this, valueArea ((int) i).toNearestInt().expanded (2));
             }
     }
 
     juce::Rectangle<float> FxPanel::nameArea (int i) const { return { 4.0f + column * (float) i, 74.0f, column - 8.0f, 14.0f }; }
-    juce::Rectangle<float> FxPanel::valueArea (int i) const { return { 4.0f + column * (float) i, 90.0f, column - 8.0f, 13.0f }; }
+    juce::Rectangle<float> FxPanel::valueArea (int i) const
+    {
+        // Mission HUD writes a knob's value inside its ring.
+        if (skinOf (*this).id == SkinId::missionHud && i != 3)
+        {
+            const auto centre = juce::Point<float> (column * ((float) i + 0.5f) + 4.0f, 12.0f + skinOf (*this).shape.knob * 0.5f);
+            return juce::Rectangle<float> (40.0f, 14.0f).withCentre (centre);
+        }
+        return { 4.0f + column * (float) i, 90.0f, column - 8.0f, 13.0f };
+    }
 
     void FxPanel::resized()
     {
