@@ -20,7 +20,8 @@
 //   host's, or the internal one); copies the MIDI into a fixed array of 3-byte messages (no SysEx); runs
 //   the engine in pieces no longer than the prepared block; adds the Samples drawer's audition, dry, over
 //   the whole block (7b; never in an offline render, and with none playing it touches nothing); applies
-//   master_gain through its 20 ms smoother; and leaves the transport for the editor. A bypassed block lets
+//   master_gain through its 20 ms smoother; copies the output into the looks' scope ring while machine room
+//   shows (8b, ADR 0032: lock-free, one relaxed load when off); and leaves the transport for the editor. A bypassed block lets
 //   every audition go unplayed.
 //
 // The first prepareToPlay or setStateInformation queues the first kit load; nothing before. The sound

@@ -572,7 +572,7 @@ namespace wubansia
         return patternCache;
     }
 
-    void ControllerImpl::setScopeOn (bool) {}
+    void ControllerImpl::setScopeOn (bool on) { processor.scope.setOn (on); }
 
-    int ControllerImpl::readScope (float*, int) { return 0; }
+    int ControllerImpl::readScope (float* dest, int maxSamples) { return processor.scope.pull (dest, maxSamples); }
 }

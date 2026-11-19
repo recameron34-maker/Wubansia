@@ -178,6 +178,7 @@ TEST_CASE ("the plugin at 48 kHz / 128 samples, 64 voices and every effect, take
             PluginProcessor plugin;
             test::prepare (plugin, 48000.0, 128);
             plugin.controller().selectKit (kit);
+            plugin.controller().setScopeOn (true); // machine room's output scope (ADR 0032), nobody reading: the ring fills
             REQUIRE (test::waitForKit (plugin, kit.getTrailingIntValue() - 1, std::chrono::seconds (60)));
             double bpm = 0.0;
             for (const auto& card : plugin.controller().kits())
