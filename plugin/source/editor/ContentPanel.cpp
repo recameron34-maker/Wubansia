@@ -1,6 +1,7 @@
 #include "ContentPanel.h"
 #include "KitPanel.h"
 #include "LookAndFeel.h"
+#include "editor/skin/Paint.h"
 
 namespace wubansia::editor
 {
@@ -132,13 +133,12 @@ namespace wubansia::editor
                 break;
         }
 
-        if (headline != headlineText || message != messageText || content.searched != searched || content.state != state || model.accent != accent)
+        if (headline != headlineText || message != messageText || content.searched != searched || content.state != state)
         {
             headlineText = headline;
             messageText = message;
             searched = content.searched;
             state = content.state;
-            accent = model.accent;
             repaint();
         }
     }
@@ -155,26 +155,49 @@ namespace wubansia::editor
         textArea = area;
     }
 
+    std::vector<DrawnText> ContentPanel::drawnText() const
+    {
+        // The headline and the folders searched (the person's paths: the path role, fallback on), as paint () draws them.
+        std::vector<DrawnText> out;
+        const auto& skin = skinOf (*this);
+        auto area = textArea.toFloat();
+        DrawnText headline;
+        headline.text = headlineText;
+        headline.font = bodyFont (skin, 20.0f, true);
+        headline.area = area.removeFromTop (28.0f).withTrimmedLeft (22.0f);
+        headline.styledPx = headline.minPx = headline.font.getHeightInPoints();
+        if (juce::GlyphArrangement::getStringWidth (headline.font, headline.text) > headline.area.getWidth())
+            headline.cut = true;
+        out.push_back (headline);
+        for (const auto& folder : searched)
+        {
+            DrawnText t;
+            t.text = folder;
+            t.font = pathFont (skin, 11.5f);
+            t.area = { area.getX(), area.getY(), 1.0e5f, 16.0f }; // a path may run under the panel's edge, cut by the box
+            t.styledPx = t.minPx = t.font.getHeightInPoints();
+            out.push_back (t);
+        }
+        return out;
+    }
+
     void ContentPanel::paint (juce::Graphics& g)
     {
         const auto bounds = getLocalBounds().toFloat();
 
-        // A frosted panel over the lanes.
-        g.setColour (juce::Colours::black.withAlpha (0.55f));
-        g.fillRoundedRectangle (bounds.translated (0.0f, 3.0f), 12.0f);
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colour (0xfa21242a), bounds.getY(), juce::Colour (0xfc16181c), bounds.getBottom()));
-        g.fillRoundedRectangle (bounds, 12.0f);
+        // The panel's frame in the look (ADR 0032), rimmed in its tone.
+        paint::drawer (g, skinOf (*this), bounds);
         const auto problem = state != ContentState::ready && state != ContentState::loading;
-        const auto tone = problem ? colours::warning : (state == ContentState::loading ? colours::busy : accent);
+        const auto tone = problem ? skinOf (*this).colours.warning : (state == ContentState::loading ? skinOf (*this).colours.busy : skinOf (*this).colours.accent);
         g.setColour (tone.withAlpha (0.65f));
         g.drawRoundedRectangle (bounds.reduced (0.5f), 12.0f, 1.2f);
 
         // The headline.
         auto area = textArea.toFloat();
         auto top = area.removeFromTop (28.0f);
-        draw::led (g, { top.getX() + 7.0f, top.getCentreY() }, 5.0f, tone, 1.0f);
-        g.setFont (uiFont (20.0f, true));
-        g.setColour (colours::text);
+        paint::dot (g, { top.getX() + 7.0f, top.getCentreY() }, 5.0f, tone, true);
+        g.setFont (bodyFont (skinOf (*this), 20.0f, true));
+        g.setColour (skinOf (*this).colours.text);
         g.drawText (headlineText, top.withTrimmedLeft (22.0f), juce::Justification::centredLeft, true);
         area.removeFromTop (8.0f);
 
@@ -192,13 +215,13 @@ namespace wubansia::editor
                 g.fillEllipse (badge);
                 g.setColour (tone);
                 g.drawEllipse (badge.reduced (0.5f), 1.0f);
-                g.setFont (uiFont (11.0f, true));
+                g.setFont (bodyFont (skinOf (*this), 11.0f, true));
                 g.drawText (paragraph.substring (0, 1), badge, juce::Justification::centred, false);
                 row.removeFromLeft (28.0f);
             }
 
             juce::AttributedString text;
-            text.append (step ? paragraph.substring (3) : paragraph, uiFont (14.0f), step ? colours::text.withAlpha (0.92f) : colours::textDim.brighter (0.2f));
+            text.append (step ? paragraph.substring (3) : paragraph, bodyFont (skinOf (*this), 14.0f), step ? skinOf (*this).colours.text.withAlpha (0.92f) : skinOf (*this).colours.dim.brighter (0.2f));
             text.setLineSpacing (2.0f);
             juce::TextLayout layout;
             layout.createLayout (text, row.getWidth());
@@ -208,22 +231,22 @@ namespace wubansia::editor
 
         // Where it looked.
         auto list = listArea.toFloat();
-        draw::recess (g, list, 8.0f);
+        paint::well (g, skinOf (*this), list, 8.0f);
         list = list.reduced (14.0f, 10.0f);
-        draw::engraved (g, searched.isEmpty() ? "Folders searched" : "Wubansia looked in", list.removeFromTop (14.0f), juce::Justification::centredLeft, 9.5f);
+        paint::label (g, skinOf (*this), searched.isEmpty() ? "Folders searched" : "Wubansia looked in", list.removeFromTop (14.0f), juce::Justification::centredLeft, 9.5f);
         list.removeFromTop (6.0f);
-        g.setFont (monoFont (11.5f));
+        g.setFont (pathFont (skinOf (*this), 11.5f));
         if (searched.isEmpty())
         {
-            g.setColour (colours::textFaint);
+            g.setColour (skinOf (*this).colours.faint);
             g.drawText ("none yet", list.removeFromTop (16.0f), juce::Justification::centredLeft, true);
         }
         for (int i = 0; i < searched.size() && list.getHeight() >= 15.0f; ++i)
         {
             auto row = list.removeFromTop (17.0f);
-            g.setColour (colours::textFaint);
+            g.setColour (skinOf (*this).colours.faint);
             g.drawText (juce::String (i + 1) + ".", row.removeFromLeft (20.0f), juce::Justification::centredLeft, false);
-            g.setColour (colours::textDim);
+            g.setColour (skinOf (*this).colours.dim);
             g.drawText (tidy (searched[i]), row, juce::Justification::centredLeft, true);
         }
     }

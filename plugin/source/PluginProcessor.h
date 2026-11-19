@@ -20,13 +20,15 @@
 //   host's, or the internal one); copies the MIDI into a fixed array of 3-byte messages (no SysEx); runs
 //   the engine in pieces no longer than the prepared block; adds the Samples drawer's audition, dry, over
 //   the whole block (7b; never in an offline render, and with none playing it touches nothing); applies
-//   master_gain through its 20 ms smoother; and leaves the transport for the editor. A bypassed block lets
+//   master_gain through its 20 ms smoother; copies the output into the looks' scope ring while machine room
+//   shows (8b, ADR 0032: lock-free, one relaxed load when off); and leaves the transport for the editor. A bypassed block lets
 //   every audition go unplayed.
 //
 // The first prepareToPlay or setStateInformation queues the first kit load; nothing before. The sound
 // thread waits for the first audition.
 
 #include "ControllerImpl.h"
+#include "telemetry/OutputScope.h"
 #include "Parameters.h"
 #include "State.h"
 #include "content/ContentSource.h"
@@ -124,6 +126,7 @@ namespace wubansia
         DrumKitService& drumKitService() noexcept { return *drumKits; }
         const DrumKitService& drumKitService() const noexcept { return *drumKits; }
         const PhraseService& phraseService() const noexcept { return *phraseThread; }
+        const OutputScope& outputScope() const noexcept { return scope; } // machine room's tap (ADR 0032)
         bool phraseOffered() const noexcept { return player.phraseOffered(); } // for tests: a phrase clip waits for a block
         void setPhraseWakeProbeForTesting (std::function<void()> probe) { phraseThread->setWakeProbeForTesting (std::move (probe)); }
         StateOnly settings() const;
@@ -151,6 +154,7 @@ namespace wubansia
         std::unique_ptr<DrumKitService> drumKits; // after content, which it reads: it goes first of all
         std::unique_ptr<PhraseService> phraseThread; // the Phrases drawer's (ADR 0031): after the engine and the kit service
         std::atomic<bool> previewForPhrase { false }; // the Phrases drawer's audition turned Preview on, and nothing since off
+        OutputScope scope; // the looks' output scope (ADR 0032): pushed in processBlock while on, pulled by the editor
         ControllerImpl controllerImpl;
         InternalTransport transport;
 

@@ -13,7 +13,9 @@
 
 #include <juce_core/juce_core.h>
 
+#include <algorithm>
 #include <functional>
+#include <memory>
 #include <initializer_list>
 #include <map>
 #include <utility>
@@ -207,6 +209,12 @@ namespace wubansia::test
         // once from bar 1; stopPhraseAudition () clears sounding, waiting and startedTransport. Tests may set it directly.
         PhraseAuditionState phraseAudition;
         bool moreBusy = false; // morePhrases () says no, as while a press is in flight
+        // The looks (ADR 0032): what pattern () gives, whatever the mode and variant, unless patternFor is set; and
+        // what readScope () hands out, oldest first, once (it drains as the real one does).
+        std::shared_ptr<const PatternView> patternView;
+        std::function<std::shared_ptr<const PatternView> (engine::PlayMode, engine::Variant)> patternFor;
+        std::vector<float> scopeSamples;
+        bool scopeOn = false;
 
         // What the editor asked for. Tests read these.
         juce::StringArray selectedKits;
@@ -229,6 +237,8 @@ namespace wubansia::test
         juce::StringArray phraseAuditions; // auditionPhrase () ids, in order
         int phraseStops = 0; // stopPhraseAudition () calls
         std::vector<std::pair<juce::String, bool>> keptRequests; // setPhraseKept () calls, in order
+        std::vector<bool> scopeRequests; // setScopeOn () calls, in order
+        mutable int patternCalls = 0;
 
         std::vector<KitCard> kits() const override { return kitCards; }
         juce::String currentKit() const override { return current; }
@@ -492,6 +502,26 @@ namespace wubansia::test
                 if (p.id == id)
                     p.kept = kept;
             ++phraseGeneration;
+        }
+
+        std::shared_ptr<const PatternView> pattern (engine::PlayMode mode, engine::Variant variant) const override
+        {
+            ++patternCalls;
+            return patternFor != nullptr ? patternFor (mode, variant) : patternView;
+        }
+
+        void setScopeOn (bool on) override
+        {
+            scopeRequests.push_back (on);
+            scopeOn = on;
+        }
+
+        int readScope (float* dest, int maxSamples) override
+        {
+            const auto n = std::min ((int) scopeSamples.size(), maxSamples);
+            std::copy (scopeSamples.end() - n, scopeSamples.end(), dest);
+            scopeSamples.clear();
+            return n;
         }
 
     private:

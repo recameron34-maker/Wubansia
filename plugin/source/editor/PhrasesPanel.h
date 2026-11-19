@@ -19,6 +19,8 @@
 #include "EditorModel.h"
 #include "LookAndFeel.h"
 
+#include "editor/DrawnText.h"
+
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include <cstdint>
@@ -122,9 +124,10 @@ namespace wubansia::editor
         PhrasesPanel& owner;
     };
 
-    class PhrasesPanel : public juce::Component
+    class PhrasesPanel : public juce::Component, public DrawnTextSource
     {
     public:
+        std::vector<DrawnText> drawnText() const override; // ADR 0032
         static constexpr int columns = 4, gap = 8;
 
         explicit PhrasesPanel (Controller&);

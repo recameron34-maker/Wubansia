@@ -68,6 +68,10 @@ namespace wubansia
         PhraseAuditionState phraseAuditionState() const override;
         void setPhraseKept (const juce::String& id, bool kept) override;
 
+        std::shared_ptr<const PatternView> pattern (engine::PlayMode mode, engine::Variant variant) const override;
+        void setScopeOn (bool on) override;
+        int readScope (float* dest, int maxSamples) override;
+
         // Where writeDragFile () writes: dragout::cacheFolder () unless a test sets another.
         void setDragFolderForTesting (const juce::File& folder) { dragFolder = folder; }
 
@@ -94,5 +98,8 @@ namespace wubansia
         // The kit phrasesGeneration () last saw, and its count of kit changes (message thread, as every call).
         mutable juce::String phrasesKit;
         mutable std::uint64_t phrasesListed = 0;
+
+        // The last pattern () view (ADR 0032), for its kit, mode and variant (message thread).
+        mutable std::shared_ptr<const PatternView> patternCache;
     };
 }

@@ -69,3 +69,8 @@ What the 16 Loop and Song files hold, checked on the content:
 - **Two files per drag (the drums, then the rest):** macOS drops only the first.
 - **A `Drums` track written into `content/midi`:** lane mutes and lane drags need one track per instrument.
 - **A GM remap of the clap to 39:** ADR 0019 owns the map, and a Drum Rack needs no GM.
+
+## Amendment, 2026-11-19: the switch's place (ADR 0032)
+Decision 14 put "1 drum track" between Song and the phrase chips (since ADR 0031, the phrases live in their drawer).
+ADR 0032 put the drag strip in the four looks' order: the label, Loop, Song, Part, then Drum kit, 1 drum track and For
+my synths against the strip's right end. The switch works as before; only its place moved.

@@ -129,6 +129,7 @@ namespace wubansia
         setLatencySamples (player.latencySamples());
         auditions.prepare (rate); // clips are made for this rate from now on (ADR 0024)
 
+        scope.prepare (rate); // the looks' output scope (ADR 0032): 48 kHz or less
         masterGain.reset (rate, 0.02); // 20 ms ramps, so gain changes never click
         masterGain.setCurrentAndTargetValue (juce::Decibels::decibelsToGain (raw.masterGainDb(), Parameters::minDb));
 
@@ -286,6 +287,11 @@ namespace wubansia
         // 8. master_gain, through M0's smoother.
         masterGain.setTargetValue (juce::Decibels::decibelsToGain (raw.masterGainDb(), Parameters::minDb));
         masterGain.applyGain (buffer, numSamples);
+
+        // 8b. The output scope (ADR 0032): while machine room shows, the block's (L + R) / 2 into a lock-free ring the
+        //     editor drains; no allocation, lock or wait. Off, one relaxed load.
+        if (outputs > 0)
+            scope.push (buffer.getReadPointer (0), buffer.getReadPointer (outputs > 1 ? 1 : 0), numSamples);
 
         // 9. What the editor shows of the transport (the engine keeps the rest of the telemetry).
         lastPlaying.store (block.info.playing, std::memory_order_relaxed);

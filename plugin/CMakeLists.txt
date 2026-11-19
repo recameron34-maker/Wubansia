@@ -68,6 +68,15 @@ juce_add_binary_data(WubansiaContent
     HEADER_NAME WubansiaContentData.h
     SOURCES ${WUBANSIA_CONTENT_FILES})
 
+# The looks' thirteen font faces (ADR 0032): SIL OFL 1.1 subsets made by tools/fonts/subset_fonts.py, 326 KB,
+# loaded once per process (editor/skin/Fonts.cpp). Licences in THIRD_PARTY_NOTICES.md and docs/third_party/fonts/.
+file(GLOB WUBANSIA_FONT_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/*.ttf")
+list(SORT WUBANSIA_FONT_FILES)
+juce_add_binary_data(WubansiaFonts
+    NAMESPACE WubansiaFontData
+    HEADER_NAME WubansiaFontData.h
+    SOURCES ${WUBANSIA_FONT_FILES})
+
 target_link_libraries(WubansiaPluginCode INTERFACE
     juce::juce_audio_utils
     juce::juce_audio_processors
@@ -77,7 +86,8 @@ target_link_libraries(WubansiaPluginCode INTERFACE
     juce::juce_recommended_warning_flags
     wubansia_build_defaults
     wubansia_engine # the engine and, through it, the groove core (ADR 0017); both are built PIC for the .so
-    WubansiaContent) # the embedded manifests and MIDI
+    WubansiaContent # the embedded manifests and MIDI
+    WubansiaFonts) # the looks' fonts
 
 target_link_libraries(Wubansia PRIVATE WubansiaPluginCode)
 
@@ -104,16 +114,17 @@ if(WUBANSIA_BUILD_TESTS)
 
     catch_discover_tests(WubansiaPluginTests DISCOVERY_MODE PRE_TEST)
 
-    # The editor measures its text in the platform's default sans-serif font: Liberation Sans on most Linux machines,
+    # The looks draw their words in embedded faces (ADR 0032), but strings the person or the run time supplies (folder
+    # paths, file names) fall back to the platform's default sans-serif font: Liberation Sans on most Linux machines,
     # Lucida Grande on macOS, Verdana on Windows, and DejaVu Sans on Linux without Liberation, the widest of them (about
-    # 12 % wider than Liberation Sans). Where DejaVu Sans is installed, the fit tests of the drag strip, the kit cards and
-    # the header run again in it alone (JUCE_FONT_PATH replaces the font folders), so a label that fits only in narrower
-    # fonts fails here too. The filter is a comma list of test names.
+    # 12 % wider than Liberation Sans). Where DejaVu Sans is installed, the fit tests of the drag strip, every label, the
+    # logo and the header run again in it alone (JUCE_FONT_PATH replaces the font folders), so a label that fits only
+    # in narrower fonts fails here too. The filter is a comma list of test names.
     set(_wubansia_dejavu /usr/share/fonts/truetype/dejavu)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND EXISTS "${_wubansia_dejavu}/DejaVuSans-Bold.ttf")
         set(_wubansia_dejavu_test "the drag strip fits every label at 100 % in DejaVu Sans, the widest default font")
         add_test(NAME "${_wubansia_dejavu_test}"
-                 COMMAND WubansiaPluginTests "the drag strip fits both switches beside Loop and Song*,every kit card reads its direction in full at 100 %,the header fits Phrases and Samples beside the zoom*,the drag strip fits Part between Song and 1 drum track*")
+                 COMMAND WubansiaPluginTests "the drag strip reads label, Loop, Song, Part*,every label reads in full in every look,the logo reads the kit's direction in full in every look,the header fits Phrases and Samples beside the zoom*")
         set_tests_properties("${_wubansia_dejavu_test}" PROPERTIES ENVIRONMENT "JUCE_FONT_PATH=${_wubansia_dejavu}")
     endif()
 endif()

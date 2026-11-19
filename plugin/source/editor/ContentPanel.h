@@ -11,9 +11,10 @@
 
 namespace wubansia::editor
 {
-    class ContentPanel : public juce::Component
+    class ContentPanel : public juce::Component, public DrawnTextSource
     {
     public:
+        std::vector<DrawnText> drawnText() const override; // ADR 0032
         enum class Platform { macOS, windowsOS, linuxOS };
 
         explicit ContentPanel (Controller&);
@@ -46,7 +47,6 @@ namespace wubansia::editor
         juce::String headlineText, messageText;
         juce::StringArray searched;
         ContentState state = ContentState::missing;
-        juce::Colour accent;
         juce::Rectangle<int> textArea, listArea;
     };
 }

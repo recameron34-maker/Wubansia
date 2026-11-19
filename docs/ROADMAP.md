@@ -172,7 +172,7 @@ Goal: test all four goals small, on one kit: FUT01 "Alloy Signal", sci-fi club Ã
     layer and round robin, an SFZ file and a README.
   - [x] Phrases (ADR 0031): 64 eight-bar phrases per kit over its own chords, in eight kinds; click to hear one with
     the groove, drag it, More for 8 new ones, a star to keep one.
-  - [ ] Four looks (ADR 0032): night bus, mission HUD, deep glass and machine room, each switching with its kit,
+  - [x] Four looks (ADR 0032): night bus, mission HUD, deep glass and machine room, each switching with its kit,
     every light real, fonts built in.
   - [ ] The build, checked on Linux: ctest, `golden_check`, pluginval at strictness 10, the TSan subset, the drum
     kits from real content; macOS: the CI zip with auval and pluginval on the AU.

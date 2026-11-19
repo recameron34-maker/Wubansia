@@ -5,6 +5,7 @@
 #include "content/ContentLocator.h"
 #include "content/UserSettings.h"
 #include "dragout/DragFiles.h"
+#include "services/PatternView.h"
 #include "editor/EditorModel.h"
 #include "sounds/SampleExport.h"
 
@@ -556,4 +557,22 @@ namespace wubansia
         }
         return folders;
     }
+
+    std::shared_ptr<const PatternView> ControllerImpl::pattern (engine::PlayMode mode, engine::Variant variant) const
+    {
+        // The looks' notes (ADR 0032): parsed from the embedded MIDI once per kit, mode and variant, then the same object.
+        const auto kit = currentKit();
+        const auto wanted = mode == engine::PlayMode::song ? engine::PlayMode::song : engine::PlayMode::loop;
+        if (patternCache != nullptr && patternCache->kit == kit && patternCache->mode == wanted && patternCache->variant == variant)
+            return patternCache;
+        const auto* entry = entryOf (processor, kit);
+        if (entry == nullptr)
+            return nullptr;
+        patternCache = patternOf (*entry, wanted, variant);
+        return patternCache;
+    }
+
+    void ControllerImpl::setScopeOn (bool on) { processor.scope.setOn (on); }
+
+    int ControllerImpl::readScope (float* dest, int maxSamples) { return processor.scope.pull (dest, maxSamples); }
 }

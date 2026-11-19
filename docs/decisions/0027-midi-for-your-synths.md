@@ -124,3 +124,8 @@ samples stay as they are. The Chord voicing track stays a pitched track at the s
   past the 92 every chord now stays within) and FUT03's Cm9 at 72-87. Yours to ask for if you prefer it.
 - **Dropping the Chord voicing track from synth drags.** It is the kit's own written-out voicing, at the samples'
   register; muting it is one click in a DAW.
+
+## Amendment, 2026-11-19: the switch's place (ADR 0032)
+Decision 1 put the switch between the Drag MIDI label and Loop. ADR 0032 put the drag strip in the four looks' order:
+the label, Loop, Song, Part, then Drum kit, 1 drum track and For my synths against the strip's right end. The switch
+works as before; only its place moved.

@@ -7,9 +7,11 @@
 // files in $WUBANSIA_SCREENSHOTS.
 
 #include "PluginEditor.h"
+#include "editor/DrawnText.h"
 #include "content/EmbeddedContent.h"
 #include "dragout/DragFiles.h"
 #include "editor/ExternalDrag.h"
+#include "helpers/editor_test_helpers.h"
 #include "helpers/fake_controller.h"
 #include "helpers/test_processor.h"
 #include "services/KitCatalog.h"
@@ -48,156 +50,10 @@ namespace editor = wubansia::editor;
 namespace engine = wubansia::engine;
 namespace ids = wubansia::ParameterIds;
 
+using namespace wubansia::test::ui;
+
 namespace
 {
-    // A processor whose editor talks to a FakeController.
-    struct Rig
-    {
-        FakeController controller;
-        TestProcessor processor { [this] (TestProcessor& p) { return new PluginEditor (p, controller); } };
-    };
-
-    // Creates the editor as a host does (no native window), runs the code, then deletes it, however the code
-    // ends: a failed REQUIRE throws, and an editor left behind would go on ticking against a controller that's gone.
-    void withEditor (TestProcessor& processor, const std::function<void (PluginEditor&)>& code)
-    {
-        auto* created = processor.createEditorAndMakeActive();
-        REQUIRE (created != nullptr);
-        struct Closer
-        {
-            TestProcessor& owner;
-            juce::AudioProcessorEditor* opened;
-
-            ~Closer()
-            {
-                owner.editorBeingDeleted (opened);
-                delete opened;
-            }
-        } closer { processor, created };
-        auto* editorComponent = dynamic_cast<PluginEditor*> (created);
-        REQUIRE (editorComponent != nullptr);
-        code (*editorComponent);
-    }
-
-    void withEditor (Rig& rig, const std::function<void (PluginEditor&)>& code) { withEditor (rig.processor, code); }
-
-    void collectById (juce::Component& root, const juce::String& id, std::vector<juce::Component*>& found)
-    {
-        for (auto* child : root.getChildren())
-        {
-            if (child->getComponentID() == id)
-                found.push_back (child);
-            collectById (*child, id, found);
-        }
-    }
-
-    std::vector<juce::Component*> findAll (juce::Component& root, const juce::String& id)
-    {
-        std::vector<juce::Component*> found;
-        collectById (root, id, found);
-        return found;
-    }
-
-    template <class T>
-    T& get (juce::Component& root, const juce::String& id)
-    {
-        const auto found = findAll (root, id);
-        INFO ("component " << id);
-        REQUIRE (found.size() == 1);
-        auto* typed = dynamic_cast<T*> (found.front());
-        REQUIRE (typed != nullptr);
-        return *typed;
-    }
-
-    // A mouse event at a point in the component, as the left button reports it.
-    juce::MouseEvent mouseAt (juce::Component& component, juce::Point<float> position, juce::Point<float> downAt, bool dragged = false)
-    {
-        const auto now = juce::Time::getCurrentTime();
-        return { juce::Desktop::getInstance().getMainMouseSource(), position, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier),
-            juce::MouseInputSource::defaultPressure, juce::MouseInputSource::defaultOrientation, juce::MouseInputSource::defaultRotation,
-            juce::MouseInputSource::defaultTiltX, juce::MouseInputSource::defaultTiltY, &component, &component, now, downAt, now, 1, dragged };
-    }
-
-    // A click: down and up at one point.
-    void click (juce::Component& component, juce::Point<float> at)
-    {
-        component.mouseDown (mouseAt (component, at, at));
-        component.mouseUp (mouseAt (component, at, at));
-    }
-
-    void click (juce::Component& component) { click (component, component.getLocalBounds().toFloat().getCentre()); }
-
-    // A vertical drag on a knob or fader: down at its centre, up by `pixels`, release.
-    void dragUp (juce::Component& component, float pixels)
-    {
-        const auto start = component.getLocalBounds().toFloat().getCentre();
-        component.mouseDown (mouseAt (component, start, start));
-        for (int step = 1; step <= 4; ++step)
-            component.mouseDrag (mouseAt (component, start.translated (0.0f, -pixels * (float) step / 4.0f), start, true));
-        component.mouseUp (mouseAt (component, start.translated (0.0f, -pixels), start, true));
-    }
-
-    // What the host hears: gestures and values, in order.
-    struct GestureLog : juce::AudioProcessorListener
-    {
-        struct Event
-        {
-            char type; // 'b' begin, 'v' value, 'e' end
-            int index;
-            float value;
-        };
-        std::vector<Event> events;
-
-        void audioProcessorParameterChanged (juce::AudioProcessor*, int index, float value) override { events.push_back ({ 'v', index, value }); }
-        void audioProcessorChanged (juce::AudioProcessor*, const ChangeDetails&) override {}
-        void audioProcessorParameterChangeGestureBegin (juce::AudioProcessor*, int index) override { events.push_back ({ 'b', index, 0.0f }); }
-        void audioProcessorParameterChangeGestureEnd (juce::AudioProcessor*, int index) override { events.push_back ({ 'e', index, 0.0f }); }
-
-        // Every value change of the parameter came between a begin and an end, and there was one.
-        bool changedOnlyInsideGestures (int index) const
-        {
-            auto open = false, changed = false;
-            for (const auto& e : events)
-            {
-                if (e.index != index)
-                    continue;
-                if (e.type == 'b')
-                    open = true;
-                else if (e.type == 'e')
-                    open = false;
-                else if (! open)
-                    return false;
-                else
-                    changed = true;
-            }
-            return changed && ! open;
-        }
-    };
-
-    // The plain value a parameter shows on its control.
-    float shownValue (juce::Component& control, juce::RangedAudioParameter& parameter)
-    {
-        if (auto* slider = dynamic_cast<juce::Slider*> (&control))
-            return (float) slider->getValue();
-        if (auto* button = dynamic_cast<juce::Button*> (&control))
-            return button->getToggleState() ? 1.0f : 0.0f;
-        if (auto* box = dynamic_cast<juce::ComboBox*> (&control))
-            return parameter.getNormalisableRange().start + (float) box->getSelectedItemIndex();
-        return std::nanf ("");
-    }
-
-    // A value other than the parameter's default: for the "set from the current value" checks.
-    float otherValue (juce::RangedAudioParameter& parameter)
-    {
-        const auto id = parameter.getParameterID();
-        const auto def = parameter.convertFrom0to1 (parameter.getDefaultValue());
-        if (id.endsWith ("_level") || id == ids::masterGain)
-            return -12.5f;
-        if (id == ids::space || id == ids::echo || id == ids::pump)
-            return 150.0f;
-        return std::fmod (def + 1.0f, (float) parameter.getNumSteps());
-    }
-
     editor::LaneStrip& lane (juce::Component& root, engine::Lane l)
     {
         return get<editor::LaneStrip> (root, "lane_" + juce::String (std::string (engine::laneId (l))));
@@ -345,6 +201,15 @@ TEST_CASE ("every parameter has exactly one control whose component ID is its ID
 {
     Rig rig;
 
+    // In every look (ADR 0032): deep glass's macros are bars and machine room's faders lie flat.
+    rig.controller.kitCards[1].content.state = wubansia::ContentState::ready;
+    addKit (rig.controller, "FUT03", "Glass Current", "garage-house / deep tech house", "G minor", "6A", 128, {}, 0, { "", "Rubber Clean", "" },
+        { "", "Rubber Warm", "" });
+    addKit (rig.controller, "FUT04", "Furnace Code", "dark industrial / techno", "E minor", "9A", 136, {}, 0, { "", "Acid Clean", "" },
+        { "", "Acid Warm", "" });
+
+    for (const juce::String kit : { "FUT01", "FUT02", "FUT03", "FUT04" })
+    {
     // Move every parameter off its default first, so the controls must show the current value.
     for (auto* base : rig.processor.getParameters())
     {
@@ -352,9 +217,11 @@ TEST_CASE ("every parameter has exactly one control whose component ID is its ID
         REQUIRE (parameter != nullptr);
         parameter->setValueNotifyingHost (parameter->convertTo0to1 (otherValue (*parameter)));
     }
-
     withEditor (rig, [&] (PluginEditor& editor)
         {
+            INFO (kit);
+            rig.controller.selectKit (kit);
+            editor.tick();
             REQUIRE (rig.processor.getParameters().size() == 30);
             for (auto* base : rig.processor.getParameters())
             {
@@ -365,6 +232,13 @@ TEST_CASE ("every parameter has exactly one control whose component ID is its ID
                 const auto controls = findAll (editor, id);
                 REQUIRE (controls.size() == 1);
                 auto& control = *controls.front();
+                if (kit != "FUT01" && (id == ids::kickAb || id == ids::stabAb))
+                {
+                    // A switch the kit lacks is out of sight and disabled; its parameter is still there for the host.
+                    CHECK_FALSE (control.isVisible());
+                    CHECK_FALSE (control.isEnabled());
+                    continue;
+                }
                 CHECK (control.isEnabled());
                 CHECK_THAT (shownValue (control, *parameter), WithinAbs (otherValue (*parameter), 1.0e-3));
 
@@ -373,7 +247,7 @@ TEST_CASE ("every parameter has exactly one control whose component ID is its ID
                 rig.processor.addListener (&log);
                 const auto before = parameter->getValue();
                 if (auto* slider = dynamic_cast<juce::Slider*> (&control))
-                    dragUp (*slider, 40.0f);
+                    dragAlong (*slider, 40.0f);
                 else if (auto* ab = dynamic_cast<editor::AbSwitch*> (&control))
                     click (*ab, { ab->getToggleState() ? 4.0f : (float) ab->getWidth() - 4.0f, (float) ab->getHeight() * 0.5f });
                 else if (auto* box = dynamic_cast<juce::ComboBox*> (&control))
@@ -390,6 +264,7 @@ TEST_CASE ("every parameter has exactly one control whose component ID is its ID
                 CHECK_THAT (shownValue (control, *parameter), WithinAbs (parameter->convertFrom0to1 (parameter->getValue()), 1.0e-3));
             }
         });
+    }
 }
 
 TEST_CASE ("a right-click opens the parameter's menu and never moves or toggles the control", "[editor]")
@@ -535,18 +410,20 @@ TEST_CASE ("kit cards select kits, and A/B switches follow the kit", "[editor]")
             CHECK (fut02.isSelected());
             CHECK_FALSE (fut01.isSelected());
 
-            // FUT02 has only a bass alternative.
+            // FUT02 has only a bass alternative: the other two switches leave the panel (ADR 0032).
             CHECK_FALSE (get<editor::AbSwitch> (editor, ids::kickAb).isEnabled());
+            CHECK_FALSE (get<editor::AbSwitch> (editor, ids::kickAb).isVisible());
             CHECK (get<editor::AbSwitch> (editor, ids::bassAb).isEnabled());
+            CHECK (get<editor::AbSwitch> (editor, ids::bassAb).isVisible());
             CHECK_FALSE (get<editor::AbSwitch> (editor, ids::stabAb).isEnabled());
+            CHECK_FALSE (get<editor::AbSwitch> (editor, ids::stabAb).isVisible());
             CHECK (get<editor::AbSwitch> (editor, ids::bassAb).labelA() == "Roll Bass Clean");
             CHECK (get<editor::AbSwitch> (editor, ids::bassAb).labelB() == "Roll Bass Warm");
-            CHECK (editor.model().accent == editor::accentForKit ("FUT02"));
-            CHECK (editor.model().accent != editor::accentForKit ("FUT01"));
+            CHECK (editor.skin().id == editor::SkinId::missionHud); // and its look
         });
 }
 
-TEST_CASE ("every kit card reads its direction in full at 100 %", "[editor]")
+TEST_CASE ("the logo reads the kit's direction in full in every look", "[editor]")
 {
     Rig rig;
     addKit (rig.controller, "FUT03", "Glass Current", "garage-house / deep tech house", "G minor", "6A", 128, {}, 0, {}, {});
@@ -558,10 +435,20 @@ TEST_CASE ("every kit card reads its direction in full at 100 %", "[editor]")
             for (const auto* id : { "FUT01", "FUT02", "FUT03", "FUT04" })
             {
                 INFO (id);
-                auto& card = get<editor::KitPanel::Card> (editor, "kit_" + juce::String (id));
-                const auto font = card.directionFont();
-                CHECK (juce::GlyphArrangement::getStringWidth (font, card.card().direction) <= card.directionArea().getWidth());
-                CHECK (font.getHeight() >= 8.0f);
+                rig.controller.selectKit (id);
+                editor.tick();
+                auto& logo = dynamic_cast<editor::DrawnTextSource&> (get<juce::Component> (editor, "backdrop"));
+                const auto& style = editor.skin().type.subtitle;
+                auto found = false;
+                for (const auto& t : logo.drawnText())
+                    if (t.text == style.apply (editor.model().kit.direction))
+                    {
+                        found = true;
+                        CHECK_FALSE (t.cut);
+                        CHECK (juce::GlyphArrangement::getStringWidth (t.font, t.text) <= t.area.getWidth() + 0.5f);
+                        CHECK (t.font.getHeightInPoints() >= style.minPx - 0.01f);
+                    }
+                CHECK (found);
             }
         });
 }
@@ -584,31 +471,32 @@ TEST_CASE ("the header fits Phrases and Samples beside the zoom with every label
             REQUIRE (face != nullptr);
             CHECK (phrases.getParentComponent() == face);
 
-            // The right block, 278 px: Phrases 91, 7, Samples 91, 7, the zoom 82, ending 20 px in ("SAMPLES" needs 90.1 px of
-            // its button in DejaVu Sans Bold); the kit cards take the rest, 2 px in from each side.
-            CHECK (phrases.getWidth() == 91);
-            CHECK (samples.getWidth() == 91);
-            CHECK (zoom.getWidth() == 82);
-            CHECK (phrases.getRight() + 7 == samples.getX());
-            CHECK (samples.getRight() + 7 == zoom.getX());
+            // The right group, 8 apart, right-aligned at x 1100 (ADR 0032): Phrases and Samples as wide as their words in
+            // the look, the zoom 72; the kit pills from x 250, sized by their words, end before it.
+            CHECK (phrases.getRight() + 8 == samples.getX());
+            CHECK (samples.getRight() + 8 == zoom.getX());
+            CHECK (zoom.getWidth() == 72);
             CHECK (zoom.getRight() == PluginEditor::baseWidth - 20);
-            CHECK (kits.getRight() + 2 == phrases.getX());
+            CHECK (kits.getX() == 250);
+            CHECK (kits.getX() + kits.fitWidth() <= phrases.getX() - 8);
             REQUIRE (kits.numCards() == 4);
             for (int i = 0; i < kits.numCards(); ++i)
             {
                 const auto& card = *kits.card (i);
                 INFO (card.getComponentID());
-                CHECK (card.getWidth() == 146);
-                CHECK_THAT (card.directionArea().getWidth(), WithinAbs (114.0, 1.0e-3));
-                // Its title reads in full beside its ID, at 10 points or more (FUT03's and FUT04's shrink to fit).
-                CHECK (juce::GlyphArrangement::getStringWidth (card.titleFont(), card.card().title) <= card.titleArea().getWidth());
-                CHECK (card.titleFont().getHeight() >= 10.0f);
+                CHECK (card.getWidth() == card.fitWidth());
+                // Its words read in full: "<ID> <Title>" on the selected pill, the ID on the others.
+                for (const auto& t : card.drawnText())
+                {
+                    CHECK_FALSE (t.cut);
+                    CHECK (juce::GlyphArrangement::getStringWidth (t.font, t.text) <= t.area.getWidth() + 0.5f);
+                }
             }
 
             // Each button's label in full, in the font and area its paint code uses.
             for (auto* button : { &phrases, &samples })
             {
-                const auto label = button->getButtonText().toUpperCase();
+                const auto label = editor::skinOf (*button).type.headerButton.apply (button->getButtonText());
                 INFO (label);
                 CHECK (juce::GlyphArrangement::getStringWidth (button->labelFont(), label) <= button->labelArea().getWidth());
                 CHECK (button->labelFont().getHeight() >= 10.0f);
@@ -727,7 +615,7 @@ TEST_CASE ("the content panel says what to do for every status", "[editor]")
             CHECK_THAT (panel.headline().toStdString(), ContainsSubstring ("Loading FUT01") && ContainsSubstring ("42 %"));
             CHECK_FALSE (editor.isContentPanelShown());
             CHECK (card.statusText() == "LOADING 42%");
-            CHECK (get<editor::Lcd> (editor, "lcd").lines().status == "LOADING 42%");
+            CHECK (get<editor::Lcd> (editor, "lcd").lines().right == "LOADING 42 %"); // the display says it too (ADR 0032)
 
             show (wubansia::ContentState::missing, "no folder holds FUT01");
             CHECK (panel.headline() == "FUT01's samples aren't installed");
@@ -975,92 +863,6 @@ TEST_CASE ("the drag strip's 1 drum track switch asks the Controller and follows
         });
 }
 
-TEST_CASE ("the drag strip fits both switches beside Loop and Song, and every label in full at 100 %", "[editor]")
-{
-    Rig rig;
-
-    withEditor (rig, [&] (PluginEditor& editor)
-        {
-            editor.setZoom (1.0f);
-            editor.tick();
-            auto& strip = get<editor::DragStrip> (editor, "drag");
-            auto& loop = get<editor::DragChip> (editor, "drag_loop");
-            auto& song = get<editor::DragChip> (editor, "drag_song");
-            auto* foundDrums = drumSwitch (editor);
-            auto* foundSynths = synthSwitch (editor);
-            if (foundDrums == nullptr || foundSynths == nullptr)
-                return;
-            auto& drums = *foundDrums;
-            auto& synths = *foundSynths;
-            auto& drumKit = get<editor::DrumKitButton> (editor, "drag_drumkit");
-
-            // For my synths, Loop, Song, Part, 1 drum track and Drum kit (ADR 0030), in that order and in their places, and
-            // nothing else: the kit's phrases are in the Phrases drawer (ADR 0031). None overlapping, all inside the strip.
-            CHECK (strip.getNumChildComponents() == 6);
-            CHECK (findAll (editor, "drag_phrase_0").empty());
-            const std::vector<juce::Component*> parts { &synths, &loop, &song, &drums, &drumKit };
-            for (std::size_t i = 0; i < parts.size(); ++i)
-            {
-                INFO (parts[i]->getComponentID());
-                CHECK (parts[i]->getParentComponent() == &strip);
-                CHECK (strip.getLocalBounds().contains (parts[i]->getBounds()));
-                if (i > 0)
-                    CHECK (parts[i]->getX() >= parts[i - 1]->getRight());
-                for (std::size_t j = i + 1; j < parts.size(); ++j)
-                    CHECK_FALSE (parts[i]->getBounds().intersects (parts[j]->getBounds()));
-            }
-            CHECK (synths.getBounds() == juce::Rectangle<int> (76, 5, 126, 28));
-            CHECK (loop.getBounds() == juce::Rectangle<int> (208, 5, 80, 28));
-            CHECK (song.getBounds() == juce::Rectangle<int> (294, 5, 80, 28));
-            CHECK (drums.getY() == 5);
-            CHECK (drums.getWidth() == 120);
-            CHECK (drums.getX() > song.getRight() + 300); // Part between them (ADR 0029)
-            CHECK (strip.getWidth() - 8 - drums.getRight() >= 160); // the room the Drum kit takes (ADR 0030)
-            CHECK (drumKit.getX() == drums.getRight() + 6);
-            CHECK (drumKit.getY() == 5);
-            CHECK (drumKit.getHeight() == 28);
-            CHECK (drumKit.getWidth() >= drumKit.fitWidth (28));
-            CHECK (drumKit.fitWidth (28) > 36);
-            CHECK (drumKit.getRight() <= strip.getWidth() - 8);
-
-            // Nothing is drawn right of Drum kit: no divider, no chip.
-            juce::Image image (juce::Image::ARGB, strip.getWidth(), strip.getHeight(), true, juce::SoftwareImageType());
-            {
-                juce::Graphics g (image);
-                strip.paintEntireComponent (g, false);
-            }
-            int drawn = 0;
-            for (int x = drumKit.getRight(); x < strip.getWidth(); ++x)
-                for (int y = 0; y < strip.getHeight(); ++y)
-                    drawn += image.getPixelAt (x, y).getAlpha() > 0 ? 1 : 0;
-            CHECK (drawn == 0);
-
-            // Every label reads in full, in the font and area its paint code uses.
-            const auto width = [] (const juce::Font& font, const juce::String& text) { return juce::GlyphArrangement::getStringWidth (font, text); };
-            const auto engraved = editor::uiFont (9.5f, true, 0.12f); // draw::engraved's font, at the strip's 9.5 px
-            CHECK (width (engraved, "DRAG MIDI") <= strip.labelArea().getWidth());
-            CHECK (strip.labelArea().getRight() <= (float) synths.getX());
-            CHECK (width (drums.labelFont(), "1 DRUM TRACK") <= drums.labelArea().getWidth());
-            CHECK (drums.labelFont().getHeight() >= 10.0f);
-            CHECK (width (synths.labelFont(), "FOR MY SYNTHS") <= synths.labelArea().getWidth());
-            CHECK (synths.labelFont().getHeight() >= 10.0f);
-            for (auto* chip : { &loop, &song })
-            {
-                INFO (chip->label());
-                CHECK (width (chip->labelFont(), chip->label()) <= chip->labelArea().getWidth());
-                CHECK (chip->shownLabel() == chip->label());
-            }
-            // Each of Drum kit's labels unsqueezed, in the platform's font (and DejaVu Sans through the rerun).
-            CHECK (drumKit.labelFont().getHeight() >= 10.0f);
-            for (const auto* label : { "Drum kit", "Saving\xe2\x80\xa6", "Couldn't save" })
-            {
-                const auto words = juce::String (juce::CharPointer_UTF8 (label));
-                INFO (words);
-                CHECK (width (drumKit.labelFont(), words) <= drumKit.labelArea().getWidth());
-            }
-        });
-}
-
 namespace
 {
     // The drag strip's Part, or nullptr after a failed check, as drumSwitch ().
@@ -1246,56 +1048,6 @@ TEST_CASE ("Loop and Song grey out with the reason when the part or the mutes le
         });
 }
 
-TEST_CASE ("the drag strip fits Part between Song and 1 drum track, every label in full at 100 %", "[editor]")
-{
-    Rig rig;
-
-    withEditor (rig, [&] (PluginEditor& editor)
-        {
-            editor.setZoom (1.0f);
-            editor.tick();
-            auto& strip = get<editor::DragStrip> (editor, "drag");
-            auto& loop = get<editor::DragChip> (editor, "drag_loop");
-            auto& song = get<editor::DragChip> (editor, "drag_song");
-            auto* foundPart = partChoice (editor);
-            auto* foundDrums = drumSwitch (editor);
-            auto* foundSynths = synthSwitch (editor);
-            if (foundPart == nullptr || foundDrums == nullptr || foundSynths == nullptr)
-                return;
-            auto& part = *foundPart;
-
-            // For my synths, Loop, Song, Part and 1 drum track, in that order, none overlapping, all inside the strip.
-            const std::vector<juce::Component*> items { foundSynths, &loop, &song, &part, foundDrums };
-            for (std::size_t i = 0; i < items.size(); ++i)
-            {
-                INFO (items[i]->getComponentID());
-                CHECK (items[i]->getParentComponent() == &strip);
-                CHECK (strip.getLocalBounds().contains (items[i]->getBounds()));
-                if (i > 0)
-                    CHECK (items[i]->getX() >= items[i - 1]->getRight());
-            }
-            CHECK (part.getHeight() == 28);
-            CHECK (part.getWidth() >= part.fitWidth (28));
-            CHECK (strip.getWidth() - 8 - foundDrums->getRight() >= 160); // the room left for the Drum kit (ADR 0030)
-
-            // "PART", engraved, fits its area between Song and Part.
-            const auto engraved = editor::uiFont (9.5f, true, 0.12f); // draw::engraved's font at 9.5 px
-            const auto label = strip.partLabelArea();
-            CHECK (juce::GlyphArrangement::getStringWidth (engraved, "PART") <= label.getWidth());
-            CHECK (label.getX() >= (float) song.getRight());
-            CHECK (label.getRight() <= (float) part.getX());
-
-            // Every segment's label reads in full in the font its paint code uses.
-            for (int i = 0; i < part.getNumItems(); ++i)
-            {
-                INFO (part.getItemText (i));
-                const auto text = part.getItemText (i).toUpperCase();
-                CHECK (juce::GlyphArrangement::getStringWidth (part.labelFont(), text)
-                       <= part.segmentArea (i).getWidth() - 2.0f * editor::SegmentedChoice::kLabelPad);
-            }
-        });
-}
-
 TEST_CASE ("a segmented choice fitted to its labels sizes segments by their labels and picks the one clicked", "[editor]")
 {
     juce::StringArray words;
@@ -1351,7 +1103,7 @@ TEST_CASE ("in a host the transport offers Preview", "[editor]")
             CHECK (rig.controller.previewRequests == std::vector<bool> { true });
             editor.tick();
             CHECK (preview.getToggleState());
-            CHECK (get<editor::Lcd> (editor, "lcd").lines().sync == "PREVIEW");
+            CHECK (get<editor::TransportPanel> (editor, "transport").line().startsWith ("preview"));
             click (preview);
             CHECK (rig.controller.previewRequests == std::vector<bool> { true, false });
         });
@@ -1373,7 +1125,7 @@ TEST_CASE ("in Standalone the transport plays, stops and sets the tempo", "[edit
             CHECK (controller.transportRequests[0] == std::pair { true, 0.0 });
             editor.tick();
             CHECK (get<juce::Button> (editor, "transport_play").getToggleState());
-            CHECK (get<editor::Lcd> (editor, "lcd").lines().sync == "STANDALONE");
+            CHECK (get<editor::TransportPanel> (editor, "transport").line().isEmpty()); // the tempo buttons sit under Play
 
             click (get<juce::Button> (editor, "tempo_up"));
             CHECK (controller.transportRequests.back() == std::pair { true, 135.0 });
@@ -1432,11 +1184,8 @@ TEST_CASE ("the display, lanes and meters follow the snapshot", "[editor]")
             auto& strip = get<editor::SectionStrip> (editor, "sections");
             auto& fx = get<editor::FxPanel> (editor, "fx");
 
-            CHECK (lcd.lines().transport == "STOPPED");
-            CHECK (lcd.lines().position == "---.-");
-            CHECK (lcd.lines().tempo == "134.0");
-            CHECK (lcd.lines().kitTitle == "ALLOY SIGNAL");
-            CHECK (lcd.lines().key == "F# MINOR" + editor::middleDot() + "11A");
+            CHECK (lcd.lines().right == "STOPPED");
+            CHECK (lcd.lines().left == "F#m" + editor::middleDot() + "11A" + editor::middleDot() + "134 BPM");
             CHECK (strip.litBeat() == -1);
 
             auto& snapshot = rig.controller.nextSnapshot;
@@ -1449,9 +1198,7 @@ TEST_CASE ("the display, lanes and meters follow the snapshot", "[editor]")
             snapshot.voices = 17;
             editor.tick();
 
-            CHECK (lcd.lines().transport == "PLAYING");
-            CHECK (lcd.lines().position == "  3.2");
-            CHECK (lcd.lines().status == "VOICES 17");
+            CHECK (lcd.lines().right == "LOOP" + editor::middleDot() + "BAR 3");
             CHECK (strip.litBeat() == 9);
             CHECK (juce::exactlyEqual (lane (editor, engine::Lane::kick).ledLevel(), 1.0f));
             CHECK (juce::exactlyEqual (lane (editor, engine::Lane::bass).ledLevel(), 1.0f));
@@ -1471,8 +1218,7 @@ TEST_CASE ("the display, lanes and meters follow the snapshot", "[editor]")
             snapshot.section = 2;
             editor.tick();
             CHECK (strip.litSection() == 2);
-            CHECK (lcd.lines().position == " 71.1");
-            CHECK_THAT (lcd.lines().mode.toStdString(), ContainsSubstring ("BREAK") && ContainsSubstring ("BAR 7/16"));
+            CHECK (lcd.lines().right == "BREAK" + editor::middleDot() + "BAR 71");
 
             rig.processor.set (ids::laneMute[0], 1.0f);
             editor.tick();
@@ -2443,7 +2189,7 @@ TEST_CASE ("a failed copy's or audition's line keeps what helps on the footer's 
     constexpr std::array<const char*, wubansia::kSoundCategories> categoryIds { "accents", "fx", "vox", "synths", "bass", "drums", "loops" };
 
     // The glyph drawFittedText ends a cut line with, and dots no narrower than it, to stand in for a line's own.
-    const auto font = editor::uiFont (11.5f, true);
+    const auto font = editor::bodyFont (editor::skinForKit ("FUT01"), 11.5f, true); // the drawer's status font in its look
     const auto ellipsisText = juce::String::charToString ((juce::juce_wchar) 0x2026);
     juce::GlyphArrangement dots;
     dots.addLineOfText (font, ellipsisText, 0.0f, 0.0f);

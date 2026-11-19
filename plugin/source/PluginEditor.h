@@ -1,7 +1,8 @@
 #pragma once
 
-// The v0.1 editor (P10): a native JUCE editor, 1120 x 700 at 100 % and zoomable, drawn as a dark
-// lit-hardware groovebox with one accent per kit. It knows the plugin only through the Controller
+// The editor (P10): a native JUCE editor, 1120 x 700 at 100 % and zoomable, wearing each kit's own look (ADR 0032:
+// night bus, mission HUD, deep glass, machine room), switched on the tick after the kit changes. It knows the plugin
+// only through the Controller
 // (Controller.h) and the parameter IDs (ParameterIds.h): its controls bind by polling on one 30 Hz
 // timer, and no parameter listener is ever registered (editor/PollingAttachment.h).
 
@@ -20,6 +21,7 @@
 #include "editor/PollingAttachment.h"
 #include "editor/SamplesPanel.h"
 #include "editor/SectionStrip.h"
+#include "editor/skin/Skin.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -54,6 +56,12 @@ namespace wubansia
 
         const editor::EditorModel& model() const noexcept { return state; }
 
+        // The looks (ADR 0032): the one the editor wears now, how many times its backdrop has been drawn, and, for
+        // tests, a control to ring as if it had the keyboard focus (nullptr: the real focus).
+        const editor::Skin& skin() const noexcept;
+        int backdropRenders() const noexcept;
+        void setFocusOverrideForTesting (juce::Component*);
+
         // For tests: whether the editor runs in Logic Pro (juce::PluginHostType, asked once when it opens).
         void setLogicHostForTesting (bool isLogic) noexcept { logicHost = isLogic; }
         bool isContentPanelShown() const noexcept { return contentPanel.isVisible(); }
@@ -61,14 +69,37 @@ namespace wubansia
         bool isPhrasesPanelShown() const noexcept { return phrasesPanel.isVisible(); }
 
     private:
-        class Backdrop : public juce::Component
+        // The face behind the controls (ADR 0032): the look's background and texture, the regions' panels and wells, and
+        // the logo with the kit's direction. Buffered: it renders again only for a new look, a new direction or a zoom.
+        class Backdrop : public juce::Component, public editor::DrawnTextSource
         {
         public:
+            Backdrop();
             void paint (juce::Graphics&) override;
+            std::vector<editor::DrawnText> drawnText() const override;
+            void setSubtitle (const juce::String& direction);
 
-            juce::Colour accent;
             juce::Rectangle<float> logo;
-            std::vector<std::pair<juce::Rectangle<float>, juce::String>> plates;
+            juce::Rectangle<float> well; // the display's
+            std::vector<juce::Rectangle<float>> panels, lanes;
+            int renders = 0;
+
+        private:
+            juce::String subtitle;
+        };
+
+        // The focus ring (ADR 0032): drawn above everything around the control that has the keyboard focus (or a test's
+        // stand-in), so every look rings every control the same way.
+        class FocusRing : public juce::Component
+        {
+        public:
+            FocusRing();
+            void paint (juce::Graphics&) override;
+            void follow (juce::Component* target);
+
+        private:
+            juce::Rectangle<float> ringArea() const;
+            juce::Component::SafePointer<juce::Component> shown;
         };
 
         void timerCallback() override { tick(); }
@@ -81,6 +112,7 @@ namespace wubansia
         void showSamplesPanel (bool show);
         void showPhrasesPanel (bool show);
         void coverFace (bool covered); // hides the lanes, A/B and FX under a drawer, or shows them again
+        void applySkin (const editor::Skin&); // a new look: every panel lays itself out again and repaints once
 
         Controller& controller;
         const bool standalone;
@@ -90,6 +122,10 @@ namespace wubansia
         editor::LookAndFeel lookAndFeel; // outlives every component below
         juce::Component content; // everything, at 1120 x 700, scaled by the zoom
         Backdrop backdrop;
+        FocusRing focusRing;
+        juce::Component::SafePointer<juce::Component> focusOverride;
+        bool scopeOn = false;
+        std::vector<float> scopeBuffer = std::vector<float> (4096);
         editor::KitPanel kitPanel;
         editor::LedButton phrasesButton { "Phrases" };
         editor::LedButton samplesButton { "Samples" };
@@ -112,6 +148,8 @@ namespace wubansia
         juce::RangedAudioParameter* playModeParameter = nullptr;
         juce::RangedAudioParameter* voxParameter = nullptr;
         std::array<juce::RangedAudioParameter*, engine::kLanes> muteParameters {};
+        std::array<juce::RangedAudioParameter*, engine::kAbSwitches> abParameters {};
+        bool skinApplied = false;
 
         editor::EditorModel state;
         juce::String contentDismissedFor; // "<kit>/<state>" the person closed the content panel for

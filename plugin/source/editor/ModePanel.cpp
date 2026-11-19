@@ -39,8 +39,18 @@ namespace wubansia::editor
             controller.setPhraseMode (phrases.getSelectedItemIndex() == 1 ? engine::PhraseMode::off : engine::PhraseMode::automatic);
         };
 
+        playMode.setRole (SegmentedChoice::Role::playMode);
+        vox.setRole (LedButton::Role::modeRow);
+        midiIn.setRole (SegmentedChoice::Role::row);
+        phrases.setRole (SegmentedChoice::Role::row);
+        int order = 1;
         for (auto* component : std::initializer_list<juce::Component*> { &playMode, &vox, &midiIn, &midiLane, &phrases })
+        {
+            component->setExplicitFocusOrder (order++);
             addAndMakeVisible (component);
+        }
+        for (auto* c : std::initializer_list<juce::SettableTooltipClient*> { &playMode, &vox, &midiIn, &phrases })
+            baseTips.add (c->getTooltip());
     }
 
     void ModePanel::update (const EditorModel& model)
@@ -72,40 +82,38 @@ namespace wubansia::editor
         if (next != hintTexts)
         {
             hintTexts = next;
-            repaint();
+            // The hints drawn beside the switches before the looks now end their tooltips (ADR 0032).
+            int i = 0;
+            for (auto* c : std::initializer_list<juce::SettableTooltipClient*> { &playMode, &vox, &midiIn, &phrases })
+            {
+                const auto& hint = hintTexts[i];
+                c->setTooltip (baseTips[i] + (hint.isNotEmpty() ? " Now: " + hint + "." : juce::String()));
+                ++i;
+            }
         }
     }
 
     void ModePanel::resized()
     {
-        auto area = getLocalBounds().reduced (10, 9);
-        constexpr auto gap = 5;
-        const auto rowHeight = (area.getHeight() - gap * 3) / 4;
-        for (auto& row : rows)
-        {
-            row = area.removeFromTop (rowHeight);
-            area.removeFromTop (gap);
-        }
+        playMode.setBounds (10, 10, 322, 40);
+        vox.setBounds (10, 58, 164, 24);
+        midiIn.setBounds (228, 58, 104, 24);
+        phrases.setBounds (80, 90, 94, 24);
+        midiLane.setBounds (182, 90, 150, 24);
+    }
 
-        const auto control = [] (juce::Rectangle<int> row) { return row.withTrimmedLeft (66); };
-        playMode.setBounds (control (rows[0]));
-        vox.setBounds (control (rows[1]).withWidth (124));
-        auto midi = control (rows[2]);
-        midiIn.setBounds (midi.removeFromLeft (124));
-        midiLane.setBounds (midi.withTrimmedLeft (6));
-        phrases.setBounds (control (rows[3]).withWidth (124));
+    std::vector<DrawnText> ModePanel::drawnText() const
+    {
+        // "Recorded", not "Phrases": the header's Phrases button is ADR 0031's; the switch keeps its name and ID.
+        const auto& skin = skinOf (*this);
+        return { fitText (skin.type.rowLabel, "MIDI in", { 182.0f, 58.0f, 44.0f, 24.0f }),
+            fitText (skin.type.rowLabel, "Recorded", { 10.0f, 90.0f, 68.0f, 24.0f }) };
     }
 
     void ModePanel::paint (juce::Graphics& g)
     {
-        const char* labels[] = { "Play", "Vox", "MIDI in", "Phrases" };
-        for (std::size_t i = 0; i < rows.size(); ++i)
-            draw::engraved (g, labels[i], rows[i].toFloat().withWidth (62.0f), juce::Justification::centredLeft, 9.5f);
-
-        // The notes beside the switches.
-        g.setFont (uiFont (10.5f));
-        g.setColour (colours::textFaint);
-        for (std::size_t i = 1; i < rows.size(); ++i)
-            g.drawText (hintTexts[(int) i], rows[i].withTrimmedLeft (66 + 132).toFloat(), juce::Justification::centredLeft, true);
+        const auto& c = skinOf (*this).colours;
+        for (const auto& t : drawnText())
+            drawText (g, t, c.label);
     }
 }

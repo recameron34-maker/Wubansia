@@ -5,18 +5,20 @@
 // in plays.
 
 #include "EditorModel.h"
+#include "editor/DrawnText.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace wubansia::editor
 {
-    class SectionStrip : public juce::Component
+    class SectionStrip : public juce::Component, public DrawnTextSource
     {
     public:
         SectionStrip();
 
         void update (const EditorModel&);
         void paint (juce::Graphics&) override;
+        std::vector<DrawnText> drawnText() const override;
 
         // For tests: the section lit now (-1 for none), and the beat lit in Loop mode (-1 for none).
         int litSection() const noexcept { return shown.section; }
@@ -31,10 +33,11 @@ namespace wubansia::editor
             int beat = -1;
             int playheadPixel = -1;
             bool playing = false;
-            juce::Colour accent;
 
             bool operator== (const State& other) const;
         };
+        std::vector<juce::Rectangle<float>> boxes() const;
+
         State shown;
     };
 }

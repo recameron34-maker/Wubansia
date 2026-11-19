@@ -6,10 +6,11 @@
 
 #include "Controls.h"
 #include "EditorModel.h"
+#include "editor/DrawnText.h"
 
 namespace wubansia::editor
 {
-    class ModePanel : public juce::Component
+    class ModePanel : public juce::Component, public DrawnTextSource
     {
     public:
         explicit ModePanel (Controller&);
@@ -17,6 +18,7 @@ namespace wubansia::editor
         void update (const EditorModel&);
         void resized() override;
         void paint (juce::Graphics&) override;
+        std::vector<DrawnText> drawnText() const override;
 
         SegmentedChoice playMode { "Play mode" }; // play_mode: its items come from the parameter
         LedButton vox { "Vox synth" }; // vox_synth
@@ -31,6 +33,6 @@ namespace wubansia::editor
         Controller& controller;
         juce::StringArray laneItems;
         juce::StringArray hintTexts { "", "", "", "" };
-        std::array<juce::Rectangle<int>, 4> rows;
+        juce::StringArray baseTips;
     };
 }

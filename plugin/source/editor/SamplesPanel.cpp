@@ -1,5 +1,6 @@
 #include "SamplesPanel.h"
 #include "ExternalDrag.h"
+#include "editor/skin/Paint.h"
 
 #include "dragout/DragFiles.h"
 #include "sounds/SampleExport.h"
@@ -242,10 +243,12 @@ namespace wubansia::editor
 
     void KitChip::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
-        const auto accent = accentForKit (kitId);
+        const auto accent = skinForKit (kitId).colours.accent;
         auto area = getLocalBounds().toFloat().reduced (1.5f);
         const auto corner = area.getHeight() * 0.5f;
-        draw::rubber (g, area, corner, isButtonDown, isMouseOver, accent, 0.0f);
+        paint::box (g, area, skinOf (*this).shape.pill, over (skinOf (*this).colours.pillOff, skinOf (*this).colours.face).brighter (isMouseOver ? 0.06f : 0.0f),
+            skinOf (*this).colours.pillOffEdge);
+        juce::ignoreUnused (corner);
         if (isButtonDown)
             area = area.translated (0.0f, 0.6f);
 
@@ -259,9 +262,9 @@ namespace wubansia::editor
         }
 
         // Its LED lights for the kit that plays.
-        draw::led (g, { area.getX() + 12.0f, area.getCentreY() }, 3.4f, accent, playing ? 1.0f : 0.0f);
-        g.setFont (uiFont (11.5f, true, 0.08f));
-        g.setColour (browsed ? colours::text : accent.interpolatedWith (colours::textDim, 0.35f));
+        paint::dot (g, { area.getX() + 12.0f, area.getCentreY() }, 3.4f, accent, playing);
+        g.setFont (bodyFont (skinOf (*this), 11.5f, true, 0.08f));
+        g.setColour (browsed ? skinOf (*this).colours.text : accent.interpolatedWith (skinOf (*this).colours.dim, 0.35f));
         g.drawText (kitId, area.withTrimmedLeft (20.0f).withTrimmedRight (5.0f), juce::Justification::centred, false);
     }
 
@@ -293,7 +296,7 @@ namespace wubansia::editor
 
     void CategoryButton::paintButton (juce::Graphics& g, bool isMouseOver, bool isButtonDown)
     {
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto enabled = isEnabled();
         const auto area = getLocalBounds().toFloat().reduced (1.0f);
 
@@ -313,11 +316,11 @@ namespace wubansia::editor
         }
 
         auto text = area.withTrimmedLeft (17.0f).withTrimmedRight (11.0f).translated (0.0f, isButtonDown ? 0.6f : 0.0f);
-        g.setFont (uiFont (13.0f, true, 0.02f));
-        g.setColour (! enabled ? colours::textFaint.withAlpha (0.6f) : (selected ? colours::text : colours::textDim));
+        g.setFont (bodyFont (skinOf (*this), 13.0f, true, 0.02f));
+        g.setColour (! enabled ? skinOf (*this).colours.faint.withAlpha (0.6f) : (selected ? skinOf (*this).colours.text : skinOf (*this).colours.dim));
         g.drawText (getButtonText(), text, juce::Justification::centredLeft, true);
-        g.setFont (uiFont (11.5f, true));
-        g.setColour (! enabled ? colours::textFaint.withAlpha (0.5f) : (selected ? accent.brighter (0.3f) : colours::textFaint));
+        g.setFont (bodyFont (skinOf (*this), 11.5f, true));
+        g.setColour (! enabled ? skinOf (*this).colours.faint.withAlpha (0.5f) : (selected ? accent.brighter (0.3f) : skinOf (*this).colours.faint));
         g.drawText (juce::String (sounds), text, juce::Justification::centredRight, false);
     }
 
@@ -345,7 +348,7 @@ namespace wubansia::editor
 
     void SoundRow::paint (juce::Graphics& g)
     {
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto& l = shown;
         const auto alpha = l.dimmed ? 0.4f : 1.0f;
         const auto area = getLocalBounds().toFloat().reduced (2.0f, 1.0f);
@@ -362,7 +365,7 @@ namespace wubansia::editor
         {
             g.setColour (juce::Colours::white.withAlpha (0.075f));
             g.fillRoundedRectangle (area, 5.0f);
-            g.setColour ((l.failed ? colours::warning : accent).withAlpha (0.4f * alpha));
+            g.setColour ((l.failed ? skinOf (*this).colours.warning : accent).withAlpha (0.4f * alpha));
             g.drawRoundedRectangle (area.reduced (0.5f), 5.0f, 1.0f);
         }
         else if (hover && ! l.dimmed)
@@ -377,14 +380,14 @@ namespace wubansia::editor
             const auto box = markArea().toFloat().withSizeKeepingCentre (9.0f, 9.0f).translated (2.0f, 0.0f);
             if (l.waiting)
             {
-                g.setColour (colours::busy);
+                g.setColour (skinOf (*this).colours.busy);
                 for (int dot = 0; dot < 3; ++dot)
                     g.fillEllipse (juce::Rectangle<float> (2.6f, 2.6f).withCentre ({ box.getX() + 1.0f + (float) dot * 3.6f, box.getCentreY() }));
             }
             else
             {
-                g.setColour (l.failed ? colours::warning : (l.playing ? accent.brighter (0.25f) : (l.selected || hover ? colours::text : colours::textDim)));
-                g.fillPath (l.playing ? draw::stopGlyph (box) : draw::playGlyph (box));
+                g.setColour (l.failed ? skinOf (*this).colours.warning : (l.playing ? accent.brighter (0.25f) : (l.selected || hover ? skinOf (*this).colours.text : skinOf (*this).colours.dim)));
+                g.fillPath (l.playing ? paint::stopGlyph (box) : paint::playGlyph (box));
             }
         }
 
@@ -392,14 +395,14 @@ namespace wubansia::editor
         auto line = getLocalBounds().toFloat().withTrimmedLeft (34.0f).withTrimmedRight (10.0f);
         const auto gripArea = line.removeFromRight (12.0f);
         if (! l.dimmed)
-            draw::grip (g, gripArea.withSizeKeepingCentre (7.0f, 11.0f), colours::textFaint.withAlpha (hover || l.selected ? 1.0f : 0.55f));
+            paint::grip (g, gripArea.withSizeKeepingCentre (7.0f, 11.0f), skinOf (*this).colours.faint.withAlpha (hover || l.selected ? 1.0f : 0.55f));
         line.removeFromRight (12.0f);
 
         const auto filesArea = line.removeFromRight (52.0f);
         if (l.files > 1)
         {
-            g.setFont (uiFont (11.0f));
-            g.setColour (colours::textFaint.brighter (0.15f).withAlpha (alpha));
+            g.setFont (bodyFont (skinOf (*this), 11.0f));
+            g.setColour (skinOf (*this).colours.faint.brighter (0.15f).withAlpha (alpha));
             g.drawText (juce::String (l.files) + " files", filesArea, juce::Justification::centredRight, false);
         }
         line.removeFromRight (10.0f);
@@ -408,24 +411,24 @@ namespace wubansia::editor
         if (l.endAligned)
         {
             const auto badge = endArea.withSizeKeepingCentre (34.0f, 15.0f);
-            g.setColour (colours::busy.withAlpha (0.13f * alpha));
+            g.setColour (skinOf (*this).colours.busy.withAlpha (0.13f * alpha));
             g.fillRoundedRectangle (badge, 3.0f);
-            g.setColour (colours::busy.withAlpha (0.6f * alpha));
+            g.setColour (skinOf (*this).colours.busy.withAlpha (0.6f * alpha));
             g.drawRoundedRectangle (badge.reduced (0.5f), 3.0f, 0.8f);
-            g.setFont (uiFont (9.0f, true, 0.12f));
-            g.setColour (colours::busy.withAlpha (alpha));
+            g.setFont (bodyFont (skinOf (*this), 9.0f, true, 0.12f));
+            g.setColour (skinOf (*this).colours.busy.withAlpha (alpha));
             g.drawText ("END", badge, juce::Justification::centred, false);
         }
         line.removeFromRight (10.0f);
 
         const auto lengthArea = line.removeFromRight (62.0f);
-        g.setFont (uiFont (12.0f));
-        g.setColour ((l.playing ? colours::text : colours::textDim).withAlpha (alpha));
+        g.setFont (bodyFont (skinOf (*this), 12.0f));
+        g.setColour ((l.playing ? skinOf (*this).colours.text : skinOf (*this).colours.dim).withAlpha (alpha));
         g.drawText (l.length, lengthArea, juce::Justification::centredRight, false);
         line.removeFromRight (12.0f);
 
-        g.setFont (uiFont (13.5f, true));
-        g.setColour ((l.failed ? colours::warning : (l.playing || l.selected ? colours::text : colours::text.withAlpha (0.85f))).withAlpha (alpha));
+        g.setFont (bodyFont (skinOf (*this), 13.5f, true));
+        g.setColour ((l.failed ? skinOf (*this).colours.warning : (l.playing || l.selected ? skinOf (*this).colours.text : skinOf (*this).colours.text.withAlpha (0.85f))).withAlpha (alpha));
         g.drawText (l.name, line, juce::Justification::centredLeft, true);
     }
 
@@ -520,7 +523,7 @@ namespace wubansia::editor
 
     void SoundDragTile::paint (juce::Graphics& g)
     {
-        const auto accent = accentOf (*this);
+        const auto accent = skinOf (*this).colours.accent;
         const auto enabled = isEnabled();
         const auto active = pressed || dragging;
         const auto area = getLocalBounds().toFloat().reduced (1.5f);
@@ -534,7 +537,7 @@ namespace wubansia::editor
         g.fillRoundedRectangle (area, corner);
 
         // A dashed border says "drag me".
-        const auto border = failed ? colours::warning : (enabled ? accent.withAlpha (hover || active ? 1.0f : 0.7f) : juce::Colour (0xff3a3f47));
+        const auto border = failed ? skinOf (*this).colours.warning : (enabled ? accent.withAlpha (hover || active ? 1.0f : 0.7f) : juce::Colour (0xff3a3f47));
         juce::Path outline;
         outline.addRoundedRectangle (area.reduced (0.5f), corner);
         juce::Path dashed;
@@ -544,14 +547,14 @@ namespace wubansia::editor
         g.fillPath (dashed);
 
         auto content = area.reduced (16.0f, 13.0f);
-        const auto lit = failed ? colours::warning : (enabled ? accent : colours::textFaint);
-        draw::grip (g, content.removeFromLeft (20.0f).withSizeKeepingCentre (10.0f, 17.0f), lit);
+        const auto lit = failed ? skinOf (*this).colours.warning : (enabled ? accent : skinOf (*this).colours.faint);
+        paint::grip (g, content.removeFromLeft (20.0f).withSizeKeepingCentre (10.0f, 17.0f), lit);
         content.removeFromLeft (14.0f);
-        draw::engraved (g, failed ? "Couldn't save it" : "Drag into your DAW", content.removeFromTop (13.0f), juce::Justification::centredLeft, 9.5f,
-            failed ? colours::warning : (enabled ? lit.interpolatedWith (colours::text, 0.25f) : colours::textFaint));
+        paint::label (g, skinOf (*this), failed ? "Couldn't save it" : "Drag into your DAW", content.removeFromTop (13.0f), juce::Justification::centredLeft, 9.5f,
+            failed ? skinOf (*this).colours.warning : (enabled ? lit.interpolatedWith (skinOf (*this).colours.text, 0.25f) : skinOf (*this).colours.faint));
         content.removeFromTop (6.0f);
-        g.setFont (uiFont (13.5f, true));
-        g.setColour (enabled ? colours::text : colours::textFaint);
+        g.setFont (bodyFont (skinOf (*this), 13.5f, true));
+        g.setColour (enabled ? skinOf (*this).colours.text : skinOf (*this).colours.faint);
         g.drawFittedText (name, content.toNearestInt(), juce::Justification::topLeft, 2, 0.9f);
     }
 
@@ -858,7 +861,7 @@ namespace wubansia::editor
         if (kit == browsed)
             return;
         browsed = kit;
-        look.setAccent (accentForKit (kit));
+        look.setSkin (skinForKit (kit)); // the browsed kit's look
         message = {};
         auditionDismissed = true;
         tileFailed = false;
@@ -878,7 +881,7 @@ namespace wubansia::editor
         wantedCategory = category;
         if (category != shownCategory)
         {
-            if (message.tone == colours::warning)
+            if (message.tone == skinOf (*this).colours.warning)
                 message = {};
             showCategory (category);
         }
@@ -1061,14 +1064,14 @@ namespace wubansia::editor
             // A short line the footer's two lines hold, its advice included; where the file was looked for goes to the
             // tooltip and the announcement.
             tileFailed = true;
-            setMessage (failedCopyLine (label, ref.kit, copy), colours::warning, 0, copy.detail.isNotEmpty() ? sentence (withoutCode (copy.detail)) : juce::String());
+            setMessage (failedCopyLine (label, ref.kit, copy), skinOf (*this).colours.warning, 0, copy.detail.isNotEmpty() ? sentence (withoutCode (copy.detail)) : juce::String());
             refresh();
             return {};
         }
         tileFailed = false;
         exportedRef = ref;
         exported = copy.file;
-        setMessage ("Saved " + copy.file.getFileName(), colours::textDim, 3000);
+        setMessage ("Saved " + copy.file.getFileName(), skinOf (*this).colours.dim, 3000);
         refresh();
         return copy.file;
     }
@@ -1100,7 +1103,7 @@ namespace wubansia::editor
         {
             setMessage ("Couldn't save drags to " + tidy (folder) + ": it's inside a content folder or one of Wubansia's own folders, "
                         "or it can't be made. Choose another folder.",
-                colours::warning);
+                skinOf (*this).colours.warning);
         }
         layOutFooter();
         refresh();
@@ -1185,10 +1188,10 @@ namespace wubansia::editor
     juce::Colour SamplesPanel::statusTone() const
     {
         if (kitMessage().isNotEmpty())
-            return colours::busy;
+            return skinOf (*this).colours.busy;
         if (message.text.isNotEmpty())
             return message.tone;
-        return audition.hostSilent && refused.problem.isEmpty() ? colours::busy : colours::warning;
+        return audition.hostSilent && refused.problem.isEmpty() ? skinOf (*this).colours.busy : skinOf (*this).colours.warning;
     }
 
     void SamplesPanel::setMessage (const juce::String& text, juce::Colour tone, int forMs, const juce::String& detail)
@@ -1507,7 +1510,7 @@ namespace wubansia::editor
         auto footer = footerArea.reduced (14, 0);
         contentButton.setBounds (footer.removeFromRight (100).withSizeKeepingCentre (100, 22));
         footer.removeFromRight (16);
-        const auto textWidth = juce::GlyphArrangement::getStringWidth (uiFont (11.5f), folderText());
+        const auto textWidth = juce::GlyphArrangement::getStringWidth (pathFont (skinOf (*this), 11.5f), folderText()); // as paint () draws it
         folderArea = footer.removeFromLeft (juce::jmin (330, static_cast<int> (std::ceil (textWidth)) + 2));
         footer.removeFromLeft (8);
         folderButton.setBounds (footer.removeFromLeft (80).withSizeKeepingCentre (80, 22));
@@ -1515,18 +1518,41 @@ namespace wubansia::editor
         statusArea = footer;
     }
 
+    std::vector<DrawnText> SamplesPanel::drawnText() const
+    {
+        // The fixed boxes' texts (ADR 0032): the detail pane's lines and the footer's folder, as paint () draws them.
+        std::vector<DrawnText> out;
+        const auto& skin = skinOf (*this);
+        const auto add = [&out] (const juce::String& text, const juce::Font& font, juce::Rectangle<float> area)
+        {
+            if (text.isEmpty())
+                return;
+            DrawnText t;
+            t.text = text;
+            t.font = font;
+            t.area = area;
+            t.styledPx = t.minPx = font.getHeightInPoints();
+            out.push_back (t);
+        };
+        if (const auto detail = juce::StringArray::fromLines (detailText()); detail.size() >= 3)
+        {
+            add (detail[1], bodyFont (skin, 12.0f), subArea.toFloat());
+            add (detail[2], bodyFont (skin, 12.0f), formatArea.toFloat());
+        }
+        // The person's folder may end in "…" past 330 px (its tooltip has it whole): its box is its own width.
+        const auto pathFontNow = pathFont (skin, 11.5f);
+        add (skin.type.rowLabel.apply ("Samples"), skin.type.rowLabel.font(), headerArea.withTrimmedLeft (16).withWidth (84).toFloat());
+        add (folderText(), pathFontNow, folderArea.toFloat().withWidth (std::max ((float) folderArea.getWidth(), juce::GlyphArrangement::getStringWidth (pathFontNow, folderText()))));
+        return out;
+    }
+
     void SamplesPanel::paint (juce::Graphics& g)
     {
         const auto bounds = getLocalBounds().toFloat();
-        const auto accent = look.accent();
+        const auto accent = look.skin().colours.accent;
 
-        // A frosted panel over the lanes, as the install panel is, rimmed in the browsed kit's colour.
-        g.setColour (juce::Colours::black.withAlpha (0.55f));
-        g.fillRoundedRectangle (bounds.translated (0.0f, 3.0f), 12.0f);
-        g.setGradientFill (juce::ColourGradient::vertical (juce::Colour (0xfb21242a), bounds.getY(), juce::Colour (0xfd16181c), bounds.getBottom()));
-        g.fillRoundedRectangle (bounds, 12.0f);
-        g.setColour (accent.withAlpha (0.5f));
-        g.drawRoundedRectangle (bounds.reduced (0.5f), 12.0f, 1.2f);
+        // The drawer's frame in the look (ADR 0032).
+        paint::drawer (g, skinOf (*this), bounds);
 
         // Hairlines between the header, rail, list, detail and footer.
         g.setColour (juce::Colours::white.withAlpha (0.07f));
@@ -1536,16 +1562,16 @@ namespace wubansia::editor
             g.fillRect (juce::Rectangle<float> ((float) x, (float) railArea.getY() + 10.0f, 1.0f, (float) railArea.getHeight() - 20.0f));
 
         // The header: SAMPLES, and the browsed kit.
-        draw::engraved (g, "Samples", headerArea.withTrimmedLeft (16).withWidth (84).toFloat(), juce::Justification::centredLeft, 11.0f, colours::textDim);
+        paint::label (g, skinOf (*this), "Samples", headerArea.withTrimmedLeft (16).withWidth (84).toFloat(), juce::Justification::centredLeft, 11.0f, skinOf (*this).colours.dim);
         if (const auto* card = cardOf (browsed))
         {
             juce::AttributedString title;
             title.setWordWrap (juce::AttributedString::none);
             title.setJustification (juce::Justification::centredLeft);
-            title.append (card->id + " ", uiFont (12.5f, true, 0.08f), accent);
-            title.append (card->title, uiFont (14.0f, true), colours::text);
-            title.append (middleDot() + juce::String (card->bpm) + " BPM" + middleDot() + shortKey (card->key) + middleDot() + card->camelot, uiFont (12.5f),
-                colours::textDim);
+            title.append (card->id + " ", bodyFont (skinOf (*this), 12.5f, true, 0.08f), accent);
+            title.append (card->title, bodyFont (skinOf (*this), 14.0f, true), skinOf (*this).colours.text);
+            title.append (middleDot() + juce::String (card->bpm) + " BPM" + middleDot() + shortKey (card->key) + middleDot() + card->camelot, bodyFont (skinOf (*this), 12.5f),
+                skinOf (*this).colours.dim);
             title.draw (g, titleArea.toFloat());
         }
 
@@ -1556,12 +1582,12 @@ namespace wubansia::editor
             for (const auto& s : *sounds)
                 for (const auto& f : s.files)
                     files.insert (f.file);
-            draw::engraved (g, juce::String (sounds->size()) + " sounds" + middleDot() + juce::String ((int) files.size()) + " files",
-                railArea.reduced (16, 12).removeFromBottom (14).toFloat(), juce::Justification::centredLeft, 8.5f, colours::textFaint);
+            paint::label (g, skinOf (*this), juce::String (sounds->size()) + " sounds" + middleDot() + juce::String ((int) files.size()) + " files",
+                railArea.reduced (16, 12).removeFromBottom (14).toFloat(), juce::Justification::centredLeft, 8.5f, skinOf (*this).colours.faint);
         }
 
         // The list's well, its rim lit while it has the keyboard.
-        draw::recess (g, wellArea.toFloat(), 8.0f);
+        paint::well (g, skinOf (*this), wellArea.toFloat(), 8.0f);
         if (list.hasKeyboardFocus (true))
         {
             g.setColour (accent.withAlpha (0.5f));
@@ -1569,8 +1595,8 @@ namespace wubansia::editor
         }
         if (rows.isEmpty())
         {
-            g.setFont (uiFont (13.0f));
-            g.setColour (colours::textFaint);
+            g.setFont (bodyFont (skinOf (*this), 13.0f));
+            g.setColour (skinOf (*this).colours.faint);
             g.drawText (browsed + " has no sounds in this build", viewport.getBounds().toFloat(), juce::Justification::centred, true);
         }
 
@@ -1578,20 +1604,20 @@ namespace wubansia::editor
         if (! bannerArea.isEmpty())
         {
             const auto box = bannerArea.toFloat();
-            g.setColour (colours::warning.withAlpha (0.08f));
+            g.setColour (skinOf (*this).colours.warning.withAlpha (0.08f));
             g.fillRoundedRectangle (box, 7.0f);
-            g.setColour (colours::warning.withAlpha (0.55f));
+            g.setColour (skinOf (*this).colours.warning.withAlpha (0.55f));
             g.drawRoundedRectangle (box.reduced (0.5f), 7.0f, 1.0f);
             auto text = box.reduced (16.0f, 12.0f);
             const auto lines = juce::StringArray::fromLines (bannerText());
             auto top = text.removeFromTop (20.0f);
-            draw::led (g, { top.getX() + 5.0f, top.getCentreY() }, 4.0f, colours::warning, 1.0f);
-            g.setFont (uiFont (15.0f, true));
-            g.setColour (colours::text);
+            paint::dot (g, { top.getX() + 5.0f, top.getCentreY() }, 4.0f, skinOf (*this).colours.warning, true);
+            g.setFont (bodyFont (skinOf (*this), 15.0f, true));
+            g.setColour (skinOf (*this).colours.text);
             g.drawText (lines[0], top.withTrimmedLeft (17.0f), juce::Justification::centredLeft, true);
             text.removeFromTop (5.0f);
             juce::AttributedString body;
-            body.append (lines.size() > 1 ? lines[1] : juce::String(), uiFont (13.0f), colours::textDim.brighter (0.2f));
+            body.append (lines.size() > 1 ? lines[1] : juce::String(), bodyFont (skinOf (*this), 13.0f), skinOf (*this).colours.dim.brighter (0.2f));
             body.setLineSpacing (1.5f);
             juce::TextLayout layout;
             layout.createLayout (body, text.getWidth());
@@ -1601,40 +1627,40 @@ namespace wubansia::editor
         // The detail pane: the name, where it comes from, File, the length and format, and the hint.
         if (const auto detail = juce::StringArray::fromLines (detailText()); detail.size() >= 3)
         {
-            g.setFont (uiFont (19.0f, true));
-            g.setColour (colours::text);
+            g.setFont (bodyFont (skinOf (*this), 19.0f, true));
+            g.setColour (skinOf (*this).colours.text);
             g.drawText (detail[0], nameArea.toFloat(), juce::Justification::centredLeft, true);
-            g.setFont (uiFont (12.0f));
-            g.setColour (colours::textDim);
+            g.setFont (bodyFont (skinOf (*this), 12.0f));
+            g.setColour (skinOf (*this).colours.dim);
             g.drawText (detail[1], subArea.toFloat(), juce::Justification::centredLeft, true);
-            draw::engraved (g, "File", fileLabelArea.toFloat(), juce::Justification::centredLeft, 9.5f);
-            g.setFont (uiFont (12.0f));
-            g.setColour (colours::textDim);
+            paint::label (g, skinOf (*this), "File", fileLabelArea.toFloat(), juce::Justification::centredLeft, 9.5f);
+            g.setFont (bodyFont (skinOf (*this), 12.0f));
+            g.setColour (skinOf (*this).colours.dim);
             g.drawText (detail[2], formatArea.toFloat(), juce::Justification::centredLeft, true);
 
             if (const auto hint = hintText(); hint.isNotEmpty())
             {
                 auto area = hintArea.toFloat();
-                draw::led (g, { area.getX() + 4.0f, area.getY() + 8.0f }, 2.6f, accent, 0.8f);
-                g.setFont (uiFont (12.5f));
-                g.setColour (colours::text.withAlpha (0.9f));
+                paint::dot (g, { area.getX() + 4.0f, area.getY() + 8.0f }, 2.6f, accent, true);
+                g.setFont (bodyFont (skinOf (*this), 12.5f));
+                g.setColour (skinOf (*this).colours.text.withAlpha (0.9f));
                 g.drawFittedText (hint, area.withTrimmedLeft (14.0f).toNearestInt(), juce::Justification::topLeft, 2, 0.9f);
             }
         }
         else
         {
-            g.setFont (uiFont (13.0f));
-            g.setColour (colours::textFaint);
+            g.setFont (bodyFont (skinOf (*this), 13.0f));
+            g.setColour (skinOf (*this).colours.faint);
             g.drawText ("Pick a sound in the list", nameArea.toFloat(), juce::Justification::centredLeft, true);
         }
 
-        // The footer: where drags go, and the status line.
-        g.setFont (uiFont (11.5f));
-        g.setColour (colours::textDim);
+        // The footer: where drags go (the person's folder: the path role, fallback on), and the status line.
+        g.setFont (pathFont (skinOf (*this), 11.5f));
+        g.setColour (skinOf (*this).colours.dim);
         g.drawText (folderText(), folderArea.toFloat(), juce::Justification::centredLeft, true);
         if (const auto status = statusText(); status.isNotEmpty())
         {
-            g.setFont (uiFont (11.5f, true));
+            g.setFont (bodyFont (skinOf (*this), 11.5f, true));
             g.setColour (statusTone());
             g.drawFittedText (status, statusArea, juce::Justification::centredLeft, 2, 0.9f);
         }
