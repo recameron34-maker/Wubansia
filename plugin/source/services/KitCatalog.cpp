@@ -99,17 +99,22 @@ namespace wubansia
 
     std::vector<SectionInfo> sectionsOf (std::span<const std::uint8_t> smf)
     {
-        std::vector<SectionInfo> sections;
         const auto file = midi::readSmf (smf);
-        if (! file.ok() || file.value.ppq == 0)
+        return file.ok() ? sectionsOf (file.value) : std::vector<SectionInfo> {};
+    }
+
+    std::vector<SectionInfo> sectionsOf (const midi::File& file)
+    {
+        std::vector<SectionInfo> sections;
+        if (file.ppq == 0)
             return sections;
 
         std::int64_t end = 0;
-        for (const auto& track : file.value.tracks)
+        for (const auto& track : file.tracks)
             end = std::max (end, track.endTick);
-        const std::int64_t bar = std::int64_t { file.value.ppq } * 4; // 4/4, the only metre the content has
+        const std::int64_t bar = std::int64_t { file.ppq } * 4; // 4/4, the only metre the content has
 
-        const auto markers = midi::markersOf (file.value);
+        const auto markers = midi::markersOf (file);
         for (std::size_t i = 0; i < markers.size(); ++i)
         {
             const auto start = markers[i].tick;
@@ -182,8 +187,19 @@ namespace wubansia
             }
             e.card = cardOf (e);
             e.card.id = juce::String::fromUTF8 (e.id.data(), static_cast<int> (e.id.size()));
-            e.sections[0] = sectionsOf (source.smfs[static_cast<std::size_t> (engine::timelineIndex (engine::PlayMode::song, engine::Variant::vox))]);
-            e.sections[1] = sectionsOf (source.smfs[static_cast<std::size_t> (engine::timelineIndex (engine::PlayMode::song, engine::Variant::novox))]);
+            // Each of the four files read once: the lanes it holds (ADR 0029) and, for the Songs, their sections.
+            for (std::size_t i = 0; i < source.smfs.size(); ++i)
+            {
+                const auto parsed = midi::readSmf (source.smfs[i]);
+                if (! parsed.ok())
+                    continue;
+                if (e.ok())
+                    e.card.fileLanes[i] = dragout::trackLanes (e.info, parsed.value);
+                if (i == static_cast<std::size_t> (engine::timelineIndex (engine::PlayMode::song, engine::Variant::vox)))
+                    e.sections[0] = sectionsOf (parsed.value);
+                else if (i == static_cast<std::size_t> (engine::timelineIndex (engine::PlayMode::song, engine::Variant::novox)))
+                    e.sections[1] = sectionsOf (parsed.value);
+            }
             for (const auto& m : source.midiFiles)
                 e.midiFiles.push_back ({ m.name, m.bytes });
             list.push_back (std::move (e));
