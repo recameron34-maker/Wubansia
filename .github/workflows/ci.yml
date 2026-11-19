@@ -191,11 +191,13 @@ jobs:
 
       - name: Install Python packages
         # The image's python3 (3.12), in a venv, wheels only: nothing compiles. The vocal chain
-        # (requirements-vocals.txt) and its models stay out of CI; the Whisper test skips itself.
+        # (requirements-vocals.txt) and its models stay out of CI; the Whisper test skips itself. The drum kit SFZ
+        # test's sfzlint and pysfizz (requirements-drumkit.txt, ADR 0030) are test-time only and ship nothing.
         run: |
           python3 --version
           python3 -m venv .venv
           .venv/bin/python -m pip install --only-binary :all: -r tools/sound/requirements.txt
+          .venv/bin/python -m pip install --only-binary :all: -r tools/content/requirements-drumkit.txt
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
 
       - name: Test
@@ -205,7 +207,10 @@ jobs:
         # pack.py and install.py on a synthetic kit, and install-macos.sh's dry runs against a fake home folder
         # (ADR 0022). Standard library only; shellcheck and unzip are on the image. pack.py --check finds every
         # sample the kit manifests list in this commit, as an LFS pointer with the manifest's SHA-256: it reads
-        # the pointers only, so it downloads nothing.
+        # the pointers only, so it downloads nothing. The drum kit SFZ test (ADR 0030) runs sfzlint and sfizz on the
+        # committed texts here, where WUBANSIA_SFZ_TOOLS makes a missing module a failure; the macOS job skips it.
+        env:
+          WUBANSIA_SFZ_TOOLS: "1"
         run: |
           shellcheck --shell=bash dist/install-macos.sh
           python3 tools/content/pack.py --check
