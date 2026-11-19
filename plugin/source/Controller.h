@@ -16,7 +16,8 @@
 // Standalone tempo, the MIDI-in mode and the phrase mode) mark the host's project as changed; the
 // content and samples folders and the drag strip's drum option (drag_drums_one_track) and For my synths
 // (drag_for_synths) are the person's, kept in their settings file, and don't. The drag strip's Part is
-// the instance's own (ADR 0029): it touches neither the disk nor the project.
+// the instance's own (ADR 0029): it touches neither the disk nor the project. The looks' pattern () (ADR 0032) parses
+// the kit's embedded MIDI, no disk, and their output scope is a lock-free tap on the audio thread's output.
 
 #include "engine.h"
 
@@ -24,11 +25,14 @@
 
 #include <array>
 #include <cstdint>
+#include <memory>
 #include <string_view>
 #include <vector>
 
 namespace wubansia
 {
+    struct PatternView; // services/PatternView.h (ADR 0032)
+
     // Where a kit's samples stand.
     enum class ContentState {
         ready,
@@ -355,5 +359,14 @@ namespace wubansia
         virtual PhraseAuditionState phraseAuditionState() const = 0;
         // Stars a phrase (or takes the star off): kept per user in settings.xml, never in project state.
         virtual void setPhraseKept (const juce::String& id, bool kept) = 0;
+
+        // The looks (ADR 0032). The current kit's notes for the display and the step grids: its Loop or Song file for mode
+        // (Off: the Loop) and variant, by lane in 16ths, read from the embedded MIDI (no disk). Null for a kit this build
+        // doesn't carry. The same object until the kit, mode or variant changes.
+        virtual std::shared_ptr<const PatternView> pattern (engine::PlayMode mode, engine::Variant variant) const = 0;
+        // The output scope, a lock-free tap after master_gain: on while machine room shows. readScope gives the newest
+        // samples (mono, 48 kHz or less), oldest first, and how many.
+        virtual void setScopeOn (bool on) = 0;
+        virtual int readScope (float* dest, int maxSamples) = 0;
     };
 }

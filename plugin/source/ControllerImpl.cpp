@@ -5,6 +5,7 @@
 #include "content/ContentLocator.h"
 #include "content/UserSettings.h"
 #include "dragout/DragFiles.h"
+#include "services/PatternView.h"
 #include "editor/EditorModel.h"
 #include "sounds/SampleExport.h"
 
@@ -556,4 +557,10 @@ namespace wubansia
         }
         return folders;
     }
+
+    std::shared_ptr<const PatternView> ControllerImpl::pattern (engine::PlayMode, engine::Variant) const { return nullptr; }
+
+    void ControllerImpl::setScopeOn (bool) {}
+
+    int ControllerImpl::readScope (float*, int) { return 0; }
 }

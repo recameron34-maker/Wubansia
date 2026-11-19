@@ -27,6 +27,7 @@
 // thread waits for the first audition.
 
 #include "ControllerImpl.h"
+#include "telemetry/OutputScope.h"
 #include "Parameters.h"
 #include "State.h"
 #include "content/ContentSource.h"
@@ -124,6 +125,7 @@ namespace wubansia
         DrumKitService& drumKitService() noexcept { return *drumKits; }
         const DrumKitService& drumKitService() const noexcept { return *drumKits; }
         const PhraseService& phraseService() const noexcept { return *phraseThread; }
+        const OutputScope& outputScope() const noexcept { return scope; } // machine room's tap (ADR 0032)
         bool phraseOffered() const noexcept { return player.phraseOffered(); } // for tests: a phrase clip waits for a block
         void setPhraseWakeProbeForTesting (std::function<void()> probe) { phraseThread->setWakeProbeForTesting (std::move (probe)); }
         StateOnly settings() const;
@@ -151,6 +153,7 @@ namespace wubansia
         std::unique_ptr<DrumKitService> drumKits; // after content, which it reads: it goes first of all
         std::unique_ptr<PhraseService> phraseThread; // the Phrases drawer's (ADR 0031): after the engine and the kit service
         std::atomic<bool> previewForPhrase { false }; // the Phrases drawer's audition turned Preview on, and nothing since off
+        OutputScope scope; // the looks' output scope (ADR 0032): pushed in processBlock while on, pulled by the editor
         ControllerImpl controllerImpl;
         InternalTransport transport;
 

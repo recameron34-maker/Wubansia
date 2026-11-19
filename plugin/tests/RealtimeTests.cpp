@@ -10,6 +10,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <cstdlib>
+#include <vector>
 #include <thread>
 
 using namespace wubansia;
@@ -127,6 +128,23 @@ TEST_CASE ("processBlock neither allocates nor frees", "[realtime]")
             REQUIRE (counts.allocations == 0);
             REQUIRE (counts.frees == 0);
         }
+    }
+
+    SECTION ("with the output scope on and nobody reading it: the ring fills, then drops (ADR 0032)")
+    {
+        plugin->controller().setScopeOn (true);
+        test::setParameter (*plugin, ParameterIds::playMode, 1.0f);
+        head.play (128.0, 0.0);
+        for (int i = 0; i < 40; ++i) // 20,480 frames: the 8192-sample ring is full after 16 blocks
+        {
+            midi.addEvent (juce::MidiMessage::noteOn (10, 36, (juce::uint8) 120), 0);
+            const auto counts = block();
+            REQUIRE (counts.allocations == 0);
+            REQUIRE (counts.frees == 0);
+        }
+        std::vector<float> scope (4096);
+        CHECK (plugin->controller().readScope (scope.data(), 4096) == 4096);
+        CHECK (block().none());
     }
 
     SECTION ("across a kit adoption")

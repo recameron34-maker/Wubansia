@@ -11,6 +11,7 @@
 #include "dragout/DragFiles.h"
 #include "helpers/fake_controller.h"
 #include "helpers/test_helpers.h"
+#include "services/PatternView.h"
 #include "sounds/SampleExport.h"
 
 #include "midi/for_synths.h"
@@ -231,6 +232,43 @@ TEST_CASE ("the snapshot: hits and peaks since the last one, voices, the mode, -
     CHECK (s.section >= 0);
     CHECK (s.section < (int) controller.sections().size());
     CHECK_THAT (s.bpm, WithinAbs (128.0, 1.0e-9));
+}
+
+TEST_CASE ("pattern () gives the play mode's file for the vox switch, the same object until one changes", "[controller][looks]")
+{
+    SyntheticPlugin plugin (twoKits ("PAT01", "PAT02"));
+    auto& controller = plugin->controller();
+
+    const auto loop = controller.pattern (engine::PlayMode::loop, engine::Variant::vox);
+    REQUIRE (loop != nullptr);
+    CHECK (loop->kit == "PAT01");
+    CHECK (loop->steps == 64);
+    CHECK (loop->mode == engine::PlayMode::loop);
+    CHECK (controller.pattern (engine::PlayMode::loop, engine::Variant::vox) == loop); // cached
+    CHECK (controller.pattern (engine::PlayMode::off, engine::Variant::vox)->steps == 64); // Off: the Loop
+
+    const auto noVox = controller.pattern (engine::PlayMode::loop, engine::Variant::novox);
+    REQUIRE (noVox != nullptr);
+    CHECK (noVox != loop);
+    CHECK (noVox->variant == engine::Variant::novox);
+
+    const auto song = controller.pattern (engine::PlayMode::song, engine::Variant::vox);
+    REQUIRE (song != nullptr);
+    CHECK (song->mode == engine::PlayMode::song);
+    CHECK (song->steps > 64);
+
+    controller.selectKit ("PAT02");
+    const auto other = controller.pattern (engine::PlayMode::loop, engine::Variant::vox);
+    REQUIRE (other != nullptr);
+    CHECK (other->kit == "PAT02");
+    CHECK (other != loop);
+
+    // The output scope reaches the processor.
+    CHECK_FALSE (plugin->outputScope().isOn());
+    controller.setScopeOn (true);
+    CHECK (plugin->outputScope().isOn());
+    controller.setScopeOn (false);
+    CHECK_FALSE (plugin->outputScope().isOn());
 }
 
 TEST_CASE ("the Song's sections, from its markers", "[controller]")
