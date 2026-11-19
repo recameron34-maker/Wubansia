@@ -101,8 +101,10 @@ namespace wubansia::editor
         int pressedSide = -1; // the side the mouse went down on: 0 A, 1 B
     };
 
-    // A choice drawn as lit segments side by side; clicking a segment picks it, and space or return
-    // steps to the next one. It's a ComboBox, so items, selection and onChange work as usual.
+    // A choice drawn as lit segments side by side; clicking a segment picks it, Return steps to the next
+    // one, and the arrows move one either way, stopping at the ends. Each tells onChange at once, so a
+    // caller that shows its own value every tick doesn't take the key back. It's a ComboBox, so items,
+    // selection and onChange work as usual.
     class SegmentedChoice : public juce::ComboBox, public ContextMenuHook
     {
     public:
@@ -113,6 +115,7 @@ namespace wubansia::editor
         void mouseUp (const juce::MouseEvent&) override {}
         void mouseDrag (const juce::MouseEvent&) override {}
         void showPopup() override;
+        bool keyPressed (const juce::KeyPress&) override;
 
         // Segments as wide as their labels need (the paint code's font, unsqueezed, kLabelPad each side) instead of
         // equal: the drag strip's Part. Room beyond that is shared equally; too little squeezes every label alike
