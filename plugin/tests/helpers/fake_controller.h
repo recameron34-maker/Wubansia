@@ -133,7 +133,15 @@ namespace wubansia::test
         // ControllerTests holds them to the real catalog's.
         static std::vector<PhraseInfo> ownPhrases (const juce::String& kit)
         {
-            const auto own = [] (const char* file, const char* name, int bars) { return PhraseInfo { file, name, "kit", PhraseOrigin::kit, bars }; };
+            const auto own = [] (const char* file, const char* name, int bars) {
+                PhraseInfo p;
+                p.id = file;
+                p.name = name;
+                p.kind = "kit";
+                p.origin = PhraseOrigin::kit;
+                p.bars = bars;
+                return p;
+            };
             if (kit == "FUT01")
                 return { own ("FUT01_Phrase_EPianoStabRhythm_2bars.mid", "E Piano Stab Rhythm", 2), own ("FUT01_Phrase_OrganRiff_4bars.mid", "Organ Riff", 4),
                     own ("FUT01_Phrase_PluckRiff_4bars.mid", "Pluck Riff", 4), own ("FUT01_Phrase_VoxSynthRiff_2bars.mid", "Vox Synth Riff", 2),

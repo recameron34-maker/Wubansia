@@ -23,6 +23,15 @@ namespace wubansia
         // Nothing else: no file is read and no thread starts until the first prepareToPlay or
         // setStateInformation (hosts and validators make instances by the dozen to scan them).
         mirrorSettings (stateOnly);
+
+        // The Phrases drawer's audition given up for a host that runs no audio: the Preview it started goes off too.
+        phraseThread->setOnGiveUp ([this] { stopPhrasePreview(); });
+    }
+
+    void PluginProcessor::stopPhrasePreview() noexcept
+    {
+        if (previewForPhrase.exchange (false, std::memory_order_acq_rel))
+            transport.setPreview (false);
     }
 
     PluginProcessor::~PluginProcessor()
@@ -295,6 +304,7 @@ namespace wubansia
             bypassed = true;
         }
         auditions.process (nullptr, 0, buffer.getNumSamples(), true); // every block: an audition offered now never plays
+        player.dropPhraseOffer(); // and a phrase offered now goes back unplayed (ADR 0031)
         lastPlaying.store (false, std::memory_order_relaxed);
     }
 

@@ -274,9 +274,14 @@ TEST_CASE ("drag-out: the kit's own MIDI, cut to the request, into the drag fold
     controller.setDragFolderForTesting (drag.folder);
     controller.setDragForSynths (false); // the kit's files as they are (For my synths has a test of its own)
 
-    const auto phrases = controller.phrases(); // the synthetic kit's own one, for the Phrases drawer
+    // The synthetic kit's own one, for the Phrases drawer, once the phrase thread has listed it (no library: no spec).
+    std::vector<PhraseInfo> phrases;
+    REQUIRE (test::waitFor ([&] { phrases = controller.phrases(); return ! phrases.empty(); }));
     REQUIRE (phrases.size() == 1);
-    CHECK (phrases[0] == PhraseInfo { "DRG01_Phrase_Lead_2bars.mid", "Lead", "kit", PhraseOrigin::kit, 2 });
+    CHECK (phrases[0].id == "DRG01_Phrase_Lead_2bars.mid");
+    CHECK (phrases[0].name == "Lead");
+    CHECK (phrases[0].origin == PhraseOrigin::kit);
+    CHECK (phrases[0].bars == 2);
 
     DragRequest loop;
     const auto file = controller.writeDragFile (loop);

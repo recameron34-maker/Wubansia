@@ -134,6 +134,7 @@ namespace wubansia
         friend class ControllerImpl;
 
         void queueFirstLoad();
+        void stopPhrasePreview() noexcept; // turns Preview off if the Phrases drawer's audition turned it on
         int contentVersionOf (const juce::String& kit) const;
         void mirrorSettings (const StateOnly& s) noexcept;
         // Changes the state-only settings under the lock and, when that changed them, tells the host the

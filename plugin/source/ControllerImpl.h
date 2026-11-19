@@ -76,7 +76,7 @@ namespace wubansia
 
         // The settings file that keeps the samples folder and the drum option: UserSettings::instance () unless a test
         // sets another.
-        void setUserSettingsForTesting (UserSettings& settings) { userSettings = &settings; }
+        void setUserSettingsForTesting (UserSettings& settings); // the phrase thread's too
 
     private:
         UserSettings& settingsFile() const;
@@ -94,6 +94,5 @@ namespace wubansia
         // The kit phrasesGeneration () last saw, and its count of kit changes (message thread, as every call).
         mutable juce::String phrasesKit;
         mutable std::uint64_t phrasesListed = 0;
-        bool phrasesShown = false; // phrases () asked the phrase thread for a list: from then on a kit change asks again
     };
 }
