@@ -728,7 +728,7 @@ TEST_CASE ("each kit's phrase spec and library are embedded and parse, and the s
     CHECK_FALSE (fut01->phraseError.empty());
 }
 
-TEST_CASE ("the embedded files are the checkout's, byte for byte: manifests and every kit-prefixed MIDI file, no region files", "[content][embedded]")
+TEST_CASE ("the embedded files are the checkout's, byte for byte: manifests and every kit-prefixed MIDI file, no region files, and the phrase files", "[content][embedded]")
 {
     const juce::File root (WUBANSIA_SOURCE_DIR);
     REQUIRE (root.getChildFile ("content/plugin").isDirectory());
@@ -769,8 +769,10 @@ TEST_CASE ("the embedded files are the checkout's, byte for byte: manifests and 
         for (const auto& name : embedded)
             CHECK (name.rfind (std::string (id) + "_", 0) == 0); // never a region file ("01_Intro_32bars.mid")
     }
+    for (const auto& source : EmbeddedContent::sources()) // and the phrase spec and library (ADR 0031), checked by their own case
+        total += source.phraseSpec.size() + source.phraseLibrary.size();
     CHECK (total == EmbeddedContent::totalBytes());
-    CHECK (total < 2'000'000); // about 1.4 MB
+    CHECK (total < 2'000'000); // about 1.5 MB
 }
 
 TEST_CASE ("the catalog of the embedded kits: cards, sections and drag-out files", "[content][embedded]")

@@ -24,6 +24,7 @@ namespace wubansia
             std::string_view id;
             std::string_view kitJson;
             std::string_view mixJson;
+            std::string_view phraseSpec, phraseLibrary; // ADR 0031
             std::vector<EmbeddedMidi> midi;
             std::array<std::span<const std::uint8_t>, 4> smfs {};
         };
@@ -80,6 +81,10 @@ namespace wubansia
                 const std::string id (kit.id);
                 if (const auto* mix = fileNamed (files, id + "_mix.json"))
                     kit.mixJson = textOf (mix->bytes);
+                if (const auto* spec = fileNamed (files, id + "_phrases.json"))
+                    kit.phraseSpec = textOf (spec->bytes);
+                if (const auto* library = fileNamed (files, id + "_phrase_library.json"))
+                    kit.phraseLibrary = textOf (library->bytes);
 
                 // Every <KIT>_*.mid, by name (files is sorted).
                 const auto prefix = id + "_";
@@ -105,6 +110,8 @@ namespace wubansia
                 source.mixJson = kit.mixJson;
                 source.smfs = kit.smfs;
                 source.midiFiles = kit.midi;
+                source.phraseSpec = kit.phraseSpec;
+                source.phraseLibrary = kit.phraseLibrary;
                 index.sources.push_back (source);
             }
             return index;
