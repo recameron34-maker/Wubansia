@@ -1127,7 +1127,8 @@ TEST_CASE ("the drag strip's Part picks what Loop and Song bring, asks the Contr
             CHECK (part.getSelectedItemIndex() == 2);
             CHECK (rig.controller.partRequests.size() == 1);
 
-            // A click on Bass, then Right: Chords is asked for at once, so the next tick doesn't take it back.
+            // A click on Bass (from All), then Right: Chords is asked for at once, so the next tick doesn't take it back.
+            clickSegment (part, 0);
             clickSegment (part, 2);
             CHECK (rig.controller.partRequests.back() == wubansia::DragPart::bass);
             CHECK (part.keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));

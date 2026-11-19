@@ -280,6 +280,11 @@ namespace wubansia
         m.phraseMode = controller.phraseMode();
         m.dragDrumsOnOneTrack = controller.dragDrumsOnOneTrack();
         m.dragForSynths = controller.dragForSynths();
+        m.dragPart = controller.dragPart();
+        m.mutedLanes = 0;
+        for (std::size_t lane = 0; lane < muteParameters.size(); ++lane)
+            if (muteParameters[lane] != nullptr && muteParameters[lane]->getValue() >= 0.5f)
+                m.mutedLanes |= 1u << lane;
         m.audition = controller.auditionState();
         m.phrasesGeneration = controller.phrasesGeneration();
 

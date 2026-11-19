@@ -91,5 +91,6 @@ namespace wubansia::editor
 
     private:
         Controller& controller;
+        juce::String partTipKit; // the kit Part's tooltip was last written for, with its labels
     };
 }

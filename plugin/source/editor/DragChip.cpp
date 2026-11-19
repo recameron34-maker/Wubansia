@@ -182,6 +182,48 @@ namespace wubansia::editor
         return (int) std::floor (title + around) + 1;
     }
 
+    namespace
+    {
+        juce::String partWord (DragPart part)
+        {
+            return juce::String (std::string (kDragPartNames[static_cast<std::size_t> (part)]));
+        }
+
+        // The kit's labels for the part's lanes, skipping lanes it lacks: "Kick, Clap, Hats, Perc".
+        juce::String partLabels (const EditorModel& model, DragPart part)
+        {
+            juce::StringArray labels;
+            for (int lane = 0; lane < engine::kLanes; ++lane)
+                if (const auto l = static_cast<engine::Lane> (lane); (dragPartLanes (part) & engine::laneBit (l)) != 0 && model.hasLane (l))
+                    labels.add (model.laneLabel (l));
+            return labels.joinIntoString (", ");
+        }
+
+        // "drums (Kick, Clap, Hats, Perc)", or the word alone where the kit has none of its lanes.
+        juce::String partWithLabels (const EditorModel& model, DragPart part, bool lowercase)
+        {
+            const auto word = lowercase ? partWord (part).toLowerCase() : partWord (part);
+            const auto labels = partLabels (model, part);
+            return labels.isEmpty() ? word : word + " (" + labels + ")";
+        }
+
+        const juce::String loopAllTip = "Drag the 4-bar loop into your DAW as MIDI: the vox switch picks the vox or no-vox file, muted "
+                                        "lanes are left out, and 1 drum track puts its drums on one track. Click to show the file.";
+        const juce::String songAllTip = "Drag the 224-bar extended mix into your DAW as MIDI, with its section markers: the vox switch "
+                                        "picks the file, muted lanes are left out, and 1 drum track puts its drums on one track. Click to "
+                                        "show the file.";
+
+        juce::String chipTip (const EditorModel& model, bool song)
+        {
+            if (model.dragPart == DragPart::all)
+                return song ? songAllTip : loopAllTip;
+            return juce::String (song ? "Drag the 224-bar extended mix's " : "Drag the 4-bar loop's ")
+                   + partWithLabels (model, model.dragPart, true) + " into your DAW as MIDI, "
+                   + (song ? "with its section markers, " : "") + "whatever you muted"
+                   + (model.dragPart == DragPart::drums ? "; 1 drum track puts them on one track" : "") + ". Click to show the file.";
+        }
+    }
+
     DragStrip::DragStrip (Controller& c)
         : loop (c, { DragWhat::loop, engine::Lane::kick, {} }, "Loop"),
           song (c, { DragWhat::song, engine::Lane::kick, {} }, "Song"),
@@ -189,11 +231,11 @@ namespace wubansia::editor
     {
         setComponentID ("drag");
         loop.setComponentID ("drag_loop");
-        loop.setTooltip ("Drag the 4-bar loop into your DAW as MIDI: the vox switch picks the vox or no-vox file, muted lanes "
-                         "are left out, and 1 drum track puts its drums on one track. Click to show the file.");
+        loop.setTooltip (loopAllTip);
+        loop.setHelpText (loopAllTip);
         song.setComponentID ("drag_song");
-        song.setTooltip ("Drag the 224-bar extended mix into your DAW as MIDI, with its section markers: the vox switch picks the "
-                         "file, muted lanes are left out, and 1 drum track puts its drums on one track. Click to show the file.");
+        song.setTooltip (songAllTip);
+        song.setHelpText (songAllTip);
         drums.setComponentID ("drag_drums");
         drums.setTooltip ("1 drum track. Lit: the Loop and Song drags bring all their drums as one track, Drums (channel 10, the same "
                           "notes), for one Drum Rack in Live or one Drum Machine Designer in Logic; every other instrument keeps its "
@@ -206,10 +248,35 @@ namespace wubansia::editor
                            "Wubansia's samples play them, for playing a drag back into Wubansia. Kept for your user, not saved in "
                            "the project. More in INSTALL.md, \"Drag MIDI into Live or Logic\".");
         synths.onClick = [this] { controller.setDragForSynths (synths.getToggleState()); };
+        part.setComponentID ("drag_part");
+        part.setTitle ("Part");
+        for (const auto word : kDragPartNames)
+            part.addItem (juce::String (std::string (word)), part.getNumItems() + 1);
+        part.setSegmentsFitLabels (true);
+        part.setSelectedItemIndex (0, juce::dontSendNotification);
+        part.onChange = [this] { controller.setDragPart (static_cast<DragPart> (juce::jlimit (0, kDragParts - 1, part.getSelectedItemIndex()))); };
         addAndMakeVisible (synths);
         addAndMakeVisible (loop);
         addAndMakeVisible (song);
+        addAndMakeVisible (part);
         addAndMakeVisible (drums);
+    }
+
+    juce::String whyNoDrag (const EditorModel& model, bool song)
+    {
+        const auto mode = song ? engine::PlayMode::song : engine::PlayMode::loop;
+        const auto lanesIn = [&] (engine::Variant v) { return model.kit.fileLanes[static_cast<std::size_t> (engine::timelineIndex (mode, v))]; };
+        const juce::String file = song ? "extended mix" : "loop";
+        if (model.dragPart != DragPart::all)
+        {
+            if (((lanesIn (engine::Variant::vox) | lanesIn (engine::Variant::novox)) & dragPartLanes (model.dragPart)) != 0)
+                return {};
+            return model.kit.id + "'s " + file + " has no " + partWithLabels (model, model.dragPart, true)
+                   + (song ? ": pick another part." : ": drag the Song, or pick another part.");
+        }
+        if ((lanesIn (model.vox ? engine::Variant::vox : engine::Variant::novox) & ~model.mutedLanes) != 0)
+            return {};
+        return "Every lane with notes in the " + file + " is muted: unmute one to drag it.";
     }
 
     void DragStrip::update (const EditorModel& model)
@@ -217,11 +284,40 @@ namespace wubansia::editor
         // The person's settings, which another instance may change too: shown as they are every tick.
         drums.setToggleState (model.dragDrumsOnOneTrack, juce::dontSendNotification);
         synths.setToggleState (model.dragForSynths, juce::dontSendNotification);
+
+        // The part is the Controller's: shown as it is, and what Loop and Song say follows it.
+        part.setSelectedItemIndex (static_cast<int> (model.dragPart), juce::dontSendNotification);
+        if (const auto key = model.kit.id + "|" + juce::StringArray (model.kit.laneLabels.data(), engine::kLanes).joinIntoString ("|");
+            key != partTipKit)
+        {
+            partTipKit = key;
+            juce::StringArray parts;
+            for (int i = 1; i < kDragParts; ++i)
+                parts.add (partWithLabels (model, static_cast<DragPart> (i), false));
+            part.setTooltip ("Part: what Loop and Song bring. All: the whole kit, muted lanes left out. Or one part, whatever you "
+                             "muted: " + parts.joinIntoString (", ") + ". Back to All when the project opens.");
+        }
+        for (auto* chip : { &loop, &song })
+        {
+            const bool isSong = chip == &song;
+            const auto why = whyNoDrag (model, isSong);
+            const auto tip = why.isNotEmpty() ? why : chipTip (model, isSong);
+            chip->setEnabled (why.isEmpty());
+            if (chip->getTooltip() != tip)
+            {
+                chip->setTooltip (tip);
+                chip->setHelpText (tip);
+            }
+            const auto title = "Drag MIDI: " + chip->label()
+                               + (model.dragPart == DragPart::all ? juce::String() : ", " + partWord (model.dragPart).toLowerCase());
+            if (chip->getTitle() != title)
+                chip->setTitle (title);
+        }
     }
 
     void DragStrip::resized()
     {
-        // The room right of 1 drum track, 572 px of the 1064, is for Part and Drum kit (ADRs 0029, 0030).
+        // The room right of 1 drum track, 164 px of the 1064 in DejaVu Sans, is for the Drum kit (ADR 0030).
         auto area = getLocalBounds().reduced (8, 5);
         area.removeFromLeft (68); // the engraved label (labelArea ())
         synths.setBounds (area.removeFromLeft (126)); // "FOR MY SYNTHS" needs 90.5 of its 92.4 px in DejaVu Sans, the widest
@@ -229,7 +325,10 @@ namespace wubansia::editor
         loop.setBounds (area.removeFromLeft (80));
         area.removeFromLeft (6);
         song.setBounds (area.removeFromLeft (80));
-        area.removeFromLeft (6);
+        area.removeFromLeft (8);
+        area.removeFromLeft (34); // the engraved "Part" (partLabelArea ())
+        part.setBounds (area.removeFromLeft (part.fitWidth (area.getHeight()))); // 364 px in DejaVu Sans, the widest
+        area.removeFromLeft (8);
         drums.setBounds (area.removeFromLeft (120));
     }
 
@@ -240,16 +339,12 @@ namespace wubansia::editor
 
     juce::Rectangle<float> DragStrip::partLabelArea() const
     {
-        return {};
-    }
-
-    juce::String whyNoDrag (const EditorModel&, bool)
-    {
-        return {};
+        return { (float) song.getRight() + 8.0f, (float) part.getY(), (float) part.getX() - (float) song.getRight() - 8.0f, (float) part.getHeight() };
     }
 
     void DragStrip::paint (juce::Graphics& g)
     {
         draw::engraved (g, "Drag MIDI", labelArea(), juce::Justification::centredLeft, 9.5f);
+        draw::engraved (g, "Part", partLabelArea(), juce::Justification::centredLeft, 9.5f);
     }
 }
