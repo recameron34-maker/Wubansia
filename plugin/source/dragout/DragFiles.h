@@ -65,6 +65,7 @@
 
 #include "Controller.h"
 
+#include "midi/smf.h"
 #include "util/result.h"
 
 #include <juce_core/juce_core.h>
@@ -92,6 +93,7 @@ namespace wubansia::dragout
         std::uint32_t mutedLanes = 0; // a bit per engine::Lane (engine::laneBit): left out of Loop and Song
         bool drumsOnOneTrack = false; // Loop and Song: the drum tracks as one track, Drums (ADR 0025)
         bool forSynths = false; // every drag: pitched tracks made for the person's own synths (ADR 0027); off here, so a bare state gives the files as they are
+        DragPart part = DragPart::all; // Loop and Song: All, or only the part's lanes (ADR 0029)
     };
 
     // A drag's file before it is written.
@@ -119,6 +121,10 @@ namespace wubansia::dragout
     // The Phrases drawer's From the kit (ADR 0031): the kit's phrase files, "<KIT>_Phrase_*.mid", then its lead line,
     // "<KIT>_Lead_*.mid", each by file name in byte order. Each drags as DragWhat::phrase.
     juce::StringArray kitPhraseFiles (std::string_view kitId, std::span<const MidiFile> files);
+
+    // Bit per engine::Lane holding a track of file (each track after the conductor, by engine::trackLane); a track no
+    // lane claims adds nothing (ADR 0029).
+    std::uint32_t trackLanes (const engine::KitInfo& kit, const midi::File& file);
 
     // The file a request drags, or why there is none. Pure: no file I/O.
     [[nodiscard]] util::Result<DragFile> makeDragFile (const engine::KitInfo& kit, std::span<const MidiFile> files,

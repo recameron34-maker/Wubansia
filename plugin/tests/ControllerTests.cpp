@@ -543,6 +543,102 @@ TEST_CASE ("drag-out: For my synths is on by default and kept in the person's se
     CHECK (bytesOf (controller.writeDragFile (loop)) == expected.value);
 }
 
+TEST_CASE ("drag-out: Part is the instance's own, All at first and never saved; Loop and Song bring only its lanes", "[controller][dragout]")
+{
+    SyntheticPlugin plugin (twoKits ("PRT01", "PRT02"));
+    DragFolder drag;
+    auto& controller = static_cast<ControllerImpl&> (plugin->controller());
+    controller.setDragFolderForTesting (drag.folder);
+    controller.setDragForSynths (false); // the kit's tracks as they are (For my synths has a test of its own)
+    const auto& syn = engine::testing::syntheticContent();
+
+    using Bytes = std::vector<std::uint8_t>;
+    const auto read = [] (const Bytes& bytes) {
+        auto r = midi::readSmf (bytes);
+        INFO (r.error);
+        REQUIRE (r.ok());
+        return r.value;
+    };
+    const auto namesOf = [&read] (const Bytes& bytes) {
+        std::vector<std::string> names;
+        for (const auto& t : read (bytes).tracks)
+            names.push_back (midi::trackName (t));
+        return names;
+    };
+    const auto conductor = namesOf (syn.smfs[0])[0];
+
+    DragRequest loop;
+    DragRequest song;
+    song.what = DragWhat::song;
+    DragRequest bassLane;
+    bassLane.what = DragWhat::lane;
+    bassLane.lane = engine::Lane::bass;
+
+    // All at first: the vox Loop file as it is.
+    CHECK (controller.dragPart() == DragPart::all);
+    CHECK (bytesOf (controller.writeDragFile (loop)) == syn.smfs[0]);
+    const auto laneAll = bytesOf (controller.writeDragFile (bassLane));
+
+    // Drums: the conductor, Kick, Snare and Hats as they are; the Song keeps its 3 markers.
+    controller.setDragPart (DragPart::drums);
+    CHECK (controller.dragPart() == DragPart::drums);
+    const auto drums = controller.writeDragFile (loop);
+    CHECK (drums.getFileName().endsWith (" - Loop Drums.mid"));
+    const auto drumBytes = bytesOf (drums);
+    CHECK (namesOf (drumBytes) == std::vector<std::string> { conductor, "Kick", "Snare", "Hats" });
+    const auto cut = read (drumBytes);
+    const auto original = read (syn.smfs[0]);
+    REQUIRE (cut.tracks.size() == 4);
+    for (std::size_t i = 0; i < cut.tracks.size(); ++i)
+        CHECK (cut.tracks[i] == original.tracks[i]);
+    const auto songDrums = controller.writeDragFile (song);
+    CHECK (songDrums.getFileName().endsWith (" - Song Drums.mid"));
+    CHECK (midi::markersOf (read (bytesOf (songDrums))).size() == 3);
+
+    // Muting the kick changes nothing: the part says what to bring.
+    test::setParameter (*plugin, ParameterIds::laneMute[0], 1.0f);
+    CHECK (bytesOf (controller.writeDragFile (loop)) == drumBytes);
+    test::setParameter (*plugin, ParameterIds::laneMute[0], 0.0f);
+
+    // With 1 drum track: the conductor and Drums.
+    controller.setDragDrumsOnOneTrack (true);
+    const auto merged = controller.writeDragFile (loop);
+    CHECK (merged.getFileName().endsWith (" - Loop Drums (1 drum track).mid"));
+    CHECK (namesOf (bytesOf (merged)) == std::vector<std::string> { conductor, "Drums" });
+    controller.setDragDrumsOnOneTrack (false);
+
+    // The vox switch off: the no-vox loop drops a stab, so its chords are the no-vox file's; the vox line, which only the
+    // vox file has, still comes.
+    test::setParameter (*plugin, ParameterIds::voxSynth, 0.0f);
+    controller.setDragPart (DragPart::chords);
+    const auto chords = controller.writeDragFile (loop);
+    CHECK (chords.getFileName().endsWith (" - Loop Chords NoVox.mid"));
+    CHECK (namesOf (bytesOf (chords)) == std::vector<std::string> { namesOf (syn.smfs[1])[0], "Chord voicing", "Chords", "Pad" });
+    controller.setDragPart (DragPart::vox);
+    const auto vox = controller.writeDragFile (loop);
+    CHECK (vox.getFileName().endsWith (" - Loop Vox.mid"));
+    CHECK (namesOf (bytesOf (vox)) == std::vector<std::string> { conductor, "Vox" });
+    test::setParameter (*plugin, ParameterIds::voxSynth, 1.0f);
+
+    // Accents: the synthetic kit has no accents lane, so the FX track alone.
+    controller.setDragPart (DragPart::accents);
+    CHECK (namesOf (bytesOf (controller.writeDragFile (loop))) == std::vector<std::string> { conductor, "FX" });
+
+    // A lane drag doesn't follow the part.
+    CHECK (bytesOf (controller.writeDragFile (bassLane)) == laneAll);
+
+    // Never saved: setting the part writes nothing to the person's settings file, and another instance starts on All.
+    const auto settingsBefore = plugin.settings->file().loadFileAsString();
+    controller.setDragPart (DragPart::bass);
+    controller.setDragPart (DragPart::drums);
+    CHECK (plugin.settings->file().loadFileAsString() == settingsBefore);
+    SyntheticPlugin other (twoKits ("PRT01", "PRT02"));
+    auto& otherController = static_cast<ControllerImpl&> (other->controller());
+    otherController.setUserSettingsForTesting (*plugin.settings);
+    CHECK (otherController.dragPart() == DragPart::all);
+    CHECK (controller.dragPart() == DragPart::drums);
+}
+
 TEST_CASE ("the chosen content folder goes to the person's settings and reloads the kit", "[controller][content]")
 {
     SyntheticContent::Options options;

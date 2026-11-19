@@ -425,6 +425,11 @@ namespace wubansia::dragout
         return out;
     }
 
+    std::uint32_t trackLanes (const engine::KitInfo&, const midi::File&)
+    {
+        return 0;
+    }
+
     util::Result<DragFile> makeDragFile (const engine::KitInfo& kit, std::span<const MidiFile> files, const DragState& state,
         const DragRequest& request)
     {

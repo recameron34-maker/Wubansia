@@ -15,7 +15,8 @@
 // or samplesFolder (), say, unless the service thread's first content check came before. The state-only settings set here (the kit, the
 // Standalone tempo, the MIDI-in mode and the phrase mode) mark the host's project as changed; the
 // content and samples folders and the drag strip's drum option (drag_drums_one_track) and For my synths
-// (drag_for_synths) are the person's, kept in their settings file, and don't.
+// (drag_for_synths) are the person's, kept in their settings file, and don't. The drag strip's Part is
+// the instance's own (ADR 0029): it touches neither the disk nor the project.
 
 #include "engine.h"
 
@@ -23,6 +24,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string_view>
 #include <vector>
 
 namespace wubansia
@@ -61,6 +63,9 @@ namespace wubansia
         std::array<juce::String, engine::kAbSwitches> abA; // the A/B labels; "" where the kit has no such switch
         std::array<juce::String, engine::kAbSwitches> abB;
         ContentStatus content;
+        // Bit per lane with a track in the kit's Loop and Song files, by engine::timelineIndex: Loop vox, Loop no-vox,
+        // Song vox, Song no-vox (ADR 0029). Every lane until the catalog knows better.
+        std::array<std::uint32_t, 4> fileLanes { 0x3FFu, 0x3FFu, 0x3FFu, 0x3FFu };
     };
 
     // A Song-mode section of the current kit.
@@ -109,6 +114,20 @@ namespace wubansia
 
         friend bool operator== (const DragRequest&, const DragRequest&) = default;
     };
+
+    // What the Loop and Song drags bring (ADR 0029): All, the whole kit as before, or one part, its lanes' tracks.
+    enum class DragPart : std::uint8_t { all, drums, bass, chords, lead, vox, accents };
+    inline constexpr int kDragParts = 7;
+
+    // The drag strip's words, in its order; a part drag's file name carries the part's (never All's).
+    inline constexpr std::array<std::string_view, kDragParts> kDragPartNames { "All", "Drums", "Bass", "Chords", "Lead", "Vox", "Accents" };
+
+    // A part's lanes, a bit per engine::Lane: every lane for All; Drums kick, snare, hats and perc; Bass, Chords, Lead and
+    // Vox their own lane; Accents the accents and FX lanes. A kit's extras go with their lane (kit.json extras[].lane).
+    constexpr std::uint32_t dragPartLanes (DragPart) noexcept
+    {
+        return (1u << engine::kLanes) - 1u;
+    }
 
     // The Phrases drawer (ADR 0031): where a phrase comes from. Part 1 lists only the kit's own.
     enum class PhraseOrigin : std::uint8_t { library, more, kit };
@@ -227,6 +246,10 @@ namespace wubansia
         // it off. Kept per user in settings.xml like the drum option, never in project state.
         virtual bool dragForSynths() const = 0;
         virtual void setDragForSynths (bool on) = 0;
+        // What the Loop and Song drags bring (ADR 0029). The instance's own, All when it starts: never in settings.xml or
+        // the project's state, so setting it doesn't mark the project changed.
+        virtual DragPart dragPart() const = 0;
+        virtual void setDragPart (DragPart part) = 0;
         // Writes the file to drag into the drag cache folder and returns it; juce::File() on failure.
         virtual juce::File writeDragFile (const DragRequest& request) = 0;
 

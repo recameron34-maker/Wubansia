@@ -45,6 +45,8 @@ namespace wubansia
         void setDragDrumsOnOneTrack (bool on) override;
         bool dragForSynths() const override;
         void setDragForSynths (bool on) override;
+        DragPart dragPart() const override;
+        void setDragPart (DragPart part) override;
         juce::File writeDragFile (const DragRequest& request) override;
 
         std::vector<SoundInfo> sounds (const juce::String& kit) const override;

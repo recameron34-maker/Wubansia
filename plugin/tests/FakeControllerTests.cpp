@@ -91,6 +91,20 @@ TEST_CASE ("the fake controller shows what a test sets and records what the edit
         CHECK (fake.synthOptionRequests.size() == 2);
     }
 
+    SECTION ("the drag strip's Part: All at first, requests recorded, Loop and Song named for it")
+    {
+        CHECK (controller.dragPart() == wubansia::DragPart::all);
+        controller.setDragPart (wubansia::DragPart::bass);
+        CHECK (controller.dragPart() == wubansia::DragPart::bass);
+        CHECK (fake.partRequests == std::vector<wubansia::DragPart> { wubansia::DragPart::bass });
+
+        wubansia::DragRequest song;
+        song.what = wubansia::DragWhat::song;
+        const auto file = controller.writeDragFile (song);
+        CHECK (file.getFileName() == "FUT01 - Song Bass.mid");
+        file.deleteFile();
+    }
+
     SECTION ("drag-out writes one file per drag")
     {
         wubansia::DragRequest request;

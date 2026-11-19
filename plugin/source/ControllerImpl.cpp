@@ -289,6 +289,15 @@ namespace wubansia
         settingsFile().setDragForSynths (on);
     }
 
+    DragPart ControllerImpl::dragPart() const
+    {
+        return DragPart::all;
+    }
+
+    void ControllerImpl::setDragPart (DragPart)
+    {
+    }
+
     juce::File ControllerImpl::writeDragFile (const DragRequest& request)
     {
         const auto* entry = entryOf (processor, processor.settings().kit);

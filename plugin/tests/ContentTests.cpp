@@ -8,6 +8,7 @@
 #include "content/EmbeddedContent.h"
 #include "content/InstalledContent.h"
 #include "content/UserSettings.h"
+#include "dragout/DragFiles.h"
 #include "services/KitCatalog.h"
 
 #include "kit/kit_builder.h"
@@ -760,6 +761,27 @@ TEST_CASE ("the catalog of the embedded kits: cards, sections and drag-out files
             CHECK (bar == 225);
         }
         CHECK (entry.midiFiles.size() == EmbeddedContent::midiFiles (entry.id).size());
+
+        // The lanes each Loop and Song file holds (ADR 0029): trackLanes of the file, by timelineIndex.
+        REQUIRE (entry.source != nullptr);
+        const auto& source = *entry.source;
+        for (std::size_t i = 0; i < 4; ++i)
+        {
+            CAPTURE (i);
+            const auto parsed = midi::readSmf (source.smfs[i]);
+            REQUIRE (parsed.ok());
+            CHECK (entry.card.fileLanes[i] == dragout::trackLanes (entry.info, parsed.value));
+            CHECK (entry.card.fileLanes[i] != 0u);
+            const bool novox = i == static_cast<std::size_t> (engine::timelineIndex (engine::PlayMode::loop, engine::Variant::novox))
+                || i == static_cast<std::size_t> (engine::timelineIndex (engine::PlayMode::song, engine::Variant::novox));
+            CHECK ((entry.card.fileLanes[i] & engine::laneBit (engine::Lane::vox)) == (novox ? 0u : engine::laneBit (engine::Lane::vox)));
+        }
+        const auto loopLanes = [&entry] (engine::Variant v) {
+            return entry.card.fileLanes[static_cast<std::size_t> (engine::timelineIndex (engine::PlayMode::loop, v))];
+        };
+        const auto noLeadOrFx = engine::laneBit (engine::Lane::lead) | engine::laneBit (engine::Lane::fx);
+        for (const auto v : { engine::Variant::vox, engine::Variant::novox })
+            CHECK ((loopLanes (v) & noLeadOrFx) == (entry.id == "FUT03" ? 0u : noLeadOrFx));
 
         // The four timelines build.
         const auto timelines = buildTimelines (entry);
